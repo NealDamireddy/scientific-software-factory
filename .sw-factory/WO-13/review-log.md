@@ -1,67 +1,29 @@
-<!--lint disable strong-marker-->
+# WO-13 review and verification
 
-# Review Log: WO-13
+## Round 1 · implementation 45011b8
 
-**Work Order:** WO-13 — Build the researcher workspace and experiment progress views
-**Initialized At (UTC):** 2026-11-14T19:27:05Z
+Three independent cross-reviews covered the change from main in coherent groups.
 
-This file records review and verification rounds. Append new rounds; do not overwrite prior rounds.
+| Review area | Result |
+| --- | --- |
+| Structured editors, revision and fixture contracts | Changes requested. The fixture accepted overlapping or duplicate sample IDs, an incomplete fourth standard, and a project concentration unit unsupported by the scientific contract. |
+| Run progress, result presentation, scientific provenance and run tests | Approved. Independent stages and backend times remain intact. Results retain actual timepoints, units, calibration, source revision, withheld values and review findings. Terminal incomplete acquisitions suppress completed results. |
+| Project/session lifecycle, security, preview guards, archive routes, delivery configuration and access tests | Approved. Scope changes unmount protected content and invalidate pending requests. Authorization errors clear records and sanitize server detail. Polling failures keep the recorded snapshot. Previews disable live operations. |
 
----
+**Verdict** CHANGES_REQUESTED.
 
-## Round 1
+## Round 2 · correction 268515c, integrated with main 582d13b at 76e9b99
 
-### Requirements Alignment
+The editor reviewer approved the corrected fixture. It now checks the combined identifier namespace and count, every standard, distinct positive levels and supported units. Browser coverage exercises duplicate and overlapping IDs, an incomplete standard and a project specifying mol/L. The existing typed live transport continues to delegate validation to the API.
 
-**Blocking:**
+| Verification on integrated branch | Result |
+| --- | --- |
+| Locked install and production export | npm ci and npm run build passed, including TypeScript and static export of /, /workspace/ and /b12/. |
+| Browser regressions | 25 Playwright tests passed against the production export. Includes 22 workspace tests and three existing archive tests. |
+| Python regressions | All 70 unittest cases passed with OS sandbox and loopback instrument enabled. An earlier run encountered an instrument lock in use. The unchanged suite passed on retry and again after integrating main. |
+| Archived scientific evidence | Both B12 releases replayed. The benchmark completed and all five EPR artifact manifests verified. |
+| Browser exploration | Inspected the seeded runs on a 1360 × 920 desktop and all three workspace tabs at 375 × 812. No horizontal page overflow or JavaScript page errors. |
 
-**Advisory:**
+The fixture and intercepted HTTP checks cover optimistic revisions, exact-digest approval, reapproval, both experiment types, unsupported fields and preserved drafts, independent progress and pending wait, withheld estimates, incomplete evidence, session/project changes, expired/unauthenticated/forbidden reads, operations and downloads, and stale/unavailable execution. Authenticated persistence across restarts, real approvals/submissions, live producer results and authorized evidence require WO-11/12. Both upstream orders were in Backlog during verification. These live checks remain pending.
 
-### Blueprint Alignment
-
-**Blocking:**
-
-**Advisory:**
-
-### Architecture And Conventions
-
-**Blocking:**
-
-**Advisory:**
-
-### Tests And Build
-
-**Commands run:**
-
-**Blocking:**
-
-**Advisory:**
-
-### User-Facing Verification
-
-**Skipped:** _yes/no_ - _reason if yes_
-
-**Evidence:**
-
-**Blocking:**
-
-**Advisory:**
-
-### Security, Privacy, And Data Safety
-
-**Skipped:** _yes/no_ - _reason if yes_
-
-**Blocking:**
-
-**Advisory:**
-
-### Round 1 Verdict
-
-- Total blocking:
-- Total advisory:
-- Files reviewed:
-- **Verdict:** _APPROVED or CHANGES_REQUESTED_
-
----
-
-<!-- Subsequent rounds: copy the structure above and increment the round number. -->
+**Verdict** APPROVED for WO-13 fixture-tested delivery.
