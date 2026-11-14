@@ -1,0 +1,573 @@
+{
+  "tested_at": "2026-11-14T19:31:03.129234+00:00",
+  "commits": {
+    "wo8": "8e47eb156ba9afb2959b1b24fe9c7f2a9700191a",
+    "wo9": "ab6ad5e39a1d6b0c97cf6f91ccbfdfb779ef9e87"
+  },
+  "merged_tree": "0f221729b6acc0abfaf58b6be099e851dd8263bd",
+  "worker": "WO-9 tests/fixtures/scientific_analysis.py",
+  "verifier": "scientific-release@5",
+  "passed": true,
+  "experiments": [
+    {
+      "experiment_type": "concentration",
+      "approved_spec_sha256": "56a6c33bc48e3701d121f4922e4aec7e5d00a24f21cc4874d5371494af6601ae",
+      "preparation": {
+        "id": "148ec9fadf93c217beb0480d0b3191d4293f040d0f3cabf777fa51a10ad418c3",
+        "mode": "generate",
+        "state": "pending"
+      },
+      "candidate_state": "candidate_ready",
+      "result_state": "released",
+      "release_id": "8a1d11042296bd92837b83c1c42d117b3dad611623fe61c9e7b6410e08b712a2",
+      "source_revision": "ae682789073b9a5f1498f20d87c30ae2ada810ba5cb608bbcc6ef825461202c7",
+      "worker_calls": 1,
+      "checks": [
+        {
+          "name": "handoff snapshot",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "supported verification contract",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "pinned context and acquisition settings",
+          "category": "acquisition settings",
+          "status": "passed"
+        },
+        {
+          "name": "candidate artifact and source digests",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "candidate worker and context",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "compiled recipe equality",
+          "category": "acquisition settings",
+          "status": "passed"
+        },
+        {
+          "name": "display contract",
+          "category": "input validation",
+          "status": "passed"
+        },
+        {
+          "name": "offline sandbox and trusted files",
+          "category": "isolation",
+          "status": "passed"
+        },
+        {
+          "name": "nonzero intercept, sample SD and identities",
+          "category": "numerical",
+          "status": "passed"
+        },
+        {
+          "name": "alternate calibration, samples and acquisition times",
+          "category": "numerical",
+          "status": "passed"
+        },
+        {
+          "name": "measurement units",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "nonfinite detector value",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "dark-corrected transmission",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "detector findings",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "nonfinite elapsed time",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "positive infinite elapsed time",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "negative infinite elapsed time",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "negative elapsed time",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "missing measurement timestamp",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "malformed measurement timestamp",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "non-UTC measurement timestamp",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "repeated replicate identity",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "nonpositive replicate identity",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "fractional replicate identity",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "above calibration range",
+          "category": "numerical",
+          "status": "passed"
+        },
+        {
+          "name": "below calibration range",
+          "category": "numerical",
+          "status": "passed"
+        },
+        {
+          "name": "wavelength compatibility",
+          "category": "settings",
+          "status": "passed"
+        },
+        {
+          "name": "path length compatibility",
+          "category": "settings",
+          "status": "passed"
+        },
+        {
+          "name": "unsupported measurement schema",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "invalid acquisition identity",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "mixed acquisition replicates",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "mixed model revisions",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "blank identity",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "instrument identity",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "profile revision",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "profile digest",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "sample identity",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "simulated provenance",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "missing measurement schema_version",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "missing measurement model_revision",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "negative detector counts",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "fractional detector counts",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "saturated detector counts",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "negative dark-corrected signals",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "negative dark-corrected signals in one replicate",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "required blank reference",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "calibration concentration units",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "distinct known standards",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "positive known standards",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "standard concentration units",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "positive fitted slope",
+          "category": "numerical",
+          "status": "passed"
+        },
+        {
+          "name": "standard blank identity",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "mixed acquisition in standard",
+          "category": "provenance",
+          "status": "passed"
+        }
+      ],
+      "sample_only_reuse": {
+        "approved_spec_sha256": "776bff961e0c408749f5bf42dc03a7488669606a3855a935b4202c924da1565a",
+        "mode": "reuse",
+        "state": "reused",
+        "release_id": "8a1d11042296bd92837b83c1c42d117b3dad611623fe61c9e7b6410e08b712a2",
+        "source_revision": "ae682789073b9a5f1498f20d87c30ae2ada810ba5cb608bbcc6ef825461202c7",
+        "worker_calls": 0
+      },
+      "passed": true
+    },
+    {
+      "experiment_type": "time_course",
+      "approved_spec_sha256": "1ba2ef6b5e1d113911084e4c7afc1102fa8914b04f0ceb9b335274dc3f9a3a6d",
+      "preparation": {
+        "id": "1becb70f90ccb6b3640a656c4e8d0d18514d91bee2e7d8c3529a455d7bac7e59",
+        "mode": "revise",
+        "state": "pending"
+      },
+      "candidate_state": "candidate_ready",
+      "result_state": "released",
+      "release_id": "3d5c44f8fd4f34ddbb73073bda3df859b2ac8f4a9395618f7f644001203be447",
+      "source_revision": "62e815c81e1800d1a090e4be04b44d6157371daec1b02c46c2007482a75235ce",
+      "worker_calls": 1,
+      "checks": [
+        {
+          "name": "handoff snapshot",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "supported verification contract",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "pinned context and acquisition settings",
+          "category": "acquisition settings",
+          "status": "passed"
+        },
+        {
+          "name": "candidate artifact and source digests",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "candidate worker and context",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "compiled recipe equality",
+          "category": "acquisition settings",
+          "status": "passed"
+        },
+        {
+          "name": "display contract",
+          "category": "input validation",
+          "status": "passed"
+        },
+        {
+          "name": "offline sandbox and trusted files",
+          "category": "isolation",
+          "status": "passed"
+        },
+        {
+          "name": "nonzero intercept, sample SD and identities",
+          "category": "numerical",
+          "status": "passed"
+        },
+        {
+          "name": "alternate calibration, samples and acquisition times",
+          "category": "numerical",
+          "status": "passed"
+        },
+        {
+          "name": "measurement units",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "nonfinite detector value",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "dark-corrected transmission",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "detector findings",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "nonfinite elapsed time",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "positive infinite elapsed time",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "negative infinite elapsed time",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "negative elapsed time",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "missing measurement timestamp",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "malformed measurement timestamp",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "non-UTC measurement timestamp",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "repeated replicate identity",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "nonpositive replicate identity",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "fractional replicate identity",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "above calibration range",
+          "category": "numerical",
+          "status": "passed"
+        },
+        {
+          "name": "below calibration range",
+          "category": "numerical",
+          "status": "passed"
+        },
+        {
+          "name": "wavelength compatibility",
+          "category": "settings",
+          "status": "passed"
+        },
+        {
+          "name": "path length compatibility",
+          "category": "settings",
+          "status": "passed"
+        },
+        {
+          "name": "unsupported measurement schema",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "invalid acquisition identity",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "mixed acquisition replicates",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "mixed model revisions",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "blank identity",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "instrument identity",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "profile revision",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "profile digest",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "sample identity",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "simulated provenance",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "missing measurement schema_version",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "missing measurement model_revision",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "negative detector counts",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "fractional detector counts",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "saturated detector counts",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "negative dark-corrected signals",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "negative dark-corrected signals in one replicate",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "required blank reference",
+          "category": "provenance",
+          "status": "passed"
+        },
+        {
+          "name": "calibration concentration units",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "positive frozen slope",
+          "category": "input-validation",
+          "status": "passed"
+        },
+        {
+          "name": "ordered calibration range",
+          "category": "input-validation",
+          "status": "passed"
+        }
+      ],
+      "sample_only_reuse": {
+        "approved_spec_sha256": "391742994f06c9be85a16a2feaf5aa7ee2e37c8383c923e386f63eb3703b823c",
+        "mode": "reuse",
+        "state": "reused",
+        "release_id": "3d5c44f8fd4f34ddbb73073bda3df859b2ac8f4a9395618f7f644001203be447",
+        "source_revision": "62e815c81e1800d1a090e4be04b44d6157371daec1b02c46c2007482a75235ce",
+        "worker_calls": 0
+      },
+      "passed": true
+    }
+  ]
+}
