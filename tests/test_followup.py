@@ -121,6 +121,7 @@ class FollowupTests(unittest.TestCase):
                 # Open for updating without performing a write if the boundary unexpectedly fails.
                 source = self.child / 'probe.py'
                 source.write_text(f"open({str(path)!r},{mode!r}).close()\nprint('{{}}')")
-                with self.assertRaisesRegex(RuntimeError, 'PermissionError'):
+                # Seatbelt denies access; bubblewrap hides the host path entirely.
+                with self.assertRaisesRegex(RuntimeError, 'PermissionError|FileNotFoundError'):
                     execute(source, json.dumps({}).encode())
                 self.assertEqual(path.read_bytes(), before)

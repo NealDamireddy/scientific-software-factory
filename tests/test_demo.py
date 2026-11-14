@@ -1,5 +1,4 @@
 import io
-import json
 from pathlib import Path
 import socket
 import subprocess
@@ -48,7 +47,7 @@ class DemoTests(unittest.TestCase):
         with socket.socket() as listener:
             listener.bind(("127.0.0.1", 0))
             listener.listen()
-            with self.assertRaises(OSError):
+            with self.assertRaisesRegex(RuntimeError, "Stop the previous presenter"):
                 demo.check_port(listener.getsockname()[1])
 
     def test_check_never_serves_or_invokes_model(self):
