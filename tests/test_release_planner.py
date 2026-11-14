@@ -1,6 +1,8 @@
 """Approval-to-worker contract and source-selection tests with a separate verifier fixture."""
 from copy import deepcopy
 import json
+import multiprocessing
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -37,6 +39,10 @@ class VerifiedRepository:
     def active(self, lab, project, kind):
         return self.current.get((lab, project, kind))
 
+    def verified_ids(self, lab, project):
+        return [release for release, (manifest, _) in self.records.items()
+                if manifest["context"]["lab"]["lab_id"] == lab and manifest["context"]["project"]["project_id"] == project]
+
     def load(self, release):
         return deepcopy(self.records[release])
 
@@ -52,13 +58,17 @@ def verify(repository, *, experiment_type, context, profile, compiled_recipe, ca
     assert experiment_type == context["experiment_type"] == candidate["experiment_type"]
     if json.loads(files["recipe.json"]) != compiled_recipe:
         return {"release_id": None, "checks": [{"passed": False, "detail": "wrong recipe"}]}
-    manifest = dict(context=context, source_revision=candidate["source_revision"], experiment_type=experiment_type,
+    manifest = dict(checks=[{"passed": True}], context=context, source_revision=candidate["source_revision"], experiment_type=experiment_type,
                     verification_contract=candidate["verification_contract"], input_schema=INPUT_SCHEMA,
                     output_schema=OUTPUT_SCHEMA)
     release = digest(canonical(manifest).encode())
     repository.records[release] = manifest, files
     repository.current[context["lab"]["lab_id"], context["project"]["project_id"], experiment_type] = release
     return {"release_id": release, "checks": [{"passed": True}]}
+
+
+def exit_worker(prompt, schema):
+    os._exit(42)
 
 
 class PlannerTests(unittest.TestCase):
@@ -147,7 +157,8 @@ class PlannerTests(unittest.TestCase):
         self.assertIn("Incompatible settings", rejected["rejections"][base["release_id"]])
         self.planner.run(rejected["id"])
         self.planner.verify(rejected["id"])
-        old_recipe = self.planner.plan(self.approvals.add(dict(self.spec, sample_ids=["new"])))
+        fresh_planner = ReleasePlanner(self.approvals, self.releases, self.path.with_name("other-tasks.sqlite"))
+        old_recipe = fresh_planner.plan(self.approvals.add(dict(self.spec, sample_ids=["new"])))
         self.assertEqual(old_recipe["release_id"], base["release_id"])
 
     def test_unsupported_and_unapproved_do_not_reach_worker(self):
@@ -168,6 +179,7 @@ class PlannerTests(unittest.TestCase):
         failed = self.open(worker=fail_worker).run(planned["id"])
         self.assertEqual((failed["state"], failed["worker_receipt"]["outcome"]), ("failed", "failed"))
         self.assertIn("worker unavailable", failed["worker_receipt"]["error"])
+        self.assertIn("fail_worker", failed["worker_receipt"]["method"])
         self.assertIsNone(failed["source_revision"])
         self.assertIsNone(failed["release_id"])
         self.assertIsNone(failed["candidate"])
@@ -175,6 +187,46 @@ class PlannerTests(unittest.TestCase):
         retry = self.planner.plan(self.pin, retry_of=failed["id"])
         self.assertEqual(self.planner.run(retry["id"])["state"], "candidate_ready")
         self.assertEqual(self.planner.get(failed["id"]), failed)
+
+    def test_terminated_worker_is_interrupted_and_requires_a_new_attempt(self):
+        plan = self.planner.plan(self.pin)
+        host = self.open(worker=exit_worker)
+        proc = multiprocessing.get_context("spawn").Process(target=host.run, args=(plan["id"],))
+        proc.start()
+        proc.join(timeout=10)
+        self.assertEqual(proc.exitcode, 42)
+        reopened = self.open()
+        old = reopened.get(plan["id"])
+        self.assertEqual(old["state"], "interrupted")
+        self.assertIsNone(old["source_revision"])
+        self.assertEqual(reopened.run(plan["id"]), old)
+        new = reopened.plan(self.pin, retry_of=old["id"])
+        self.assertEqual(reopened.run(new["id"])["state"], "candidate_ready")
+
+    def test_bad_worker_receipt_ends_attempt(self):
+        def nan_receipt(prompt, schema):
+            response, receipt = self.worker(prompt, schema)
+            return response, dict(receipt, unsafe=float("nan"))
+        plan = self.planner.plan(self.pin)
+        failed = self.open(worker=nan_receipt).run(plan["id"])
+        self.assertEqual(failed["state"], "failed")
+        self.assertEqual(failed["worker_receipt"]["method"], "fixture worker")
+        self.assertIsNone(failed["candidate"])
+
+    def test_interrupted_verification_reconciles_exact_published_release(self):
+        def crash_after_publish(repo, **kwargs):
+            self.assertEqual(self.open().get(plan["id"])["state"], "verifying")
+            verify(repo, **kwargs)
+            raise SystemExit("host stopped before saving verifier response")
+        plan = self.planner.plan(self.pin)
+        self.planner.run(plan["id"])
+        with self.assertRaises(SystemExit):
+            self.open(verifier=crash_after_publish).verify(plan["id"])
+        recovered = self.open().get(plan["id"])
+        self.assertEqual(recovered["state"], "released")
+        self.assertTrue(recovered["verification"]["recovered"])
+        self.assertEqual(recovered["release_id"], self.releases.active("lab", "p", "concentration"))
+        self.assertEqual(len(self.calls), 1)
 
     def test_candidate_retained_without_verifier_or_on_rejection(self):
         plan = self.planner.plan(self.pin)

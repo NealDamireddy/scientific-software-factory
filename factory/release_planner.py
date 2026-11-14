@@ -1,7 +1,9 @@
 """Prepare scientific applications from a persisted approval. Only the verifier publishes."""
-from contextlib import closing
+from contextlib import closing, contextmanager
 from datetime import datetime, timezone
+import fcntl
 import json
+from pathlib import Path
 import sqlite3
 
 from jsonschema import Draft202012Validator
@@ -114,25 +116,65 @@ class ReleasePlanner:
     """Local task store with injected WO-9 active/load repository and verify_release callable."""
 
     def __init__(self, specifications, releases, db_path, *, worker=invoke_worker, verifier=None):
-        self.specs, self.releases, self.path = specifications, releases, db_path
+        self.specs, self.releases, self.path = specifications, releases, Path(db_path).resolve()
         self.worker, self.verifier = worker, verifier
         with closing(sqlite3.connect(self.path)) as db:
             db.executescript("""
                 CREATE TABLE IF NOT EXISTS preparations (
                     id TEXT PRIMARY KEY, state TEXT NOT NULL, body TEXT NOT NULL);
-                CREATE TABLE IF NOT EXISTS preparation_releases (
-                    lab TEXT NOT NULL, project TEXT NOT NULL, release_id TEXT NOT NULL,
-                    PRIMARY KEY (lab, project, release_id));
             """)
 
-    def get(self, task_id):
+    def _read(self, task_id):
         with closing(sqlite3.connect(self.path)) as db:
             row = db.execute("SELECT body FROM preparations WHERE id=?", (task_id,)).fetchone()
         if row is None:
             raise KeyError("Unknown preparation")
         return json.loads(row[0])
 
-    def _save(self, task, *, previous=None, observed=()):
+    @contextmanager
+    def _attempt_claim(self, task_id):
+        # The OS drops this claim even after an abrupt host exit. Never unlock/delete
+        # another invocation's file; stable inodes prevent split claims across retries.
+        folder = Path(str(self.path) + ".attempts")
+        folder.mkdir(exist_ok=True)
+        with (folder / task_id).open("a+b") as claim:
+            try:
+                fcntl.flock(claim, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                yield False
+            else:
+                yield True
+
+    def get(self, task_id):
+        task = self._read(task_id)
+        if task["state"] in {"generating", "verifying"}:
+            with self._attempt_claim(task_id) as acquired:
+                if acquired:
+                    task = self._read(task_id)
+                    if task["state"] == "generating":
+                        task.update(state="interrupted", worker_receipt={
+                            "method": task["worker_method"], "outcome": "interrupted",
+                            "error": "Worker host exited before recording a result"})
+                        self._save(task, previous="generating")
+                    elif task["state"] == "verifying":
+                        task = self._recover_verification(task)
+        return task
+
+    def _recover_verification(self, task):
+        # Only accept immutable verification evidence for this exact preparation attempt.
+        # A fresh worker retry may produce different bytes for the same approval.
+        context = task["context"]
+        for release in self._verified_ids(context["compatibility_key"]):
+            manifest, _ = self.releases.load(release)
+            if manifest["context"] == context and manifest["source_revision"] == task["source_revision"]:
+                task.update(state="released", release_id=release,
+                            verification={"release_id": release, "checks": manifest["checks"],
+                                          "recovered": True})
+                return self._save(task, previous="verifying")
+        task.update(state="interrupted", reason="Verifier host exited without a discoverable release")
+        return self._save(task, previous="verifying")
+
+    def _save(self, task, *, previous=None):
         with closing(sqlite3.connect(self.path)) as db, db:
             values = (task["state"], canonical(task), task["id"])
             if previous is None:
@@ -142,20 +184,25 @@ class ReleasePlanner:
             elif not db.execute("UPDATE preparations SET state=?, body=? WHERE id=? AND state=?",
                                 (*values, previous)).rowcount:
                 raise ValueError("Preparation state changed; reload before retrying")
-            context = task["context"]
-            db.executemany("INSERT OR IGNORE INTO preparation_releases VALUES (?,?,?)", [
-                (context["lab"]["lab_id"], context["project"]["project_id"], release) for release in observed])
         return task
 
     def _verified_ids(self, key):
         lab, project, kind = key["lab_id"], key["project_id"], key["experiment_type"]
-        with closing(sqlite3.connect(self.path)) as db:
-            history = db.execute("""SELECT release_id FROM preparation_releases
-                                    WHERE lab=? AND project=? ORDER BY rowid DESC""", (lab, project)).fetchall()
-        # Prefer the active release for the requested experiment; also inspect earlier verified
-        # revisions and the other supported experiment when selecting a revision parent.
+        # A repository can implement its own scoped enumerator. The initial WO-9 SQLite
+        # repository supplies active/load and a path. Query only its immutable manifest IDs;
+        # load() still validates the digest and artifacts before either reuse or revision.
+        if hasattr(self.releases, "verified_ids"):
+            history = self.releases.verified_ids(lab, project)
+        else:
+            uri = Path(self.releases.path).resolve().as_uri() + "?mode=ro"
+            with closing(sqlite3.connect(uri, uri=True)) as db:
+                rows = db.execute("""SELECT digest FROM scientific_manifests
+                                     WHERE json_extract(CAST(content AS TEXT), '$.context.lab.lab_id')=?
+                                       AND json_extract(CAST(content AS TEXT), '$.context.project.project_id')=?
+                                     ORDER BY rowid DESC""", (lab, project))
+                history = [row[0] for row in rows]
         active = [self.releases.active(lab, project, k) for k in (kind, *sorted(CONTRACTS.keys() - {kind}))]
-        return list(dict.fromkeys(release for release in [*active, *(r[0] for r in history)] if release))
+        return list(dict.fromkeys(release for release in [*active, *history] if release))
 
     def plan(self, spec_digest, *, retry_of=None):
         """Plan once per approval; an explicit retry of a failed attempt gets its own receipt."""
@@ -172,7 +219,7 @@ class ReleasePlanner:
             pass
         kind = spec["experiment_type"]
         context = {name: spec[name] for name in ("lab", "project", "instrument", "experiment_type")}
-        context.update(specification_sha256=spec_digest, approval=approval,
+        context.update(specification_sha256=spec_digest, preparation_id=task_id, approval=approval,
                        calibration_sha256=spec["calibration"]["sha256"] if spec["calibration"] else None)
         task = dict(id=task_id, retry_of=retry_of, context=context, state="pending", mode="generate",
                     parent_release_id=None, release_id=None, source_revision=None,
@@ -200,12 +247,19 @@ class ReleasePlanner:
             task["rejections"][release] = reasons
             if task["parent_release_id"] is None:
                 task.update(mode="revise", parent_release_id=release)
-        return self._save(task, observed=ids)
+        return self._save(task)
 
     def run(self, task_id):
         task = self.get(task_id)
         if task["state"] != "pending":
             return task
+        with self._attempt_claim(task_id) as acquired:
+            task = self._read(task_id)
+            if not acquired or task["state"] != "pending":
+                return task
+            return self._generate(task)
+
+    def _generate(self, task):
         context = task["context"]
         spec, _ = self.specs.approved(context["specification_sha256"])
         parent = None
@@ -214,14 +268,18 @@ class ReleasePlanner:
             parent = files["analysis.py"].decode()
         prompt = _prompt(context, spec, task["compiled_recipe"], parent)
         started = datetime.now(timezone.utc).isoformat()
-        task.update(state="generating", prompt=prompt, worker_started_at=started)
+        method = ("codex exec" if self.worker is invoke_worker
+                  else getattr(self.worker, "__qualname__", type(self.worker).__qualname__))
+        task.update(state="generating", prompt=prompt, worker_started_at=started, worker_method=method)
         self._save(task, previous="pending")
         receipt = {}
         try:
             response, receipt = self.worker(prompt, WORKER_SCHEMA)
-            Draft202012Validator(WORKER_SCHEMA).validate(response)
             if not isinstance(receipt, dict) or not isinstance(receipt.get("method"), str) or not receipt["method"].strip():
                 raise ValueError("Worker did not identify its method")
+            if len(canonical(receipt).encode()) > 8192:
+                raise ValueError("Worker receipt exceeds 8192 bytes")
+            Draft202012Validator(WORKER_SCHEMA).validate(response)
             texts = {"analysis.py": response["source"], "recipe.json": canonical(response["recipe"]),
                      "views.json": canonical(response["views"])}
             files = {name: value.encode() for name, value in texts.items()}
@@ -236,8 +294,11 @@ class ReleasePlanner:
                         source_revision=source_revision, worker_receipt=receipt)
         except Exception as error:
             # The worker is an external boundary. Preserve failure without using any prior source as its output.
-            failed = dict(receipt) if isinstance(receipt, dict) else {}
-            failed.update(outcome="failed", error=str(error)[:500])
+            failed = {"method": method, "outcome": "failed", "error": str(error)[:500]}
+            if isinstance(receipt, dict):
+                for field in ("method", "model", "cli"):
+                    if isinstance(receipt.get(field), str) and receipt[field].strip():
+                        failed[field] = receipt[field][:256]
             task.update(state="failed", worker_receipt=failed)
         return self._save(task, previous="generating")
 
@@ -245,6 +306,13 @@ class ReleasePlanner:
         task = self.get(task_id)
         if task["state"] != "candidate_ready" or self.verifier is None:
             return task
+        with self._attempt_claim(task_id) as acquired:
+            task = self._read(task_id)
+            if not acquired or task["state"] != "candidate_ready":
+                return task
+            return self._verify(task)
+
+    def _verify(self, task):
         context = task["context"]
         self.specs.approved(context["specification_sha256"])
         task["state"] = "verifying"
@@ -254,15 +322,16 @@ class ReleasePlanner:
                                    context=context, profile=load_profile(), compiled_recipe=task["compiled_recipe"],
                                    candidate=task["candidate"],
                                    files={name: value.encode() for name, value in task["files"].items()})
+            canonical(report)
             task["verification"] = report
             release = report["release_id"]
             if release:
                 manifest, _ = self.releases.load(release)
-                if manifest["source_revision"] != task["candidate"]["source_revision"] or manifest["context"] != context:
+                if manifest["source_revision"] != task["source_revision"] or manifest["context"] != context:
                     raise ValueError("Verifier returned a different source or context")
                 task.update(state="released", release_id=release)
             else:
                 task["state"] = "verification_failed"
         except Exception as error:
             task.update(state="verification_failed", reason=str(error)[:500])
-        return self._save(task, previous="verifying", observed=[task["release_id"]] if task["release_id"] else ())
+        return self._save(task, previous="verifying")
