@@ -20,3 +20,9 @@ The reviewer inspected factory/b12_attempts.py, factory/lab.py, factory/followup
 The baseline explorer reproduced the three lost-reading cases and renamed sample defect on a clean export of the pinned base. baseline.txt records the outcomes. The test author created the dedicated verified-fixture suite and exercised the HTTP and sandbox boundaries. The lead implemented acquisition persistence, independently reviewed and ran the tests, fixed the retry-chain and preflight issues and exercised the HTTP handler separately. retained-attempts.txt captures this exploratory probe with sampled counts and original calibration IDs. The independent reviewer owned both review rounds.
 
 Initial restricted local execution could not start nested Seatbelt or bind loopback (23 tests, four failures and eight errors). The subsequent supported runs used both capabilities. The prior full run passed 147 tests before the final regression was added. The final-head CI checks, reviewed commit and combined-test handoff are tracked in the draft PR.
+
+## Lead verification
+
+- `python3 -m unittest discover -s tests -v` passed all 148 tests on macOS with working Seatbelt and loopback (78.487 seconds).
+- `python3 -m compileall -q factory/b12_attempts.py factory/followup.py factory/lab.py tests/test_b12_attempts.py` and `git diff --check` passed.
+- GitHub draft PR #17 contains the caller/field contract and the aggregate test handoff. Its checks are reported against the exact PR head. Combined verification remains outstanding.

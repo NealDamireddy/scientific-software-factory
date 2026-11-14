@@ -32,6 +32,6 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: 8090/wo-16-b12-attempts-5bc21526
-- Pull Request URL:
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/17
 
 The Knowledge Base Plan (9f095369-805b-4489-bc06-961275cbc2cd) supplies the frozen 550 nm calibration, blind-label and trusted collection boundaries. WO-15 defines aggregate checks. WO-19 owns request dispatch and direct analysis; WO-17 owns archive validation. Initial detached HEAD and base object verified at ae7d2f3d2f2cb98d52f7e6a5d8ffda911096bf08 before editing.
