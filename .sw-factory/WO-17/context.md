@@ -3,7 +3,7 @@
 # Work Order Entity Index: WO-17
 
 **Initialized At (UTC):** 2026-11-14T21:06:10Z
-**Current Status:** in_progress
+**Current Status:** in_review
 
 ## Work Order
 
@@ -32,6 +32,6 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: 8090/wo-17-b12-archive-consistency-dffbc3e
-- Pull Request URL:
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/15
 
 Knowledge Base Plan 9f095369-805b-4489-bc06-961275cbc2cd defines the retained v1 failure and v2 checks. WO-15 owns aggregate integration. No implementation dependency precedes lane C. WO-16 and WO-19 supply the rejected-attempt and reused-release records for aggregate checks. No shared interface edits are required.

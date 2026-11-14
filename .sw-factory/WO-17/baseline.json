@@ -44,5 +44,11 @@
       "mode": "previous completed run",
       "result_mg_l": 32.006829774391655
     }
-  ]
+  ],
+  "http_confirmation": {
+    "method": "GET",
+    "path": "/api/tasks/7b92c13361464fdea79aa5cffcab0f7d",
+    "status": 200,
+    "cases": "All five independent mutations; loopback confirmation by test delegate at pinned base."
+  }
 }
