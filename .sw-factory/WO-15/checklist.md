@@ -58,5 +58,4 @@
 - [x] Review log is complete (`review-log.md`)
 - [x] Implementation plan was followed (`implementation-plan.md`)
 - [x] All intended files are present in the working tree
-- [SKIP] Work order status updated to `in_review`
-  Skip reason: Automatic approval review rejected the transition under the earlier backlog instruction. The work order links the draft PR.
+- [x] Work order was observed In Review on follow-up. The original transition attempt was blocked; this follow-up only read its status.

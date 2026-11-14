@@ -33,6 +33,15 @@ def refit_from_standards(source):
 ''' + start)
 
 
+def substitute_nonfinite_fit(source):
+    # A plausible-looking fit suppresses the downstream arithmetic failures that
+    # would otherwise mask missing guards on an intercept or an inverted range.
+    defaults = {"slope": 0.12041199826559248, "intercept": 0.21072099696478683,
+                "low": 0.6020599913279624, "high": 1.806179973983887}
+    return replace_once(source, "(finite(calibration[key], key) for key in",
+                        f"((calibration[key] if math.isfinite(calibration[key]) else {defaults!r}[key]) for key in")
+
+
 class FrozenCalibrationPublicationTests(unittest.TestCase):
     def test_resigned_mutants_preserve_verified_time_course(self):
         data = handoff("time_course")
@@ -50,7 +59,13 @@ class FrozenCalibrationPublicationTests(unittest.TestCase):
             positive_slope = "positive infinite frozen slope"
             lower_bound = "negative infinite frozen low"
             upper_bound = "positive infinite frozen high"
+            nonfinite_checks = {
+                f"{value} frozen {field}"
+                for field in ("slope", "intercept", "low", "high")
+                for value in ("NaN", "positive infinite", "negative infinite")
+            }
             cases = (
+                ("substituted nonfinite fit", substitute_nonfinite_fit(source), nonfinite_checks),
                 ("omitted finite fit guards", omit_finite_fit_checks(source),
                  {positive_slope, lower_bound, upper_bound, "NaN frozen low", "NaN frozen high"}),
                 ("infinite slope", omit_finite_fit_checks(source, "slope == math.inf"), {positive_slope}),

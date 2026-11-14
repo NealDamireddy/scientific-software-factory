@@ -3,7 +3,7 @@
 # Work Order Entity Index: WO-15
 
 **Initialized At (UTC):** 2026-11-14T21:06:54Z
-**Current Status:** Backlog. Automatic approval review rejected In Progress and In Review, citing the earlier backlog instruction. The PR link was accepted.
+**Current Status:** In Review, verified by a read-only Factory lookup at the start of the follow-up.
 
 ## Work Order
 
@@ -31,7 +31,7 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: 8090/wo-15-frozen-calibration-e650ee81
-- Draft pull request: https://github.com/NealDamireddy/scientific-software-factory/pull/14
+- Pull request: https://github.com/NealDamireddy/scientific-software-factory/pull/14
 
 ## Baseline and dependencies
 

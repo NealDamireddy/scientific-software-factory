@@ -22,3 +22,7 @@ Approved preparation supplies a signed candidate to verify_release. The mandator
 ## Testing
 
 Run dedicated frozen-calibration and signed-publication tests, existing scientific-release and measurement-mutant regressions, specification/planner/scheduler composition, B12 tests, replay and benchmark. Run Python compile checks and git diff --check. Run with macOS Seatbelt, retaining initial sandbox denial as a failed attempt. Independent aggregate reruns belong to the WO-15–19 integration owner. WO-14 model-connected rehearsal is deferred.
+
+## Independent review follow-up
+
+Starting at f4b755d7a78c8c4d974ad6bc64f75f004b6aba12, add the previously exploratory all-twelve signed sanitizer to the publication suite. Verify the complete set of mandatory outcomes and reopen storage after rejection. Add a discoverable SQLite upgrade regression seeded by genuine @5 preparations and releases from ae7d2f3d2f2cb98d52f7e6a5d8ffda911096bf08. Replan the same stored approval with @6, reverify through the real publisher, and exercise sample-only reuse for both experiment types. The test must run offline in a shallow CI checkout. Recheck both paths under a supported sandbox, independently challenge the assertions, and monitor the existing PR's final-head CI.
