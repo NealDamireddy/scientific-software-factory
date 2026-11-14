@@ -27,3 +27,7 @@ The editor reviewer approved the corrected fixture. It now checks the combined i
 The fixture and intercepted HTTP checks cover optimistic revisions, exact-digest approval, reapproval, both experiment types, unsupported fields and preserved drafts, independent progress and pending wait, withheld estimates, incomplete evidence, session/project changes, expired/unauthenticated/forbidden reads, operations and downloads, and stale/unavailable execution. Authenticated persistence across restarts, real approvals/submissions, live producer results and authorized evidence require WO-11/12. Both upstream orders were in Backlog during verification. These live checks remain pending.
 
 **Verdict** APPROVED for WO-13 fixture-tested delivery.
+
+## Follow-up · protected specification fields
+
+Chromium reproduction confirmed a gap in WO-8 parity. The editor now presents units, validation criteria and expected outputs as read-only. New drafts derive the first two from their pinned project revision and outputs from the experiment type. Ordinary edits retain the original project pin. The fixture rejects divergent projections on save and rechecks stored records before approval and submission. Regression coverage includes forged requests, previously persisted invalid records, changing experiment type and adopting revised project criteria in a new specification.

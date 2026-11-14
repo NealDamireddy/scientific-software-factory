@@ -287,3 +287,26 @@ test("fixture rejects sample collisions, incomplete standards and unsupported pr
   await expect(alert).toContainText("mg/L");
   await expect(editor.getByRole("button", {name:"Approve revision"})).toHaveCount(0);
 });
+
+test("protected specification fields follow the pinned protocol and experiment type", async ({page}) => {
+  await openTab(page, "Specifications");
+  const editor = page.getByRole("region", {name:"Experiment specification"});
+  const outputs = editor.getByLabel("Expected outputs (one per line)");
+  const criteria = editor.getByLabel("Specification validation criteria (one per line)");
+  const units = editor.getByLabel("Result concentration unit");
+  for (const control of [outputs, criteria, units]) await expect(control).not.toBeEditable();
+  await expect(criteria).toHaveValue(/positive calibration slope/);
+  await expect(units).toHaveValue("mg/L");
+  await expect(outputs).not.toHaveValue(/timestamp/);
+  await editor.getByLabel("Experiment type").selectOption("time_course");
+  await expect(outputs).toHaveValue(/timestamp$/);
+  await openTab(page, "Lab & project");
+  const project = page.getByRole("form", {name:"Project context"});
+  await project.getByLabel("Validation criteria (one per line)").fill("Revised protocol threshold");
+  await project.getByRole("button", {name:"Save project revision"}).click();
+  await expect(project.getByRole("status")).toContainText("Saved project revision 2");
+  await openTab(page, "Specifications");
+  await expect(criteria).toHaveValue(/positive calibration slope/);
+  await editor.getByLabel("Specification project revision").selectOption("2");
+  await expect(criteria).toHaveValue("Revised protocol threshold");
+});

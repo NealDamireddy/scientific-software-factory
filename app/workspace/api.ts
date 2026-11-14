@@ -2,6 +2,11 @@
 // receives worker receipts containing credentials or simulator-private samples.
 export type Mode = "fixture" | "live";
 export type ExperimentType = "concentration" | "time_course";
+// WO-8 contract_outputs, projected for review before the first draft is saved.
+export function contractOutputs(kind: ExperimentType): string[] {
+  const fields = ["calibration_id", "sample_id", "concentration_mg_l", "replicate_sd_mg_l", "review_reason"];
+  return kind === "time_course" ? [...fields, "timestamp"] : fields;
+}
 export type Instrument = {
   lab_id: string;
   instrument_id: string;

@@ -1,7 +1,7 @@
 // Browser-local contract fixture. No method in this adapter contacts a service,
 // acquires a measurement, or evaluates scientific source.
 import demo from "../../fixtures/context/demo.json";
-import { accessError, WorkspaceError } from "./api";
+import { contractOutputs, accessError, WorkspaceError } from "./api";
 import type {
   Calibration,
   FieldErrors,
@@ -136,7 +136,7 @@ async function seed(projectId: string): Promise<Store> {
       units: demo.project.units,
       settings: demo.project.measurement_settings,
       validation_criteria: demo.project.validation_criteria,
-      outputs: ["calibration_id", "sample_id", "concentration_mg_l", "replicate_sd_mg_l", "review_reason"],
+      outputs: contractOutputs("concentration"),
     };
     const concentration = approved(await draft(base, "spec-concentration", 1), "2026-11-12T08:59:45Z");
     const course = approved(
@@ -147,7 +147,7 @@ async function seed(projectId: string): Promise<Store> {
           standards: [],
           calibration,
           schedule: { interval_s: 30, point_count: 2 },
-          outputs: [...base.outputs, "timestamp"],
+          outputs: contractOutputs("time_course"),
         },
         "spec-time-course",
         1,
@@ -193,9 +193,10 @@ function checkSamples(input: SpecInput, fields: FieldErrors) {
 
 // These checks model the editable fixture responses only. The live client
 // submits the researcher's inputs to the service for authoritative validation.
-function checkSpec(input: SpecInput, state: Snapshot) {
+function checkSpec(input: SpecInput, state: Snapshot, prior?: Specification) {
   const fields: FieldErrors = {};
-  const project = current(state.projects);
+  const project = prior ? state.projects.find(p => p.revision === prior.project.revision && p.sha256 === prior.project.sha256) : current(state.projects);
+  if (!project) throw new WorkspaceError(409, "Pinned project revision is unavailable.");
   const lab = state.labs.find(
     (item) => item.revision === project.lab_revision && item.sha256 === project.lab_sha256,
   );
@@ -264,8 +265,10 @@ function checkSpec(input: SpecInput, state: Snapshot) {
   for (const [key, unit] of Object.entries(demo.project.units) as [keyof Project["units"], string][]) {
     if (input.units[key] !== unit) fields["units." + key] = "The v1 contract requires " + unit + ".";
   }
-  if (!input.outputs.length) fields.outputs = "Confirm expected outputs.";
-  if (!input.validation_criteria.length) fields.validation_criteria = "Confirm validation criteria.";
+  if (canonical(input.outputs) !== canonical(contractOutputs(input.experiment_type)))
+    fields.outputs = "Expected outputs are defined by the experiment contract.";
+  if (canonical(input.validation_criteria) !== canonical(project.payload.validation_criteria))
+    fields.validation_criteria = "Use the validation criteria from the pinned project revision.";
   if (Object.keys(fields).length)
     throw new WorkspaceError(422, "Review the highlighted fields.", fields, "invalid_fields");
 }
@@ -350,7 +353,7 @@ export function createFixtureClient(
           (spec) => spec.specification_id === payload.specification_id,
         );
         compare(current(prior)?.revision ?? 0, expected);
-        checkSpec(payload, snapshot);
+        checkSpec(payload, snapshot, current(prior));
         const record = await draft(payload, payload.specification_id || crypto.randomUUID(), expected + 1);
         snapshot.specifications.push(record);
         return record;
@@ -362,6 +365,7 @@ export function createFixtureClient(
         );
         if (!latest || latest.sha256 !== spec.sha256 || latest.revision !== spec.revision)
           throw new WorkspaceError(409, "The specification revision changed.");
+        checkSpec(latest, snapshot, latest);
         if (latest.approval) return latest;
         if (canonical([...confirmed].sort()) !== canonical(confirmationFields(latest)))
           field("confirmation", "Confirm every scientific field on this revision.");
@@ -376,6 +380,7 @@ export function createFixtureClient(
         );
         if (!saved?.approval || saved.approval.specification_sha256 !== saved.sha256)
           field("approval", "Approve this exact specification revision.");
+        checkSpec(saved, snapshot, saved);
         const prior = submissions.find((submission) => submission.key === key);
         if (prior && prior.digest !== saved.sha256)
           throw new WorkspaceError(409, "Submission key already used for another revision.");

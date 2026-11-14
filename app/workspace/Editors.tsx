@@ -2,6 +2,7 @@
 
 import { useId, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 
+import { contractOutputs } from "./api";
 import type {
   FieldErrors,
   Instrument,
@@ -27,7 +28,7 @@ type Props = {
 type FieldProps = {
   label: string;
   value: string | number;
-  onChange: (value: string) => void;
+  onChange?: (value: string) => void;
   error?: string;
   multiline?: boolean;
   readOnly?: boolean;
@@ -44,7 +45,7 @@ function Field({ label, value, onChange, error, multiline, ...rest }: FieldProps
     value,
     "aria-invalid": Boolean(error),
     "aria-describedby": error ? id + "-error" : undefined,
-    onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(event.target.value),
+    onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange?.(event.target.value),
   };
   return (
     <div className="workspace-field">
@@ -403,9 +404,6 @@ function specForm(project?: Pin, spec?: Specification) {
     projectRevision: spec?.project.revision ?? project?.revision,
     experiment_type: spec?.experiment_type ?? "concentration",
     sample_ids: spec?.sample_ids.join("\n") ?? "",
-    outputs: spec?.outputs.join("\n") ?? "",
-    validation_criteria: spec?.validation_criteria.join("\n") ?? "",
-    units: spec?.units ?? { concentration: "", wavelength: "", path_length: "" },
     standards: (spec?.standards ?? []).map((s) => ({
       sample_id: s.sample_id,
       level: String(s.known_concentration),
@@ -445,6 +443,11 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
   const instrument = lab?.payload.instruments.find(
     (item) => item.instrument_id === project?.payload.instrument_id,
   );
+  // Reopening a saved revision must show exactly what its digest covered.
+  const reviewing = dirty ? undefined : record;
+  const outputs = reviewing?.outputs ?? contractOutputs(form.experiment_type);
+  const criteria = reviewing?.validation_criteria ?? project?.payload.validation_criteria ?? [];
+  const units = reviewing?.units ?? project?.payload.units;
   const course = form.experiment_type === "time_course";
 
   function open(spec?: Specification) {
@@ -465,23 +468,13 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
     if (!project) return;
     const protocol = project.payload;
     update({
-      units: { ...protocol.units },
       sample_ids: (protocol.sample_ids ?? []).join("\n"),
-      validation_criteria: protocol.validation_criteria.join("\n"),
       standards: course
         ? []
         : (protocol.standards ?? []).map((s) => ({
             sample_id: s.sample_id,
             level: String(s.known_concentration),
           })),
-      outputs: [
-        "calibration_id",
-        "sample_id",
-        "concentration_mg_l",
-        "replicate_sd_mg_l",
-        "review_reason",
-        ...(course ? ["timestamp"] : []),
-      ].join("\n"),
     });
   }
   async function save() {
@@ -497,9 +490,9 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
       instrument,
       experiment_type: form.experiment_type,
       sample_ids: lines(form.sample_ids),
-      units: form.units,
-      outputs: lines(form.outputs),
-      validation_criteria: lines(form.validation_criteria),
+      units: project.payload.units,
+      outputs: contractOutputs(form.experiment_type),
+      validation_criteria: project.payload.validation_criteria,
       standards: course
         ? []
         : form.standards.map((s) => ({ sample_id: s.sample_id, known_concentration: Number(s.level) })),
@@ -573,8 +566,8 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
             onChange={(value) => update({ projectRevision: Number(value) || undefined })}
             error={errors.project}
           >
-            <option value="">Select a project revision</option>
-            {snapshot.projects.map((p) => (
+            {!record && <option value="">Select a project revision</option>}
+            {snapshot.projects.filter((p) => !record || p.sha256 === record.project.sha256).map((p) => (
               <option key={p.revision} value={p.revision}>
                 {p.project_id} · revision {p.revision}
               </option>
@@ -585,7 +578,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
             value={form.experiment_type}
             error={errors.experiment_type}
             onChange={(value) =>
-              update({ experiment_type: value as SpecInput["experiment_type"], outputs: "" })
+              update({ experiment_type: value as SpecInput["experiment_type"] })
             }
           >
             <option value="concentration">Concentration</option>
@@ -632,15 +625,15 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
           <Field
             label="Expected outputs (one per line)"
             multiline
-            value={form.outputs}
-            onChange={(outputs) => update({ outputs })}
+            value={outputs.join("\n")}
+            readOnly
             error={errors.outputs}
           />
           <Field
             label="Specification validation criteria (one per line)"
             multiline
-            value={form.validation_criteria}
-            onChange={(validation_criteria) => update({ validation_criteria })}
+            value={criteria.join("\n")}
+            readOnly
             error={errors.validation_criteria}
           />
           {(["concentration", "wavelength", "path_length"] as const).map((key, i) => (
@@ -649,12 +642,13 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
               label={
                 ["Result concentration unit", "Measurement wavelength unit", "Cuvette path length unit"][i]
               }
-              value={form.units[key]}
-              onChange={(value) => update({ units: { ...form.units, [key]: value } })}
+              value={units?.[key] ?? ""}
+              readOnly
               error={errors["units." + key]}
             />
           ))}
         </div>
+        <p>To change protocol units or validation criteria, save a project revision and start a new specification from it.</p>
         {course ? (
           <Select
             label="Frozen calibration"
