@@ -63,3 +63,13 @@ Implementation commit aa8fc4d addresses both Round 3 findings. The independent c
 - Full unittest discovery passed 61/61 in 40.982 seconds. The eight re-signed candidate mutations removed one guard at a time from each experiment type, failed the named checks and left the previous active pointer, manifest and bytes intact.
 - A separate run of the B12 archive, benchmark, follow-up, lab, optics, replay and sandbox modules passed 29/29. The committed B12 bundle replay withheld the direct U-01 estimate and reproduced the twofold follow-up at 32.006829774391655 mg/L for the original vial.
 - Python compilation and Git whitespace checks passed. Scientific fixtures and temporary repositories were used throughout. WO-6/7/8 integration remains a separate handoff.
+
+## Round 5 — Six Drift Bot threads
+
+Retested the six inline findings on bb04a5a. All 61 existing tests passed under Seatbelt. A re-signed candidate that screened out NaN and negative elapsed time could still accept positive infinity, returning 5.157894736842106 mg/L or 8.25 mg/L in the two contracts. The release gate admitted that candidate in both temporary repositories.
+
+Commit 5edcc8b adds signed-infinity fixtures and identifies the verifier as scientific-release@3. The same candidate failed exactly the positive-infinity challenge in each contract, and the prior release remained active. Removing measurement unit validation failed the unit challenge. Removing settings validation failed wavelength, path length and identity checks. Removing detector, elapsed-time, timestamp and replicate guards independently continued to fail their respective challenges. The regression exercises fourteen altered candidates across the two contracts.
+
+A bad source revision or missing pinned recipe produced a complete report with 51 concentration or 47 time-course outcomes. The respective blocked counts were 44 and 40, with zero candidate executions. Fixtures derive their pins from the trusted recipe. Isolation, frozen-calibration digest and active-release preservation tests passed.
+
+Full unittest discovery passed 62/62 under macOS Seatbelt in 57.070 seconds. The B12 replay withheld U-01 and reproduced the 2× follow-up at 32.006829774391655 mg/L. Compilation and whitespace checks passed. Independent code review of the fix found no blockers. Formal PR and WO-9 re-review remain pending.
