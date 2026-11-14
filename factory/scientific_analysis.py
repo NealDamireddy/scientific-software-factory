@@ -112,7 +112,8 @@ def calibration_mismatch(calibration, recipe):
         pins["blank_id"] = recipe["blank_id"]
     for field, expected in pins.items():
         value = calibration.get(field)
-        if type(value) is not type(expected) or value != expected:
+        # WO-7 optical settings use JSON integers, including integral float spellings.
+        if value != expected or (field in OPTICAL_SETTINGS and not finite(value)):
             return f"Calibration {field} differs from the verified acquisition recipe"
     return None
 

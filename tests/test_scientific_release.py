@@ -11,7 +11,7 @@ from factory.context import ROOT, digest
 from factory.release_repository import ReleaseRepository, canonical
 from factory.scientific_analysis import analyze_release, public_input
 from factory.scientific_contract import cases, compare
-from factory.scientific_release import metrics, verify_release
+from factory.scientific_release import check_context, metrics, verify_release
 
 
 def handoff(kind):
@@ -84,6 +84,27 @@ class ReleaseTests(unittest.TestCase):
                 for row in analyze_release(repo, release, incompatible)["results"]:
                     self.assertIsNone(row["concentration_mg_l"])
                     self.assertTrue(row["review_reason"])
+
+    def test_wo7_integral_json_settings(self):
+        data = handoff("concentration")
+        recipe = data["compiled_recipe"]
+        recipe["settings"].update(replicates=3.0, wavelength_nm=650.0, path_length_mm=10.0)
+        data["files"]["recipe.json"] = canonical(recipe)
+        data["context"]["compiled_recipe_sha256"] = digest(canonical(recipe))
+        data["candidate"]["context_sha256"] = digest(canonical(data["context"]))
+        resign(data)
+        release = self.promote(data)
+
+        # A calibration and its readings may use integer spelling for the same settings.
+        integer_recipe = handoff("concentration")["compiled_recipe"]
+        _, _, payload, expected = next(cases("concentration", integer_recipe))
+        compare(analyze_release(self.repository, release, payload), expected)
+        for invalid in (True, "3", 2.5, 0, 11):
+            with self.subTest(replicates=invalid):
+                recipe["settings"]["replicates"] = invalid
+                data["context"]["compiled_recipe_sha256"] = digest(canonical(recipe))
+                with self.assertRaisesRegex(ValueError, "replicates"):
+                    check_context(data["context"], data["profile"], recipe, "concentration")
 
     def test_public_projection_excludes_private_fields(self):
         data = handoff("time_course")
