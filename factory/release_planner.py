@@ -69,8 +69,8 @@ def _compatibility(spec, recipe):
     }
 
 
-def _incompatibilities(manifest, requested):
-    previous = manifest["context"].get("compatibility_key", {})
+def compatibility_reasons(previous, requested):
+    """Compare pinned release fields; an existing capability superset may be reused."""
     reasons = []
     for name, expected in requested.items():
         if name == "capabilities":
@@ -79,6 +79,11 @@ def _incompatibilities(manifest, requested):
                 reasons.append("Missing capabilities: " + ", ".join(sorted(missing)))
         elif previous.get(name) != expected:
             reasons.append(f"Incompatible {name}")
+    return reasons
+
+
+def _incompatibilities(manifest, requested):
+    reasons = compatibility_reasons(manifest["context"].get("compatibility_key", {}), requested)
     for name in ("experiment_type", "verification_contract", "input_schema", "output_schema"):
         if manifest.get(name) != requested[name] and f"Incompatible {name}" not in reasons:
             reasons.append(f"Incompatible {name}")

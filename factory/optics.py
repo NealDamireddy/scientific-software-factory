@@ -156,19 +156,23 @@ def validate_preparation(sample_id, prep):
     return factor
 
 
+def matches_expected(actual, expected):
+    for key, value in expected.items():
+        if isinstance(value, (float, int)):
+            observed = actual.get(key)
+            if not _finite_number(observed) or not math.isclose(
+                value, observed, rel_tol=1e-7, abs_tol=1e-7
+            ):
+                return False
+        elif key not in actual or actual[key] != value:
+            return False
+    return True
+
+
 def _check_case(source, name, sample, expected):
     try:
         actual, _ = execute(source, json.dumps(sample, allow_nan=False).encode())
-        passed = True
-        for key, value in expected.items():
-            if isinstance(value, (float, int)):
-                observed = actual.get(key)
-                if not _finite_number(observed) or not math.isclose(
-                    value, observed, rel_tol=1e-7, abs_tol=1e-7
-                ):
-                    passed = False
-            elif key not in actual or actual[key] != value:
-                passed = False
+        passed = matches_expected(actual, expected)
         # Keep malformed worker output from contaminating JSON evidence.
         json.dumps(actual, allow_nan=False)
     except (ArithmeticError, OSError, TypeError, ValueError, RuntimeError) as error:
@@ -179,6 +183,11 @@ def _check_case(source, name, sample, expected):
 
 def verify_candidate(source, prepared=False):
     """Exercise unknowns spanning the range with a nonzero intercept in isolated processes."""
+    return [_check_case(source, *case) for case in verification_cases(prepared)]
+
+
+def verification_cases(prepared=False):
+    """Public inputs and expected outputs for optical-checks@1 in stable order."""
     cal = {"id": "ref-cal-v1", "slope": 0.01, "intercept": 0.02, "low": 0.05, "high": 0.26}
     fixtures = (
         ("direct-mean-and-intercept", (0.10, 0.11, 0.21), 12.0),
@@ -187,20 +196,18 @@ def verify_candidate(source, prepared=False):
         ("below-calibration", (0.02, 0.03, 0.04), None),
         ("one-replicate-outside", (0.15, 0.17, 0.27), None),
     )
-    checks = []
     for name, values, concentration in fixtures:
         sample = {"sample_id": name, "absorbances": values, "calibration": cal, "preparation": None}
         expected = {
             "sample_id": name, "calibration_id": cal["id"],
             "status": "review" if concentration is None else "ok", "concentration_mg_l": concentration,
         }
-        checks.append(_check_case(source, name, sample, expected))
+        yield name, sample, expected
     if prepared:
-        checks.extend(_verify_prepared(source, cal))
-    return checks
+        yield from _prepared_cases(cal)
 
 
-def _verify_prepared(source, cal):
+def _prepared_cases(cal):
     twofold = {"id": "P2", "parent_id": "R2", "sample_ml": 1, "final_ml": 2, "unit": "mL"}
     fourfold = {"id": "P4", "parent_id": "R4", "sample_ml": 0.5, "final_ml": 2, "unit": "mL"}
     fixtures = [
@@ -224,9 +231,7 @@ def _verify_prepared(source, cal):
     ):
         fixtures.append((f"prepared-{name}", "D2", (0.09, 0.10, 0.14), {**twofold, **changes}, review))
 
-    checks = []
     for name, child, values, preparation, output in fixtures:
         sample = {"sample_id": child, "absorbances": values, "calibration": cal, "preparation": preparation}
         expected = {"sample_id": child, "calibration_id": cal["id"], **output}
-        checks.append(_check_case(source, name, sample, expected))
-    return checks
+        yield name, sample, expected
