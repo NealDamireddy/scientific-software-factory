@@ -1,0 +1,48 @@
+{
+  "base": "ae7d2f3d2f2cb98d52f7e6a5d8ffda911096bf08",
+  "entry": "Lab(store, archive=bundle, allow_generation=False).task(followup_id)",
+  "observations": [
+    {
+      "mutation": "saved result",
+      "exposed": true,
+      "status": "verified",
+      "mode": "previous completed run",
+      "result_mg_l": 999
+    },
+    {
+      "mutation": "unrelated parent",
+      "exposed": true,
+      "status": "verified",
+      "mode": "previous completed run",
+      "result_mg_l": 32.006829774391655
+    },
+    {
+      "mutation": "approved factor",
+      "exposed": true,
+      "status": "verified",
+      "mode": "previous completed run",
+      "result_mg_l": 32.006829774391655
+    },
+    {
+      "mutation": "missing approval",
+      "exposed": true,
+      "status": "verified",
+      "mode": "previous completed run",
+      "result_mg_l": 32.006829774391655
+    },
+    {
+      "mutation": "empty checks",
+      "exposed": true,
+      "status": "verified",
+      "mode": "previous completed run",
+      "result_mg_l": 32.006829774391655
+    },
+    {
+      "mutation": "positive control",
+      "exposed": true,
+      "status": "verified",
+      "mode": "previous completed run",
+      "result_mg_l": 32.006829774391655
+    }
+  ]
+}
