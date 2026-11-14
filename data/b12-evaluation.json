@@ -1,0 +1,30 @@
+{
+  "profile": "b12-held-out@1",
+  "panel": {
+    "noise_sd_counts": 8,
+    "target_mae_mg_l": 1.0,
+    "samples": [
+      {"id": "panel-A", "seed": 671451, "prepared_mg_l": 8},
+      {"id": "panel-B", "seed": 804862, "prepared_mg_l": 12},
+      {"id": "panel-C", "seed": 938273, "prepared_mg_l": 18},
+      {"id": "panel-D", "seed": 161684, "prepared_mg_l": 22}
+    ]
+  },
+  "published": {
+    "doi": "10.1016/j.ohx.2020.e00108",
+    "table_url": "https://www.hardware-x.com/article/S246806722030016X/pdf#page=9",
+    "citation": "Laganovska et al. (2020), HardwareX 7, e00108, Table 1, Com column.",
+    "instrument": "Shimadzu UVMini1240",
+    "wavelength_nm": 550,
+    "input": "Published mean absorbance",
+    "label_unit": "ppm",
+    "samples": [
+      {"id": "table1-row1", "mean_absorbance": 0.033, "prepared_ppm": 3},
+      {"id": "table1-row2", "mean_absorbance": 0.062, "prepared_ppm": 5},
+      {"id": "table1-row3", "mean_absorbance": 0.089, "prepared_ppm": 10},
+      {"id": "table1-row4", "mean_absorbance": 0.119, "prepared_ppm": 15},
+      {"id": "table1-row5", "mean_absorbance": 0.173, "prepared_ppm": 20},
+      {"id": "table1-row6", "mean_absorbance": 0.200, "prepared_ppm": 24}
+    ]
+  }
+}
