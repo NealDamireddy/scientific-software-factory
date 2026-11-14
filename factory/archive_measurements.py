@@ -24,6 +24,19 @@ def require(condition, field):
         raise ValueError(field)
 
 
+def same_json(left, right):
+    """Compare retained JSON, allowing equivalent numbers but keeping booleans distinct."""
+    if isinstance(left, dict):
+        return (isinstance(right, dict) and left.keys() == right.keys()
+                and all(same_json(value, right[key]) for key, value in left.items()))
+    if isinstance(left, list):
+        return (isinstance(right, list) and len(left) == len(right)
+                and all(same_json(a, b) for a, b in zip(left, right)))
+    if isinstance(left, bool) or isinstance(right, bool):
+        return left is right
+    return left == right
+
+
 def text_field(data, key):
     value = data[key]
     require(isinstance(value, str) and value.strip(), f"{key} must contain text")
@@ -44,6 +57,7 @@ def _reading_evidence(raw, cal, sample, prep, recipe):
     require(isinstance(raw, list) and len(raw) == recipe["replicates"], "raw needs three readings")
     for i, reading in enumerate(raw):
         with record(f"raw[{i}]"):
+            require(type(reading["replicate"]) is int, "replicate must be an integer")
             timestamp(reading, "timestamp")
             settings = reading["settings"]
             for key, expected in (("adc_max", ADC_MAX), ("dark_offset_counts", DARK_COUNTS),
@@ -86,7 +100,7 @@ def _check_approval(approval, proposal, original, cal, direct_id, factor):
     # name both permitted factors and bind the decision to the finding.
     require(approval["factor"] in (2, 4) and approval["factor"] in proposal.get("factors", [2]),
             "factor is outside the proposed protocol")
-    if approval["factor"] != 2 or "parent_sample_id" in approval or "evidence" in approval:
+    if "factors" in proposal or "parent_sample_id" in approval or "evidence" in approval:
         require(approval["parent_sample_id"] == original, "parent_sample_id differs from the direct vial")
         evidence = approval["evidence"]
         with record("evidence"):
@@ -106,12 +120,46 @@ def _check_finding(saved, observed):
     _match_absorbances(saved["absorbances"], observed["absorbances"], "finding.absorbances")
 
 
+def _completed_attempt(task, measurement, cal, sample, prep, recipe):
+    # Packages produced before acquisition journaling have no attempt_id.
+    if "acquisition_attempts" not in task and "attempt_id" not in measurement:
+        allowed = (None, "collected") if prep is None else (None,)
+        require(task.get("acquisition_status") in allowed, "acquisition_status lacks a completed attempt")
+        return
+    attempts = task["acquisition_attempts"]
+    require(isinstance(attempts, list) and attempts, "acquisition_attempts is empty")
+    current = attempts[-1]
+    require(task["acquisition_status"] == current["status"] == "completed" and "failure" not in current,
+            "acquisition_attempts status must be completed")
+    identifier = text_field(current, "id")
+    require(measurement["attempt_id"] == identifier, "attempt_id differs from completed acquisition")
+    seen = set()
+    previous_id = None
+    for index, attempt in enumerate(attempts):
+        with record(f"acquisition_attempts[{index}]"):
+            attempt_id = text_field(attempt, "id")
+            require(attempt_id not in seen, "duplicate id")
+            require(attempt.get("retry_of") == previous_id, "retry_of does not identify preceding attempt")
+            if index < len(attempts) - 1:
+                require(attempt["status"] in ("rejected", "interrupted"), "prior attempt has no retryable outcome")
+            seen.add(attempt_id)
+            previous_id = attempt_id
+    fields = {"sample_id": sample, "preparation": prep, "calibration_id": cal["id"],
+              "revision": task["revision"], "settings": recipe, "raw": measurement["raw"],
+              "finding": measurement["finding"]}
+    for key, expected in fields.items():
+        require(same_json(current[key], expected), f"acquisition_attempts completed {key} differs from measurement")
+    require(prep is None or current["finding"]["in_range"] is True,
+            "acquisition_attempts completed follow-up is outside the calibrated range")
+
+
 def _measurement(measurement, task, cal, sample, prep, recipe, factor):
+    _completed_attempt(task, measurement, cal, sample, prep, recipe)
     data = measurement["input"]
     require(data["sample_id"] == sample, "input.sample_id mismatch")
-    require(data["preparation"] == prep, "input.preparation differs from task preparation")
+    require(same_json(data["preparation"], prep), "input.preparation differs from task preparation")
     payload, finding = _reading_evidence(measurement["raw"], cal, sample, prep, recipe)
-    require(data["calibration"] == payload["calibration"], "input.calibration differs from frozen fit")
+    require(same_json(data["calibration"], payload["calibration"]), "input.calibration differs from frozen fit")
     _match_absorbances(data["absorbances"], payload["absorbances"], "input.absorbances")
     if prep is not None or "finding" in measurement:
         _check_finding(measurement["finding"], finding)
@@ -125,11 +173,18 @@ def _measurement(measurement, task, cal, sample, prep, recipe, factor):
         saved = measurement["result"]
         require(isinstance(saved, dict) and isinstance(result, dict), "result must be an object")
         for key in sorted(saved.keys() | result.keys()):
-            require(key in saved and key in result and saved[key] == result[key],
+            require(key in saved and key in result and same_json(saved[key], result[key]),
                     f"result.{key} differs between task and measurement")
     require(result["sample_id"] == sample, "result.sample_id mismatch")
     require(result["calibration_id"] == cal["id"], "result.calibration_id mismatch")
+    if prep is not None:
+        for key, expected in (("parent_id", prep["parent_id"]), ("preparation_id", prep["id"])):
+            if finding["in_range"] or result.get(key) is not None:
+                require(result[key] == expected, f"result.{key} differs from preparation")
+        if finding["in_range"] or result.get("factor") is not None:
+            require(number_matches(result["factor"], factor), "result.factor differs from actual volumes")
     if not finding["in_range"]:
+        require(result.get("diluted_mg_l") is None, "result.diluted_mg_l must be withheld outside calibration")
         require(result["status"] == "review" and result["concentration_mg_l"] is None,
                 "result must withhold concentration_mg_l for out-of-range readings")
     else:
@@ -138,10 +193,7 @@ def _measurement(measurement, task, cal, sample, prep, recipe, factor):
         require(number_matches(result["concentration_mg_l"], diluted * factor),
                 "result.concentration_mg_l differs from detector counts and preparation")
         if prep is not None:
-            for key, value in (("factor", factor), ("diluted_mg_l", diluted)):
-                require(number_matches(result[key], value), f"result.{key} differs from actual volumes or counts")
-            require(result["parent_id"] == prep["parent_id"], "result.parent_id differs from preparation")
-            require(result["preparation_id"] == prep["id"], "result.preparation_id differs from preparation")
+            require(number_matches(result["diluted_mg_l"], diluted), "result.diluted_mg_l differs from counts")
     return finding
 
 
@@ -178,6 +230,13 @@ def validate_measurements(bundle, recipes):
             require(replay["parent_matches"] is True and replay["child_matches"] is True
                     and replay["calibration_id"] == cal["id"], "replay is inconsistent with a retained match")
         if "score" in child:
-            require(child["result"]["status"] == "ok" and
-                    child["score"]["predicted_mg_l"] == child["result"]["concentration_mg_l"],
-                    "score.predicted_mg_l differs from the saved estimate")
+            with record("score"):
+                score = child["score"]
+                prediction = child["result"]["concentration_mg_l"]
+                require(child["result"]["status"] == "ok" and score["predicted_mg_l"] == prediction,
+                        "predicted_mg_l differs from saved in-range estimate")
+                prepared = score["prepared_mg_l"]
+                require(type(prepared) in (int, float) and math.isfinite(prepared) and prepared >= 0,
+                        "prepared_mg_l must be a finite nonnegative recorded label")
+                require(number_matches(score["signed_error_mg_l"], prediction - prepared),
+                        "signed_error_mg_l differs from recorded prediction minus recorded label")

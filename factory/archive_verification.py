@@ -147,11 +147,14 @@ def validate_verification(direct, child):
     _validate_suite("followup.parent_checks", child.get("parent_checks"), _FULL, direct_source=not prepared_parent)
     _validate_suite("followup.checks", child.get("checks"), _FULL)
 
+    parent_cases = {case["name"]: case for case in child["parent_checks"]}
+    for case in direct["checks"]:
+        if case != parent_cases[case["name"]]:
+            raise ValueError(f"followup.parent_checks[{case['name']}] differs from direct.checks for the same source")
+
     if prepared_parent:
         if child["mode"] != "verified source reuse":
             raise ValueError("followup.mode contradicts the existing prepared capability")
-        if direct["checks"] != child["parent_checks"]:
-            raise ValueError("followup.parent_checks differ from direct.checks for the prepared parent")
         if direct["origin_parent_revision"] == child["revision"]:
             raise ValueError("direct.origin_parent_revision refers to prepared follow-up source")
         if (direct["origin_parent_revision"] == child["origin_parent_revision"]

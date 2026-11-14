@@ -41,6 +41,30 @@ def assert_archive_rejected(test, package, diagnostic):
         replay.assert_not_called()
 
 
+def add_completed_attempt(package, role):
+    """WO-16 journal shape on committed readings; the combined tree exercises its actual writer."""
+    task = package[role]
+    if role == "direct":
+        measurement = package["initial"]
+        measurement["finding"] = deepcopy(task["finding"])
+        identifier = "3" * 32
+    else:
+        measurement = task["measurement"]
+        identifier = "4" * 32
+    raw = measurement["raw"]
+    attempt = {
+        "id": identifier, "status": "completed", "sample_id": measurement["input"]["sample_id"],
+        "revision": task["revision"], "calibration_id": task["result"]["calibration_id"],
+        "preparation": deepcopy(task.get("preparation")), "finding": deepcopy(measurement["finding"]),
+        "settings": json.loads(package["sources"][task["id"]]["files"]["recipe.json"]),
+        "started_at": raw[0]["timestamp"], "acquired_at": raw[-1]["timestamp"],
+        "finished_at": measurement.get("time", raw[-1]["timestamp"]), "raw": deepcopy(raw),
+    }
+    measurement["attempt_id"] = identifier
+    task.update(acquisition_attempts=[attempt], acquisition_status="completed")
+    return attempt
+
+
 def fourfold(package):
     child = package["followup"]
     child["approval"]["factor"] = 4
@@ -201,6 +225,53 @@ class ArchiveConsistencyTests(unittest.TestCase):
         self.child["checks"][-1] = deepcopy(self.child["checks"][0])
         self.reject("check|duplicate")
 
+    def test_valid_counts_from_rejected_analysis_cannot_be_published_as_completed(self):
+        add_completed_attempt(self.bundle, "direct")
+        attempt = add_completed_attempt(self.bundle, "followup")
+        # Keep valid public counts and the retained "ok" measurement. The
+        # rejected candidate never acquired authority to publish that estimate.
+        attempt.update(status="rejected", failure={"field": "analysis", "reason": "candidate sample ID mismatch"})
+        self.child["acquisition_status"] = "rejected"
+        self.reject("attempt.*status|acquisition_status")
+
+    def test_attempt_id_and_raw_are_required_on_direct_and_followup(self):
+        for role in ("direct", "followup"):
+            for mutation in ("missing ID", "different ID", "missing raw", "different raw"):
+                with self.subTest(role=role, mutation=mutation):
+                    package = deepcopy(self.bundle)
+                    attempt = add_completed_attempt(package, role)
+                    measurement = package["initial"] if role == "direct" else package["followup"]["measurement"]
+                    if mutation == "missing ID":
+                        del measurement["attempt_id"]
+                    elif mutation == "different ID":
+                        measurement["attempt_id"] = "f" * 32
+                    elif mutation == "missing raw":
+                        del attempt["raw"]
+                    else:
+                        attempt["raw"][0]["dark_counts"] += 1
+                    diagnostic = "attempt_id" if "ID" in mutation else "raw"
+                    assert_archive_rejected(self, package, diagnostic)
+
+    def test_completed_retry_links_its_new_readings_and_retains_earlier_rejected_counts(self):
+        direct = add_completed_attempt(self.bundle, "direct")
+        current = add_completed_attempt(self.bundle, "followup")
+        previous = deepcopy(current)
+        previous.update(id="5" * 32, status="rejected", failure={"field": "raw", "reason": "Saturated detector"})
+        del previous["finding"]
+        previous["raw"][0]["sample_counts"] = 65535
+        current["retry_of"] = previous["id"]
+        self.child["acquisition_attempts"].insert(0, previous)
+        with tempfile.TemporaryDirectory() as temp:
+            lab = Lab(Path(temp) / "live", archive=self.bundle, allow_generation=False)
+            self.addCleanup(lab.close)
+            retained = lab.evidence(self.child["id"])
+            self.assertEqual(retained["initial"]["attempt_id"], direct["id"])
+            child = retained["followup"]
+            self.assertEqual(child["acquisition_attempts"], [previous, current])
+            self.assertEqual(child["measurement"]["attempt_id"], current["id"])
+            self.assertEqual(child["measurement"]["raw"], current["raw"])
+            self.assertNotEqual(previous["raw"], child["measurement"]["raw"])
+
     def test_replay_disagreement_on_working_sandbox_blocks_archive_only_startup(self):
         with patch.object(demo, "check_sandbox", return_value="working isolation"), \
                 patch.object(demo, "check_port", return_value="available"), \
@@ -259,7 +330,15 @@ class ArchiveConsistencyTests(unittest.TestCase):
                     approval["evidence"][field] = None
                 assert_archive_rejected(self, package, "(?i)" + diagnostic)
 
-    def test_valid_followup_outside_range_retains_review_and_withheld_result(self):
+    def test_revealed_signed_error_must_match_saved_score(self):
+        self.child["score"]["signed_error_mg_l"] = 999
+        self.reject("signed_error_mg_l")
+
+    def test_boolean_in_only_one_copy_of_sample_volume_is_invalid(self):
+        self.measurement["input"]["preparation"]["sample_ml"] = True
+        self.reject("sample_ml|preparation")
+
+    def make_followup_outside_range(self):
         # Keep the original calibration and child identity. Use above-range counts
         # in the child records, as a simulator can observe after a real dilution.
         for source, target in zip(self.bundle["initial"]["raw"], self.measurement["raw"]):
@@ -272,6 +351,20 @@ class ArchiveConsistencyTests(unittest.TestCase):
         del self.child["score"]
         del self.child["replay"]
         self.bundle["scientific_review"].append("Follow-up outside calibration.")
+
+    def test_outside_range_cannot_publish_a_diluted_estimate_or_falsify_preparation(self):
+        self.make_followup_outside_range()
+        for field, bad in (("diluted_mg_l", 999), ("parent_id", "unrelated-vial"),
+                           ("preparation_id", "another-preparation"), ("factor", 4)):
+            with self.subTest(field=field):
+                package = deepcopy(self.bundle)
+                child = package["followup"]
+                for result in (child["result"], child["measurement"]["result"]):
+                    result[field] = bad
+                assert_archive_rejected(self, package, field)
+
+    def test_valid_followup_outside_range_retains_review_and_withheld_result(self):
+        self.make_followup_outside_range()
         with tempfile.TemporaryDirectory() as temp:
             lab = Lab(Path(temp) / "live", archive=self.bundle, allow_generation=False)
             self.addCleanup(lab.close)
