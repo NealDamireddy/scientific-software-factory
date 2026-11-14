@@ -73,3 +73,36 @@ Commit 5edcc8b adds signed-infinity fixtures and identifies the verifier as scie
 A bad source revision or missing pinned recipe produced a complete report with 51 concentration or 47 time-course outcomes. The respective blocked counts were 44 and 40, with zero candidate executions. Fixtures derive their pins from the trusted recipe. Isolation, frozen-calibration digest and active-release preservation tests passed.
 
 Full unittest discovery passed 62/62 under macOS Seatbelt in 57.070 seconds. The B12 replay withheld U-01 and reproduced the 2× follow-up at 32.006829774391655 mg/L. Compilation and whitespace checks passed. Independent code review of the fix found no blockers. Formal PR and WO-9 re-review remain pending.
+
+## Round 6 — Final independent re-review — CHANGES_REQUESTED
+
+Reviewed PR #4 implementation head `907a4f4afecb4d09285a1418f9ffbb8c4d5dbc5d` and the complete change from merge base `ffb80d175e02ed83b07b298d0b3f82d86b4ecbd4`, plus the six author inline replies and latest Drift Bot thread. Rechecked current WO-9/requirements, both linked blueprints and Knowledge Base Plan. A fresh reviewer examined the full implementation; the primary reviewer independently ran the suite and reproduced the new finding below.
+
+### Prior findings and replies
+
+- **Round 3 detector-range/elapsed-time coverage finding addressed.** Real sandboxed mutation regressions now reject candidates omitting detector range, elapsed time, UTC timestamp, replicate identity, detector units or measurement settings, and preserve active release/history. The selective positive-infinity candidate is also rejected in both contracts.
+- **Round 3 report-completeness finding addressed.** Bad source revision produces all 51 concentration outcomes (5 passed, 2 failed, 44 blocked) or 47 time-course outcomes (5 passed, 2 failed, 40 blocked), with zero candidate executions. Failed snapshots, invalid trusted recipes and unavailable isolation are covered.
+- **Latest Drift Bot blocked-check objection is not a blocker.** A blocked outcome reports an applicable check and its failed prerequisite; it does not claim a pass. Candidate bytes must not execute after integrity/context/isolation failure. Guessing replacement settings or claiming guard-specific results without execution would weaken the trusted boundary. The author response is supported by the implementation and independently passing tests.
+
+### One new blocking finding
+
+**[P1] Numerical/input-validation verification: independent fixtures do not establish positive dark-corrected blank/sample signals.** Anchor `factory/scientific_contract.py:155`; guard-removal coverage `tests/test_scientific_mutations.py:14–29`. The current dark-corrected-transmission case sets sample_counts equal to dark_counts. The logarithm itself rejects zero transmission even when the candidate lacks a positivity check, so this case cannot detect omission of that guard.
+
+Reproduced twice with actual Linux bubblewrap execution and temporary repositories: promote the original fixture, remove only `if min(blank, sample) <= dark: raise ValueError("Dark-corrected blank and sample must be positive")` from the candidate bytes, re-sign artifact/source metadata and verify. The altered candidate passes **51/51 concentration** and **47/47 time-course** checks and **replaces the previous active release**.
+
+For the first sample group, use raw `(dark_counts, blank_counts, sample_counts)` triples `(40000, 7232, 35904)`, `(40000, 7232, 37952)`, `(40000, 7232, 38976)`, leaving public provenance/settings unchanged. All raw counts are nonnegative integers below saturation, but both dark-corrected signals are negative. Their ratios are 1/8, 1/16 and 1/32, producing apparently valid in-range absorbances. The original candidate withholds these records with a review reason. The promoted mutant returns **5.157894736842106 mg/L, SD 1.4736842105263164** for concentration or **8.25 mg/L, SD 2.5000000000000004** for time course, both with review_reason=null. Other groups are unchanged.
+
+This is a verifier coverage defect admitting scientifically invalid measurements, not a claim that the original fixture candidate is missing its guard. It is within WO-9 invalid-count/calibration safety and blueprint validation scope, independent of acquisition integration. Add an independent double-negative dark-corrected-signal challenge (including a bad replicate among valid ones), require the affected estimate/SD to be null with a review reason while other groups survive, and add a re-signed positivity-guard mutation regression that fails promotion and preserves the original active pointer/manifest/bytes. Existing zero/one-negative/zero-blank signal cases should remain covered. No implementation fixes were made during this review.
+
+### Independent verification and safety assessment
+
+- `python3 -m unittest discover -s tests -v`: **62/62 passed in 48.455 seconds** under real Linux bubblewrap; no sandbox bypasses or mandatory-check skips.
+- `python3 -m factory.replay_bundle public/b12/completed.json`: direct U-01 withheld; 2x follow-up reproduced **32.006829774391655 mg/L** (diluted **16.003414887195827 mg/L**).
+- `python3 -m compileall -q factory tests` and `git diff --check ffb80d1...HEAD` passed.
+- Independent numerical oracle remains nonzero-intercept/public-count based, with sample SD, alternate calibrations, actual timepoint identity, unaffected-group preservation and recorded 1e-7 relative/absolute tolerance. The new defect is specifically a physical-input-domain blind spot, not faulty OLS/SD math.
+- Atomic rollback, immutable historical retrieval, digest rechecks, compiled recipe equality, public-only projection and sandbox denial/trusted-file evidence remain sound. No additional transaction/isolation blocker found. Passing the suite corroborates the author's regression report but does not cover the demonstrated positivity omission.
+- Backend-only change: no new browser surface. Vercel build and Drift Bot are supporting signals, not independent numerical certification.
+
+WO-6 canonical/persisted context, WO-7 actual public acquisitions and WO-8 approvals/trusted recipe/real worker handoff remain separately recorded integration dependencies, not WO-9 approval blockers. Review is scoped to the PR line; current main's newly merged WO-6/7 integration is not claimed to have been retested here. No live model or unfinished browser/scheduling functionality is required to close this finding.
+
+**Final work-order verdict:** CHANGES_REQUESTED; not yet ready for approval because of the one reproduced positivity-verification gap. The two original blockers are closed. Preserve In Review. No merge, formal approval or Completed transition; only review evidence was appended.
