@@ -34,8 +34,33 @@ function Source({ title, source }) {
   return <details><summary>{title}</summary><pre tabIndex="0" aria-label={title}>{source}</pre></details>;
 }
 
+function Evaluation({ report }) {
+  const { panel, published } = report;
+  return <section className="card" aria-labelledby="evaluation-heading">
+    <p className="eyebrow">Supporting evaluation</p>
+    <h2 id="evaluation-heading">How far did the estimates miss?</h2>
+    <p className="copy">Across the blind simulated panel, the mean absolute error was <strong>{number(panel.mae_mg_l)} mg/L</strong>, against a target of {number(panel.target_mae_mg_l)} mg/L. On the six published commercial-instrument means, the same frozen calibration gave a mean absolute error of <strong>{number(published.mae_mg_l)} mg/L</strong>.</p>
+    <details>
+      <summary>Inspect six published readings and their errors</summary>
+      <p className="note">Signed error is the estimate minus the prepared concentration. The benchmark includes extrapolations for scoring. The live assay withholds an out-of-range result for PI review. The six means measure transfer across conditions. Their differences have several possible causes. <a href="https://doi.org/10.1016/j.ohx.2020.e00108">Laganovska et al., Table 1 (“Com”)</a></p>
+      <div style={{overflowX:"auto",maxWidth:"100%"}} tabIndex="0" role="region" aria-label="Published benchmark table">
+        <table style={{minWidth:"475px"}}>
+          <thead><tr><th scope="col">Prepared (ppm)</th><th scope="col">Absorbance</th><th scope="col">Estimate (mg/L)</th><th scope="col">Error (mg/L)</th><th scope="col">Range</th></tr></thead>
+          <tbody>{published.rows.map(row => <tr key={row.id}>
+            <th scope="row">{number(row.prepared_ppm)}</th>
+            <td>{row.mean_absorbance.toFixed(3)}</td><td>{number(row.predicted_mg_l)}</td>
+            <td>{signed(row.signed_error_mg_l)}</td><td>{row.extrapolated ? "Extrapolated" : "In range"}</td>
+          </tr>)}</tbody>
+        </table>
+      </div>
+      <div className="actions"><a href="/b12/evaluation/predictions.json" download>Recorded predictions</a><a href="/b12/evaluation/report.json" download>Scored evaluation</a></div>
+    </details>
+  </section>;
+}
+
 export default function B12Archive() {
   const evidence = JSON.parse(readFileSync(path.join(process.cwd(), "public", "b12", "completed.json"), "utf8"));
+  const evaluation = JSON.parse(readFileSync(path.join(process.cwd(), "public", "b12", "evaluation", "report.json"), "utf8"));
   const { direct, initial, followup, sources } = evidence;
   const { approval, checks, measurement, parent_checks: parentChecks, preparation, replay, result, score } = followup;
   const proposal = direct.proposal;
@@ -100,6 +125,7 @@ export default function B12Archive() {
           <Source title="Inspect the released analysis module" source={revisionFiles.files["analysis.py"]}/>
         </div>
       </section>
+      <Evaluation report={evaluation}/>
     </main>
   </div>;
 }

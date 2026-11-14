@@ -1,0 +1,25 @@
+{
+  "calibration_id": "c2821b055967b3bf67a858b5e90488d12c755b257898881f568d7cf09da102d2",
+  "dataset_sha256": "09cfc1e562e4e8d7407a168a7a3c01c23d3ebbf4f0a38b5cd28954b9bb21c256",
+  "noise_sd_counts": 8,
+  "package_sha256": "ad634ddf20aa275f0dc1b23f5bf8dd493be04cd271579096215dbfc25f64c272",
+  "panel_ids": [
+    "panel-A",
+    "panel-B",
+    "panel-C",
+    "panel-D"
+  ],
+  "profile": "b12-held-out@1",
+  "published_ids": [
+    "table1-row1",
+    "table1-row2",
+    "table1-row3",
+    "table1-row4",
+    "table1-row5",
+    "table1-row6"
+  ],
+  "seed_policy": "One preregistered seed per panel vial in the versioned evaluation dataset.",
+  "source_revision": "d2305d0c7768a62dc2bf8257d27da0c837103506a7759722bbe27763866e0bce",
+  "target_mae_mg_l": 1.0,
+  "task_id": "7b92c13361464fdea79aa5cffcab0f7d"
+}

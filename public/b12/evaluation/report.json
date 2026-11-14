@@ -1,0 +1,413 @@
+{
+  "calibration_id": "c2821b055967b3bf67a858b5e90488d12c755b257898881f568d7cf09da102d2",
+  "hashes": {
+    "dataset_sha256": "09cfc1e562e4e8d7407a168a7a3c01c23d3ebbf4f0a38b5cd28954b9bb21c256",
+    "package_sha256": "ad634ddf20aa275f0dc1b23f5bf8dd493be04cd271579096215dbfc25f64c272",
+    "predictions_sha256": "d80c35c9d01859c57ca83c8ba8a478984fc660cf885f15e6cbc70cd904ce49f5",
+    "registration_sha256": "133b8624cd0a642f26e627f6407361447c42fbcf5ec9acfd2fb1dbd98143fd51"
+  },
+  "panel": {
+    "mae_mg_l": 0.005540089277148219,
+    "noise_sd_counts": 8,
+    "rows": [
+      {
+        "absorbances": [
+          0.05152238476427081,
+          0.05136909262581212,
+          0.051211267783977374
+        ],
+        "id": "panel-A",
+        "predicted_mg_l": 7.9983187724955265,
+        "prepared_mg_l": 8,
+        "raw": [
+          {
+            "blank_counts": 50016,
+            "dark_counts": 91,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 1,
+            "sample_counts": 44431,
+            "sample_id": "panel-A",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.099922+00:00",
+            "units": "counts"
+          },
+          {
+            "blank_counts": 49991,
+            "dark_counts": 96,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 2,
+            "sample_counts": 44425,
+            "sample_id": "panel-A",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.100014+00:00",
+            "units": "counts"
+          },
+          {
+            "blank_counts": 49994,
+            "dark_counts": 89,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 3,
+            "sample_counts": 44443,
+            "sample_id": "panel-A",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.100017+00:00",
+            "units": "counts"
+          }
+        ],
+        "released_status": "ok",
+        "replicate_sd_mg_l": 0.024248072940009698,
+        "signed_error_mg_l": -0.0016812275044735259
+      },
+      {
+        "absorbances": [
+          0.07711977681844372,
+          0.07705935251789095,
+          0.07680942203784938
+        ],
+        "id": "panel-B",
+        "predicted_mg_l": 11.99310059552463,
+        "prepared_mg_l": 12,
+        "raw": [
+          {
+            "blank_counts": 50005,
+            "dark_counts": 110,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 1,
+            "sample_counts": 41887,
+            "sample_id": "panel-B",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.141195+00:00",
+            "units": "counts"
+          },
+          {
+            "blank_counts": 50004,
+            "dark_counts": 104,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 2,
+            "sample_counts": 41891,
+            "sample_id": "panel-B",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.141213+00:00",
+            "units": "counts"
+          },
+          {
+            "blank_counts": 49995,
+            "dark_counts": 107,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 3,
+            "sample_counts": 41908,
+            "sample_id": "panel-B",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.141215+00:00",
+            "units": "counts"
+          }
+        ],
+        "released_status": "ok",
+        "replicate_sd_mg_l": 0.02564686236293652,
+        "signed_error_mg_l": -0.006899404475369408
+      },
+      {
+        "absorbances": [
+          0.11531587607882063,
+          0.11556971311957416,
+          0.1157646654143972
+        ],
+        "id": "panel-C",
+        "predicted_mg_l": 18.002574808691353,
+        "prepared_mg_l": 18,
+        "raw": [
+          {
+            "blank_counts": 50003,
+            "dark_counts": 88,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 1,
+            "sample_counts": 38363,
+            "sample_id": "panel-C",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.182507+00:00",
+            "units": "counts"
+          },
+          {
+            "blank_counts": 50008,
+            "dark_counts": 86,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 2,
+            "sample_counts": 38344,
+            "sample_id": "panel-C",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.182523+00:00",
+            "units": "counts"
+          },
+          {
+            "blank_counts": 50009,
+            "dark_counts": 92,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 3,
+            "sample_counts": 38329,
+            "sample_id": "panel-C",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.182529+00:00",
+            "units": "counts"
+          }
+        ],
+        "released_status": "ok",
+        "replicate_sd_mg_l": 0.035077062794805686,
+        "signed_error_mg_l": 0.00257480869135307
+      },
+      {
+        "absorbances": [
+          0.14105276036123401,
+          0.1411531458401332,
+          0.14116922357709458
+        ],
+        "id": "panel-D",
+        "predicted_mg_l": 21.988995083562603,
+        "prepared_mg_l": 22,
+        "raw": [
+          {
+            "blank_counts": 49999,
+            "dark_counts": 96,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 1,
+            "sample_counts": 36160,
+            "sample_id": "panel-D",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.223795+00:00",
+            "units": "counts"
+          },
+          {
+            "blank_counts": 50004,
+            "dark_counts": 95,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 2,
+            "sample_counts": 36155,
+            "sample_id": "panel-D",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.223807+00:00",
+            "units": "counts"
+          },
+          {
+            "blank_counts": 50002,
+            "dark_counts": 87,
+            "instrument_profile": "osms-sim@1",
+            "replicate": 3,
+            "sample_counts": 36150,
+            "sample_id": "panel-D",
+            "settings": {
+              "adc_max": 65535,
+              "dark_offset_counts": 100,
+              "noise_sd_counts": 8,
+              "operation": "measure-absorbance",
+              "path_length_mm": 10,
+              "reference_counts": 50000,
+              "replicates": 3,
+              "wavelength_nm": 550
+            },
+            "source": "simulated instrument",
+            "timestamp": "2026-11-14T08:29:51.223810+00:00",
+            "units": "counts"
+          }
+        ],
+        "released_status": "ok",
+        "replicate_sd_mg_l": 0.009837532733989365,
+        "signed_error_mg_l": -0.011004916437396872
+      }
+    ],
+    "seed_policy": "One preregistered seed per panel vial in the versioned evaluation dataset.",
+    "target_mae_mg_l": 1.0,
+    "target_met": true
+  },
+  "profile": "b12-held-out@1",
+  "published": {
+    "citation": "Laganovska et al. (2020), HardwareX 7, e00108, Table 1, Com column.",
+    "doi": "10.1016/j.ohx.2020.e00108",
+    "input": "Published mean absorbance",
+    "instrument": "Shimadzu UVMini1240",
+    "label_unit": "ppm",
+    "mae_mg_l": 4.71979727233034,
+    "mean_input_adapter": "One published mean per vial. Repeated identically for the released triplicate input contract. No raw replicates or spread inferred.",
+    "rows": [
+      {
+        "extrapolated": false,
+        "id": "table1-row1",
+        "mean_absorbance": 0.033,
+        "predicted_mg_l": 5.135326814690099,
+        "prediction_method": "released estimator",
+        "prepared_ppm": 3,
+        "released_mg_l": 5.135326814690099,
+        "released_status": "ok",
+        "signed_error_mg_l": 2.1353268146900994
+      },
+      {
+        "extrapolated": false,
+        "id": "table1-row2",
+        "mean_absorbance": 0.062,
+        "predicted_mg_l": 9.65561522395663,
+        "prediction_method": "released estimator",
+        "prepared_ppm": 5,
+        "released_mg_l": 9.65561522395663,
+        "released_status": "ok",
+        "signed_error_mg_l": 4.65561522395663
+      },
+      {
+        "extrapolated": false,
+        "id": "table1-row3",
+        "mean_absorbance": 0.089,
+        "predicted_mg_l": 13.864159604997884,
+        "prediction_method": "released estimator",
+        "prepared_ppm": 10,
+        "released_mg_l": 13.864159604997884,
+        "released_status": "ok",
+        "signed_error_mg_l": 3.8641596049978837
+      },
+      {
+        "extrapolated": false,
+        "id": "table1-row4",
+        "mean_absorbance": 0.119,
+        "predicted_mg_l": 18.540320028377053,
+        "prediction_method": "released estimator",
+        "prepared_ppm": 15,
+        "released_mg_l": 18.540320028377053,
+        "released_status": "ok",
+        "signed_error_mg_l": 3.540320028377053
+      },
+      {
+        "extrapolated": true,
+        "id": "table1-row5",
+        "mean_absorbance": 0.173,
+        "predicted_mg_l": 26.95740879045956,
+        "prediction_method": "benchmark-only linear extrapolation",
+        "prepared_ppm": 20,
+        "released_mg_l": null,
+        "released_status": "review",
+        "signed_error_mg_l": 6.95740879045956
+      },
+      {
+        "extrapolated": true,
+        "id": "table1-row6",
+        "mean_absorbance": 0.2,
+        "predicted_mg_l": 31.165953171500817,
+        "prediction_method": "benchmark-only linear extrapolation",
+        "prepared_ppm": 24,
+        "released_mg_l": null,
+        "released_status": "review",
+        "signed_error_mg_l": 7.165953171500817
+      }
+    ],
+    "table_url": "https://www.hardware-x.com/article/S246806722030016X/pdf#page=9",
+    "wavelength_nm": 550
+  },
+  "scientific_review": "Comparison assumes dilute aqueous ppm corresponds numerically to mg/L. Six published means cannot establish the cause of transfer error.",
+  "source_revision": "d2305d0c7768a62dc2bf8257d27da0c837103506a7759722bbe27763866e0bce",
+  "task_id": "7b92c13361464fdea79aa5cffcab0f7d"
+}

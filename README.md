@@ -17,3 +17,9 @@ Open the local presenter to start a fresh build. During generation, select a pre
 ```sh
 uv run python -m factory.replay_bundle public/b12/completed.json
 ```
+
+The archived run also includes a [held-out evaluation](public/b12/evaluation/report.json). To repeat it, give the command a new output directory. It saves the predictions before scoring them against the preparation labels.
+
+```sh
+uv run python -m factory.benchmark public/b12/completed.json --out runs/b12-evaluation-01
+```
