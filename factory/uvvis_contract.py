@@ -65,12 +65,30 @@ def validate_pins(request, capabilities):
             raise InstrumentError(name, "does not match live instrument capabilities", 409)
 
 
-def validate_settings(settings, profile):
-    validate("settings", settings)
+def settings_issues(settings, profile):
+    """Yield all field corrections for review. The HTTP boundary returns the first."""
+    validator = _VALIDATORS["settings"]
+    for error in validator.iter_errors(settings):
+        if error.validator == "required":
+            continue  # Report missing fields individually below.
+        field = ".".join(str(part) for part in error.absolute_path) or "settings"
+        yield InstrumentError(field, error.message)
+    if not isinstance(settings, dict):
+        return
+    for field in SCHEMA["$defs"]["settings"]["required"]:
+        if field not in settings:
+            yield InstrumentError(field, "selection required")
     for field, supported in (("operation", "operations"), ("wavelength_nm", "wavelengths_nm"),
                              ("path_length_mm", "path_lengths_mm")):
-        if settings[field] not in profile[supported]:
-            raise InstrumentError(field, "unsupported by this instrument profile")
+        if field in settings and settings[field] not in profile[supported]:
+            yield InstrumentError(field, "unsupported by this instrument profile")
     limits = profile["replicate_limits"]
-    if not limits["min"] <= settings["replicates"] <= limits["max"]:
-        raise InstrumentError("replicates", "outside the integer replicate limits")
+    replicates = settings.get("replicates")
+    if type(replicates) in (int, float) and not limits["min"] <= replicates <= limits["max"]:
+        yield InstrumentError("replicates", "outside the integer replicate limits")
+
+
+def validate_settings(settings, profile):
+    issue = next(settings_issues(settings, profile), None)
+    if issue:
+        raise issue
