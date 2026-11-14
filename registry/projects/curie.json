@@ -18,7 +18,7 @@
     "weights": "uniform",
     "input": "pre-integrated intensity"
   },
-  "contract": "Use statistics.linear_regression with x=1/T and y=integrated intensity. Return coefficient_au_K, background_au, and rmse_au. No weighting.",
+  "contract": "Use statistics.linear_regression with x=1/T and y=integrated intensity. Return coefficient_au_K, background_au, and rmse_au. No weighting. Include arrays predicted_au and residual_au in input row order (residual = measured minus predicted).",
   "reference": "curie-recovery",
   "human": "Assess model suitability, normalization, saturation and the comparability of integrated intensities across temperatures.",
   "lab": "northfield"
