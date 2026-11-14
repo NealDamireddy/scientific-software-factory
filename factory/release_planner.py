@@ -23,7 +23,7 @@ CONTRACTS = {
         "slope. Use the closed range of standard mean absorbances."
     ),
     "time_course": (
-        "Use the frozen calibration slope, intercept, low and high absorbance limits (fields slope, intercept, low, high). "
+        "Use only the frozen calibration fields slope, intercept, low and high. Require finite values, slope > 0 and low < high. The standards array is empty for time_course; never fit or require standards for this type. "
         "Return one result per supplied group with timestamp copied verbatim from its first record, even on review (null if missing). "
         "Do not infer a rate constant."
     ),
@@ -112,8 +112,8 @@ def _prompt(context, spec, recipe, parent):
         "Require blank and sample counts both strictly greater than dark. Compute each replicate absorbance "
         "as -log10((sample-dark)/(blank-dark)). "
         + CONTRACTS[spec["experiment_type"]] +
-        " Apply the closed calibration limits to every unknown replicate individually, after fitting the "
-        "standards. For a valid group report (mean absorbance - intercept)/slope and sample SD of absorbance "
+        " Apply the closed calibration limits to every unknown replicate individually. "
+        "For a valid group report (mean absorbance - intercept)/slope and sample SD of absorbance "
         "/ slope (null SD for one reading). Always copy calibration.id to calibration_id. Always return "
         "exactly one row per group in input order, even on error. Invalid calibration or a bad standard "
         "withholds all groups; a bad unknown replicate withholds only its group. Handle nonfinite inputs "
