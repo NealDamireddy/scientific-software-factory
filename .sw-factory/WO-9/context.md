@@ -1,7 +1,7 @@
 # Work Order Entity Index: WO-9
 
 **Initialized At (UTC):** 2026-11-14T18:23:50Z
-**Current Status:** in_progress
+**Current Status:** in_review
 
 ## Work Order
 
@@ -30,6 +30,6 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/wo-9-scientific-verifier
-- Pull Request URL: pending
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/4
 
 Read the 8090 Knowledge Base Plan and WO-6/7/8. WO-6 owns public profile and immutable lab/project pins, WO-7 owns raw measurement and reference records, WO-8 owns approved compilation and candidate preparation. This branch consumes these inputs through fixtures pending integrated upstream delivery.
