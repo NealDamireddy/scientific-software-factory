@@ -43,6 +43,18 @@ class DemoTests(unittest.TestCase):
             self.assertIsNone(bundle)
             self.assertIn("Previous run", [name for status, name, _ in checks if status == "FAIL"])
 
+    def test_port_available_immediately_after_presenter_connection_closes(self):
+        with socket.socket() as listener:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind(("127.0.0.1", 0))
+            listener.listen()
+            address = listener.getsockname()
+            with socket.create_connection(address, timeout=2) as client:
+                connection, _ = listener.accept()
+                connection.close()
+                self.assertEqual(client.recv(1), b"")
+        self.assertEqual(demo.check_port(address[1]), "Loopback port is available")
+
     def test_port_conflict_is_reported(self):
         with socket.socket() as listener:
             listener.bind(("127.0.0.1", 0))

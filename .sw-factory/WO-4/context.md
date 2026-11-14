@@ -24,4 +24,4 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/evolve-b12-factory
-- Pull Request URL:
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/1

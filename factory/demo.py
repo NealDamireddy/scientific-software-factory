@@ -77,7 +77,10 @@ def check_archive(path):
 def check_port(port):
     try:
         with socket.socket() as probe:
+            # Match the presenter's immediate restart behavior after a connection closes.
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             probe.bind(("127.0.0.1", port))
+            probe.listen()
     except OSError as error:
         raise RuntimeError(f"Cannot bind loopback port {port}. Stop the previous presenter with Ctrl+C or choose --port with another unused port") from error
     return "Loopback port is available"

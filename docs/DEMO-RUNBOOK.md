@@ -94,7 +94,15 @@ checks covered an empty store, original archived IDs, replay, source diff,
 archive-only generation rejection and mobile-width layout. Readiness correctly
 blocks fresh startup because this workspace has no authenticated Codex worker.
 
-Those checks are **not** a fresh model-backed browser rehearsal on the presenter
-laptop. Run that rehearsal before the demo. The earlier 43.767-second rehearsal
-in `.sw-factory/WO-4/review-log.md` remains evidence for its original revision;
-it is not a timing measurement of these new startup changes.
+On November 14, 2026, the presenter laptop passed all seven live readiness checks
+and 52 tests under macOS Seatbelt. A clean Chrome session completed two real
+Codex builds, approval, preparation during generation, measurement, label
+reveal, replay and evidence export in 38.075 seconds. The saved estimate was
+35.03519 mg/L and the revealed preparation was 35 mg/L. Opening the archive
+during generation preserved the active task. The downloaded fresh package
+reproduced both results from disk. Task IDs and revisions are in the
+[WO-4 review log](../.sw-factory/WO-4/review-log.md).
+
+For a fallback tab alongside a running live presenter, start
+`uv run --frozen python -m factory.demo --archive-only --port 8768`.
+The tab reads the bundled run without opening the live task store.

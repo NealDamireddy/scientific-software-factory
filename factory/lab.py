@@ -37,9 +37,11 @@ class Lab:
                          if self.archive else {})
         self.allow_generation = allow_generation
         self.store = Path(store)
-        self.store.mkdir(mode=0o700, parents=True, exist_ok=True)
-        self.lease = (self.store / ".lock").open("a")
-        fcntl.flock(self.lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        self.lease = None
+        if allow_generation:
+            self.store.mkdir(mode=0o700, parents=True, exist_ok=True)
+            self.lease = (self.store / ".lock").open("a")
+            fcntl.flock(self.lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
         self.lock = threading.RLock()
         self.pool = ThreadPoolExecutor(max_workers=1)
         for task in self.history():
@@ -48,23 +50,27 @@ class Lab:
 
     def close(self):
         self.pool.shutdown()
-        self.lease.close()
+        if self.lease is not None:
+            self.lease.close()
 
     def history(self):
-        live = {p.parent.name: self.task(p.parent.name) for p in self.store.glob("*/task.json")}
+        paths = self.store.glob("*/task.json") if self.allow_generation else ()
+        live = {p.parent.name: self.task(p.parent.name) for p in paths}
         saved = [self.task(identifier) for identifier in self.archived if identifier not in live]
         return sorted([*live.values(), *saved], key=lambda r: r["created"], reverse=True)
 
     def path(self, task_id):
         if not re.fullmatch(r"[0-9a-f]{32}", task_id):
             raise ValueError("Invalid task ID")
+        if not self.allow_generation:
+            raise FileNotFoundError("Live store unavailable in archive-only mode")
         folder = self.store / task_id
         if not folder.is_dir():
             raise FileNotFoundError("Task does not exist")
         return folder
 
     def task(self, task_id):
-        if task_id in self.archived and not (self.store / task_id).exists():
+        if task_id in self.archived and (not self.allow_generation or not (self.store / task_id).exists()):
             return {**deepcopy(self.archived[task_id]), "mode": "previous completed run", "archived": True}
         task = read_json(self.path(task_id) / "task.json")
         if task["status"] == "verified" and not task.get("parent_id") and task.get("finding", {}).get("above_range"):
@@ -378,7 +384,7 @@ class Handler(BaseHTTPRequestHandler):
             elif parts == [""]:
                 return self.send(200, Path(__file__).with_name("presenter.html").read_bytes(), "text/html; charset=utf-8")
             elif parts == ["api","tasks"]:
-                return self.send(200, {"tasks": lab.history()})
+                return self.send(200, {"tasks": lab.history(), "allow_generation": lab.allow_generation})
             elif parts[:2] == ["api","tasks"] and len(parts) in (3,4):
                 if len(parts)==3:
                     return self.send(200, lab.task(parts[2]))
