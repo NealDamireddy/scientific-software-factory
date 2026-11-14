@@ -17,6 +17,7 @@ from urllib.parse import urlsplit
 import uuid
 
 from . import b12_build, b12_reuse
+from .b12_verification import UNBOUND_VERIFICATION, verification_receipt
 from .archive import validate_archive
 from .context import ROOT, read_json
 from .optics import PROFILE, RECIPE, validate_preparation, acquire, assess, calibration_digest, fit_calibration, validate_recipe, verify_candidate
@@ -28,6 +29,25 @@ def save(path, obj):
     temporary = path.with_suffix(".tmp")
     temporary.write_text(json.dumps(obj, sort_keys=True, indent=2, allow_nan=False))
     temporary.replace(path)
+
+
+def _matches_reconstructed_evidence(recorded, reconstructed):
+    """Allow one representable step of platform log10 rounding only in absorbances."""
+    if not isinstance(recorded, dict) or recorded.keys() != reconstructed.keys():
+        return False
+    readings = recorded["absorbances"]
+    expected = reconstructed["absorbances"]
+    if not isinstance(readings, list) or len(readings) != len(expected):
+        return False
+    for value, reference in zip(readings, expected):
+        lower = math.nextafter(reference, -math.inf)
+        upper = math.nextafter(reference, math.inf)
+        if type(value) not in (int, float) or not lower <= value <= upper:
+            return False
+    # Compare JSON types as well as values (in Python, True == 1).
+    metadata = {key: value for key, value in recorded.items() if key != "absorbances"}
+    expected_metadata = {key: value for key, value in reconstructed.items() if key != "absorbances"}
+    return json.dumps(metadata, sort_keys=True) == json.dumps(expected_metadata, sort_keys=True)
 
 
 class Lab:
@@ -139,9 +159,10 @@ class Lab:
             result = original.get("result", {})
             payload, observed = _payload(measurement["raw"], calibration, sample, None, RECIPE)
             if (calibration["instrument_profile"] != PROFILE["instrument_profile"]
-                    or not observed["above_range"] or observed != original["finding"]
-                    or observed != measurement.get("finding", observed)
-                    or payload != measurement["input"]
+                    or not observed["above_range"]
+                    or not _matches_reconstructed_evidence(original["finding"], observed)
+                    or not _matches_reconstructed_evidence(measurement.get("finding", observed), observed)
+                    or not _matches_reconstructed_evidence(measurement["input"], payload)
                     or result.get("sample_id") != sample or result.get("status") != "review"
                     or result["concentration_mg_l"] is not None
                     or calibration_digest(calibration) != calibration.get("id")
@@ -198,12 +219,16 @@ class Lab:
             raise ValueError("Parent source digest mismatch")
         if (parent.get("context") != PROFILE or parent.get("status") != "verified"
                 or parent.get("checks") != source["checks"] or parent.get("worker") != source["worker"]
+                or parent.get("verification") != source["verification"]
                 or parent.get("release_contract", source["release_contract"]) != source["release_contract"]):
             raise ValueError("Parent release provenance differs from the original verified source")
         if origin != parent["id"] and (parent.get("mode") != "verified source reuse"
                                        or parent.get("release_contract") != source["release_contract"]
                                        or parent.get("origin_parent_revision") != source.get("parent_revision")
-                                       or parent.get("origin_parent_checks") != source.get("parent_checks")):
+                                       or parent.get("origin_parent_checks") != source.get("parent_checks")
+                                       or parent.get("origin_parent_worker") != source.get("parent_worker")
+                                       or parent.get("origin_parent_task_id") != source.get("parent_origin_task_id")
+                                       or parent.get("origin_parent_verification") != source.get("parent_verification")):
             raise ValueError("Parent reuse provenance differs from the original verified source")
         return source
 
@@ -223,8 +248,13 @@ class Lab:
         self.update(task["id"], checks=checks)
         if not checks or not all(case["pass"] for case in checks):
             raise ValueError("Prepared-sample release failed its independent requirements")
+        if b12_build.revision(folder) != revision or b12_build.revision(parent) != parent_source["revision"]:
+            raise ValueError("Source changed during preparation verification")
+        contract = b12_reuse.release_contract(prepared=True)
         self.update(task["id"], status="verified", views=read_json(folder/"views.json"),
-                    release_contract=b12_reuse.release_contract(prepared=True))
+                    release_contract=contract, verification=verification_receipt(revision, checks, receipt, contract),
+                    parent_verification=verification_receipt(parent_source["revision"], previous,
+                                                             parent_source["worker"], contract))
 
     def select_source(self, task, folder):
         prepared = bool(task.get("parent_id"))
@@ -233,7 +263,7 @@ class Lab:
         if source is None:
             # A prepared request has already resolved its verified direct parent.
             # It can revise that parent if the prepared capability is unavailable.
-            if rejections and not prepared:
+            if not prepared and any(reasons != [UNBOUND_VERIFICATION] for reasons in rejections.values()):
                 raise ValueError("No compatible verified release: " + "; ".join(
                     f"{origin}: {', '.join(reasons)}" for origin, reasons in rejections.items()))
             return None
@@ -244,10 +274,13 @@ class Lab:
         provenance = {}
         if source.get("parent_revision"):
             provenance = {"origin_parent_revision": source["parent_revision"],
-                          "origin_parent_checks": source["parent_checks"]}
+                          "origin_parent_checks": source["parent_checks"],
+                          "origin_parent_worker": source["parent_worker"],
+                          "origin_parent_task_id": source["parent_origin_task_id"],
+                          "origin_parent_verification": source["parent_verification"]}
         return self.update(task["id"], mode="verified source reuse", origin_task_id=source["id"],
                            revision=source["revision"], worker=source["worker"], checks=source["checks"],
-                           release_contract=source["release_contract"], **provenance)
+                           verification=source["verification"], release_contract=source["release_contract"], **provenance)
 
     def collect(self, task_id):
         folder = self.path(task_id)
@@ -278,16 +311,17 @@ class Lab:
             reused = self.select_source(task, folder)
             if parent_source:
                 if reused:
-                    if task["parent_revision"] == reused["origin_parent_revision"]:
+                    if (task["parent_revision"] == reused["origin_parent_revision"]
+                            and parent_source["id"] == reused["origin_parent_task_id"]):
                         previous = reused["origin_parent_checks"]
-                    elif task["parent_revision"] == reused["revision"]:
-                        previous = reused["checks"]
                     elif "prepared" in parent_source["release_contract"]["capabilities"]:
                         previous = parent_source["checks"]
                     else:
                         previous = verify_candidate(self.path(task["parent_id"]) / "analysis.py", prepared=True)
                         b12_reuse.validate_parent_checks(previous)
                     self.update(task_id, status="verified", parent_checks=previous,
+                                parent_verification=verification_receipt(parent_source["revision"], previous,
+                                                                         parent_source["worker"], reused["release_contract"]),
                                 views=read_json(folder / "views.json"))
                 else:
                     self.revise(task, folder, parent_source)
@@ -296,20 +330,26 @@ class Lab:
                 acquisition = bench.submit(self.collect, task_id)
                 if reused:
                     checks = reused["checks"]
+                    revision = reused["revision"]
+                    binding = reused["verification"]
                 else:
                     receipt = b12_build.build(task["brief"], folder)
-                    self.update(task_id, status="verifying", worker=receipt, revision=b12_build.revision(folder))
+                    revision = b12_build.revision(folder)
+                    self.update(task_id, status="verifying", worker=receipt, revision=revision)
                     checks = verify_candidate(folder / "analysis.py")
+                    binding = verification_receipt(revision, checks, receipt, b12_reuse.release_contract(False))
             if not checks or not all(check["pass"] for check in checks):
                 self.update(task_id, checks=checks)
                 raise ValueError("Independent assay requirements failed")
             measurement = acquisition.result()
+            if b12_build.revision(folder) != revision:
+                raise ValueError("Source changed during direct verification")
             contract = reused["release_contract"] if reused else b12_reuse.release_contract(prepared=False)
-            self.analyze_direct(task, folder, measurement, checks, contract)
+            self.analyze_direct(task, folder, measurement, checks, contract, binding)
         except Exception as error:
             self.update(task_id, status="failed", error=str(error)[:1800])
 
-    def analyze_direct(self, task, folder, measurement, checks, contract):
+    def analyze_direct(self, task, folder, measurement, checks, contract, binding):
         payload = measurement["input"]
         calibration = measurement["calibration"]
         finding = measurement["finding"]
@@ -330,7 +370,7 @@ class Lab:
                 raise ValueError("Actual sample concentration disagrees with the frozen calibration")
         return self.update(task["id"], status="verified", checks=checks, result=result, finding=finding,
                            sandbox=runtime, views=read_json(folder / "views.json"),
-                           release_contract=contract)
+                           release_contract=contract, verification=binding)
 
     def rerun(self, task_id):
         self.require_live(task_id)

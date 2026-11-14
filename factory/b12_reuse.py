@@ -4,6 +4,7 @@ from pathlib import Path
 import re
 
 from . import b12_build
+from .b12_verification import validate_receipt, verification_receipt
 from .context import read_json
 from .optics import PROFILE, RECIPE, matches_expected, validate_recipe, verification_cases
 from .release_planner import compatibility_reasons
@@ -100,25 +101,79 @@ class _NotAnOriginal(ValueError):
     """Pending, failed, archived and reused tasks are outside the source catalog."""
 
 
-def read_release(folder, prepared=False):
-    """Load a specific original and validate its eligibility for the requested capability."""
-    folder = Path(folder)
+def _load_task(folder):
     path = folder / "task.json"
     if folder.is_symlink() or path.is_symlink():
         raise ValueError("Invalid original release path")
+    task = read_json(path)
+    if task.get("id") != folder.name or not re.fullmatch(r"[a-f0-9]{32}", folder.name):
+        raise ValueError("Invalid original release identity")
+    return task
+
+
+def _is_original(task):
+    return (task.get("status") == "verified" and task.get("mode") == "fresh generation"
+            and not task.get("origin_task_id") and not task.get("archived"))
+
+
+def read_release(folder, prepared=False):
+    """Load a specific original and validate its eligibility for the requested capability."""
+    folder = Path(folder)
     try:
-        task = read_json(path)
-        if (task.get("status") != "verified" or task.get("mode") != "fresh generation"
-                or task.get("origin_task_id") or task.get("archived")):
+        task = _load_task(folder)
+        if not _is_original(task):
             raise _NotAnOriginal("Original live verified release required")
         return _candidate(folder, task, release_contract(prepared))
     except (KeyError, TypeError, AttributeError, ArithmeticError, OSError) as error:
         raise ValueError(f"Invalid release record: {error}") from error
 
 
+def _parent_folder(store, identifier):
+    if not isinstance(identifier, str) or not re.fullmatch(r"[a-f0-9]{32}", identifier):
+        raise ValueError("Invalid parent release identity")
+    folder = store / identifier
+    if not folder.is_dir():
+        raise ValueError("Original parent release is missing")
+    return folder
+
+
+def _validate_parent(folder, child):
+    """Resolve the direct run and, when it reused source, its original direct release."""
+    parent_folder = _parent_folder(folder.parent, child["parent_id"])
+    parent = _load_task(parent_folder)
+    if parent.get("parent_id") or parent.get("status") != "verified" or parent.get("archived"):
+        raise ValueError("Prepared release requires a verified live direct parent")
+    if parent.get("revision") != child["parent_revision"]:
+        raise ValueError("Prepared release parent revision differs from the identified parent")
+
+    if child.get("approval", {}).get("origin") != parent["id"]:
+        raise ValueError("Original preparation approval identifies a different parent")
+    origin_folder = parent_folder
+    origin = parent
+    if not _is_original(parent):
+        if parent.get("mode") != "verified source reuse":
+            raise ValueError("Invalid parent release creation mode")
+        origin_folder = _parent_folder(folder.parent, parent.get("origin_task_id"))
+        origin = _load_task(origin_folder)
+        if origin.get("parent_id") or not _is_original(origin):
+            raise ValueError("Parent reuse must resolve to an original direct release")
+    # A prepared original can only have been generated from code lacking preparation.
+    # Requiring a direct original here also prevents recursive parent/origin chains.
+    source = _candidate(origin_folder, origin, release_contract(False))
+    if origin_folder != parent_folder:
+        files = _read_artifacts(parent_folder, parent)
+        if (source["files"] != files or parent.get("context") != PROFILE
+                or parent.get("release_contract") != source["release_contract"]
+                or any(parent.get(key) != source[key] for key in ("worker", "checks", "verification"))):
+            raise ValueError("Parent reuse evidence differs from its original direct release")
+    expected = verification_receipt(source["revision"], child["parent_checks"],
+                                    source["worker"], release_contract(True))
+    if child.get("parent_verification") != expected:
+        raise ValueError("Parent verification receipt does not bind the identified parent source and checks")
+    return {"parent_origin_task_id": source["id"], "parent_worker": source["worker"]}
+
+
 def _candidate(folder, task, requested):
-    if task.get("id") != folder.name or not re.fullmatch(r"[a-f0-9]{32}", folder.name):
-        raise ValueError("Invalid original release identity")
     if not isinstance(task.get("created"), str):
         raise ValueError("Missing original release timestamp")
     if task.get("context") != PROFILE:
@@ -133,19 +188,21 @@ def _candidate(folder, task, requested):
         raise ValueError("Released view does not match the verified capabilities")
     _validate_verification(task, prepared)
 
-    # Historical originals were produced by the fixed b12-optical@1 pipeline.
-    # Its project/profile pins, recipe, view and complete verifier report establish
-    # their contract. New records persist this key explicitly as well.
     original = release_contract(prepared)
     contract = task.get("release_contract", original)
     declared = compatibility_reasons(contract, original)
     if contract["capabilities"] != original["capabilities"]:
         declared.append("Incompatible declared B12 capabilities")
-    reasons = declared or compatibility_reasons(contract, requested)
+    if declared:
+        raise ValueError(", ".join(declared))
+
+    verification = validate_receipt(task, files, contract)
+    lineage = _validate_parent(folder, task) if prepared else {}
+    reasons = compatibility_reasons(contract, requested)
     if reasons:
         raise ValueError(", ".join(reasons))
-
     return {
+        **lineage, "verification": verification, "parent_verification": task.get("parent_verification"),
         "created": task["created"], "id": task["id"], "revision": task["revision"], "files": files,
         "worker": task["worker"], "checks": task["checks"],
         "parent_checks": task.get("parent_checks"), "parent_revision": task.get("parent_revision"),

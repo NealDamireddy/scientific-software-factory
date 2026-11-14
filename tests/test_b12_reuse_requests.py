@@ -8,8 +8,11 @@ import unittest
 from unittest.mock import patch
 from urllib.request import Request, urlopen
 
+from tests.b12_release_fixtures import verified_task
+
 from factory import b12_build
 from factory.context import ROOT, read_json
+from factory.b12_verification import verification_receipt
 from factory.lab import Handler, Lab, ThreadingHTTPServer, save
 
 
@@ -23,8 +26,8 @@ class RequestReuseTests(unittest.TestCase):
         self.addCleanup(self.lab.close)
 
     def seed_live(self, kind):
-        """Explicitly install a historical verified release in this test's live store."""
-        task = self.bundle[kind]
+        """Explicitly install a revision-bound verified release in this test's live store."""
+        task = verified_task(self.bundle, kind)
         folder = self.store / task["id"]
         folder.mkdir()
         save(folder / "task.json", task)
@@ -82,6 +85,7 @@ class RequestReuseTests(unittest.TestCase):
         self.assertEqual(task["revision"], source["revision"])
         self.assertEqual(task["worker"], source["worker"])
         self.assertEqual(task["checks"], source["checks"])
+        self.assertEqual(task["verification"], source["verification"])
         folder = self.lab.path(task["id"])
         for name in b12_build.FILES:
             self.assertEqual((folder / name).read_bytes(), (self.store / source["id"] / name).read_bytes())
@@ -175,6 +179,63 @@ class RequestReuseTests(unittest.TestCase):
             self.assertEqual(again["result"]["sample_id"], "Lot-2")
             self.assertEqual([call.args for call in collect.call_args_list], [(new["id"],), (again["id"],)])
             worker.assert_called_once()
+
+    def test_fresh_prepared_release_from_reused_parent_retains_bound_provenance(self):
+        original = self.seed_live("direct")
+        known = self.bundle["followup"]
+        files = self.bundle["sources"][known["id"]]["files"]
+        response = {"source": files["analysis.py"], "recipe": json.loads(files["recipe.json"]),
+                    "views": json.loads(files["views.json"])}
+        with patch("factory.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})) as worker:
+            direct = self.wait_for_task(self.lab.submit("B12")["id"])
+            self.assert_reused(direct, original)
+            generated = self.wait_for_task(self.lab.approve(direct["id"], factor=2)["id"])
+            self.assertEqual(generated["status"], "verified", generated.get("error"))
+            self.assertEqual(generated["parent_verification"]["source_revision"], direct["revision"])
+            self.assertEqual(generated["verification"]["source_revision"], generated["revision"])
+            reused = self.wait_for_task(self.lab.approve(direct["id"], factor=4)["id"])
+            self.assert_reused(reused, generated)
+            self.assertEqual(reused["origin_parent_verification"], generated["parent_verification"])
+            self.assertEqual(reused["parent_verification"], generated["parent_verification"])
+            worker.assert_called_once()
+
+    def test_unbound_historical_run_is_preserved_and_new_request_builds_verified_source(self):
+        old = self.seed_live("direct")
+        folder = self.lab.path(old["id"])
+        save(folder / "task.json", self.bundle["direct"])
+        before = (folder / "task.json").read_bytes()
+        files = self.bundle["sources"][old["id"]]["files"]
+        response = {"source": files["analysis.py"], "recipe": json.loads(files["recipe.json"]),
+                    "views": json.loads(files["views.json"])}
+        with patch("factory.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})) as worker:
+            new = self.wait_for_task(self.lab.submit("B12")["id"])
+            self.assertEqual(new["status"], "verified", new.get("error"))
+            self.assertIn("lacks revision-bound verification", new["reuse_rejections"][old["id"]][0])
+            self.assertEqual(new["mode"], "fresh generation")
+            self.assertNotEqual(new["id"], old["id"])
+            worker.assert_called_once()
+        self.assertEqual(before, (folder / "task.json").read_bytes())
+
+    def test_prepared_reuse_preserves_distinct_experimental_and_original_parent_receipts(self):
+        old = self.bundle["direct"]
+        files = self.bundle["sources"][old["id"]]["files"]
+        response = {"source": files["analysis.py"] + "\n# independently generated direct release",
+                    "recipe": json.loads(files["recipe.json"]), "views": json.loads(files["views.json"])}
+        with patch("factory.b12_build.invoke_worker", return_value=(response, {"method": "new direct worker"})):
+            current = self.wait_for_task(self.lab.submit("B12")["id"])
+        self.assertEqual(current["status"], "verified", current.get("error"))
+        original = self.seed_live("direct")
+        prepared = self.seed_live("followup")
+        with patch("factory.b12_build.invoke_worker") as worker:
+            child = self.wait_for_task(self.lab.approve(current["id"], factor=4)["id"])
+            self.assert_reused(child, prepared)
+            worker.assert_not_called()
+        self.assertNotEqual(child["parent_revision"], child["origin_parent_revision"])
+        self.assertEqual(child["origin_parent_task_id"], original["id"])
+        self.assertEqual(child["origin_parent_worker"], original["worker"])
+        self.assertEqual(child["origin_parent_verification"], prepared["parent_verification"])
+        self.assertEqual(child["parent_verification"], verification_receipt(
+            current["revision"], child["parent_checks"], current["worker"], child["release_contract"]))
 
     def test_mismatched_acquisition_or_result_identity_fails_closed(self):
         self.seed_live("direct")

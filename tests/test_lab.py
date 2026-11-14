@@ -4,6 +4,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from tests.b12_release_fixtures import verified_task
+
 from factory import b12_build
 from factory.lab import Lab
 
@@ -52,7 +54,7 @@ class TaskTests(unittest.TestCase):
         parent.mkdir()
         for name, source in bundle["sources"][parent_id]["files"].items():
             (parent/name).write_text(source)
-        save(parent/"task.json", bundle["direct"])
+        save(parent/"task.json", verified_task(bundle, "direct"))
         save(parent/"acquisition.json", bundle["initial"])
         with patch.object(self.lab.pool,"submit") as enqueue:
             child = self.lab.approve(parent_id)

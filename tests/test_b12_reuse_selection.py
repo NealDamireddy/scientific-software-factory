@@ -8,6 +8,7 @@ import unittest
 from factory import b12_build
 from factory.b12_reuse import read_release, release_contract, select_release, validate_parent_checks
 from factory.context import ROOT, read_json
+from tests.b12_release_fixtures import verified_task
 
 
 class ReleaseSelectionTests(unittest.TestCase):
@@ -18,7 +19,7 @@ class ReleaseSelectionTests(unittest.TestCase):
         self.bundle = read_json(ROOT / "public/b12/completed.json")
 
     def seed_original(self, kind):
-        task = deepcopy(self.bundle[kind])
+        task = verified_task(self.bundle, kind)
         folder = self.store / task["id"]
         folder.mkdir(exist_ok=True)
         for name, source in self.bundle["sources"][task["id"]]["files"].items():
@@ -29,9 +30,11 @@ class ReleaseSelectionTests(unittest.TestCase):
     def save_task(self, task):
         (self.store / task["id"] / "task.json").write_text(json.dumps(task))
 
-    def test_historical_originals_prefer_matching_capability(self):
+    def test_bound_originals_prefer_matching_capability(self):
         _, prepared = self.seed_original("followup")
-        self.assertEqual(select_release(self.store, False)[0]["id"], prepared["id"])
+        selected, reasons = select_release(self.store, False)
+        self.assertIsNone(selected)
+        self.assertIn("parent release is missing", reasons[prepared["id"]][0])
         _, direct = self.seed_original("direct")
         for need_prepared, original in ((False, direct), (True, prepared)):
             with self.subTest(need_prepared=need_prepared):
@@ -44,6 +47,64 @@ class ReleaseSelectionTests(unittest.TestCase):
                     self.assertEqual(selected["parent_checks"], original["parent_checks"])
                     self.assertEqual(selected["parent_revision"], direct["revision"])
                     self.assertEqual(rejected[direct["id"]], ["Missing capabilities: prepared"])
+
+    def test_parent_revision_resolves_to_verified_live_original(self):
+        direct_folder, direct = self.seed_original("direct")
+        _, child = self.seed_original("followup")
+        for changes, reason in (({"parent_revision": "0" * 64}, "parent revision"),
+                                ({"parent_id": "0" * 32}, "parent release is missing"),
+                                ({"parent_id": child["id"]}, "direct parent"),
+                                ({"parent_id": "../foreign"}, "parent release identity"),
+                                ({"approval": {"origin": "0" * 32}}, "preparation approval"),
+                                ({"parent_verification": None}, "Parent verification receipt")):
+            with self.subTest(changes=changes):
+                self.save_task({**child, **changes})
+                selected, rejected = select_release(self.store, True)
+                self.assertIsNone(selected)
+                self.assertIn(reason, rejected[child["id"]][0])
+
+        self.save_task(child)
+        (direct_folder / "analysis.py").write_text("print('{}')")
+        new_revision = b12_build.revision(direct_folder)
+        self.save_task({**direct, "revision": new_revision})
+        self.save_task({**child, "parent_revision": new_revision})
+        selected, rejected = select_release(self.store, True)
+        self.assertIsNone(selected)
+        self.assertIn(child["id"], rejected)
+
+    def test_prepared_checks_bound_to_their_actual_parent(self):
+        self.seed_original("direct")
+        _, child = self.seed_original("followup")
+        # A harmless extra output still passes the numerical contract, but changes
+        # the recorded parent report independently of its verification receipt.
+        child["parent_checks"][0]["actual"]["annotation"] = "stale report"
+        self.save_task(child)
+        selected, rejected = select_release(self.store, True)
+        self.assertIsNone(selected)
+        self.assertIn("Parent verification receipt", rejected[child["id"]][0])
+
+    def test_reused_direct_run_resolves_to_original_bytes_and_verification(self):
+        direct_folder, direct = self.seed_original("direct")
+        child_folder, child = self.seed_original("followup")
+        reused = {**direct, "id": "a" * 32, "mode": "verified source reuse",
+                  "origin_task_id": direct["id"]}
+        folder = self.store / reused["id"]
+        folder.mkdir()
+        for name in b12_build.FILES:
+            (folder / name).write_bytes((direct_folder / name).read_bytes())
+        self.save_task(reused)
+        self.save_task({**child, "parent_id": reused["id"],
+                        "approval": {**child["approval"], "origin": reused["id"]}})
+        selected = read_release(child_folder, True)
+        self.assertEqual(selected["parent_revision"], direct["revision"])
+        self.assertEqual(selected["parent_origin_task_id"], direct["id"])
+        self.assertEqual(selected["parent_worker"], direct["worker"])
+        for changes in ({"verification": {}}, {"worker": {}}, {"origin_task_id": reused["id"]},
+                        {"origin_task_id": child["id"]}, {"origin_task_id": "../outside"}):
+            with self.subTest(changes=changes):
+                self.save_task({**reused, **changes})
+                with self.assertRaises(ValueError):
+                    read_release(child_folder, True)
 
     def test_rejects_changed_artifacts_even_when_status_verified(self):
         folder, task = self.seed_original("direct")
