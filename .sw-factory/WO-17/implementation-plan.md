@@ -9,3 +9,7 @@ Reject a contradictory research-reproducibility@1 bundle at the existing validat
 5. Exercise each fault through readiness and the task API in dedicated archive-consistency tests. Preserve an inspectable positive control, original revisions and a read-only store. Run Python compile checks, focused unittests, existing archive/demo/optical/replay/lab regressions, real supported-sandbox replay and the lane PR checks. Obtain independent review and record any combined-tree or live-rehearsal checks separately.
 
 The coordinated interfaces add optional WO-16 attempt journals and WO-19 source origins. Link each completed measurement to its successful final attempt, allowing earlier rejected attempts to survive. For source reuse bind the verification suite to the retained release capability and compare repeated provenance for the same origin. Include fixture checks here and rerun with genuine producer exports during integration.
+
+### Changes requested on 7dae053
+
+Reproduce the independent review's admissions through archive-only readiness and HTTP. Bind direct result fields and any declared follow-up sample to the retained preparation. Check timezone-aware measurement and journal timestamps against the producer's event order, including historical archives without journals. Add mutation and positive controls for these boundaries, repeat independent review, run focused tests and isolated replay, and verify the updated PR head in CI.

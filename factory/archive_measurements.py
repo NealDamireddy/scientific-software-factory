@@ -1,6 +1,5 @@
 """Check retained B12 measurement evidence using only the public detector records."""
 from contextlib import contextmanager
-from datetime import datetime
 import math
 from statistics import linear_regression, mean
 
@@ -47,18 +46,11 @@ def number_matches(actual, expected):
     return type(actual) in (int, float) and math.isclose(actual, expected, rel_tol=1e-7, abs_tol=1e-7)
 
 
-def timestamp(data, key):
-    with record(key):
-        value = datetime.fromisoformat(text_field(data, key))
-        require(value.utcoffset() is not None, "timestamp requires a timezone")
-
-
 def _reading_evidence(raw, cal, sample, prep, recipe):
     require(isinstance(raw, list) and len(raw) == recipe["replicates"], "raw needs three readings")
     for i, reading in enumerate(raw):
         with record(f"raw[{i}]"):
             require(type(reading["replicate"]) is int, "replicate must be an integer")
-            timestamp(reading, "timestamp")
             settings = reading["settings"]
             for key, expected in (("adc_max", ADC_MAX), ("dark_offset_counts", DARK_COUNTS),
                                   ("reference_counts", BLANK_COUNTS)):
@@ -93,7 +85,6 @@ def validate_calibration(cal):
 def _check_approval(approval, proposal, original, cal, direct_id, factor):
     require(approval["origin"] == direct_id, "origin differs from direct task ID")
     require(approval["protocol"] == proposal["protocol"], "protocol differs from original proposal")
-    timestamp(approval, "approved_at")
     require(type(approval["factor"]) in (int, float) and math.isclose(approval["factor"], factor),
             "factor differs from actual preparation volumes")
     # Historical proposals authorized only a twofold preparation. New proposals
@@ -147,6 +138,11 @@ def _completed_attempt(task, measurement, cal, sample, prep, recipe):
     fields = {"sample_id": sample, "preparation": prep, "calibration_id": cal["id"],
               "revision": task["revision"], "settings": recipe, "raw": measurement["raw"],
               "finding": measurement["finding"]}
+    if prep is None and "calibration_standards" in current:
+        fields["calibration_standards"] = [
+            {"concentration_mg_l": standard["concentration_mg_l"], "raw": standard["raw"]}
+            for standard in cal["standards"]
+        ]
     for key, expected in fields.items():
         require(same_json(current[key], expected), f"acquisition_attempts completed {key} differs from measurement")
     require(prep is None or current["finding"]["in_range"] is True,
@@ -177,7 +173,10 @@ def _measurement(measurement, task, cal, sample, prep, recipe, factor):
                     f"result.{key} differs between task and measurement")
     require(result["sample_id"] == sample, "result.sample_id mismatch")
     require(result["calibration_id"] == cal["id"], "result.calibration_id mismatch")
-    if prep is not None:
+    if prep is None:
+        for key in ("parent_id", "preparation_id", "factor", "diluted_mg_l"):
+            require(result.get(key) is None, f"direct.result.{key} requires a preparation")
+    else:
         for key, expected in (("parent_id", prep["parent_id"]), ("preparation_id", prep["id"])):
             if finding["in_range"] or result.get(key) is not None:
                 require(result[key] == expected, f"result.{key} differs from preparation")
@@ -220,6 +219,7 @@ def validate_measurements(bundle, recipes):
             sample = text_field(prep, "sample_id")
             factor = validate_preparation(sample, prep)
             require(prep["parent_id"] == original, "parent_id differs from original vial")
+        require(child.get("sample_id", sample) == sample, "sample_id differs from preparation.sample_id")
         approval = child["approval"]
         with record("approval"):
             _check_approval(approval, proposal, original, cal, direct["id"], factor)

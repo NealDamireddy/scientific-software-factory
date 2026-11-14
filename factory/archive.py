@@ -5,7 +5,8 @@ import json
 import re
 
 from . import b12_build
-from .archive_measurements import record, require, text_field, timestamp, validate_calibration, validate_measurements
+from .archive_measurements import record, require, text_field, validate_calibration, validate_measurements
+from .archive_timing import validate_timing
 from .archive_verification import validate_verification
 from .optics import PROFILE, calibration_digest, validate_recipe
 
@@ -14,7 +15,6 @@ def _task_source(task, source):
     require(isinstance(task["id"], str) and re.fullmatch(r"[0-9a-f]{32}", task["id"]), "invalid task id")
     require(task["status"] == "verified", "status must be verified")
     require(task["context"] == PROFILE, "context differs from the pinned B12 profile")
-    timestamp(task, "created")
     files = source["files"]
     require(set(files) == set(b12_build.FILES), "source.files must contain all three release artifacts")
     for name, content in files.items():
@@ -87,6 +87,7 @@ def validate_archive(bundle):
             require(calibration_digest(cal) == cal["id"], "frozen calibration digest mismatch")
         validate_calibration(cal)
         validate_measurements(bundle, recipes)
+        validate_timing(bundle)
         validate_verification(direct, child)
         _evidence_index(bundle, cal["id"], child["preparation"]["id"])
         json.dumps(bundle, allow_nan=False)

@@ -1,5 +1,6 @@
 """Admission at the B12 presenter's historical-run boundary."""
 from copy import deepcopy
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import tempfile
@@ -9,6 +10,7 @@ from unittest.mock import patch
 from urllib.request import urlopen
 
 from factory import demo
+from factory.archive import validate_archive
 from factory.context import ROOT, read_json
 from factory.lab import Handler, Lab, ThreadingHTTPServer
 
@@ -18,6 +20,8 @@ HISTORICAL_RUN = ROOT / "public/b12/completed.json"
 
 def assert_archive_rejected(test, package, diagnostic):
     """Also used with a WO-16 rejected-attempt export on the integrated tree."""
+    with test.assertRaisesRegex(ValueError, diagnostic):
+        validate_archive(package)
     with tempfile.TemporaryDirectory() as temp:
         store = Path(temp) / "live"
         # Lab initializes the service for GET /api/tasks and /api/tasks/<id>.
@@ -57,7 +61,7 @@ def add_completed_attempt(package, role):
         "revision": task["revision"], "calibration_id": task["result"]["calibration_id"],
         "preparation": deepcopy(task.get("preparation")), "finding": deepcopy(measurement["finding"]),
         "settings": json.loads(package["sources"][task["id"]]["files"]["recipe.json"]),
-        "started_at": raw[0]["timestamp"], "acquired_at": raw[-1]["timestamp"],
+        "started_at": task["created"], "acquired_at": raw[-1]["timestamp"],
         "finished_at": measurement.get("time", raw[-1]["timestamp"]), "raw": deepcopy(raw),
     }
     measurement["attempt_id"] = identifier
@@ -125,6 +129,33 @@ class ArchiveConsistencyTests(unittest.TestCase):
 
     def reject(self, diagnostic):
         assert_archive_rejected(self, self.bundle, "(?i)" + diagnostic)
+
+    def test_direct_result_rejects_preparation_fields_singly_and_together(self):
+        forged = {"parent_id": "unrelated-vial", "preparation_id": "fake-prep", "factor": 4}
+        for values in (forged, {"parent_id": ""}, {"preparation_id": "fake-prep"},
+                       {"factor": False}, {"diluted_mg_l": 0}):
+            with self.subTest(values=values):
+                package = deepcopy(self.bundle)
+                package["direct"]["result"].update(values)
+                assert_archive_rejected(self, package, "|".join(values))
+
+    def test_optional_direct_result_and_followup_sample_fields_remain_inspectable(self):
+        for package in (self.bundle, reused_package(self.bundle)):
+            with self.subTest(mode=package["direct"]["mode"]):
+                child = package["followup"]
+                child["sample_id"] = child["preparation"]["sample_id"]
+                with tempfile.TemporaryDirectory() as temp:
+                    lab = Lab(Path(temp), archive=package, allow_generation=False)
+                    self.addCleanup(lab.close)
+                    self.assertEqual(lab.task(package["direct"]["id"])["result"], package["direct"]["result"])
+                    self.assertEqual(lab.task(child["id"])["sample_id"], child["result"]["sample_id"])
+
+    def test_followup_task_sample_if_present_must_match_prepared_sample(self):
+        for package in (self.bundle, reused_package(self.bundle)):
+            for sample in ("unrelated-vial", None):
+                with self.subTest(mode=package["followup"]["mode"], sample=sample):
+                    package["followup"]["sample_id"] = sample
+                    assert_archive_rejected(self, package, "sample_id")
 
     def test_task_result_changed_to_999(self):
         self.child["result"]["concentration_mg_l"] = 999
@@ -252,12 +283,99 @@ class ArchiveConsistencyTests(unittest.TestCase):
                     diagnostic = "attempt_id" if "ID" in mutation else "raw"
                     assert_archive_rejected(self, package, diagnostic)
 
+    def test_direct_attempt_standard_checkpoints_match_frozen_calibration(self):
+        attempt = add_completed_attempt(self.bundle, "direct")
+        attempt["calibration_standards"] = [
+            {"concentration_mg_l": standard["concentration_mg_l"], "raw": deepcopy(standard["raw"])}
+            for standard in self.bundle["initial"]["calibration"]["standards"]
+        ]
+        self.assertEqual(validate_archive(self.bundle), self.bundle)
+        for mutation in ("invalid timestamp", "missing standard"):
+            with self.subTest(mutation=mutation):
+                package = deepcopy(self.bundle)
+                checkpoints = package["direct"]["acquisition_attempts"][0]["calibration_standards"]
+                if mutation == "invalid timestamp":
+                    checkpoints[0]["raw"][0]["timestamp"] = "invalid"
+                else:
+                    checkpoints.pop()
+                assert_archive_rejected(self, package, "calibration_standards")
+
+    def test_measurement_completion_requires_a_timezone_aware_timestamp(self):
+        for value in (None, "invalid", "2026-11-14T09:00:00"):
+            with self.subTest(value=value):
+                package = deepcopy(self.bundle)
+                measurement = package["followup"]["measurement"]
+                if value is None:
+                    del measurement["time"]
+                else:
+                    measurement["time"] = value
+                assert_archive_rejected(self, package, "time")
+
+    def test_approval_is_bound_to_original_and_followup_measurements(self):
+        fields = (
+            (("followup", "approval", "approved_at"), "2099-01-01T00:00:00Z", "approved_at"),
+            (("followup", "approval", "approved_at"), self.bundle["direct"]["created"], "approved_at"),
+            (("followup", "created"), self.bundle["direct"]["created"], "created|approved_at"),
+            (("initial", "raw", 0, "timestamp"), self.child["created"], "timestamp|approved_at"),
+            (("followup", "measurement", "raw", 0, "timestamp"), self.bundle["direct"]["created"],
+             "timestamp|approved_at"),
+            (("followup", "measurement", "time"), self.child["created"], "time"),
+        )
+        for path, value, diagnostic in fields:
+            with self.subTest(path=path, value=value):
+                package = deepcopy(self.bundle)
+                record = package
+                for key in path[:-1]:
+                    record = record[key]
+                record[path[-1]] = value
+                assert_archive_rejected(self, package, diagnostic)
+
+    def test_journal_requires_each_completed_attempt_timestamp_on_both_tasks(self):
+        for role in ("direct", "followup"):
+            for key in ("started_at", "acquired_at", "finished_at"):
+                for value in (None, "invalid", "2026-11-14T08:13:00"):
+                    with self.subTest(role=role, key=key, value=value):
+                        package = deepcopy(self.bundle)
+                        attempt = add_completed_attempt(package, role)
+                        if value is None:
+                            del attempt[key]
+                        else:
+                            attempt[key] = value
+                        assert_archive_rejected(self, package, key)
+
+    def test_attempt_marks_bracket_the_acquisition_and_measurement(self):
+        for role, key, value, diagnostic in (
+                ("direct", "finished_at", self.measurement["time"], "finished_at|approved_at"),
+                ("followup", "started_at", self.measurement["time"], "started_at|timestamp"),
+                ("followup", "acquired_at", self.child["created"], "acquired_at|timestamp"),
+                ("followup", "finished_at", self.child["created"], "finished_at|acquired_at"),
+                ("followup", "finished_at", self.measurement["raw"][-1]["timestamp"], "finished_at|time")):
+            with self.subTest(role=role, key=key, value=value):
+                package = deepcopy(self.bundle)
+                add_completed_attempt(package, role)[key] = value
+                assert_archive_rejected(self, package, diagnostic)
+
+    def test_equal_instants_in_different_offsets_are_consistent(self):
+        attempt = add_completed_attempt(self.bundle, "followup")
+        last_reading = datetime.fromisoformat(self.measurement["raw"][-1]["timestamp"])
+        west = timezone(timedelta(hours=-8))
+        attempt["acquired_at"] = last_reading.astimezone(west).isoformat()
+        self.measurement["time"] = attempt["acquired_at"]
+        attempt["finished_at"] = last_reading.isoformat()
+        self.assertEqual(validate_archive(self.bundle), self.bundle)
+
     def test_completed_retry_links_its_new_readings_and_retains_earlier_rejected_counts(self):
         direct = add_completed_attempt(self.bundle, "direct")
         current = add_completed_attempt(self.bundle, "followup")
         previous = deepcopy(current)
         previous.update(id="5" * 32, status="rejected", failure={"field": "raw", "reason": "Saturated detector"})
         del previous["finding"]
+        # The first attempt ended before the researcher started a second acquisition.
+        for reading in previous["raw"]:
+            acquired = datetime.fromisoformat(reading["timestamp"]) - timedelta(seconds=1)
+            reading["timestamp"] = acquired.isoformat()
+        previous["acquired_at"] = previous["finished_at"] = previous["raw"][-1]["timestamp"]
+        current["started_at"] = current["raw"][0]["timestamp"]
         previous["raw"][0]["sample_counts"] = 65535
         current["retry_of"] = previous["id"]
         self.child["acquisition_attempts"].insert(0, previous)
@@ -271,6 +389,9 @@ class ArchiveConsistencyTests(unittest.TestCase):
             self.assertEqual(child["measurement"]["attempt_id"], current["id"])
             self.assertEqual(child["measurement"]["raw"], current["raw"])
             self.assertNotEqual(previous["raw"], child["measurement"]["raw"])
+
+        previous["finished_at"] = current["finished_at"]
+        self.reject("started_at|finished_at")
 
     def test_replay_disagreement_on_working_sandbox_blocks_archive_only_startup(self):
         with patch.object(demo, "check_sandbox", return_value="working isolation"), \
