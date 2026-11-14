@@ -21,5 +21,6 @@
   "contract": "Use statistics.linear_regression with x=1/T and y=integrated intensity. Return coefficient_au_K, background_au, and rmse_au. No weighting. Include arrays predicted_au and residual_au in input row order (residual = measured minus predicted).",
   "reference": "curie-recovery",
   "human": "Assess model suitability, normalization, saturation and the comparability of integrated intensities across temperatures.",
-  "lab": "northfield"
+  "lab": "northfield",
+  "reference_input_sha256": "179042afdd8631be329e989a15399e66b5e6e0f3253b38b597c6d022f45cc28d"
 }

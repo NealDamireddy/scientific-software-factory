@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "id": "SSF-004",
+  "origin": "local",
+  "lab": "northfield",
+  "project": "linewidth",
+  "objective": "Generate offline Python applications for Gaussian linewidth and Curie fitting. Measure peak-to-peak width and resonance center in an isolated CW-EPR derivative line.",
+  "behavior": "Return center_mT as the midpoint of the fields at maximum and minimum signal, and linewidth_mT as their absolute field separation. Accept either field_mT or field_G with matching metadata (1 G = 0.1 mT). Also return peak_mT and trough_mT.",
+  "instrument": "epr-01",
+  "operations": [
+    "read-export",
+    "measure-linewidth",
+    "pulse-acquisition"
+  ],
+  "input": {
+    "dataset": "gaussian",
+    "units": {
+      "field": "mT",
+      "signal": "a.u."
+    }
+  },
+  "parameters": {
+    "method": "sampled extrema",
+    "baseline": "zero",
+    "smoothing": "none"
+  },
+  "acceptance": [
+    "derivative-extrema"
+  ],
+  "verification": [
+    "metadata",
+    "units",
+    "schema",
+    "capabilities",
+    "reference",
+    "provenance"
+  ],
+  "review": [
+    "Confirm an isolated, well-resolved line and inspect baseline and field calibration."
+  ]
+}

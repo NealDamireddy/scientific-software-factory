@@ -21,5 +21,6 @@
   "contract": "Return center_mT as the midpoint of the fields at maximum and minimum signal, and linewidth_mT as their absolute field separation. Accept either field_mT or field_G with matching metadata (1 G = 0.1 mT). Also return peak_mT and trough_mT.",
   "reference": "derivative-extrema",
   "human": "Confirm an isolated, well-resolved line and inspect baseline and field calibration.",
-  "lab": "northfield"
+  "lab": "northfield",
+  "reference_input_sha256": "235ea7dfb5ddd5270cf37e38b5e8671155b733710995cf31393e4e56a7f2e2fb"
 }

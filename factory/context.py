@@ -89,4 +89,7 @@ def preflight(order, context, meta, data):
     compatible = order["parameters"] == project["parameters"]
     checks.append(check("parameters", "pass" if compatible else "unknown",
                         "Registered processing configuration." if compatible else "No reference suite for these parameters.", "engineering"))
+    matches = digest(data) == project["reference_input_sha256"]
+    checks.append(check("fixture identity", "pass" if matches else "fail",
+                        "Input matches the registered reference digest." if matches else "Reference input changed.", "reproducibility"))
     return checks

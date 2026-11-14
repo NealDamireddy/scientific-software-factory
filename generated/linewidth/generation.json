@@ -1,0 +1,9 @@
+{
+  "method": "codex exec",
+  "cli": "codex-cli 0.167.0",
+  "model": "gpt-6.1-sol",
+  "summary": "Standalone standard-library linewidth application validates acquisition metadata, synthetic provenance, CSV schema, units, finite values, and increasing fields. Computes sampled extrema, center, and separation in mT; ties use the first occurrence. Outputs one JSON object on success and field-specific stderr errors with nonzero exit on invalid input.",
+  "attempts": 1,
+  "timeout_s": 180,
+  "tool_mode": "read-only, tool-free request"
+}
