@@ -2,7 +2,7 @@
   "method": "codex exec",
   "cli": "codex-cli 0.167.0",
   "model": "gpt-6.1-sol",
-  "summary": "Standalone standard-library Curie fitter with acquisition metadata, provenance, unit, CSV, and finite-value validation. Uses statistics.linear_regression, preserves row order, and emits one JSON object with fit results or a field-specific error and nonzero exit.",
+  "summary": "Standalone standard-library Curie fitting application with acquisition metadata, units, provenance, CSV, and finite-value validation. Uses statistics.linear_regression and returns coefficients, RMSE, predictions, and measured-minus-predicted residuals. Invalid input produces a field-specific JSON error and nonzero exit.",
   "attempts": 1,
   "timeout_s": 180,
   "tool_mode": "read-only, tool-free request"

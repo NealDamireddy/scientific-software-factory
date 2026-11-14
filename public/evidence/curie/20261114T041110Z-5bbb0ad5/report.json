@@ -1,0 +1,132 @@
+{
+  "format": 1,
+  "id": "20261114T041110Z-5bbb0ad5",
+  "created_utc": "2026-11-14T04:11:10.097262+00:00",
+  "lab": "northfield",
+  "project": "curie",
+  "instrument": "epr-01",
+  "work_order": "SSF-003",
+  "origin": "local",
+  "upstream_id": null,
+  "mode": "replay",
+  "dataset": "temperature",
+  "input_ref": "fixtures/temperature/input.csv",
+  "parameters": {
+    "model": "I(T) = C/T + b",
+    "weights": "uniform",
+    "input": "pre-integrated intensity"
+  },
+  "environment": {
+    "python": "3.14.6",
+    "platform": "Darwin",
+    "machine": "arm64",
+    "jsonschema": "4.26.0",
+    "application_dependencies": "Python standard library"
+  },
+  "checks": [
+    {
+      "name": "read-export",
+      "status": "pass",
+      "detail": "Both registered fixtures use the local CSV reader.",
+      "category": "simulated instrument"
+    },
+    {
+      "name": "fit-curie",
+      "status": "pass",
+      "detail": "The workspace includes a synthetic, pre-integrated intensity series with absolute temperatures.",
+      "category": "simulated instrument"
+    },
+    {
+      "name": "metadata",
+      "status": "pass",
+      "detail": "Acquisition metadata matches the registered simulator.",
+      "category": "data"
+    },
+    {
+      "name": "units",
+      "status": "fail",
+      "detail": "Required {'temperature': 'K', 'intensity': 'a.u.'}. Order declares {'temperature': '°C', 'intensity': 'a.u.'}. Metadata declares {'temperature': 'K', 'intensity': 'a.u.'}.",
+      "category": "data"
+    },
+    {
+      "name": "schema",
+      "status": "pass",
+      "detail": "6 validated numeric pairs.",
+      "category": "data"
+    },
+    {
+      "name": "parameters",
+      "status": "pass",
+      "detail": "Registered processing configuration.",
+      "category": "engineering"
+    },
+    {
+      "name": "fixture identity",
+      "status": "pass",
+      "detail": "Input matches the registered reference digest.",
+      "category": "reproducibility"
+    },
+    {
+      "name": "reference",
+      "status": "untested",
+      "detail": "Generation or execution did not reach the numerical suite.",
+      "category": "numerical"
+    },
+    {
+      "name": "execution",
+      "status": "untested",
+      "detail": "Scientific program did not run.",
+      "category": "software"
+    },
+    {
+      "name": "physical instrument",
+      "status": "untested",
+      "detail": "All inputs are synthetic. No hardware connection was opened.",
+      "category": "real instrument"
+    },
+    {
+      "name": "provenance",
+      "status": "pass",
+      "detail": "Raw input, acquisition metadata, configuration and available artifacts hashed with SHA-256.",
+      "category": "reproducibility"
+    }
+  ],
+  "tests": [],
+  "human_review": [
+    "Assess model suitability, normalization, saturation and the comparability of integrated intensities across temperatures.",
+    "Interpretation of the physical model",
+    "Transfer to measured spectra and instrument calibration"
+  ],
+  "status": "blocked",
+  "source_revision": null,
+  "parent_source_revision": null,
+  "factory_sha256": "cf4bef5fe921c79e12e65f90c9072f38a2922aa09547e9f5ae6d5dc49e3f7a1c",
+  "artifacts": {
+    "context.json": {
+      "sha256": "0035f2a1649938d05814d6717fff1804a73bda8f96a56f8d6be7b308182c02cc",
+      "bytes": 3628
+    },
+    "input.csv": {
+      "sha256": "179042afdd8631be329e989a15399e66b5e6e0f3253b38b597c6d022f45cc28d",
+      "bytes": 80
+    },
+    "metadata.json": {
+      "sha256": "ffed037820982c8dd8f9cef0e33e16a5be24e579c75e15dca4a498c9f3dc124d",
+      "bytes": 306
+    },
+    "uv.lock": {
+      "sha256": "0e2be920213ae27e77ceb94c04f8443a452e6df46627c6df599838da9fb1bb42",
+      "bytes": 36522
+    },
+    "work-order.json": {
+      "sha256": "bae98f0afeefa9ad762f7687928951975b5997758ddab4eb8f0cc9dffb4b1186",
+      "bytes": 1207
+    }
+  },
+  "unresolved": [
+    "units",
+    "reference",
+    "execution",
+    "physical instrument"
+  ]
+}

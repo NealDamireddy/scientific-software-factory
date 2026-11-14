@@ -1,0 +1,12 @@
+{
+  "sample_id": "SYN-TEMPERATURE",
+  "instrument": "epr-01",
+  "frequency_GHz": 9.5,
+  "acquisition_mode": "simulated CW",
+  "units": {
+    "temperature": "K",
+    "intensity": "a.u."
+  },
+  "synthetic": true,
+  "source": "Synthetic integrated intensities. No measured spectra or upstream integration."
+}

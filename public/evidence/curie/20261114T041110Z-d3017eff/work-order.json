@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "id": "SSF-002",
+  "origin": "8090",
+  "lab": "northfield",
+  "project": "curie",
+  "objective": "Generate offline Python applications for Gaussian linewidth and Curie fitting. Fit integrated intensity against inverse absolute temperature to recover a Curie coefficient and background.",
+  "behavior": "Use statistics.linear_regression with x=1/T and y=integrated intensity. Return coefficient_au_K, background_au, and rmse_au. No weighting. Include arrays predicted_au and residual_au in input row order (residual = measured minus predicted).",
+  "instrument": "epr-01",
+  "operations": [
+    "read-export",
+    "fit-curie"
+  ],
+  "input": {
+    "dataset": "temperature",
+    "units": {
+      "temperature": "K",
+      "intensity": "a.u."
+    }
+  },
+  "parameters": {
+    "model": "I(T) = C/T + b",
+    "weights": "uniform",
+    "input": "pre-integrated intensity"
+  },
+  "acceptance": [
+    "curie-recovery"
+  ],
+  "verification": [
+    "metadata",
+    "units",
+    "schema",
+    "capabilities",
+    "reference",
+    "provenance"
+  ],
+  "review": [
+    "Assess model suitability, normalization, saturation and the comparability of integrated intensities across temperatures."
+  ],
+  "upstream_id": "WO-2"
+}

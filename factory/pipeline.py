@@ -15,6 +15,7 @@ import uuid
 from .agent import generate
 from .context import ROOT, check, digest, dump, preflight, read_json, resolve
 from .fixtures import specimen
+from .evolution import EXTENSION, check_fit_quality, covers_behavior, noisy_series
 from .sandbox import execute
 
 
@@ -44,7 +45,7 @@ def numbers(data):
     return [list(map(float,row)) for row in list(csv.reader(io.StringIO(data.decode())))[1:]]
 
 
-def reference_suite(source, project, metadata):
+def reference_suite(source, project, metadata, quality=False):
     cases = [(f"analytic-{i+1}", *specimen(project,i), metadata) for i in range(3)]
     if project == "linewidth":
         data, expected = specimen(project)
@@ -54,12 +55,26 @@ def reference_suite(source, project, metadata):
     for name, data, expected, meta in cases:
         actual, _ = execute(source,data,meta)
         metrics = evaluate(actual,expected,project,numbers(data))
+        if quality:
+            metrics.append(check_fit_quality(actual,numbers(data)))
         results.append({"case":name,"input_sha256":digest(data),"metrics":metrics,"pass":all(m["pass"] for m in metrics)})
+    if quality:
+        data = noisy_series()
+        actual, _ = execute(source,data,metadata)
+        metric = check_fit_quality(actual,numbers(data))
+        results.append({"case":"noisy-fit-quality","input_sha256":digest(data),"metrics":[metric],"pass":metric["pass"]})
     return results
 
 
 def verify_files(folder):
     report = read_json(folder/"report.json")
+    required = {"input.csv","context.json","metadata.json","work-order.json","uv.lock"}
+    if report["status"] in ("verified", "review"):
+        required |= {"analysis.py","output.json","generation.json","agent-prompt.txt"}
+    if not required <= report["artifacts"].keys():
+        raise ValueError("Evidence manifest missing required artifacts")
+    if report["source_revision"] and report["artifacts"].get("analysis.py",{}).get("sha256") != report["source_revision"]:
+        raise ValueError("Source revision differs from the artifact manifest")
     for name, entry in report["artifacts"].items():
         path = folder / name
         if Path(name).name != name or path.is_symlink() or not path.is_file() or digest(path.read_bytes()) != entry["sha256"]:
@@ -118,7 +133,7 @@ def run(order, store, mode="replay", previous=None):
                 report["environment"]["sandbox"] = jail
                 dump(folder/"output.json",output)
                 checks.append(check("execution","pass","Generated application exited successfully and returned JSON.","software"))
-                results.extend(reference_suite(source,project["id"],meta))
+                results.extend(reference_suite(source,project["id"],meta, project["id"]=="curie" and EXTENSION in order["acceptance"]))
                 passed = all(test["pass"] for test in results)
                 checks.append(check("reference","pass" if passed else "fail",
                                     f"{sum(t['pass'] for t in results)} of {len(results)} independent analytic cases passed.","numerical"))
@@ -130,10 +145,10 @@ def run(order, store, mode="replay", previous=None):
             checks.append(check("reference","untested","Generation or execution did not reach the numerical suite.","numerical"))
         if not source.exists():
             checks.append(check("execution","untested","Scientific program did not run.","software"))
-        for requested in sorted(set(order["acceptance"]) - {project["reference"]} | (set(order["verification"]) - set(ctx["standards"]["checks"]))):
+        for requested in sorted(set(order["acceptance"]) - {project["reference"],*project.get("extensions",{})} | (set(order["verification"]) - set(ctx["standards"]["checks"]))):
             checks.append(check(requested,"untested","No independent check registered for this requirement.","requirement"))
             if report["status"]=="verified": report["status"]="review"
-        if project["reference"] not in order["acceptance"] or order["behavior"] != project["contract"]:
+        if project["reference"] not in order["acceptance"] or not covers_behavior(order, project):
             checks.append(check("behavior coverage","untested","Custom behavior needs a dedicated acceptance test.","requirement"))
             if report["status"]=="verified": report["status"]="review"
         checks.append(check("physical instrument","untested","All inputs are synthetic. No hardware connection was opened.","real instrument"))

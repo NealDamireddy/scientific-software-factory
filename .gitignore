@@ -10,3 +10,5 @@ out/
 .DS_Store
 runs/
 *.egg-info/
+public/runtime/
+.vercel

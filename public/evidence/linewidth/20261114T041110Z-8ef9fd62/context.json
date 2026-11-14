@@ -1,0 +1,108 @@
+{
+  "lab": {
+    "id": "northfield",
+    "name": "Northfield Biophysics Lab",
+    "description": "Demonstration workspace for offline spin spectroscopy.",
+    "instrument": "epr-01",
+    "projects": [
+      "linewidth",
+      "curie"
+    ],
+    "standards": "publication-v1",
+    "approved_libraries": [
+      "Python standard library (csv, json, math, statistics)"
+    ],
+    "resources": [
+      "Deterministic synthetic reference fixtures",
+      "Normalized CSV interchange format",
+      "Publication evidence checklist"
+    ]
+  },
+  "instrument": {
+    "id": "epr-01",
+    "name": "X-band CW-EPR",
+    "model": "SSF CW simulator v1",
+    "manufacturer": "Scientific Software Factory (simulation)",
+    "environment": "File-only simulation · v1.0",
+    "interface": "Normalized CSV with acquisition JSON",
+    "formats": [
+      "CSV",
+      "JSON"
+    ],
+    "firmware": "No physical firmware",
+    "metadata": [
+      "sample_id",
+      "instrument",
+      "frequency_GHz",
+      "acquisition_mode",
+      "units",
+      "synthetic"
+    ],
+    "capabilities": {
+      "read-export": {
+        "status": "supported",
+        "reason": "Both registered fixtures use the local CSV reader."
+      },
+      "measure-linewidth": {
+        "status": "supported",
+        "reason": "The simulator exports a field-swept derivative trace."
+      },
+      "fit-curie": {
+        "status": "supported",
+        "reason": "The workspace includes a synthetic, pre-integrated intensity series with absolute temperatures."
+      },
+      "pulse-acquisition": {
+        "status": "unsupported",
+        "reason": "This file-only CW simulator has no pulse or acquisition interface."
+      },
+      "vendor-binary": {
+        "status": "unknown",
+        "reason": "No vendor binary parser has been qualified for this profile."
+      }
+    },
+    "reference": "https://www.cif.iastate.edu/files/inline-files/CW%20EPR%20Primer%28XenonSoftware%29.pdf",
+    "reference_scope": "Bruker primer §2.7 describes derivative linewidth and integration. Instrument identity, formats and capabilities here apply solely to the local simulator."
+  },
+  "project": {
+    "id": "linewidth",
+    "name": "CW spectral linewidth",
+    "short": "Linewidth",
+    "description": "Measure peak-to-peak width and resonance center in an isolated CW-EPR derivative line.",
+    "dataset": "gaussian",
+    "columns": [
+      "field_mT",
+      "signal_au"
+    ],
+    "units": {
+      "field": "mT",
+      "signal": "a.u."
+    },
+    "operation": "measure-linewidth",
+    "parameters": {
+      "method": "sampled extrema",
+      "baseline": "zero",
+      "smoothing": "none"
+    },
+    "contract": "Return center_mT as the midpoint of the fields at maximum and minimum signal, and linewidth_mT as their absolute field separation. Accept either field_mT or field_G with matching metadata (1 G = 0.1 mT). Also return peak_mT and trough_mT.",
+    "reference": "derivative-extrema",
+    "human": "Confirm an isolated, well-resolved line and inspect baseline and field calibration.",
+    "lab": "northfield",
+    "reference_input_sha256": "235ea7dfb5ddd5270cf37e38b5e8671155b733710995cf31393e4e56a7f2e2fb"
+  },
+  "standards": {
+    "id": "publication-v1",
+    "checks": [
+      "metadata",
+      "units",
+      "schema",
+      "capabilities",
+      "reference",
+      "provenance"
+    ],
+    "human": [
+      "Interpretation of the physical model",
+      "Transfer to measured spectra and instrument calibration"
+    ],
+    "scope": "Engineering reproducibility on synthetic fixtures"
+  }
+}

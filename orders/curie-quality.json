@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "id": "SSF-005",
+  "origin": "local",
+  "lab": "northfield",
+  "project": "curie",
+  "objective": "Extend the existing Curie fitting program to report fit quality for a noisy intensity series.",
+  "behavior": "Use statistics.linear_regression with x=1/T and y=integrated intensity. Return coefficient_au_K, background_au, and rmse_au. No weighting. Include arrays predicted_au and residual_au in input row order (residual = measured minus predicted). Also return r_squared, the unweighted coefficient of determination computed as 1 - RSS/TSS for nonconstant intensities. Document constant-intensity handling.",
+  "instrument": "epr-01",
+  "operations": [
+    "read-export",
+    "fit-curie"
+  ],
+  "input": {
+    "dataset": "temperature",
+    "units": {
+      "temperature": "K",
+      "intensity": "a.u."
+    }
+  },
+  "parameters": {
+    "model": "I(T) = C/T + b",
+    "weights": "uniform",
+    "input": "pre-integrated intensity"
+  },
+  "acceptance": [
+    "curie-recovery",
+    "fit-quality"
+  ],
+  "verification": [
+    "metadata",
+    "units",
+    "schema",
+    "capabilities",
+    "reference",
+    "provenance"
+  ],
+  "review": [
+    "Assess model suitability, normalization, saturation and the comparability of integrated intensities across temperatures."
+  ]
+}

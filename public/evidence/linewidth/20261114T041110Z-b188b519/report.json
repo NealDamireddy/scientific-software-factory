@@ -1,0 +1,287 @@
+{
+  "format": 1,
+  "id": "20261114T041110Z-b188b519",
+  "created_utc": "2026-11-14T04:11:10.097270+00:00",
+  "lab": "northfield",
+  "project": "linewidth",
+  "instrument": "epr-01",
+  "work_order": "SSF-001",
+  "origin": "8090",
+  "upstream_id": "WO-2",
+  "mode": "generate",
+  "dataset": "gaussian",
+  "input_ref": "fixtures/gaussian/input.csv",
+  "parameters": {
+    "method": "sampled extrema",
+    "baseline": "zero",
+    "smoothing": "none"
+  },
+  "environment": {
+    "python": "3.14.6",
+    "platform": "Darwin",
+    "machine": "arm64",
+    "jsonschema": "4.26.0",
+    "application_dependencies": "Python standard library",
+    "sandbox": "macOS Seatbelt"
+  },
+  "checks": [
+    {
+      "name": "read-export",
+      "status": "pass",
+      "detail": "Both registered fixtures use the local CSV reader.",
+      "category": "simulated instrument"
+    },
+    {
+      "name": "measure-linewidth",
+      "status": "pass",
+      "detail": "The simulator exports a field-swept derivative trace.",
+      "category": "simulated instrument"
+    },
+    {
+      "name": "metadata",
+      "status": "pass",
+      "detail": "Acquisition metadata matches the registered simulator.",
+      "category": "data"
+    },
+    {
+      "name": "units",
+      "status": "pass",
+      "detail": "Required {'field': 'mT', 'signal': 'a.u.'}. Order declares {'field': 'mT', 'signal': 'a.u.'}. Metadata declares {'field': 'mT', 'signal': 'a.u.'}.",
+      "category": "data"
+    },
+    {
+      "name": "schema",
+      "status": "pass",
+      "detail": "481 validated numeric pairs.",
+      "category": "data"
+    },
+    {
+      "name": "parameters",
+      "status": "pass",
+      "detail": "Registered processing configuration.",
+      "category": "engineering"
+    },
+    {
+      "name": "fixture identity",
+      "status": "pass",
+      "detail": "Input matches the registered reference digest.",
+      "category": "reproducibility"
+    },
+    {
+      "name": "execution",
+      "status": "pass",
+      "detail": "Generated application exited successfully and returned JSON.",
+      "category": "software"
+    },
+    {
+      "name": "reference",
+      "status": "pass",
+      "detail": "4 of 4 independent analytic cases passed.",
+      "category": "numerical"
+    },
+    {
+      "name": "physical instrument",
+      "status": "untested",
+      "detail": "All inputs are synthetic. No hardware connection was opened.",
+      "category": "real instrument"
+    },
+    {
+      "name": "provenance",
+      "status": "pass",
+      "detail": "Raw input, acquisition metadata, configuration and available artifacts hashed with SHA-256.",
+      "category": "reproducibility"
+    }
+  ],
+  "tests": [
+    {
+      "case": "analytic-1",
+      "input_sha256": "235ea7dfb5ddd5270cf37e38b5e8671155b733710995cf31393e4e56a7f2e2fb",
+      "metrics": [
+        {
+          "field": "center_mT",
+          "expected": 339.0,
+          "actual": 339.0,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "linewidth_mT",
+          "expected": 0.8,
+          "actual": 0.7999999999999545,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "peak_mT",
+          "expected": 338.6,
+          "actual": 338.6,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "trough_mT",
+          "expected": 339.4,
+          "actual": 339.4,
+          "tolerance": 0.002,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "analytic-2",
+      "input_sha256": "3317b8cc3fa2dd80c63f86739dbafbeda014ce0256bfa0a956e5259b4e467a22",
+      "metrics": [
+        {
+          "field": "center_mT",
+          "expected": 345.5,
+          "actual": 345.5,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "linewidth_mT",
+          "expected": 1.4,
+          "actual": 1.3999999999999773,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "peak_mT",
+          "expected": 344.8,
+          "actual": 344.8,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "trough_mT",
+          "expected": 346.2,
+          "actual": 346.2,
+          "tolerance": 0.002,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "analytic-3",
+      "input_sha256": "687b32d8fb99ab1c353b239a01be05d15566e984e5b9fc7274b6b863c655d5ca",
+      "metrics": [
+        {
+          "field": "center_mT",
+          "expected": 331.2,
+          "actual": 331.20000000000005,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "linewidth_mT",
+          "expected": 0.46,
+          "actual": 0.45999999999997954,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "peak_mT",
+          "expected": 330.96999999999997,
+          "actual": 330.97,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "trough_mT",
+          "expected": 331.43,
+          "actual": 331.43,
+          "tolerance": 0.002,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "declared-gauss",
+      "input_sha256": "c132621fcfc11e4747cf859ce898c1efa21278739c62ca5f7a85193c7d55ea56",
+      "metrics": [
+        {
+          "field": "center_mT",
+          "expected": 339.0,
+          "actual": 339.0,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "linewidth_mT",
+          "expected": 0.8,
+          "actual": 0.8000000000000114,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "peak_mT",
+          "expected": 338.6,
+          "actual": 338.6,
+          "tolerance": 0.002,
+          "pass": true
+        },
+        {
+          "field": "trough_mT",
+          "expected": 339.4,
+          "actual": 339.40000000000003,
+          "tolerance": 0.002,
+          "pass": true
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "human_review": [
+    "Confirm an isolated, well-resolved line and inspect baseline and field calibration.",
+    "Interpretation of the physical model",
+    "Transfer to measured spectra and instrument calibration"
+  ],
+  "status": "verified",
+  "source_revision": "9295aa9407a1c8d24843d28ebf7c0910c9d83d4553abe86e554afe4edafa2b0e",
+  "parent_source_revision": null,
+  "factory_sha256": "cf4bef5fe921c79e12e65f90c9072f38a2922aa09547e9f5ae6d5dc49e3f7a1c",
+  "artifacts": {
+    "agent-prompt.txt": {
+      "sha256": "a1029163a97c8079289caa96f0f38dde71a61eda8d8d039c3ae8b9db67387153",
+      "bytes": 5145
+    },
+    "analysis.py": {
+      "sha256": "9295aa9407a1c8d24843d28ebf7c0910c9d83d4553abe86e554afe4edafa2b0e",
+      "bytes": 5540
+    },
+    "context.json": {
+      "sha256": "43704263076f7407ca8918808160c35046f8f1db339bfda00ffa4f2f9b36f442",
+      "bytes": 3545
+    },
+    "generation.json": {
+      "sha256": "f6775768ec8ecaaaaf56314c4e41c5f509492be12e6359cde6450ed0c0eb94c0",
+      "bytes": 460
+    },
+    "input.csv": {
+      "sha256": "235ea7dfb5ddd5270cf37e38b5e8671155b733710995cf31393e4e56a7f2e2fb",
+      "bytes": 14307
+    },
+    "metadata.json": {
+      "sha256": "d76bde2feeec772dbd363383f5f7504a0c36bcbede41e389927b53fcb231ecdc",
+      "bytes": 292
+    },
+    "output.json": {
+      "sha256": "c76583d061efc8a18badddb24eadec7568039722a18c7ca9f93d6df75bbc56f9",
+      "bytes": 105
+    },
+    "uv.lock": {
+      "sha256": "0e2be920213ae27e77ceb94c04f8443a452e6df46627c6df599838da9fb1bb42",
+      "bytes": 36522
+    },
+    "work-order.json": {
+      "sha256": "47d00c3bd588e04eb26a6315578f9f6ad03cb16ccff9c730a10a346ab087dad8",
+      "bytes": 1157
+    }
+  },
+  "unresolved": [
+    "physical instrument"
+  ]
+}

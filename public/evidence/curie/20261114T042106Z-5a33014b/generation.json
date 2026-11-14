@@ -1,0 +1,9 @@
+{
+  "method": "codex exec",
+  "cli": "codex-cli 0.167.0",
+  "model": "gpt-6.1-sol",
+  "summary": "Standalone standard-library Curie regression with metadata, provenance, units, schema, and numeric validation. Returns coefficients, population RMSE, predictions, residuals, and unweighted R². Constant intensities yield r_squared=null because TSS is zero. Invalid inputs produce one JSON error object and nonzero exit. No tools called.",
+  "attempts": 1,
+  "timeout_s": 180,
+  "tool_mode": "read-only, tool-free request"
+}

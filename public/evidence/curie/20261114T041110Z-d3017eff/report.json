@@ -1,0 +1,357 @@
+{
+  "format": 1,
+  "id": "20261114T041110Z-d3017eff",
+  "created_utc": "2026-11-14T04:11:10.097277+00:00",
+  "lab": "northfield",
+  "project": "curie",
+  "instrument": "epr-01",
+  "work_order": "SSF-002",
+  "origin": "8090",
+  "upstream_id": "WO-2",
+  "mode": "generate",
+  "dataset": "temperature",
+  "input_ref": "fixtures/temperature/input.csv",
+  "parameters": {
+    "model": "I(T) = C/T + b",
+    "weights": "uniform",
+    "input": "pre-integrated intensity"
+  },
+  "environment": {
+    "python": "3.14.6",
+    "platform": "Darwin",
+    "machine": "arm64",
+    "jsonschema": "4.26.0",
+    "application_dependencies": "Python standard library",
+    "sandbox": "macOS Seatbelt"
+  },
+  "checks": [
+    {
+      "name": "read-export",
+      "status": "pass",
+      "detail": "Both registered fixtures use the local CSV reader.",
+      "category": "simulated instrument"
+    },
+    {
+      "name": "fit-curie",
+      "status": "pass",
+      "detail": "The workspace includes a synthetic, pre-integrated intensity series with absolute temperatures.",
+      "category": "simulated instrument"
+    },
+    {
+      "name": "metadata",
+      "status": "pass",
+      "detail": "Acquisition metadata matches the registered simulator.",
+      "category": "data"
+    },
+    {
+      "name": "units",
+      "status": "pass",
+      "detail": "Required {'temperature': 'K', 'intensity': 'a.u.'}. Order declares {'temperature': 'K', 'intensity': 'a.u.'}. Metadata declares {'temperature': 'K', 'intensity': 'a.u.'}.",
+      "category": "data"
+    },
+    {
+      "name": "schema",
+      "status": "pass",
+      "detail": "6 validated numeric pairs.",
+      "category": "data"
+    },
+    {
+      "name": "parameters",
+      "status": "pass",
+      "detail": "Registered processing configuration.",
+      "category": "engineering"
+    },
+    {
+      "name": "fixture identity",
+      "status": "pass",
+      "detail": "Input matches the registered reference digest.",
+      "category": "reproducibility"
+    },
+    {
+      "name": "execution",
+      "status": "pass",
+      "detail": "Generated application exited successfully and returned JSON.",
+      "category": "software"
+    },
+    {
+      "name": "reference",
+      "status": "pass",
+      "detail": "3 of 3 independent analytic cases passed.",
+      "category": "numerical"
+    },
+    {
+      "name": "physical instrument",
+      "status": "untested",
+      "detail": "All inputs are synthetic. No hardware connection was opened.",
+      "category": "real instrument"
+    },
+    {
+      "name": "provenance",
+      "status": "pass",
+      "detail": "Raw input, acquisition metadata, configuration and available artifacts hashed with SHA-256.",
+      "category": "reproducibility"
+    }
+  ],
+  "tests": [
+    {
+      "case": "analytic-1",
+      "input_sha256": "179042afdd8631be329e989a15399e66b5e6e0f3253b38b597c6d022f45cc28d",
+      "metrics": [
+        {
+          "field": "coefficient_au_K",
+          "expected": 120.0,
+          "actual": 119.99999999999999,
+          "tolerance": 1e-06,
+          "pass": true
+        },
+        {
+          "field": "background_au",
+          "expected": 0.25,
+          "actual": 0.25,
+          "tolerance": 1e-08,
+          "pass": true
+        },
+        {
+          "field": "rmse_au",
+          "expected": 0.0,
+          "actual": 1.013490324081353e-16,
+          "tolerance": 1e-08,
+          "pass": true
+        },
+        {
+          "field": "predicted_au",
+          "expected": [
+            2.65,
+            1.45,
+            1.05,
+            0.85,
+            0.73,
+            0.65
+          ],
+          "actual": [
+            2.65,
+            1.45,
+            1.0499999999999998,
+            0.85,
+            0.73,
+            0.6499999999999999
+          ],
+          "tolerance": 1e-08,
+          "pass": true
+        },
+        {
+          "field": "residual_au",
+          "expected": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "actual": [
+            0.0,
+            0.0,
+            2.220446049250313e-16,
+            0.0,
+            0.0,
+            1.1102230246251565e-16
+          ],
+          "tolerance": 1e-08,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "analytic-2",
+      "input_sha256": "952b691df19256654fd28c143b1caef93550d81c686b83789dd676890a9d611d",
+      "metrics": [
+        {
+          "field": "coefficient_au_K",
+          "expected": 125.0,
+          "actual": 124.99999999999991,
+          "tolerance": 1e-06,
+          "pass": true
+        },
+        {
+          "field": "background_au",
+          "expected": -0.12,
+          "actual": -0.11999999999999944,
+          "tolerance": 1e-08,
+          "pass": true
+        },
+        {
+          "field": "rmse_au",
+          "expected": 0.0,
+          "actual": 1.8847922909665853e-15,
+          "tolerance": 1e-08,
+          "pass": true
+        },
+        {
+          "field": "predicted_au",
+          "expected": [
+            2.38,
+            1.13,
+            0.71333333333333,
+            0.505,
+            0.38,
+            0.29666666666667
+          ],
+          "actual": [
+            2.379999999999999,
+            1.1299999999999997,
+            0.7133333333333334,
+            0.5050000000000001,
+            0.3800000000000002,
+            0.29666666666666697
+          ],
+          "tolerance": 1e-08,
+          "pass": true
+        },
+        {
+          "field": "residual_au",
+          "expected": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "actual": [
+            8.881784197001252e-16,
+            2.220446049250313e-16,
+            -3.3306690738754696e-15,
+            -1.1102230246251565e-16,
+            -2.220446049250313e-16,
+            3.0531133177191805e-15
+          ],
+          "tolerance": 1e-08,
+          "pass": true
+        }
+      ],
+      "pass": true
+    },
+    {
+      "case": "analytic-3",
+      "input_sha256": "3f25f8a91c16f19318962afbb96434c74a686b0434c2fb07205d5eecbae664e6",
+      "metrics": [
+        {
+          "field": "coefficient_au_K",
+          "expected": 705.0,
+          "actual": 705.0,
+          "tolerance": 1e-06,
+          "pass": true
+        },
+        {
+          "field": "background_au",
+          "expected": 1.2,
+          "actual": 1.1999999999999993,
+          "tolerance": 1e-08,
+          "pass": true
+        },
+        {
+          "field": "rmse_au",
+          "expected": 0.0,
+          "actual": 8.308148362110449e-16,
+          "tolerance": 1e-08,
+          "pass": true
+        },
+        {
+          "field": "predicted_au",
+          "expected": [
+            15.3,
+            8.25,
+            5.9,
+            4.725,
+            4.02,
+            3.55
+          ],
+          "actual": [
+            15.299999999999999,
+            8.25,
+            5.8999999999999995,
+            4.725,
+            4.02,
+            3.5499999999999994
+          ],
+          "tolerance": 1e-08,
+          "pass": true
+        },
+        {
+          "field": "residual_au",
+          "expected": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "actual": [
+            1.7763568394002505e-15,
+            0.0,
+            8.881784197001252e-16,
+            0.0,
+            0.0,
+            4.440892098500626e-16
+          ],
+          "tolerance": 1e-08,
+          "pass": true
+        }
+      ],
+      "pass": true
+    }
+  ],
+  "human_review": [
+    "Assess model suitability, normalization, saturation and the comparability of integrated intensities across temperatures.",
+    "Interpretation of the physical model",
+    "Transfer to measured spectra and instrument calibration"
+  ],
+  "status": "verified",
+  "source_revision": "c5a3d868c9461c723cd2ce7508770615dc1d13823f0b195e06b770bde282a871",
+  "parent_source_revision": null,
+  "factory_sha256": "cf4bef5fe921c79e12e65f90c9072f38a2922aa09547e9f5ae6d5dc49e3f7a1c",
+  "artifacts": {
+    "agent-prompt.txt": {
+      "sha256": "0deee008df830d4718098b657c3b7663711247a3832538148ac0224e4766cd46",
+      "bytes": 5300
+    },
+    "analysis.py": {
+      "sha256": "c5a3d868c9461c723cd2ce7508770615dc1d13823f0b195e06b770bde282a871",
+      "bytes": 6517
+    },
+    "context.json": {
+      "sha256": "0035f2a1649938d05814d6717fff1804a73bda8f96a56f8d6be7b308182c02cc",
+      "bytes": 3628
+    },
+    "generation.json": {
+      "sha256": "a71d80562d9dd5d47f08abd9207db87993d2aa147c7abfccd6abff42d9c54f59",
+      "bytes": 507
+    },
+    "input.csv": {
+      "sha256": "179042afdd8631be329e989a15399e66b5e6e0f3253b38b597c6d022f45cc28d",
+      "bytes": 80
+    },
+    "metadata.json": {
+      "sha256": "ffed037820982c8dd8f9cef0e33e16a5be24e579c75e15dca4a498c9f3dc124d",
+      "bytes": 306
+    },
+    "output.json": {
+      "sha256": "5d7a852d6a75c6565a054bef29202f31a8f2ea31a80a7b8d4a3c3075f02d70ab",
+      "bytes": 332
+    },
+    "uv.lock": {
+      "sha256": "0e2be920213ae27e77ceb94c04f8443a452e6df46627c6df599838da9fb1bb42",
+      "bytes": 36522
+    },
+    "work-order.json": {
+      "sha256": "0ac192621abae188e139e4c6ac1524abe236e663e0e2cf349eb5629a77ce0a6d",
+      "bytes": 1229
+    }
+  },
+  "unresolved": [
+    "physical instrument"
+  ]
+}

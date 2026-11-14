@@ -1,0 +1,12 @@
+{
+  "sample_id": "SYN-GAUSSIAN",
+  "instrument": "epr-01",
+  "frequency_GHz": 9.5,
+  "acquisition_mode": "simulated CW",
+  "units": {
+    "field": "mT",
+    "signal": "a.u."
+  },
+  "synthetic": true,
+  "source": "Analytic derivative of a Gaussian sampled on a uniform magnetic-field grid."
+}

@@ -1,0 +1,138 @@
+{
+  "format": 1,
+  "id": "20261114T041110Z-8ef9fd62",
+  "created_utc": "2026-11-14T04:11:10.186008+00:00",
+  "lab": "northfield",
+  "project": "linewidth",
+  "instrument": "epr-01",
+  "work_order": "SSF-004",
+  "origin": "local",
+  "upstream_id": null,
+  "mode": "replay",
+  "dataset": "gaussian",
+  "input_ref": "fixtures/gaussian/input.csv",
+  "parameters": {
+    "method": "sampled extrema",
+    "baseline": "zero",
+    "smoothing": "none"
+  },
+  "environment": {
+    "python": "3.14.6",
+    "platform": "Darwin",
+    "machine": "arm64",
+    "jsonschema": "4.26.0",
+    "application_dependencies": "Python standard library"
+  },
+  "checks": [
+    {
+      "name": "read-export",
+      "status": "pass",
+      "detail": "Both registered fixtures use the local CSV reader.",
+      "category": "simulated instrument"
+    },
+    {
+      "name": "measure-linewidth",
+      "status": "pass",
+      "detail": "The simulator exports a field-swept derivative trace.",
+      "category": "simulated instrument"
+    },
+    {
+      "name": "pulse-acquisition",
+      "status": "fail",
+      "detail": "This file-only CW simulator has no pulse or acquisition interface.",
+      "category": "simulated instrument"
+    },
+    {
+      "name": "metadata",
+      "status": "pass",
+      "detail": "Acquisition metadata matches the registered simulator.",
+      "category": "data"
+    },
+    {
+      "name": "units",
+      "status": "pass",
+      "detail": "Required {'field': 'mT', 'signal': 'a.u.'}. Order declares {'field': 'mT', 'signal': 'a.u.'}. Metadata declares {'field': 'mT', 'signal': 'a.u.'}.",
+      "category": "data"
+    },
+    {
+      "name": "schema",
+      "status": "pass",
+      "detail": "481 validated numeric pairs.",
+      "category": "data"
+    },
+    {
+      "name": "parameters",
+      "status": "pass",
+      "detail": "Registered processing configuration.",
+      "category": "engineering"
+    },
+    {
+      "name": "fixture identity",
+      "status": "pass",
+      "detail": "Input matches the registered reference digest.",
+      "category": "reproducibility"
+    },
+    {
+      "name": "reference",
+      "status": "untested",
+      "detail": "Generation or execution did not reach the numerical suite.",
+      "category": "numerical"
+    },
+    {
+      "name": "execution",
+      "status": "untested",
+      "detail": "Scientific program did not run.",
+      "category": "software"
+    },
+    {
+      "name": "physical instrument",
+      "status": "untested",
+      "detail": "All inputs are synthetic. No hardware connection was opened.",
+      "category": "real instrument"
+    },
+    {
+      "name": "provenance",
+      "status": "pass",
+      "detail": "Raw input, acquisition metadata, configuration and available artifacts hashed with SHA-256.",
+      "category": "reproducibility"
+    }
+  ],
+  "tests": [],
+  "human_review": [
+    "Confirm an isolated, well-resolved line and inspect baseline and field calibration.",
+    "Interpretation of the physical model",
+    "Transfer to measured spectra and instrument calibration"
+  ],
+  "status": "blocked",
+  "source_revision": null,
+  "parent_source_revision": null,
+  "factory_sha256": "cf4bef5fe921c79e12e65f90c9072f38a2922aa09547e9f5ae6d5dc49e3f7a1c",
+  "artifacts": {
+    "context.json": {
+      "sha256": "43704263076f7407ca8918808160c35046f8f1db339bfda00ffa4f2f9b36f442",
+      "bytes": 3545
+    },
+    "input.csv": {
+      "sha256": "235ea7dfb5ddd5270cf37e38b5e8671155b733710995cf31393e4e56a7f2e2fb",
+      "bytes": 14307
+    },
+    "metadata.json": {
+      "sha256": "d76bde2feeec772dbd363383f5f7504a0c36bcbede41e389927b53fcb231ecdc",
+      "bytes": 292
+    },
+    "uv.lock": {
+      "sha256": "0e2be920213ae27e77ceb94c04f8443a452e6df46627c6df599838da9fb1bb42",
+      "bytes": 36522
+    },
+    "work-order.json": {
+      "sha256": "6dfac6d3b74eae1710c040dbad9c15eab40a00872096b99e72a6866266a51fb9",
+      "bytes": 1158
+    }
+  },
+  "unresolved": [
+    "pulse-acquisition",
+    "reference",
+    "execution",
+    "physical instrument"
+  ]
+}

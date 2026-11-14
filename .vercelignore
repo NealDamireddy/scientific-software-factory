@@ -1,0 +1,10 @@
+.git
+.venv
+runs
+node_modules
+.next
+out
+.vercel
+public/runtime
+__pycache__
+*.pyc
