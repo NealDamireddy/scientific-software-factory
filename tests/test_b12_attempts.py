@@ -15,6 +15,7 @@ from factory.archive import validate_archive
 from factory.context import ROOT, read_json
 from factory.lab import Handler, Lab, ThreadingHTTPServer, save
 from factory.sandbox import execute
+from tests.b12_retry_contract import check_retry_successors
 
 
 class B12AttemptFixture(unittest.TestCase):
@@ -294,6 +295,33 @@ class B12AttemptTests(B12AttemptFixture):
         for key in ("measurement", "result", "score", "replay"):
             self.assertNotIn(key, previous)
         self.assertEqual(self.lab.task(self.child)["result"], last["result"])
+
+    def test_retry_chain_selects_the_original_successor_over_http(self):
+        self.open_api()
+        readings = []
+
+        def instrument(*args, **kwargs):
+            raw = optics.acquire(*args, **kwargs)
+            if not readings:
+                raw[1]["sample_counts"] = optics.ADC_MAX
+            elif len(readings) == 1:
+                raw[1]["blank_counts"] = raw[1]["dark_counts"]
+            readings.append(raw)
+            return raw
+
+        def child_request(suffix, body=None):
+            status, task = self.request("GET" if body is None else "POST", suffix, body=body)
+            self.assertEqual(status, 200, task)
+            return task
+
+        with patch("factory.followup.acquire", side_effect=instrument):
+            initial = child_request("/rerun", {})
+            first, = initial["acquisition_attempts"]
+            self.assertEqual(initial["acquisition_attempt_id"], first["id"])
+            self.assertEqual(first["status"], "rejected")
+            self.assertIn("saturat", first["failure"]["reason"].lower())
+            self.reopen()
+            check_retry_successors(self, child_request, first, readings)
 
     def test_successful_triplicate_remains_replayable_and_revealable(self):
         self.open_api()

@@ -24,6 +24,7 @@ from factory import b12_build, optics
 from factory.context import read_json
 from factory.lab import Lab
 from tests import test_b12_reuse_requests as reuse
+from tests.b12_retry_contract import check_retry_successors
 
 
 class CombinedAcceptance(unittest.TestCase):
@@ -82,6 +83,8 @@ class CombinedAcceptance(unittest.TestCase):
             raw = optics.acquire(*args, **kwargs)
             if not calls:
                 raw[1]["sample_counts"] = optics.ADC_MAX
+            elif len(calls) == 1:
+                raw[1]["blank_counts"] = raw[1]["dark_counts"]
             calls.append(deepcopy(raw))
             return raw
 
@@ -130,16 +133,11 @@ class CombinedAcceptance(unittest.TestCase):
                 with self.assertRaises(HTTPError) as reveal:
                     request(prefix + "/reveal", {})
                 self.assertEqual(reveal.exception.code, 400)
-                retry = {"retry_of": attempt["id"]}
-                recovered = request(prefix + "/rerun", retry)
-                old, current = recovered["acquisition_attempts"]
-                self.assertEqual(old, attempt)
-                self.assertNotEqual(current["id"], old["id"])
-                self.assertEqual((current["retry_of"], current["status"]), (old["id"], "completed"))
-                self.assertEqual(recovered["measurement"]["raw"], calls[1])
-                self.assertEqual(recovered["result"]["status"], "ok")
-                self.assertEqual(request(prefix + "/rerun", retry)["acquisition_attempts"], [old, current])
-                self.assertEqual(len(calls), 2)
+
+                def child_request(suffix, body=None):
+                    return request(prefix + suffix, body)
+
+                check_retry_successors(self, child_request, attempt, calls)
                 package = request(prefix + "/evidence")
             worker.assert_not_called()
 

@@ -439,6 +439,8 @@ class Handler(BaseHTTPRequestHandler):
                         return self.send(202, lab.approve(parts[2]))
                     if parts[3] == "prepare":
                         return self.send(200, lab.prepare(parts[2], body))
+                    if parts[3] == "rerun" and "retry_of" in body:
+                        return self.send(200, lab.rerun(parts[2], retry_of=body["retry_of"]))
                     if parts[3] in ("rerun", "reveal", "replay"):
                         action = {"rerun": lab.rerun, "reveal": lab.reveal, "replay": lab.replay}[parts[3]]
                         return self.send(200, action(parts[2]))
