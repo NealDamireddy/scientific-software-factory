@@ -2,7 +2,7 @@
 
 The scheduler accepts an idempotency key, an immutable specification digest and an instrument ID. Submit the same three values to recover the existing run; changing the inputs under an existing key is an error. One local dispatcher can serve concurrent submitters. The first queued run for each instrument keeps its FIFO position while it waits for approval, a trusted recipe or its calibration.
 
-The concrete local backend binds one application to one virtual instrument. It needs the saved-context approval and preparation services from [WO-8](https://github.com/NealDamireddy/scientific-software-factory/pull/6) and the verified release repository and sandbox from [WO-9](https://github.com/NealDamireddy/scientific-software-factory/pull/4). The scheduler and its standalone tests are usable without those modules. With both installed:
+The concrete local backend binds one application to one virtual instrument. It needs the saved-context approval and preparation services from [WO-8](https://github.com/NealDamireddy/scientific-software-factory/pull/6) and the verified release repository and sandbox from [WO-9](https://github.com/NealDamireddy/scientific-software-factory/pull/4). Both services and the scheduler run together in the local worker below.
 
 ```python
 from contextlib import closing
@@ -37,6 +37,10 @@ with closing(ExperimentOrchestrator(app_db, backend)) as worker:
 
 Concentration analysis returns a calibration reference when a valid positive-slope fit can be frozen from the measured standards. A subsequent approved time course may pin this exact reference, including its blank. Its local series ID maps to one remote job per point. The interval is a minimum between actual starts: a delayed worker records late measurements at their actual times. It never fabricates missing timestamps.
 
+The host validates each known standard before publishing the fit. An out-of-range unknown can still return a valid calibration. When an older fit is first reused, the worker rechecks its original approved job and readings and preserves its digest if the fit matches. If those readings are unavailable or fail validation, status reports the calibration blocker.
+
+A terminal time-course report must include valid UTC timestamps. If a report is malformed, polling keeps its remote job ID and instrument lease until the simulator confirms termination. Reopening the worker also reconciles malformed terminal reports saved by earlier versions.
+
 Keep the SQLite database and its sibling scheduler-locks directory together on a local filesystem. Keep the instrument store separate. Restart the worker against the original application database and instrument. A lost submit response is reconciled with the original key; once a remote ID is known only that job is polled. An unreachable or unknown job keeps the instrument lease. If a cancellation has no confirmed remote ID, the worker performs read-only identity lookup: an unresolved submission stays blocked because re-submitting might start an acquisition after cancellation. Do not clear the lease to force progress.
 
 Run the standalone and time-course tests with:
@@ -45,4 +49,4 @@ Run the standalone and time-course tests with:
 uv run --frozen python -m unittest tests.test_experiment_scheduler tests.test_scheduled_acquisition -v
 ```
 
-With WO-8 and WO-9 present, run `uv run --frozen python -m unittest tests.test_experiment_composition -v` on a host that permits loopback HTTP and the supported scientific sandbox. Its candidate source is a fixed test fixture; approval, measurements, timing, calibration, release verification and analysis are real local operations. It does not exercise a model-connected generation session.
+Run `uv run --frozen python -m unittest tests.test_experiment_composition -v` on a host that permits loopback HTTP and the supported scientific sandbox. Its candidate source is a fixed test fixture; approval, measurements, timing, calibration, release verification and analysis are real local operations. It does not exercise a model-connected generation session.

@@ -28,3 +28,18 @@ Development base: 505c66b. Integration inputs: WO-8 at 5c7592bd2dd1929d38f21122c
 - Final combined regression on the implementation commit: **122 passed, zero skipped** (72.420 s). The same 16 scheduler cases also passed directly on the branch.
 
 Independent review verdict: **APPROVED**.
+
+## Independent 8090 evaluation of 87f7b30 — CHANGES_REQUESTED
+
+The reviewer reproduced two P2 findings. A time-course terminal report without a finish timestamp could be saved permanently and prevent the FIFO lease from recovering. A concentration standard with inconsistent model revisions could produce a usable frozen fit even though the released analysis rejected those standards. The earlier rehearsal and its archived model receipts predate these fixes.
+
+## P2 remediation review
+
+The base is 69b6d33, including the merged WO-6 through WO-9 services and PR integration workflow. Two agents owned the series timing and calibration changes independently. A third agent reviewed both changes read-only. The lead integrated and checked both diffs. No other work order was edited.
+
+- A malformed interrupted first point left the scheduler uncertain with its SQLite lease held. After correction and worker restart, the original remote ID supplied a valid finish time, the lease was released, and the submission count was exactly one. Regressions also exercise pre-fix persisted terminal data and malformed intermediate completions.
+- A mixed-model known standard produced a withheld result in real sandboxed analysis. The old implementation published a fit anyway. The corrected host validates the instrument measurement schema, replicate provenance and fit before publication. The regression checks a null reference and zero calibration rows. Controls exercise a valid fit with an out-of-range unknown and distinct internally consistent models in different standards. A second control rejects malformed remote job identity.
+- Valid historical calibration references retain their digests after revalidation against the approved acquisition and stored measurements. An invalid historical reference cannot acquire a validation receipt. A legacy reference whose source job or readings cannot be recovered remains blocked.
+- Full source compilation and whitespace checks passed. An independent review checked the saved-state recovery and standards contracts, including the scope of model consistency. The CI on this updated PR evaluates the scientific dependencies, composition, B12/EPR regressions and production browser build. The fixture-driven composition supplies source while the real instrument, verifier, release repository and sandbox perform their normal operations.
+
+Engineering review verdict: **APPROVED for independent 8090 re-evaluation**. WO-10 remains In Review.

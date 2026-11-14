@@ -1,7 +1,6 @@
-"""Real scheduler composition; also runs when WO-8 and WO-9 are present together."""
+"""Approval, acquisition, release, and calibration through the local scheduler."""
 from contextlib import closing
 from copy import deepcopy
-from importlib.util import find_spec
 import json
 import sqlite3
 from pathlib import Path
@@ -10,7 +9,9 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 
+from factory.context import digest
 from factory.context_repository import SQLiteContextRepository
+from factory.uvvis_contract import canonical
 from factory.experiment_adapters import LocalExperimentBackend
 from factory.experiment_scheduler import ExperimentOrchestrator
 
@@ -39,10 +40,8 @@ class PreparationContentionTests(unittest.TestCase):
             backend.prepare("approved")
 
 
-@unittest.skipUnless(find_spec("factory.specifications") and find_spec("factory.scientific_analysis"),
-                     "Composition requires WO-8 approval/planner and WO-9 verified release services")
 class CompositionTests(unittest.TestCase):
-    def test_concentration_then_two_point_time_course(self):
+    def setUp(self):
         from factory.approved_acquisition import ApprovedAcquisition
         from factory.release_planner import ReleasePlanner
         from factory.release_repository import ReleaseRepository
@@ -69,6 +68,12 @@ class CompositionTests(unittest.TestCase):
 
         planner = ReleasePlanner(specs, releases, app, worker=fixture_worker, verifier=verify_release)
         backend = LocalExperimentBackend(app, specs, ApprovedAcquisition(specs, app, instrument), planner)
+        self.root, self.app, self.specs, self.first = root, app, specs, first
+        self.backend, self.releases, self.lab, self.project = backend, releases, lab, project
+
+    def test_concentration_then_two_point_time_course(self):
+        root, app, specs, first = self.root, self.app, self.specs, self.first
+        backend, releases, lab, project = self.backend, self.releases, self.lab, self.project
         worker = self.enterContext(closing(ExperimentOrchestrator(root / "scheduler.sqlite", backend)))
 
         def finish(spec, key):
@@ -130,3 +135,76 @@ class CompositionTests(unittest.TestCase):
         self.assertIn("Frozen calibration differs", gate["blocker"])
         with self.assertRaisesRegex(ValueError, "Frozen calibration differs"):
             backend.analyze(ts["sha256"], traced["release_id"], traced["measurements"])
+
+    def test_only_valid_known_standards_can_publish_a_fit(self):
+        from tests.test_uvvis_api import until
+
+        spec = self.first
+        sha = spec["sha256"]
+        self.specs.approve(sha, actor="researcher", confirmed_fields=self.specs.confirmation_fields(spec))
+        backend = self.backend
+        job = backend.acquire(sha, "standards-validation")
+        until(lambda: backend.poll(job)["status"] == "completed")
+        measurements = backend.measurements(job)
+        release = backend.prepare(sha)
+
+        mixed = deepcopy(measurements)
+        standard = spec["standards"][0]["sample_id"]
+        next(r for r in mixed["records"] if r["sample_id"] == standard)["model_revision"] = "other-model@2"
+        rejected = backend.analyze(sha, release, mixed)
+        self.assertIsNone(rejected["results"][0]["concentration_mg_l"])
+        self.assertIn("model revision", rejected["results"][0]["review_reason"])
+        self.assertIsNone(rejected["calibration_reference"])
+        with closing(sqlite3.connect(self.app)) as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM run_calibrations").fetchone()[0], 0)
+
+        malformed = deepcopy(measurements)
+        malformed["job_id"] += "\n"
+        for reading in malformed["records"]:
+            reading["job_id"] = malformed["job_id"]
+        invalid_job = backend.analyze(sha, release, malformed)
+        self.assertIsNone(invalid_job["calibration_reference"])
+        with closing(sqlite3.connect(self.app)) as db:
+            self.assertEqual(db.execute("SELECT COUNT(*) FROM run_calibrations").fetchone()[0], 0)
+
+        # An unknown outside the standards' range withholds only its own estimate.
+        for reading in measurements["records"]:
+            if reading["sample_id"] in spec["sample_ids"]:
+                reading["sample_counts"] = reading["dark_counts"] + 1
+        outcome = backend.analyze(sha, release, measurements)
+        self.assertIsNone(outcome["results"][0]["concentration_mg_l"])
+        self.assertIn("outside calibration range", outcome["results"][0]["review_reason"])
+        ref = outcome["calibration_reference"]
+        with closing(sqlite3.connect(self.app)) as db:
+            self.assertEqual(db.execute("SELECT sha256 FROM run_calibrations").fetchall(), [(ref["sha256"],)])
+
+        # Simulate two pre-fix rows: one matches the original standards and one was
+        # published from mixed-model standards. Neither carries a validation receipt.
+        with closing(sqlite3.connect(self.app)) as db, db:
+            db.execute("DELETE FROM validated_standard_fits_v1")
+            cal = json.loads(db.execute("SELECT payload FROM run_calibrations").fetchone()[0])
+            standards = backend._inputs(spec, mixed, None)["standards"]
+            cal["standards_sha256"] = digest(canonical(standards).encode())
+            invalid_sha = digest(canonical(cal).encode())
+            db.execute("INSERT INTO run_calibrations VALUES (?,?)", (invalid_sha, canonical(cal)))
+
+        course = self.specs.start(self.lab.lab_id, self.project.project_id, experiment_type="time_course")
+        for reference, valid in ((dict(ref, sha256=invalid_sha), False), (ref, True)):
+            course = self.specs.edit(course["sha256"], calibration=reference,
+                                     schedule={"point_count": 2, "interval_s": 1})
+            self.specs.approve(course["sha256"], actor="researcher",
+                               confirmed_fields=self.specs.confirmation_fields(course))
+            gate = backend.inspect(course["sha256"], spec["instrument"]["instrument_id"])
+            self.assertEqual(gate["calibration_ready"], valid, gate)
+        with closing(sqlite3.connect(self.app)) as db:
+            self.assertEqual(db.execute("SELECT sha256 FROM validated_standard_fits_v1").fetchall(), [(ref["sha256"],)])
+
+
+        # Each known standard must be internally consistent. A different model for
+        # all replicates of one standard is permitted by the verified contract.
+        for reading in mixed["records"]:
+            if reading["sample_id"] == standard:
+                reading["model_revision"] = "other-model@2"
+        alternate = backend.analyze(sha, release, mixed)
+        self.assertIsNotNone(alternate["results"][0]["concentration_mg_l"])
+        self.assertNotEqual(alternate["calibration_reference"]["sha256"], ref["sha256"])

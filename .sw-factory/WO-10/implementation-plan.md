@@ -19,3 +19,7 @@ Use a deterministic clock and controlled instrument/release doubles in tests/tes
 ## Implementation details resolved in execution
 
 The scheduled time-course adapter uses one application series identity with a stable keyed submission for each point, preserving the remote IDs and approved blank. The trusted backend freezes the concentration fit for the subsequent time course. WO-7's HTTP adapter now distinguishes malformed successful responses (uncertain) from explicit request rejection. Scheduling, time-course and concrete composition tests live in separate modules.
+
+## Review remediation on the dependency-complete candidate
+
+Bring merged WO-6 through WO-9 and the integration workflow onto the WO-10 branch. Isolate the two review findings by file ownership. Verify terminal time-course reports before they can change durable state, and re-poll malformed historical terminal entries using the saved remote ID. Check that the scheduler retains then releases its lease through restart. Validate the standard replicates and fit before persisting a calibration. Exercise the real analysis entry point with a mixed-model standard and a valid calibration whose unknown is outside its range. Run the scientific suite, composition and PR integration workflow against the updated tree.

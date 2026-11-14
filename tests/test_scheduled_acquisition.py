@@ -1,10 +1,13 @@
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 import unittest
 
 from factory.context import digest
+from factory.experiment_scheduler import ExperimentOrchestrator
 from factory.uvvis_contract import canonical
 from factory.scheduled_acquisition import ScheduledAcquisition
 from factory.uvvis_adapter import InstrumentUnavailable
@@ -19,6 +22,7 @@ class PointInstrument:
         self.specifications = self
         self.adapter = self
         self.lose_reply = False
+        self.submit_calls = 0
         self.recipe = {**self.pin, "settings": {"wavelength_nm": 550, "path_length_mm": 10, "replicates": 1}}
         self.calibration = {"id": "cal-1", "unit": "mg/L", "blank_id": "frozen-blank",
                             **self.pin, "wavelength_nm": 550, "path_length_mm": 10}
@@ -38,6 +42,7 @@ class PointInstrument:
         return self.traces[key]
 
     def submit(self, sha, *, key):
+        self.submit_calls += 1
         if key not in self.traces:
             jid = f"{len(self.jobs) + 1:032x}"
             self.jobs[jid] = dict(job_id=jid, status="running", started_at=self.now().isoformat(),
@@ -151,3 +156,96 @@ class ScheduledAcquisitionTests(unittest.TestCase):
             self.service.submit(self.remote.spec, self.remote.recipe, dict(self.remote.calibration, blank_id="wrong"),
                                 "another-run")
         self.assertIsNone(self.service.lookup(self.remote.spec["sha256"], "another-run"))
+
+    def test_interrupted_first_point_releases_lease_only_after_valid_remote_timing(self):
+        sha = self.remote.spec["sha256"]
+
+        def worker():
+            series = self.open()
+            backend = SimpleNamespace(
+                inspect=lambda spec, instrument: {"approval": {"specification_sha256": spec},
+                    "recipe": {"instrument_id": instrument}, "calibration_ready": True, "blocker": None},
+                prepare=lambda spec: "release",
+                acquire=lambda spec, key: series.submit(self.remote.spec, self.remote.recipe,
+                                                        self.remote.calibration, key),
+                poll=series.poll)
+            return closing(ExperimentOrchestrator(self.path, backend))
+
+        def lease():
+            with self.service.store.transaction() as db:
+                return db.execute("SELECT run_id FROM scheduling_leases WHERE instrument='demo'").fetchone()
+
+        with worker() as scheduler:
+            run = scheduler.submit("timing", sha, "demo")
+            scheduler.tick()
+            first, = self.remote.jobs
+            self.remote.finish(first, "interrupted")
+            good = self.remote.jobs[first].copy()
+            self.remote.jobs[first]["finished_at"] = None
+            scheduler.tick()
+            status = scheduler.status(run)
+            self.assertEqual(status["acquisition"], "uncertain")
+            self.assertEqual(lease(), (run,))
+            sid = status["job_id"]
+            cached = self.service._load(sid)
+            self.assertEqual(cached["status"], "running")
+            self.assertEqual(cached["points"][0]["status"], "running")
+            self.assertEqual(cached["points"][0]["job_id"], first)
+            self.remote.jobs[first] = good
+
+        with worker() as restarted:
+            restarted.tick()
+            status = restarted.status(run)
+            self.assertEqual(status["acquisition"], "interrupted")
+            self.assertEqual((status["job_id"], status["acquisition_finished_at"]), (sid, good["finished_at"]))
+            self.assertIsNone(lease())
+            self.assertEqual(self.remote.submit_calls, 1)
+            self.assertEqual(list(self.remote.jobs), [first])
+
+    def test_legacy_terminal_repolls_known_identity_until_timestamps_are_correct(self):
+        self.service.poll(self.series)
+        first, = self.remote.jobs
+        self.remote.finish(first, "interrupted")
+        # A previous version could have committed a malformed terminal snapshot.
+        cached = self.service._load(self.series)
+        cached["points"][0].update(status="interrupted", finished_at=None)
+        cached.update(status="interrupted", finished_at=None)
+        self.service._save(cached)
+        reopened = self.open()
+        good = self.remote.jobs[first].copy()
+        self.remote.jobs[first]["finished_at"] = None
+        with self.assertRaises(ValueError):
+            reopened.poll(self.series)
+        self.remote.jobs[first] = good
+        self.assertEqual(reopened.poll(self.series)["finished_at"], good["finished_at"])
+        self.assertEqual(reopened.poll(self.series)["status"], "interrupted")
+        self.assertEqual(self.remote.submit_calls, 1)
+
+    def test_invalid_intermediate_time_never_authorizes_the_next_point(self):
+        self.service.poll(self.series)
+        first, = self.remote.jobs
+        self.at += timedelta(seconds=12)
+        self.remote.finish(first)
+        good = self.remote.jobs[first].copy()
+        for field, value in (("started_at", "invalid"), ("started_at", None), ("finished_at", ""),
+                             ("finished_at", "2026-01-02T00:00:12"),
+                             ("finished_at", "2026-01-01T23:59:59+00:00")):
+            with self.subTest(field=field, value=value):
+                self.remote.jobs[first] = dict(good, **{field: value})
+                with self.assertRaises(ValueError):
+                    self.service.poll(self.series)
+                self.assertEqual(self.service._load(self.series)["points"][0]["status"], "running")
+                self.assertEqual(list(self.remote.jobs), [first])
+        # Resume a database written before terminal reports were validated.
+        cached = self.service._load(self.series)
+        cached["points"][0].update(status="completed", finished_at="")
+        self.service._save(cached)
+        with self.assertRaises(ValueError):
+            self.open().poll(self.series)
+        self.assertEqual(list(self.remote.jobs), [first])
+        self.remote.jobs[first] = good
+        reopened = self.open()
+        reopened.poll(self.series)
+        reopened.poll(self.series)
+        self.assertEqual(len(self.remote.jobs), 2)
+        self.assertEqual(reopened._load(self.series)["points"][0]["finished_at"], good["finished_at"])

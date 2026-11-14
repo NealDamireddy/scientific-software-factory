@@ -1,16 +1,13 @@
 """Local composition of the approval, instrument and verified-release services."""
 from collections import defaultdict
 from contextlib import closing
-from datetime import datetime, timedelta
 import json
-import math
 import sqlite3
-import statistics
 import time
 
 from .context import digest
-from .optics import absorbance
-from .uvvis_contract import canonical, validate_pins
+from .standard_calibration import fit_standards
+from .uvvis_contract import canonical, validate_job_id, validate_pins
 
 _PINS = ("instrument_id", "profile_id", "profile_sha256")
 _OPTICS = ("wavelength_nm", "path_length_mm")
@@ -40,12 +37,18 @@ class LocalExperimentBackend:
             db.execute("""CREATE TABLE IF NOT EXISTS run_calibrations (
                           sha256 TEXT PRIMARY KEY, payload TEXT NOT NULL)""")
 
+            # A separate receipt preserves all previously pinned calibration digests.
+            db.execute("""CREATE TABLE IF NOT EXISTS validated_standard_fits_v1 (
+                          sha256 TEXT PRIMARY KEY)""")
+
     def _calibration(self, spec):
         ref = spec["calibration"]
         if not ref:
             return None
         with closing(sqlite3.connect(self.path)) as db:
-            row = db.execute("SELECT payload FROM run_calibrations WHERE sha256=?", (ref["sha256"],)).fetchone()
+            row = db.execute("""SELECT c.payload, v.sha256 FROM run_calibrations c
+                                LEFT JOIN validated_standard_fits_v1 v USING(sha256)
+                                WHERE c.sha256=?""", (ref["sha256"],)).fetchone()
         if row is None:
             raise ValueError("Waiting for the approved frozen calibration")
         cal = json.loads(row[0])
@@ -53,7 +56,31 @@ class LocalExperimentBackend:
                 or cal["project_id"] != spec["project"]["project_id"]
                 or cal["profile_id"] != spec["instrument"]["profile_id"]):
             raise ValueError("Frozen calibration differs from the approved reference or project")
+        if row[1] is None:
+            self._revalidate_stored_fit(cal, ref)
         return cal
+
+    def _revalidate_stored_fit(self, cal, reference):
+        # Older rows only retained the standards digest. Resolve their original,
+        # approved batch from the acquisition service, independently of the scheduler DB.
+        job_id = cal["id"].removeprefix("cal-")
+        validate_job_id(job_id)
+        with closing(sqlite3.connect(self.acquisitions.sqlite_path)) as db:
+            row = db.execute("SELECT submission_key FROM approved_acquisitions WHERE job_id=?", (job_id,)).fetchone()
+        if row is None:
+            raise ValueError("Frozen calibration requires revalidation from its original standard readings")
+        trace = self.acquisitions.get(row[0])
+        spec, _ = self.specs.approved(trace["specification_sha256"])
+        readings = self.instrument.measurements(job_id)
+        if (spec["experiment_type"] != "concentration" or readings["job_id"] != job_id
+                or trace["request"]["blank_id"] != cal["blank_id"]):
+            raise ValueError("Frozen calibration differs from its approved source job")
+        # Only standards enter the fit, as when this reference was originally issued.
+        rebuilt = fit_standards(self._inputs(spec, readings, None))
+        if rebuilt is None or _reference(rebuilt) != reference:
+            raise ValueError("Frozen calibration failed validation against the original standards")
+        with closing(sqlite3.connect(self.path)) as db, db:
+            db.execute("INSERT OR IGNORE INTO validated_standard_fits_v1 VALUES (?)", (reference["sha256"],))
 
     def inspect(self, spec_digest, instrument_id):
         gate = dict(approval=None, recipe=None, calibration_ready=False, blocker=None)
@@ -170,29 +197,16 @@ class LocalExperimentBackend:
 
     def _freeze(self, inputs):
         """Freeze a fit from the same public known standards used by the verified app."""
-        standards = inputs["standards"]
-        try:
-            for standard in standards:
-                for row in standard["records"]:
-                    if (row["findings"] or row["simulated"] is not True or row["unit"] != "counts"
-                            or datetime.fromisoformat(row["timestamp"]).utcoffset() != timedelta(0)
-                            or not math.isfinite(row["elapsed_s"]) or row["elapsed_s"] < 0
-                            or not row["model_revision"]):
-                        return None
-            means = [statistics.mean(absorbance(r) for r in s["records"]) for s in standards]
-            slope, intercept = statistics.linear_regression([s["concentration"] for s in standards], means)
-        except (ArithmeticError, KeyError, TypeError, ValueError):
+        cal = fit_standards(inputs)
+        if cal is None:
             return None
-        if slope <= 0 or not all(map(math.isfinite, [slope, intercept, *means])):
-            return None
-        cal = dict(inputs["calibration"], slope=slope, intercept=intercept, low=min(means), high=max(means),
-                   standards_sha256=_sha(standards))
         ref = _reference(cal)
         with closing(sqlite3.connect(self.path)) as db, db:
             db.execute("INSERT OR IGNORE INTO run_calibrations VALUES (?,?)", (ref["sha256"], canonical(cal)))
             saved, = db.execute("SELECT payload FROM run_calibrations WHERE sha256=?", (ref["sha256"],)).fetchone()
             if saved != canonical(cal):
                 raise ValueError("Existing frozen calibration failed its digest check")
+            db.execute("INSERT OR IGNORE INTO validated_standard_fits_v1 VALUES (?)", (ref["sha256"],))
         return ref
 
     def analyze(self, spec_digest, release_id, measurements):

@@ -9,6 +9,27 @@ from .uvvis_adapter import InstrumentUnavailable
 from .uvvis_contract import InstrumentError, canonical, validate_key, validate_pins
 
 
+def _utc(value):
+    try:
+        stamp = datetime.fromisoformat(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Expected a UTC acquisition timestamp") from exc
+    if stamp.utcoffset() != timedelta(0):
+        raise ValueError("Expected a UTC acquisition timestamp")
+    return stamp
+
+
+def _check_times(job, *, started=True):
+    start = _utc(job.get("started_at")) if started or job.get("started_at") is not None else None
+    if job["status"] == "running":
+        if job.get("finished_at") is not None:
+            raise ValueError("Running acquisition has a finish timestamp")
+    else:
+        end = _utc(job.get("finished_at"))
+        if start is not None and end < start:
+            raise ValueError("Acquisition finished before it started")
+
+
 class ScheduledAcquisition:
     """A series has a durable local identity and one keyed remote job per timepoint."""
 
@@ -77,15 +98,72 @@ class ScheduledAcquisition:
             "reason": series.get("failure_reason")}
 
     def _finish(self, series, state, at):
+        _check_times({"status": state, "started_at": series["started_at"], "finished_at": at},
+                     started=state == "completed")
         series.update(status=state, finished_at=at)
         self._save(series)
+
+    def _point_report(self, job_id, *, cancel=False):
+        read = self.adapter.cancel if cancel else self.adapter.poll
+        report = read(job_id)
+        if (report["job_id"] != job_id
+                or report["status"] not in {"running", "completed", "cancelled", "interrupted"}):
+            raise ValueError("Unexpected remote point identity or state")
+        _check_times(report)
+        return {k: report[k] for k in ("status", "started_at", "finished_at", "reading_count")}
+
+    def _record_point(self, series, report):
+        points = series["points"]
+        last = points[-1]
+        last.update(report)
+        series["started_at"] = points[0]["started_at"]
+        if last["status"] != "running" and (series["cancelled"] or last["status"] != "completed"
+                                            or len(points) == series["point_count"]):
+            self._finish(series, "cancelled" if series["cancelled"] else last["status"], last["finished_at"])
+        else:
+            series.update(status="running", finished_at=None)
+            self._save(series)
+
+    def _repair_timing(self, series):
+        # Older workers cached terminal reports before validating their timestamps.
+        # Re-read those point IDs before trusting a cached terminal or scheduling a successor.
+        points = series["points"]
+        last = points[-1] if points else None
+        corrected = False
+        for point in points:
+            if point["status"] == "dispatching":
+                continue  # The remote ID may have been saved before the first poll.
+            try:
+                _check_times(point)
+            except ValueError:
+                report = self._point_report(point["job_id"])
+                if point is last:
+                    self._record_point(series, report)
+                    return True
+                if report["status"] != "completed":
+                    raise ValueError("An earlier scheduled point has no confirmed completion")
+                point.update(report)
+                corrected = True
+        if corrected:
+            series["started_at"] = points[0]["started_at"]
+        try:
+            _check_times(series, started=series["status"] == "completed")
+        except ValueError:
+            if not last or not last["job_id"]:
+                raise  # No authoritative remote timestamp for this local termination.
+            self._record_point(series, self._point_report(last["job_id"]))
+            return True
+        if corrected:
+            self._save(series)
+        return corrected
 
     def _advance(self, series_id, cancel):
         # Serialize remote calls for this series without holding the SQLite write lock
         # used by WO-8's own submission record. The OS releases this lock on a crash.
         with closing(self.store.lock("timecourse-" + digest(series_id.encode()), blocking=True)):
             series = self._load(series_id)
-            if series["status"] != "running":
+            repaired = self._repair_timing(series)
+            if series["status"] != "running" or (repaired and not cancel):
                 return self._status(series)
             if cancel and not series["cancelled"]:
                 series["cancelled"] = True
@@ -134,18 +212,8 @@ class ScheduledAcquisition:
                 last["job_id"] = trace["job_id"]
                 self._save(series)
 
-            read = self.adapter.cancel if series["cancelled"] else self.adapter.poll
-            report = read(last["job_id"])
-            if (report["job_id"] != last["job_id"]
-                    or report["status"] not in {"running", "completed", "cancelled", "interrupted"}):
-                raise ValueError("Unexpected remote point identity or state")
-            last.update({k: report[k] for k in ("status", "started_at", "finished_at", "reading_count")})
-            series["started_at"] = points[0]["started_at"]
-            if last["status"] != "running" and (series["cancelled"] or last["status"] != "completed"
-                                                or len(points) == series["point_count"]):
-                self._finish(series, "cancelled" if series["cancelled"] else last["status"], last["finished_at"])
-            else:
-                self._save(series)
+            report = self._point_report(last["job_id"], cancel=series["cancelled"])
+            self._record_point(series, report)
             return self._status(series)
 
     def poll(self, series_id):
