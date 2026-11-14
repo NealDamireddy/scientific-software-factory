@@ -68,6 +68,9 @@ def _fixture(kind, recipe, alternate=False):
         (name if kind == "time_course" else other, (3,), 3, None, 19.625),
         (other, (5, 3), 4, math.sqrt(2), 42.125),
     ]
+    if alternate:
+        # Both endpoints are valid, even when they occur in the same replicate group.
+        point_data.append((other, (2, 6), 4, math.sqrt(8), 65.25))
     groups = []
     results = []
     for sample, levels, mean, spread, start in point_data:
@@ -109,6 +112,10 @@ def cases(experiment_type, compiled_recipe):
         ("below calibration range", "numerical", "sample_counts", 128 + (32768 >> 1)),
         ("wavelength compatibility", "settings", "wavelength_nm", compiled_recipe["settings"]["wavelength_nm"] + 1),
         ("path length compatibility", "settings", "path_length_mm", compiled_recipe["settings"]["path_length_mm"] + 1),
+        ("unsupported measurement schema", "provenance", "schema_version", 2),
+        ("invalid acquisition identity", "provenance", "job_id", "invalid"),
+        ("mixed acquisition replicates", "provenance", "job_id", "f" * 32),
+        ("mixed model revisions", "provenance", "model_revision", "other-optical@2"),
         ("blank identity", "provenance", "blank_id", "unreferenced-blank"),
         ("instrument identity", "provenance", "instrument_id", data["calibration"]["instrument_id"] + "-other"),
         ("profile revision", "provenance", "profile_id", data["calibration"]["profile_id"] + "-other"),
@@ -121,9 +128,22 @@ def cases(experiment_type, compiled_recipe):
         _withhold(target["results"][0])
         yield name, category, challenge, target
 
+    for field in ("schema_version", "model_revision"):
+        challenge, target = deepcopy(data), deepcopy(expected)
+        del challenge["groups"][0]["records"][-1][field]
+        _withhold(target["results"][0])
+        yield f"missing measurement {field}", "provenance", challenge, target
+
     reviewed = deepcopy(expected)
     for row in reviewed["results"]:
         _withhold(row)
+
+    missing_reference = deepcopy(data)
+    missing_reference["calibration"]["blank_id"] = None
+    for group in missing_reference["groups"] + missing_reference["standards"]:
+        for record in group["records"]:
+            record["blank_id"] = None
+    yield "required blank reference", "provenance", missing_reference, reviewed
 
     invalid_units = deepcopy(data)
     invalid_units["calibration"]["unit"] = "mmol/L"
@@ -152,6 +172,10 @@ def cases(experiment_type, compiled_recipe):
         broken_reference = deepcopy(data)
         broken_reference["standards"][1]["records"][0]["blank_id"] = "unreferenced-blank"
         yield "standard blank identity", "provenance", broken_reference, reviewed
+
+        mixed_standard = deepcopy(data)
+        mixed_standard["standards"][1]["records"][0]["job_id"] = "f" * 32
+        yield "mixed acquisition in standard", "provenance", mixed_standard, reviewed
 
 
 def compare(actual, expected, path="output"):

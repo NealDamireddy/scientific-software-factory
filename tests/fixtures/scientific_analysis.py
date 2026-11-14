@@ -2,6 +2,7 @@
 from datetime import datetime, timedelta
 import json
 import math
+import re
 import statistics
 import sys
 
@@ -18,13 +19,24 @@ def absorbances(records, sample_id, calibration):
     pins = ("instrument_id", "profile_id", "profile_sha256", "blank_id", "wavelength_nm", "path_length_mm")
     values = []
     seen = set()
+    acquisition = None
     for reading in records:
         if not isinstance(reading, dict):
             raise ValueError("Expected a raw measurement record")
-        if reading["sample_id"] != sample_id or not sample_id:
+        if not isinstance(sample_id, str) or not sample_id.strip() or reading["sample_id"] != sample_id:
             raise ValueError("Sample identity mismatch")
-        if any(reading[key] != calibration[key] for key in pins):
+        if any(type(reading[key]) is not type(calibration[key]) or reading[key] != calibration[key] for key in pins):
             raise ValueError("Measurement settings or blank differ from calibration")
+        if type(reading["schema_version"]) is not int or reading["schema_version"] != 1:
+            raise ValueError("Unsupported measurement schema")
+        job, model = reading["job_id"], reading["model_revision"]
+        if not isinstance(job, str) or not re.fullmatch(r"[a-f0-9]{32}", job):
+            raise ValueError("Invalid acquisition job identity")
+        if not isinstance(model, str) or not model.strip():
+            raise ValueError("Missing model revision")
+        if acquisition is not None and acquisition != (job, model):
+            raise ValueError("Replicates differ in acquisition job or model revision")
+        acquisition = (job, model)
         if reading["unit"] != "counts":
             raise ValueError("Measurement requires detector counts")
         if reading["simulated"] is not True or reading["findings"] != []:
@@ -49,8 +61,10 @@ def absorbances(records, sample_id, calibration):
 
 def calibration_parameters(data):
     calibration = data["calibration"]
-    if calibration["unit"] != "mg/L" or not calibration["id"]:
+    if calibration["unit"] != "mg/L" or not isinstance(calibration["id"], str) or not calibration["id"].strip():
         raise ValueError("Calibration requires an identity and mg/L units")
+    if not isinstance(calibration.get("blank_id"), str) or not calibration["blank_id"].strip():
+        raise ValueError("Calibration requires a blank reference")
     if data["experiment_type"] == "time_course":
         slope, intercept, low, high = (finite(calibration[key], key) for key in ("slope", "intercept", "low", "high"))
     elif data["experiment_type"] == "concentration":

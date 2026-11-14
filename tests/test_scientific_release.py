@@ -8,6 +8,7 @@ import unittest
 from factory.b12_build import content_revision
 from factory.context import ROOT, digest
 from factory.release_repository import ReleaseRepository, canonical
+from factory.scientific_analysis import analyze_release, public_input
 from factory.scientific_contract import cases, compare
 from factory.scientific_release import metrics, verify_release
 
@@ -61,8 +62,6 @@ class ReleaseTests(unittest.TestCase):
         return result["release_id"]
 
     def test_publish_and_reopen_both_contracts(self):
-        from factory.scientific_analysis import analyze_release
-
         for kind in ("concentration", "time_course"):
             with self.subTest(kind=kind):
                 data = handoff(kind)
@@ -85,6 +84,25 @@ class ReleaseTests(unittest.TestCase):
                     self.assertIsNone(row["concentration_mg_l"])
                     self.assertTrue(row["review_reason"])
 
+    def test_public_projection_excludes_private_fields(self):
+        data = handoff("time_course")
+        payload = next(cases("time_course", data["compiled_recipe"]))[2]
+        expected = deepcopy(payload)
+        for obj in (payload, payload["calibration"], payload["groups"][0], payload["groups"][0]["records"][0]):
+            obj["private_truth"] = "simulator-only marker"
+        self.assertEqual(public_input(payload, "time_course"), expected)
+
+    def test_new_release_keeps_old_revision_retrievable(self):
+        data = handoff("time_course")
+        original = self.promote(data)
+        self.assertEqual(self.promote(data), original)
+        data["files"]["analysis.py"] += b"\n# independently verified revision two\n"
+        resign(data)
+        revised = self.promote(data)
+        self.assertNotEqual(original, revised)
+        self.assertEqual(self.repository.active("demo-lab", "visible-assay", "time_course"), revised)
+        self.assertEqual(self.repository.load(original)[1], handoff("time_course")["files"])
+
     def test_failed_checks_preserve_previous_manifest_and_files(self):
         data = handoff("concentration")
         previous = self.promote(data)
@@ -104,10 +122,12 @@ class ReleaseTests(unittest.TestCase):
     def test_bad_metadata_and_malformed_artifacts_fail_closed(self):
         for mutation, failure in [
             (lambda d: d["context"]["project"].update(lab_revision=3), "pinned context and acquisition settings"),
+            (lambda d: d["context"].update(experiment_type="concentration"), "pinned context and acquisition settings"),
             (lambda d: d["profile"].update(profile_id="other"), "pinned context and acquisition settings"),
             (lambda d: d["candidate"].update(source_revision="bad"), "candidate artifact and source digests"),
             (lambda d: d["files"].update({"analysis.py": b"syntax !"}), "candidate artifact and source digests"),
             (lambda d: d["files"].update({"recipe.json": b'{"a":1,"a":2}'}), "compiled recipe equality"),
+            (lambda d: d["files"].update({"views.json": b" " * 65537}), "display contract"),
             (lambda d: d.update(experiment_type="kinetics"), "supported verification contract"),
         ]:
             data = handoff("time_course")

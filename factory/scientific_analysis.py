@@ -102,13 +102,10 @@ def check_output(output, data):
     return output
 
 
-def analyze_release(repository, release_id, payload):
-    """Return validated results for a verified revision, preserving input group order."""
-    manifest, files = repository.load(release_id)
-    kind = manifest["experiment_type"]
-    data = public_input(payload, kind)
-    calibration = data["calibration"]
-    recipe = json.loads(files["recipe.json"])
+def calibration_mismatch(calibration, recipe):
+    blank = calibration.get("blank_id")
+    if not isinstance(blank, str) or not blank.strip():
+        return "Calibration requires a blank reference"
     pins = {key: recipe[key] for key in INSTRUMENT_PINS}
     pins.update({key: recipe["settings"][key] for key in OPTICAL_SETTINGS})
     if "blank_id" in recipe:
@@ -116,10 +113,21 @@ def analyze_release(repository, release_id, payload):
     for field, expected in pins.items():
         value = calibration.get(field)
         if type(value) is not type(expected) or value != expected:
-            reason = f"Calibration {field} differs from the verified acquisition recipe"
-            rows = [dict(result_identity(kind, group), concentration_mg_l=None, replicate_sd_mg_l=None,
-                         review_reason=reason) for group in data["groups"]]
-            return {"calibration_id": calibration["id"], "results": rows}
+            return f"Calibration {field} differs from the verified acquisition recipe"
+    return None
+
+
+def analyze_release(repository, release_id, payload):
+    """Return validated results for a verified revision, preserving input group order."""
+    manifest, files = repository.load(release_id)
+    kind = manifest["experiment_type"]
+    data = public_input(payload, kind)
+    calibration = data["calibration"]
+    reason = calibration_mismatch(calibration, json.loads(files["recipe.json"]))
+    if reason:
+        rows = [dict(result_identity(kind, group), concentration_mg_l=None, replicate_sd_mg_l=None,
+                     review_reason=reason) for group in data["groups"]]
+        return {"calibration_id": calibration["id"], "results": rows}
     with TemporaryDirectory() as tmp:
         source = Path(tmp) / "analysis.py"
         source.write_bytes(files["analysis.py"])

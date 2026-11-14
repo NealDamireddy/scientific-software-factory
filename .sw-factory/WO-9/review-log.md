@@ -1,67 +1,11 @@
-<!--lint disable strong-marker-->
+# WO-9 review log
 
-# Review Log: WO-9
+## Round 1 — CHANGES_REQUESTED
 
-**Work Order:** WO-9 — Verify concentration and time-course application releases
-**Initialized At (UTC):** 2026-11-14T18:23:16Z
+Three reviewers examined the release/repository boundary and its tests, the analysis runtime and independently written fixture candidate, and the numerical contract. They reviewed the changes against origin/main through 31b42b5.
 
-This file records review and verification rounds. Append new rounds; do not overwrite prior rounds.
-
----
-
-## Round 1
-
-### Requirements Alignment
-
-**Blocking:**
-
-**Advisory:**
-
-### Blueprint Alignment
-
-**Blocking:**
-
-**Advisory:**
-
-### Architecture And Conventions
-
-**Blocking:**
-
-**Advisory:**
-
-### Tests And Build
-
-**Commands run:**
-
-**Blocking:**
-
-**Advisory:**
-
-### User-Facing Verification
-
-**Skipped:** _yes/no_ - _reason if yes_
-
-**Evidence:**
-
-**Blocking:**
-
-**Advisory:**
-
-### Security, Privacy, And Data Safety
-
-**Skipped:** _yes/no_ - _reason if yes_
-
-**Blocking:**
-
-**Advisory:**
-
-### Round 1 Verdict
-
-- Total blocking:
-- Total advisory:
-- Files reviewed:
-- **Verdict:** _APPROVED or CHANGES_REQUESTED_
-
----
-
-<!-- Subsequent rounds: copy the structure above and increment the round number. -->
+- Blocking, requirements and provenance. Reusing the experiment-kind variable while iterating lab/project headers rejected valid release scopes. The verifier now checks the original experiment type. A negative test supplies a mismatched scope.
+- Blocking, host resource limits. A failed artifact size check still allowed the subsequent display/recipe checks to parse the oversized bytes. Both parsers now enforce the limit before decoding.
+- Blocking, scientific provenance. A missing blank on both the calibration and readings could compare equal. The fixture candidate also accepted missing measurement schema/job/model provenance and could pool replicates across different jobs. Add independent malformed fixtures and repeat the review.
+- The numerical reference reviewer independently recomputed the OLS coefficients, concentration estimates and sample deviations and verified the irregular measurement timestamps and comparison tolerance.
+- The repository reviewer found the transaction and rollback paths sound. The runtime reviewer confirmed public-field projection and isolated execution.

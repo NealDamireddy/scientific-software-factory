@@ -39,9 +39,9 @@ def check_context(context, profile, recipe, kind):
     # Revision metadata is projected from trusted WO-6 ContextRevision objects.
     # Approval and compiled recipe come from WO-8, separately from candidate metadata.
     lab, project = context["lab"], context["project"]
-    for kind, pin in (("lab", lab), ("project", project)):
-        require(pin["kind"] == kind and identifier(pin["revision_id"]) and sha(pin["sha256"])
-                and type(pin["revision"]) is int and pin["revision"] > 0, f"Invalid {kind} revision")
+    for entity, pin in (("lab", lab), ("project", project)):
+        require(pin["kind"] == entity and identifier(pin["revision_id"]) and sha(pin["sha256"])
+                and type(pin["revision"]) is int and pin["revision"] > 0, f"Invalid {entity} revision")
     require(identifier(lab["lab_id"]) and project["lab_id"] == lab["lab_id"]
             and identifier(project["project_id"]) and project["lab_sha256"] == lab["sha256"]
             and type(project["lab_revision"]) is int and project["lab_revision"] == lab["revision"],
@@ -84,6 +84,8 @@ def check_receipt(candidate, context, kind):
 
 
 def read_artifact(data):
+    require(type(data) is bytes and 0 < len(data) <= 65536, "Invalid JSON artifact size or type")
+
     def unique_keys(pairs):
         result = dict(pairs)
         require(len(result) == len(pairs), "Duplicate artifact key")
