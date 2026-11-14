@@ -17,7 +17,7 @@ from factory.lab import Handler, Lab, ThreadingHTTPServer, save
 from factory.sandbox import execute
 
 
-class B12AttemptTests(unittest.TestCase):
+class B12AttemptFixture(unittest.TestCase):
     def setUp(self):
         self.store = Path(self.enterContext(TemporaryDirectory()))
         self.bundle = validate_archive(read_json(ROOT / "public/b12/completed.json"))
@@ -58,9 +58,10 @@ class B12AttemptTests(unittest.TestCase):
         if hasattr(self, "server"):
             self.server.lab = self.lab
 
-    def request(self, method="GET", suffix="", task_id=None):
-        url = self.base + (task_id or self.child) + suffix
-        req = Request(url, method=method, data=b"{}" if method == "POST" else None,
+    def request(self, method="GET", suffix="", task_id=None, body=None):
+        url = self.base + (self.child if task_id is None else task_id) + suffix
+        data = json.dumps(body or {}).encode() if method == "POST" else None
+        req = Request(url, method=method, data=data,
                       headers={"Content-Type": "application/json"})
         try:
             response = urlopen(req, timeout=10)
@@ -74,6 +75,13 @@ class B12AttemptTests(unittest.TestCase):
         with patch.object(self.lab.pool, "submit"):
             return self.lab.enqueue("Measure the opaque B12 vial", **fields)["id"]
 
+    def readings(self):
+        prep = self.bundle["followup"]["preparation"]
+        return optics.acquire(optics.RECIPE, self.label * prep["sample_ml"] / prep["final_ml"],
+                              91, sample_id=prep["sample_id"])
+
+
+class B12AttemptTests(B12AttemptFixture):
     def test_direct_collection_uses_request_sample_and_legacy_default(self):
         for fields, sample in [({}, "U-01"), ({"sample_id": "Cobalt-09"}, "Cobalt-09")]:
             with self.subTest(sample=sample):
@@ -210,11 +218,6 @@ class B12AttemptTests(unittest.TestCase):
         instrument.assert_called_once()
         self.assertEqual(execute.call_count, int(candidate_error))
         self.assertEqual(b12_build.revision(self.store / self.child), self.bundle["followup"]["revision"])
-
-    def readings(self):
-        prep = self.bundle["followup"]["preparation"]
-        return optics.acquire(optics.RECIPE, self.label * prep["sample_ml"] / prep["final_ml"],
-                              91, sample_id=prep["sample_id"])
 
     def test_saturated_followup(self):
         raw = self.readings()

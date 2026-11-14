@@ -208,7 +208,8 @@ class Lab:
             field = "calibration"
             try:
                 if fresh:
-                    calibration = fit_calibration(recipe, secrets.randbits(63))
+                    calibration = fit_calibration(recipe, secrets.randbits(63),
+                                                  checkpoint_standard=attempt.checkpoint_standard)
                     save(path, {"attempt_id": attempt.record["id"], "calibration": calibration})
                     attempt.save("acquiring", calibration_id=calibration["id"])
                     field = "acquisition"

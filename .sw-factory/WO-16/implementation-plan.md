@@ -22,3 +22,9 @@ WO-19 persists task.sample_id (legacy default U-01) before calling collect(task_
 ## Verification
 
 Run dedicated unit and task API tests for saturation, incompatible blank, candidate failure, valid triplicate, legacy sample, preparation gating, restart, explicit retry, retained historical data and archived export/reveal gates. Run existing followup, lab, optics and replay tests, compile changed Python, run diff checks and lane CI. The combination of real WO-19 reuse and WO-17 archive-only refusal requires the combined reviewed head. The integration owner runs all five lanes' wider CI matrix there.
+
+## Calibration review follow-up
+
+Add an optional per-standard checkpoint to fit_calibration. Invoke it immediately after a standard triplicate is acquired, before absorbance or fitting. Lab.collect records the known concentration and observed detector counts on the current attempt before the next acquisition can begin. A partial or rejected calibration keeps its raw standard history, failure and timestamps; only a finished calibration gets a digest. The original sample raw field continues to identify mystery or prepared-vial readings. WO-19's verifier functions in optics.py are outside this change.
+
+Exercise first-standard saturation, invalid blank and later-standard failure, with disk and API checks after reopen and unchanged instrument call counts. Prove a successful fit has identical output for the same detector records with and without a checkpoint. Exercise malformed/nonfinite analysis and recovery from already saved readings. Verify the published draft state and run CI on the new head. Aggregate requests remain under the integration owner's no-assembly restriction.

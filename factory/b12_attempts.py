@@ -61,6 +61,11 @@ class Attempt:
         return self.lab.update(self.task_id, acquisition_attempts=[*history[:-1], self.record],
                                acquisition_status=status, **(task_fields or {}))
 
+    def checkpoint_standard(self, concentration, raw):
+        standards = self.record.get("calibration_standards", [])
+        standard = {"concentration_mg_l": concentration, "raw": json_readings(raw)}
+        self.save("acquiring", calibration_standards=[*standards, standard])
+
     def acquired(self, raw):
         self.save("acquired", raw=json_readings(raw), acquired_at=now())
 
@@ -69,7 +74,7 @@ class Attempt:
 
     def interrupted(self):
         return self.save("interrupted", finished_at=now(), failure={
-            "field": "acquisition", "reason": "Acquisition interrupted before readings were saved",
+            "field": "acquisition", "reason": "Acquisition interrupted before the vial readings were saved",
         })
 
 
