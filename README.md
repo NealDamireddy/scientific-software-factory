@@ -49,6 +49,14 @@ when you deliberately need a different port or a separate rehearsal store.
 
 **[Five-minute rehearsal and troubleshooting](docs/DEMO-RUNBOOK.md)**
 
+## Researcher workspace
+
+Open `/workspace/` for the UV–Vis researcher interface. **Fixture demo** keeps revisions and saved runs in the current browser tab. The fixture controls can return access or service failures. End session clears demo changes. The EPR workbench at `/` and the B12 archive at `/b12/` retain their recorded workflows.
+
+**Live workspace** uses the versioned workspace API at the same origin, or at the trusted origin supplied through `NEXT_PUBLIC_WORKSPACE_API_URL` at build time. It sends the workspace session cookie and requires a project ID. Vercel previews use fixtures only. Live smoke testing requires the authenticated WO-12 service and WO-11 evidence endpoint.
+
+Run `npm ci`, `npx playwright install chromium`, `npm run build` and `npm test` to exercise the production export. Browser tests use isolated fixture data and intercepted API responses.
+
 ## Verify and reproduce
 
 ```sh
