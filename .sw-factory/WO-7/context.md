@@ -3,7 +3,7 @@
 # Work Order Entity Index: WO-7
 
 **Initialized At (UTC):** 2026-11-14T18:15:33Z
-**Current Status:** in_progress
+**Current Status:** in_review
 
 ## Work Order
 
@@ -31,4 +31,8 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/wo-7-virtual-uvvis
-- Pull Request URL:
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/3
+
+## Knowledge Base
+
+EVOLVE's Plan (resource 9f095369-805b-4489-bc06-961275cbc2cd) establishes the trusted simulator and private-sample boundary and the existing B12 regression. The shared blueprint's contract review (thread eb63fd60-409f-4074-8636-4aeadfef84ad) assigns canonical public profile publication to WO-6 and local approved-recipe composition to WO-8.
