@@ -50,3 +50,16 @@ Reviewed 2026-11-14 against PR #4 head `c3ab3f1cff1082ab4bcc1c3605281fc0378f823e
 - Complete live acquisition-to-release composition after these interfaces are available; scheduling/evidence/CI ownership remains with the downstream orders. No live model generation, browser workflow or unfinished integration functionality is required to resolve the two scoped findings.
 
 **Work-order verdict:** not ready for approval; CHANGES_REQUESTED for the two independently reproducible WO-9 findings. Preserve In Review. No implementation changes, merge, formal approval or Completed transition was performed. This round supersedes Round 2's approval recommendation for the reviewed implementation.
+
+## Round 4 — Remediation submitted for re-review
+
+Implementation commit aa8fc4d addresses both Round 3 findings. The independent code review of the remediation found no remaining blockers in the two reviewed areas. Formal work-order re-review remains pending.
+
+1. The verifier adds eleven challenges per experiment type. Uniform offsets make raw detector counts negative, fractional or saturated while preserving the transmission ratio. The other challenges supply NaN or negative elapsed time, missing/malformed/non-UTC timestamps, and repeated/nonpositive/fractional replicate IDs. Each case requires the affected group to withhold its estimate with a reason and preserves the other groups' expected results. All previous 56 scientific fixture/reference pairs were retained.
+2. The check catalogue can be enumerated before a recipe is safe to use. Each check records passed, failed or blocked and retains its boolean passed field. The manifest identifies the updated verifier as scientific-release@2. A bad source revision produced 49 concentration outcomes (5 passed, 2 failed, 42 blocked) and 45 time-course outcomes (5 passed, 2 failed, 38 blocked). Both reports named the prerequisite, retained the prior release and ran no candidate bytes. Tests also cover incomplete recipes, failed snapshots and unavailable isolation.
+
+### Verification on macOS Seatbelt
+
+- Full unittest discovery passed 61/61 in 40.982 seconds. The eight re-signed candidate mutations removed one guard at a time from each experiment type, failed the named checks and left the previous active pointer, manifest and bytes intact.
+- A separate run of the B12 archive, benchmark, follow-up, lab, optics, replay and sandbox modules passed 29/29. The committed B12 bundle replay withheld the direct U-01 estimate and reproduced the twofold follow-up at 32.006829774391655 mg/L for the original vial.
+- Python compilation and Git whitespace checks passed. Scientific fixtures and temporary repositories were used throughout. WO-6/7/8 integration remains a separate handoff.
