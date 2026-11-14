@@ -1,0 +1,87 @@
+.workspace {
+  --paper: #f4f6f1;
+  --surface: #fffefa;
+  --rule: #d2dbcf;
+  --leaf: #15553f;
+  --dim: #52665c;
+  background: var(--paper);
+  min-height: 100vh;
+  color: #172e25;
+  font-size: 15px;
+}
+.workspace [hidden] { display: none !important; }
+.workspace main, .ws-top > div { width: min(1160px, 100%); margin: auto; padding-inline: clamp(16px, 4vw, 48px); }
+.workspace main { padding-block: 38px 72px; }
+.ws-top { background: #18382e; color: #eef6e9; }
+.ws-top > div, .ws-heading, .ws-top strong, .ws-top nav, .ws-top a, .ws-kicker, .ws-end,
+.ws-bar, .ws-scope, .ws-scope form, .ws-source, .ws-refresh, .ws-first, .workspace .actions { display: flex; align-items: center; gap: 10px; }
+.ws-top > div { justify-content: space-between; min-height: 58px; }
+.ws-top strong { font-size: 19px; letter-spacing: .09em; }
+.ws-top strong svg { color: #acdbb2; }
+.ws-top nav { gap: 18px; }
+.ws-top nav, .ws-end { font-size: 13px; }
+.ws-top a { gap: 3px; }
+.ws-top a:hover { text-decoration: underline; }
+.ws-heading { justify-content: space-between; padding-bottom: 24px; }
+.ws-kicker { font-size: 13px; font-weight: 620; color: var(--dim); margin-bottom: 5px; }
+.ws-heading h1 { font-size: clamp(33px, 5vw, 57px); font-weight: 580; line-height: 1.1; letter-spacing: -.055em; }
+.workspace h2 { font-size: clamp(21px, 2.5vw, 28px); line-height: 1.2; letter-spacing: -.04em; font-weight: 620; margin-bottom: 12px; }
+.workspace h3 { margin-block: 18px 8px; font-size: 18px; }
+.workspace h4 { margin: 0; }
+.workspace p, .workspace li { line-height: 1.5; }
+.workspace button { font: inherit; font-weight: 570; }
+.workspace button:not(:disabled):hover { filter: brightness(.9); }
+.workspace button:disabled { cursor: default; }
+.workspace :is(button, input, select, textarea, summary, a):focus-visible { outline: 3px solid #218163; outline-offset: 3px; }
+.ws-top a:focus-visible { outline-color: #bde4c2; }
+.ws-scope { flex-wrap: wrap; align-items: flex-end; gap: 18px; border: 1px solid #c4d4c3; background: #e4ede1; padding: 16px 20px; border-radius: 10px; }
+.workspace label { display: grid; gap: 5px; font-size: 13px; font-weight: 600; color: #385144; min-width: 0; }
+.workspace :is(input, select, textarea) { width: 100%; min-width: 0; font: inherit; font-size: 15px; font-weight: 440; color: #132e22; background: var(--surface); border: 1px solid #a7b9aa; border-radius: 5px; padding: 8px 10px; }
+.workspace textarea { resize: vertical; min-height: 64px; }
+.workspace input[type=checkbox] { width: auto; justify-self: start; }
+.ws-scope label { min-width: 145px; }
+.ws-scope form { align-items: flex-end; }
+.ws-source { align-self: center; color: #375242; margin-left: auto; font-size: 13px; max-width: 32ch; }
+.ws-controls { margin: 6px 2px 16px; color: var(--dim); font-size: 12px; }
+.ws-controls summary { cursor: pointer; width: fit-content; }
+.ws-controls label { margin: 8px 0; max-width: 250px; }
+.ws-bar { border-bottom: 1px solid var(--rule); justify-content: space-between; margin: 12px 0 20px; gap: 8px; }
+.ws-bar nav { display: flex; flex-wrap: wrap; }
+.ws-bar nav button { border-bottom: 3px solid transparent; border-radius: 0; padding: 13px 14px; color: var(--dim); }
+.ws-bar nav button[aria-current] { color: var(--leaf); border-bottom-color: var(--leaf); }
+.workspace .ws-end, .workspace .ws-refresh { font-size: 13px; white-space: nowrap; }
+.workspace .workspace-card, .ws-first { background: var(--surface); border: 1px solid var(--rule); border-radius: 9px; padding: clamp(16px, 2.5vw, 27px); margin-bottom: 16px; min-width: 0; }
+.workspace .field-grid, .workspace .run-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 215px), 1fr)); gap: 14px 18px; margin-block: 16px; }
+.workspace .run-picker { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 190px), 1fr)); gap: 10px; }
+.workspace .run-option { text-align: left; display: grid; gap: 6px; padding: 12px 14px; border-radius: 6px; border: 1px solid var(--rule); background: #f8f9f4; }
+.workspace .run-option[aria-pressed=true] { border-color: #317154; box-shadow: inset 3px 0 #317154; background: #edf4e8; }
+.workspace .run-option span { font-size: 12px; font-weight: 450; color: var(--dim); }
+.workspace code, .workspace time { font-size: .87em; overflow-wrap: anywhere; }
+.workspace .run-facts div { border-top: 1px solid var(--rule); padding-top: 9px; min-width: 0; }
+.workspace dl { overflow-wrap: anywhere; }
+.workspace dt { font-size: 12px; color: var(--dim); }
+.workspace dd { margin: 4px 0 0; }
+.workspace .table-scroll { overflow: auto; margin: 15px 0; }
+.workspace table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.workspace :is(th, td) { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rule); }
+.workspace thead { background: #edf1e8; }
+.workspace caption { text-align: left; font-weight: 600; padding-bottom: 7px; }
+.workspace .actions { flex-wrap: wrap; margin-top: 14px; }
+.workspace .actions button, .workspace-card button:not(.run-option), .ws-first button, .ws-scope form button { background: var(--leaf); color: white; border-radius: 5px; padding: 8px 14px; font-size: 14px; }
+.ws-alert, .run-notice { padding: 10px 14px; margin: 10px 0; color: #624315; background: #fff2d6; border-left: 3px solid #ae7a24; }
+.ws-first { justify-content: flex-start; }
+.ws-first button { margin-left: auto; }
+.ws-first h2 { margin: 0; }
+.workspace fieldset { min-inline-size: 0; }
+.ws-editor { border: 0; margin: 0; padding: 0; }
+.workspace-card fieldset { border: 1px solid var(--rule); border-radius: 6px; margin: 14px 0; padding: 12px; }
+.workspace-card legend { font-weight: 600; padding-inline: 4px; }
+.workspace .field-error, .workspace [aria-invalid=true] { color: #872d23; }
+@media (max-width: 650px) {
+  .ws-top nav { gap: 8px; } .ws-top nav > svg { display: none; }
+  .workspace main { padding-top: 24px; } .ws-heading { align-items: flex-start; }
+  .ws-scope { gap: 10px; padding: 12px; } .ws-scope label { min-width: 0; }
+  .ws-source { margin-left: 0; max-width: none; } .ws-bar { flex-wrap: wrap; }
+  .ws-bar nav button { padding: 11px 8px; } .ws-refresh { margin-bottom: 8px; }
+  .ws-first { flex-wrap: wrap; } .ws-first button { margin-left: 0; }
+}

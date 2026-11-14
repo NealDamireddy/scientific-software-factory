@@ -1,0 +1,397 @@
+{
+  "calibration": {
+    "payload": {
+      "blank_id": "blank-101",
+      "contract": "absorbance-linear@1",
+      "high": 0.2,
+      "id": "cal-visible-01",
+      "instrument_id": "uvvis-demo-01",
+      "intercept": 0.01,
+      "lab_id": "demo-lab",
+      "low": 0.03,
+      "path_length_mm": 10,
+      "profile_id": "virtual-uvvis@1",
+      "profile_sha256": "d441df2219b76210b43c95cbd8f57758b68d3bfb772c343e85e3af67a3d23286",
+      "project_id": "visible-assay",
+      "slope": 0.02,
+      "standards_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "unit": "mg/L",
+      "wavelength_nm": 650
+    },
+    "reference": {
+      "blank_id": "blank-101",
+      "contract": "absorbance-linear@1",
+      "id": "cal-visible-01",
+      "instrument_id": "uvvis-demo-01",
+      "profile_sha256": "d441df2219b76210b43c95cbd8f57758b68d3bfb772c343e85e3af67a3d23286",
+      "settings": {
+        "path_length_mm": 10,
+        "wavelength_nm": 650
+      },
+      "sha256": "b65b40d4659c0aead79531bd0736e88918a58597adabe5adbf2c1b27385c723f",
+      "unit": "mg/L"
+    }
+  },
+  "lab": {
+    "kind": "lab",
+    "lab_id": "demo-lab",
+    "lab_revision": null,
+    "lab_sha256": null,
+    "payload": {
+      "approved_libraries": [
+        "Python statistics"
+      ],
+      "instruments": [
+        {
+          "instrument_id": "uvvis-demo-01",
+          "lab_id": "demo-lab",
+          "profile_id": "virtual-uvvis@1",
+          "profile_sha256": "d441df2219b76210b43c95cbd8f57758b68d3bfb772c343e85e3af67a3d23286"
+        }
+      ],
+      "lab_id": "demo-lab",
+      "name": "Demonstration Optics Lab",
+      "operating_restrictions": [
+        "Use the simulated visible channels only."
+      ],
+      "schema_version": 1
+    },
+    "project_id": null,
+    "revision": 1,
+    "revision_id": "dc84e448-5541-4e4d-a3cb-3c942f1058fa",
+    "sha256": "44123734dae315deb97ac1a02e7bc7664ea00c0d0003a36d1611f2dfdd4e44e4"
+  },
+  "project": {
+    "kind": "project",
+    "lab_id": "demo-lab",
+    "lab_revision": 1,
+    "lab_sha256": "44123734dae315deb97ac1a02e7bc7664ea00c0d0003a36d1611f2dfdd4e44e4",
+    "payload": {
+      "analysis_method": "Linear calibration of absorbance against known standards.",
+      "instrument_id": "uvvis-demo-01",
+      "lab_id": "demo-lab",
+      "measurement_settings": {
+        "operation": "measure-absorbance",
+        "path_length_mm": 10,
+        "replicates": 3,
+        "wavelength_nm": 650
+      },
+      "project_id": "visible-assay",
+      "protocol_id": "visible-concentration",
+      "protocol_revision": 1,
+      "sample_ids": [
+        "vial-q17"
+      ],
+      "schema_version": 1,
+      "scientific_objective": "Estimate the concentration of an unknown from visible absorbance.",
+      "standards": [
+        {
+          "known_concentration": 2,
+          "sample_id": "std-1"
+        },
+        {
+          "known_concentration": 5,
+          "sample_id": "std-2"
+        },
+        {
+          "known_concentration": 10,
+          "sample_id": "std-3"
+        }
+      ],
+      "units": {
+        "concentration": "mg/L",
+        "path_length": "mm",
+        "wavelength": "nm"
+      },
+      "validation_criteria": [
+        "Require a positive calibration slope and in-range absorbance."
+      ]
+    },
+    "project_id": "visible-assay",
+    "revision": 1,
+    "revision_id": "56c2a294-a9bb-4223-a58d-aa3add5e29f3",
+    "sha256": "e23f2d62393216c68360c698fed97ef3b88ecc818901b6bece330524454932d6"
+  },
+  "specifications": [
+    {
+      "approval": {
+        "actor": "Fixture researcher",
+        "approved_at": "2026-11-12T08:59:45+00:00",
+        "confirmed_fields": [
+          "experiment_type",
+          "outputs",
+          "sample_ids",
+          "settings",
+          "standards",
+          "units",
+          "validation_criteria"
+        ],
+        "specification_sha256": "be85e4fc3d3224968b7ff33bef5b3b554c8a38b7267fd75ea4ea4a3de1565f91"
+      },
+      "payload": {
+        "analysis_method": "Linear calibration of absorbance against known standards.",
+        "approved_libraries": [
+          "Python statistics"
+        ],
+        "calibration": null,
+        "experiment_type": "concentration",
+        "instrument": {
+          "instrument_id": "uvvis-demo-01",
+          "lab_id": "demo-lab",
+          "profile_id": "virtual-uvvis@1",
+          "profile_sha256": "d441df2219b76210b43c95cbd8f57758b68d3bfb772c343e85e3af67a3d23286"
+        },
+        "lab": {
+          "kind": "lab",
+          "lab_id": "demo-lab",
+          "lab_revision": null,
+          "lab_sha256": null,
+          "project_id": null,
+          "revision": 1,
+          "revision_id": "dc84e448-5541-4e4d-a3cb-3c942f1058fa",
+          "sha256": "44123734dae315deb97ac1a02e7bc7664ea00c0d0003a36d1611f2dfdd4e44e4"
+        },
+        "operating_restrictions": [
+          "Use the simulated visible channels only."
+        ],
+        "outputs": [
+          "calibration_id",
+          "sample_id",
+          "concentration_mg_l",
+          "replicate_sd_mg_l",
+          "review_reason"
+        ],
+        "project": {
+          "kind": "project",
+          "lab_id": "demo-lab",
+          "lab_revision": 1,
+          "lab_sha256": "44123734dae315deb97ac1a02e7bc7664ea00c0d0003a36d1611f2dfdd4e44e4",
+          "project_id": "visible-assay",
+          "revision": 1,
+          "revision_id": "56c2a294-a9bb-4223-a58d-aa3add5e29f3",
+          "sha256": "e23f2d62393216c68360c698fed97ef3b88ecc818901b6bece330524454932d6"
+        },
+        "protocol_id": "visible-concentration",
+        "protocol_revision": 1,
+        "revision": 1,
+        "sample_ids": [
+          "vial-q17"
+        ],
+        "schedule": null,
+        "scientific_objective": "Estimate the concentration of an unknown from visible absorbance.",
+        "settings": {
+          "operation": "measure-absorbance",
+          "path_length_mm": 10,
+          "replicates": 3,
+          "wavelength_nm": 650
+        },
+        "specification_id": "spec-concentration",
+        "standards": [
+          {
+            "known_concentration": 2,
+            "sample_id": "std-1"
+          },
+          {
+            "known_concentration": 5,
+            "sample_id": "std-2"
+          },
+          {
+            "known_concentration": 10,
+            "sample_id": "std-3"
+          }
+        ],
+        "units": {
+          "concentration": "mg/L",
+          "path_length": "mm",
+          "wavelength": "nm"
+        },
+        "validation_criteria": [
+          "Require a positive calibration slope and in-range absorbance."
+        ],
+        "verification_contract": "concentration@1"
+      },
+      "sha256": "be85e4fc3d3224968b7ff33bef5b3b554c8a38b7267fd75ea4ea4a3de1565f91"
+    },
+    {
+      "approval": null,
+      "payload": {
+        "analysis_method": "Linear calibration of absorbance against known standards.",
+        "approved_libraries": [
+          "Python statistics"
+        ],
+        "calibration": null,
+        "experiment_type": "time_course",
+        "instrument": {
+          "instrument_id": "uvvis-demo-01",
+          "lab_id": "demo-lab",
+          "profile_id": "virtual-uvvis@1",
+          "profile_sha256": "d441df2219b76210b43c95cbd8f57758b68d3bfb772c343e85e3af67a3d23286"
+        },
+        "lab": {
+          "kind": "lab",
+          "lab_id": "demo-lab",
+          "lab_revision": null,
+          "lab_sha256": null,
+          "project_id": null,
+          "revision": 1,
+          "revision_id": "dc84e448-5541-4e4d-a3cb-3c942f1058fa",
+          "sha256": "44123734dae315deb97ac1a02e7bc7664ea00c0d0003a36d1611f2dfdd4e44e4"
+        },
+        "operating_restrictions": [
+          "Use the simulated visible channels only."
+        ],
+        "outputs": [
+          "calibration_id",
+          "sample_id",
+          "concentration_mg_l",
+          "replicate_sd_mg_l",
+          "review_reason",
+          "timestamp"
+        ],
+        "project": {
+          "kind": "project",
+          "lab_id": "demo-lab",
+          "lab_revision": 1,
+          "lab_sha256": "44123734dae315deb97ac1a02e7bc7664ea00c0d0003a36d1611f2dfdd4e44e4",
+          "project_id": "visible-assay",
+          "revision": 1,
+          "revision_id": "56c2a294-a9bb-4223-a58d-aa3add5e29f3",
+          "sha256": "e23f2d62393216c68360c698fed97ef3b88ecc818901b6bece330524454932d6"
+        },
+        "protocol_id": "visible-concentration",
+        "protocol_revision": 1,
+        "revision": 1,
+        "sample_ids": [
+          "vial-q17"
+        ],
+        "schedule": null,
+        "scientific_objective": "Estimate the concentration of an unknown from visible absorbance.",
+        "settings": {
+          "operation": "measure-absorbance",
+          "path_length_mm": 10,
+          "replicates": 3,
+          "wavelength_nm": 650
+        },
+        "specification_id": "spec-time-course",
+        "standards": [],
+        "units": {
+          "concentration": "mg/L",
+          "path_length": "mm",
+          "wavelength": "nm"
+        },
+        "validation_criteria": [
+          "Require a positive calibration slope and in-range absorbance."
+        ],
+        "verification_contract": "time_course@1"
+      },
+      "sha256": "c92493cfb257de5e031b453c124d999e986f3426fd106f9eb25067283caa8111",
+      "unresolved_fields": {
+        "calibration": "Supply a frozen calibration identity, digest, blank_id, contract, units and instrument settings.",
+        "schedule": "Select both interval_s and point_count."
+      }
+    },
+    {
+      "approval": {
+        "actor": "Fixture researcher",
+        "approved_at": "2026-11-12T09:04:45+00:00",
+        "confirmed_fields": [
+          "calibration",
+          "experiment_type",
+          "outputs",
+          "sample_ids",
+          "schedule",
+          "settings",
+          "units",
+          "validation_criteria"
+        ],
+        "specification_sha256": "0f85bc5c236721b1632c812e95e9d6fa87c270ba6457423a7d83c477ff8144f6"
+      },
+      "payload": {
+        "analysis_method": "Linear calibration of absorbance against known standards.",
+        "approved_libraries": [
+          "Python statistics"
+        ],
+        "calibration": {
+          "blank_id": "blank-101",
+          "contract": "absorbance-linear@1",
+          "id": "cal-visible-01",
+          "instrument_id": "uvvis-demo-01",
+          "profile_sha256": "d441df2219b76210b43c95cbd8f57758b68d3bfb772c343e85e3af67a3d23286",
+          "settings": {
+            "path_length_mm": 10,
+            "wavelength_nm": 650
+          },
+          "sha256": "b65b40d4659c0aead79531bd0736e88918a58597adabe5adbf2c1b27385c723f",
+          "unit": "mg/L"
+        },
+        "experiment_type": "time_course",
+        "instrument": {
+          "instrument_id": "uvvis-demo-01",
+          "lab_id": "demo-lab",
+          "profile_id": "virtual-uvvis@1",
+          "profile_sha256": "d441df2219b76210b43c95cbd8f57758b68d3bfb772c343e85e3af67a3d23286"
+        },
+        "lab": {
+          "kind": "lab",
+          "lab_id": "demo-lab",
+          "lab_revision": null,
+          "lab_sha256": null,
+          "project_id": null,
+          "revision": 1,
+          "revision_id": "dc84e448-5541-4e4d-a3cb-3c942f1058fa",
+          "sha256": "44123734dae315deb97ac1a02e7bc7664ea00c0d0003a36d1611f2dfdd4e44e4"
+        },
+        "operating_restrictions": [
+          "Use the simulated visible channels only."
+        ],
+        "outputs": [
+          "calibration_id",
+          "sample_id",
+          "concentration_mg_l",
+          "replicate_sd_mg_l",
+          "review_reason",
+          "timestamp"
+        ],
+        "project": {
+          "kind": "project",
+          "lab_id": "demo-lab",
+          "lab_revision": 1,
+          "lab_sha256": "44123734dae315deb97ac1a02e7bc7664ea00c0d0003a36d1611f2dfdd4e44e4",
+          "project_id": "visible-assay",
+          "revision": 1,
+          "revision_id": "56c2a294-a9bb-4223-a58d-aa3add5e29f3",
+          "sha256": "e23f2d62393216c68360c698fed97ef3b88ecc818901b6bece330524454932d6"
+        },
+        "protocol_id": "visible-concentration",
+        "protocol_revision": 1,
+        "revision": 2,
+        "sample_ids": [
+          "vial-q17"
+        ],
+        "schedule": {
+          "interval_s": 30,
+          "point_count": 2
+        },
+        "scientific_objective": "Estimate the concentration of an unknown from visible absorbance.",
+        "settings": {
+          "operation": "measure-absorbance",
+          "path_length_mm": 10,
+          "replicates": 3,
+          "wavelength_nm": 650
+        },
+        "specification_id": "spec-time-course",
+        "standards": [],
+        "units": {
+          "concentration": "mg/L",
+          "path_length": "mm",
+          "wavelength": "nm"
+        },
+        "validation_criteria": [
+          "Require a positive calibration slope and in-range absorbance."
+        ],
+        "verification_contract": "time_course@1"
+      },
+      "sha256": "0f85bc5c236721b1632c812e95e9d6fa87c270ba6457423a7d83c477ff8144f6"
+    }
+  ]
+}

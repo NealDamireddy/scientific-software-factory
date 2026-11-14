@@ -13,3 +13,7 @@ runs/
 public/runtime/
 .vercel
 test-results/
+playwright-report/
+*.tsbuildinfo
+
+next-env.d.ts
