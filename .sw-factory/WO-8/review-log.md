@@ -49,3 +49,13 @@ python scripts/check_wo8_wo9_handoff.py 8e47eb156ba9afb2959b1b24fe9c7f2a9700191a
 Full discovery passed 89 tests under macOS Seatbelt. The archived B12 replay withheld the original estimate and reproduced 32.006829774391655 mg/L for the follow-up. Python compileall and git diff --check passed.
 
 Independent review verdict: APPROVED
+
+## Final review before merge
+
+The shared SQLite calibration lookup matches the WO-10 writer in the local implementation. An independent review found no blocking issue. Introduce a resolver when a separate calibration store or hosted adapter is added.
+
+The candidate includes the live-worker contract correction from PR #9 and the integration workflow from main at 582d13b. The correction describes the public measurement fields and directs time-course analysis to use the frozen fit with an empty standards array. The independent reviewer checked the prompt against the verifier and the previous authenticated live rehearsal.
+
+At implementation tree 82a5287, all 89 Python tests passed. The fixture-worker handoff against WO-9 at 1c2eb04 passed 53 concentration checks and 49 time-course checks. Both sample-only edits reused verified source with zero worker calls. The latest repair head 664a241 has the same tested tree. The offline B12 replay reproduced the follow-up estimate of 32.006829774391655 mg/L.
+
+Verdict: APPROVED
