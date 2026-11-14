@@ -28,3 +28,7 @@ The implemented handoff exposes verify_release in factory/scientific_release.py 
 ## Round 3 remediation
 
 Extend the public-count challenges to isolate detector, timing, timestamp and replicate validation. Re-sign single-guard mutations of the fixture candidate and exercise the real promotion path for both experiment types. Check that all dependent outcomes remain visible when verification prerequisites fail, without running candidate bytes. Repeat full unittest discovery and explicit B12 replay before handing the open PR back for review.
+
+## Drift Bot thread verification
+
+Reproduce each of the six inline comments against bb04a5a. Challenge elapsed-time validation with signed infinities and a candidate that retains its NaN/negative-time rejection. Exercise unit/setting mutations, invalid prerequisites and sandbox denial. Use the observed check names and outcomes in each GitHub reply.

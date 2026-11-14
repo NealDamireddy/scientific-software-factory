@@ -155,6 +155,8 @@ def case_plan(kind):
         ("dark-corrected transmission", "input-validation", "sample_counts", 128),
         ("detector findings", "input-validation", "findings", ["saturated detector"]),
         ("nonfinite elapsed time", "input-validation", "elapsed_s", float("nan")),
+        ("positive infinite elapsed time", "input-validation", "elapsed_s", math.inf),
+        ("negative infinite elapsed time", "input-validation", "elapsed_s", -math.inf),
         ("negative elapsed time", "input-validation", "elapsed_s", -.25),
         ("missing measurement timestamp", "input-validation", "timestamp", None),
         ("malformed measurement timestamp", "input-validation", "timestamp", "not-a-timestamp"),
