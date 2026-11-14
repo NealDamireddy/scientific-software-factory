@@ -30,6 +30,7 @@ dl{margin:0}.ids{display:grid;grid-template-columns:max-content minmax(0,1fr);ga
 details{margin-top:8px}summary{color:var(--leaf);font-weight:620;padding:3px 0}pre{max-height:320px;overflow:auto;background:#19342d;color:#e7f1db;border-radius:5px;padding:12px;font-size:12px;line-height:1.45;tab-size:4}
 .checks{padding:0;margin:0;list-style:none}.checks li{padding:5px 0;font-size:13px;overflow-wrap:anywhere}.checks li+li{border-top:1px solid #e9ece3}.checks summary{display:flex;justify-content:space-between;align-items:center;gap:8px;color:inherit;list-style:revert}.checks details{margin:0}
 #selectedBrief{white-space:pre-wrap;overflow-wrap:anywhere}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}#sourceFiles{margin-top:8px}
+.note,.msg{overflow-wrap:anywhere}
 .proposal{background:#edf2e6;border:1px solid #c8d5bc;border-radius:8px;padding:14px;margin-top:14px}.proposal>p{margin:7px 0}.proposal dt{color:#3c5546}.proposal dd{font-family:inherit}.proposal .ids{margin-top:12px}.proposal .btn{margin-top:5px}
 .tracks{display:grid;grid-template-columns:1fr 1fr;gap:13px}.track{min-width:0;border-top:3px solid #668c61;padding:9px 0}.track+.track{border-color:#c38158}.track h3{margin:4px 0 6px}.volumes{display:flex;gap:8px;margin:7px 0}.volumes label{display:block;min-width:0;flex:1;font-size:12px}.volumes input{display:block;width:100%;min-width:0;margin-top:4px;background:white;border:1px solid #9fae9c;border-radius:5px;padding:6px 8px}.track .btn{font-size:13px}.track .ids{grid-template-columns:1fr;gap:1px}.track .ids dd{margin:0 0 5px}.track .small,.proposal p{overflow-wrap:anywhere}
 @media(max-width:550px){.tracks{grid-template-columns:1fr}.proposal .ids{grid-template-columns:1fr}.proposal .ids dd{margin-bottom:4px}}
@@ -78,6 +79,18 @@ details{margin-top:8px}summary{color:var(--leaf);font-weight:620;padding:3px 0}p
 <div class="track"><span class="kicker">EVOLVE</span><h3>Build prepared-sample support</h3><p id="childBuild" class="small"></p>
 <button id="inspectDiff" type="button" class="btn light" hidden>Inspect source changes</button>
 <button id="retryChild" type="button" class="btn light" hidden>Retry failed build</button><p id="retryError" class="msg err" role="alert"></p></div></div></section>
+<section id="rerunGroup" class="group" aria-labelledby="rerunTitle" hidden>
+<h3 id="rerunTitle">Diluted vial measurement</h3>
+<p id="rerunStatus" class="note" role="status"></p>
+<div class="row"><button id="rerun" class="btn" type="button" disabled>Measure the prepared vial</button>
+<button id="reveal" class="btn light" type="button" hidden>Reveal preparation label</button>
+<button id="replay" class="btn light" type="button" hidden>Replay both acquisitions</button></div>
+<p id="rerunError" class="msg err" role="alert"></p>
+<dl class="metrics" id="score"></dl><p class="note" id="replayStatus" role="status"></p>
+<details id="measurementEvidence" hidden><summary>Inspect stored readings</summary>
+<dl class="ids" id="measurementRefs"></dl><pre id="rawReadings" tabindex="0"></pre></details>
+<p class="note"><a id="downloadEvidence" download hidden>Download reproducibility evidence (JSON)</a></p>
+</section>
 <section id="parentCheckGroup" class="group" hidden><h3>v1 on the follow-up requirements</h3><ul class="checks" id="parentChecks"></ul></section>
 <section id="checkGroup" class="group" hidden><h3>Independent checks</h3><ul class="checks" id="checks"></ul></section>
 <div class="group"><details id="contextGroup" hidden><summary>Lab and project context</summary><pre id="context"></pre></details><details id="workerGroup" hidden><summary>Coding worker receipt</summary><pre id="worker"></pre></details>
@@ -106,7 +119,7 @@ function remember(id) {
 }
 function remembered() { try { return sessionStorage.getItem(activeKey); } catch { return null; } }
 function label(key) {
-  const known = {concentration_mg_l:'Concentration (mg/L)',calibration_id:'Calibration',sample_id:'Sample ID',status:'Finding'};
+  const known = {concentration_mg_l:'Original concentration (mg/L)',diluted_mg_l:'Diluted concentration (mg/L)',factor:'Dilution factor',parent_id:'Original vial',preparation_id:'Preparation',calibration_id:'Calibration',sample_id:'Sample ID',status:'Finding',prepared_mg_l:'Prepared label (mg/L)',predicted_mg_l:'Saved estimate (mg/L)',signed_error_mg_l:'Signed error (mg/L)'};
   return known[key] || String(key).replaceAll('_',' ');
 }
 function print(value) { return typeof value === 'string' ? value : JSON.stringify(value,null,2); }
@@ -189,6 +202,7 @@ function renderFollowup(task) {
     el('approve').disabled=Boolean(mutation);
   }
   show('followupGroup',isChild);
+  show('rerunGroup',isChild);
   renderChecks(task.parent_checks,'parentChecks','parentCheckGroup');
   if(!isChild)return;
   const prep=task.preparation;
@@ -201,6 +215,43 @@ function renderFollowup(task) {
   const buildNotes={queued:'The follow-up is queued for the local worker.',generating:'The worker is updating the parent app.',verifying:'The factory is running independent checks.',verified:'The factory verified and released this revision.',failed:'The revision failed. The previous release remains available.'};
   write('childBuild',buildNotes[task.status]||task.status);
   show('inspectDiff',Boolean(task.revision));show('retryChild',task.status==='failed');el('retryChild').disabled=Boolean(mutation);
+  renderRerun(task);
+}
+function renderRerun(task) {
+  const measurement=task.measurement;
+  const ready=task.status==='verified'&&Boolean(task.preparation);
+  show('rerun',!measurement);
+  el('rerun').disabled=!ready||Boolean(mutation);
+  if(measurement){
+    write('rerunStatus',measurement.result?.status==='ok'?'Estimate saved from the prepared vial.':'The rerun requires scientific review. The readings are available below.');
+  }else if(!ready){
+    const missing=[];
+    if(!task.preparation)missing.push('recorded preparation');
+    if(task.status!=='verified')missing.push('verified v2');
+    write('rerunStatus','Waiting for '+missing.join(' and ')+'.');
+  }else write('rerunStatus','Preparation and v2 are ready for three fresh readings.');
+  show('reveal',Boolean(measurement?.result?.status==='ok'&&!task.score));
+  el('reveal').disabled=Boolean(mutation);
+  show('replay',Boolean(measurement));el('replay').disabled=Boolean(mutation);
+  el('score').replaceChildren();
+  if(task.score){
+    for(const key of ['prepared_mg_l','predicted_mg_l','signed_error_mg_l']){
+      if(Object.hasOwn(task.score,key))metric(el('score'),key,task.score[key]);
+    }
+  }
+  write('replayStatus',task.replay?
+    'Replayed against '+task.replay.calibration_id+'. Initial result '+(task.replay.parent_matches?'matched':'differed')+'; follow-up '+(task.replay.child_matches?'matched':'differed')+'.':'');
+  show('measurementEvidence',Boolean(measurement));show('downloadEvidence',Boolean(measurement));
+  if(measurement){
+    dataRows('measurementRefs',[
+      ['Prepared vial',measurement.input?.sample_id],['Frozen calibration',measurement.calibration_id],
+      ['Absorbances',measurement.finding?.absorbances||measurement.input?.absorbances]
+    ]);
+    write('rawReadings',measurement.raw);
+    el('downloadEvidence').href='/api/tasks/'+encodeURIComponent(task.id)+'/evidence';
+  }else{
+    el('rawReadings').replaceChildren();el('measurementRefs').replaceChildren();el('downloadEvidence').removeAttribute('href');
+  }
 }
 function renderDetail(task) {
   show('initial',false);show('detail',true);write('mode',fresh?'Fresh generation':'Previous completed run');badge(el('status'),task.status);
@@ -221,8 +272,8 @@ function renderDetail(task) {
 }
 function select(task,isFresh) {
   selectedId=task.id;fresh=isFresh;sourceToken++;sourceCache=null;sourceLoading=false;preferDiff=false;el('sourceGroup').open=false;
-  for(const id of ['sourceSelect','sourceText','sourceMessage','approvalError','prepareError','retryError'])el(id).replaceChildren();
-  el('prepForm').reset();el('proposalEvidence').open=false;
+  for(const id of ['sourceSelect','sourceText','sourceMessage','approvalError','prepareError','retryError','rerunError'])el(id).replaceChildren();
+  el('prepForm').reset();el('proposalEvidence').open=false;el('measurementEvidence').open=false;
   show('retrySource',false);renderDetail(task);renderHistory();
   if(activeId&&records.has(activeId))renderActive(records.get(activeId));
 }
@@ -270,7 +321,7 @@ async function followupAction(action,payload,errorId) {
   try {
     const task=await post('/api/tasks/'+encodeURIComponent(id)+'/'+action,payload);
     records.set(task.id,task);
-    if(action==='prepare'){
+    if(!['approve','retry'].includes(action)){
       if(selectedId===id)renderDetail(task);
     }else if(selectedId===id)activate(task,true);
     else{
@@ -289,6 +340,7 @@ el('approve').onclick=()=>{
   followupAction('approve',{},'approvalError');
 };
 el('retryChild').onclick=()=>followupAction('retry',{},'retryError');
+for(const name of ['rerun','reveal','replay'])el(name).onclick=()=>followupAction(name,{},'rerunError');
 el('prepForm').onsubmit=event=>{
   event.preventDefault();
   const sampleMl=el('sampleVolume').valueAsNumber,finalMl=el('finalVolume').valueAsNumber;

@@ -7,6 +7,7 @@ import fcntl
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
 import math
+import platform
 from pathlib import Path
 import re
 import secrets
@@ -16,8 +17,9 @@ import uuid
 
 from . import b12_build
 from .context import ROOT, read_json
-from .optics import PROFILE, RECIPE, validate_preparation, acquire, assess, fit_calibration, validate_recipe, verify_candidate
+from .optics import PROFILE, RECIPE, validate_preparation, acquire, assess, calibration_digest, fit_calibration, validate_recipe, verify_candidate
 from .sandbox import execute
+from .followup import run_followup, replay_acquisition
 
 
 def save(path, obj):
@@ -59,7 +61,9 @@ class Lab:
         if task["status"] == "verified" and not task.get("parent_id") and task.get("finding", {}).get("above_range"):
             data = read_json(self.path(task_id)/"acquisition.json")
             task["proposal"] = {
-                "reason": "All three readings exceed the strongest standard. The protocol permits a twofold dilution followed by three fresh readings.",
+                "reason": (f"All three readings ({', '.join(format(n, '.5f') for n in task['finding']['absorbances'])}) "
+                           f"exceed the strongest standard ({data['calibration']['high']:.5f}). "
+                           "The protocol permits a twofold dilution followed by three fresh readings."),
                 "protocol": PROFILE["protocol"], "upper_standard": data["calibration"]["high"],
                 "readings": task["finding"]["absorbances"], "volumes": "One volume sample plus one volume matching solvent",
                 "requirement": "Trace a prepared vial to its parent and use the actual volumes to recover its original concentration.",
@@ -205,6 +209,83 @@ class Lab:
         except Exception as error:
             self.update(task_id, status="failed", error=str(error)[:1800])
 
+    def rerun(self, task_id):
+        with self.lock:
+            child = self.task(task_id)
+            if child.get("status") != "verified" or not child.get("preparation") or not child.get("approval"):
+                raise ValueError("Both a recorded preparation and a verified revision are required")
+            if child.get("measurement"):
+                return child
+            parent = self.task(child["parent_id"])
+            measurement = run_followup(self.path(parent["id"]), self.path(task_id), parent, child)
+            return self.update(task_id, measurement=measurement, result=measurement["result"])
+
+    def reveal(self, task_id):
+        with self.lock:
+            child = self.task(task_id)
+            if not child.get("measurement") or child["result"]["status"] != "ok":
+                raise ValueError("Save an in-range follow-up estimate before revealing its label")
+            if child.get("score"):
+                return child
+            prepared = read_json(self.path(child["parent_id"])/"private.json")["prepared_mg_l"]
+            prediction = child["result"]["concentration_mg_l"]
+            return self.update(task_id, score=dict(prepared_mg_l=prepared, predicted_mg_l=prediction,
+                                                   signed_error_mg_l=prediction-prepared))
+
+    def replay(self, task_id):
+        with self.lock:
+            child = self.task(task_id)
+            if not child.get("measurement"):
+                raise ValueError("A completed follow-up is required for replay")
+            parent = self.task(child["parent_id"])
+            first = read_json(self.path(parent["id"])/"acquisition.json")
+            cal = first["calibration"]
+            matches = []
+            for task, measurement in [(parent, first), (child, child["measurement"])]:
+                folder = self.path(task["id"])
+                if b12_build.revision(folder) != task["revision"]:
+                    raise ValueError("Stored app revision mismatch")
+                output = replay_acquisition(folder, measurement, cal)
+                matches.append(output == task["result"])
+            if not all(matches):
+                raise ValueError("Replay differed from recorded output")
+            return self.update(task_id, replay=dict(parent_matches=True, child_matches=True, calibration_id=cal["id"]))
+
+    def evidence(self, task_id):
+        with self.lock:
+            child = self.task(task_id)
+            if not child.get("measurement"):
+                raise ValueError("Save the follow-up measurement before exporting evidence")
+            parent = self.task(child["parent_id"])
+            acquisition = read_json(self.path(parent["id"])/"acquisition.json")
+            files = {}
+            for task in (parent, child):
+                folder = self.path(task["id"])
+                if b12_build.revision(folder) != task["revision"]:
+                    raise ValueError("Stored app revision mismatch")
+                files[task["id"]] = self.source(task["id"])
+            cal = acquisition["calibration"]
+            if calibration_digest(cal) != cal["id"] or cal["id"] != child["measurement"]["calibration_id"]:
+                raise ValueError("Follow-up calibration mismatch")
+            if parent["result"].get("calibration_id") != cal["id"] or child["result"].get("calibration_id") != cal["id"]:
+                raise ValueError("Recorded results disagree with calibration")
+            checks = [
+                ("Raw measurements retained", "initial.raw, initial.calibration.standards, followup.measurement.raw"),
+                ("Acquisition settings recorded", "initial.raw[].settings, followup.measurement.raw[].settings"),
+                ("Calibration unchanged", cal["id"]),
+                ("Preparation documented", child["preparation"]["id"]),
+                ("Software and dependencies identified", "sources, environment, direct.worker, followup.worker"),
+                ("Numerical tests passed", "direct.checks, followup.parent_checks, followup.checks"),
+                ("Outstanding scientific review shown", "scientific_review"),
+            ]
+            return {"profile": "research-reproducibility@1", "direct": parent, "initial": acquisition,
+                    "followup": child, "sources": files, "checks": [
+                        {"name": n, "status": "recorded", "reference": ref} for n, ref in checks],
+                    "environment": {"python": platform.python_version(), "app_dependencies": "Python standard library",
+                                    "dependency_lock": (ROOT/"uv.lock").read_text()},
+                    "scientific_review": ["Review simulated optics and transfer to physical instruments."] +
+                        ([] if child["result"]["status"] == "ok" else ["Follow-up outside calibration."])}
+
     def source(self, task_id):
         folder = self.path(task_id)
         files = {n: (folder/n).read_text() for n in b12_build.FILES if (folder/n).is_file()}
@@ -219,12 +300,14 @@ class Lab:
 
 
 class Handler(BaseHTTPRequestHandler):
-    def send(self, status, data, content_type="application/json"):
+    def send(self, status, data, content_type="application/json", attachment=None):
         if content_type == "application/json":
             data = json.dumps(data, allow_nan=False).encode()
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(data)))
+        if attachment:
+            self.send_header("Content-Disposition", f'attachment; filename="{attachment}"')
         self.send_header("Cache-Control", "no-store")
         self.send_header("X-Content-Type-Options", "nosniff")
         self.end_headers()
@@ -253,6 +336,9 @@ class Handler(BaseHTTPRequestHandler):
                         return self.send(202, lab.approve(parts[2]))
                     if parts[3] == "prepare":
                         return self.send(200, lab.prepare(parts[2], body))
+                    if parts[3] in ("rerun", "reveal", "replay"):
+                        action = {"rerun": lab.rerun, "reveal": lab.reveal, "replay": lab.replay}[parts[3]]
+                        return self.send(200, action(parts[2]))
                     if parts[3] == "retry":
                         return self.send(202, lab.retry(parts[2]))
             elif parts == [""]:
@@ -262,12 +348,14 @@ class Handler(BaseHTTPRequestHandler):
             elif parts[:2] == ["api","tasks"] and len(parts) in (3,4):
                 if len(parts)==3:
                     return self.send(200, lab.task(parts[2]))
+                if parts[3] == "evidence":
+                    return self.send(200, lab.evidence(parts[2]), attachment="evolve-b12-"+parts[2]+".json")
                 if parts[3]=="source":
                     return self.send(200, lab.source(parts[2]))
             return self.send(404, {"error":"Unknown route"})
         except FileNotFoundError:
             return self.send(404, {"error":"Record unavailable"})
-        except (ValueError, TypeError, KeyError) as error:
+        except (ValueError, TypeError, KeyError, RuntimeError) as error:
             return self.send(400, {"error":str(error)})
 
     do_GET = dispatch

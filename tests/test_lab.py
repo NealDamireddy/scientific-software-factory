@@ -71,3 +71,22 @@ class TaskTests(unittest.TestCase):
         with patch.object(self.lab.pool,"submit") as retry:
             self.assertEqual(self.lab.retry(child["id"])["preparation"],recorded)
             retry.assert_called_once()
+
+    def test_rerun_and_label_require_the_correct_stage(self):
+        from factory.lab import save
+        uid = "c" * 32
+        folder = self.store/uid
+        folder.mkdir()
+        task = {"id":uid,"created":"2026-11-01","status":"verifying","approval":{"factor":2}}
+        save(folder/"task.json", task)
+        for status, preparation in [("verifying", {"id":"P"}), ("verified", None)]:
+            self.lab.update(uid,status=status,preparation=preparation)
+            with self.assertRaisesRegex(ValueError, "Both"):
+                self.lab.rerun(uid)
+            with self.assertRaisesRegex(ValueError, "in-range"):
+                self.lab.reveal(uid)
+            with self.assertRaises(ValueError):
+                self.lab.evidence(uid)
+        self.lab.update(uid,measurement={"raw":[]}, result={"status":"review"})
+        with self.assertRaisesRegex(ValueError, "in-range"):
+            self.lab.reveal(uid)

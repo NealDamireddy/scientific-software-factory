@@ -104,9 +104,14 @@ def fit_calibration(recipe, seed, *, noise_counts=DEFAULT_NOISE_COUNTS):
         "slope": slope, "intercept": intercept, "low": min(means), "high": max(means),
         "instrument_profile": PROFILE["instrument_profile"], "standards": standards,
     }
-    canonical = json.dumps(calibration, sort_keys=True, separators=(",", ":"), allow_nan=False)
-    calibration["id"] = hashlib.sha256(canonical.encode()).hexdigest()
+    calibration["id"] = calibration_digest(calibration)
     return calibration
+
+
+def calibration_digest(calibration):
+    content = {key: value for key, value in calibration.items() if key != "id"}
+    canonical = json.dumps(content, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    return hashlib.sha256(canonical.encode()).hexdigest()
 
 
 def assess(raw, cal):
