@@ -1,1 +1,1 @@
-export default {output: "export", poweredByHeader: false};
+export default {output: "export", poweredByHeader: false, trailingSlash: true};
