@@ -14,7 +14,7 @@ from .scientific_contract import TOLERANCE, case_plan, compare
 
 
 TYPES = ("concentration", "time_course")
-VERIFIER = "scientific-release@3"
+VERIFIER = "scientific-release@4"
 ERRORS = (ValueError, TypeError, KeyError, RuntimeError, OSError, ArithmeticError, RecursionError, SyntaxError)
 
 

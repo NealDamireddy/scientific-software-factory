@@ -5,6 +5,8 @@ import tempfile
 import unittest
 
 from factory.release_repository import ReleaseRepository
+from factory.scientific_analysis import analyze_release
+from factory.scientific_contract import cases
 from factory.scientific_release import verify_release
 from tests.test_scientific_release import handoff, resign
 
@@ -14,6 +16,8 @@ from tests.test_scientific_release import handoff, resign
 MUTATIONS = (
     ("raw counts", "        if any(type(count)", "        if min(blank, sample)",
      {"negative detector counts", "fractional detector counts", "saturated detector counts"}),
+    ("dark-corrected signals", "        if min(blank, sample) <= dark:", "        values.append(",
+     {"negative dark-corrected signals", "negative dark-corrected signals in one replicate"}),
     ("elapsed time", '        if finite(reading["elapsed_s"]', '        replicate = reading["replicate"]',
      {"nonfinite elapsed time", "negative elapsed time", "positive infinite elapsed time", "negative infinite elapsed time"}),
     ("detector count units", '        if reading["unit"] != "counts"', '        if reading["simulated"]',
@@ -28,6 +32,37 @@ MUTATIONS = (
 
 
 class MutationTests(unittest.TestCase):
+    def test_verified_analysis_withholds_negative_dark_corrected_signals(self):
+        with tempfile.TemporaryDirectory() as directory:
+            repository = ReleaseRepository(Path(directory) / "releases.sqlite")
+            for kind in ("concentration", "time_course"):
+                baseline = handoff(kind)
+                release_id = verify_release(repository, **baseline)["release_id"]
+                self.assertIsNotNone(release_id)
+                _, _, clean, _ = next(cases(kind, baseline["compiled_recipe"]))
+                reference = analyze_release(repository, release_id, clean)
+                self.assertTrue(all(row["concentration_mg_l"] is not None for row in reference["results"]))
+                for indices in ((0, 1, 2), (2,)):
+                    with self.subTest(kind=kind, invalid_replicates=indices):
+                        payload = deepcopy(clean)
+                        records = payload["groups"][0]["records"]
+                        for index in indices:
+                            # Raw counts remain valid integers. Both corrected signals are
+                            # negative, yet their ratio matches the original transmission.
+                            records[index].update(dark_counts=40000, blank_counts=7232,
+                                                  sample_counts=(35904, 37952, 38976)[index])
+                        result = analyze_release(repository, release_id, payload)
+                        self.assertEqual(result["calibration_id"], reference["calibration_id"])
+                        self.assertEqual(result["results"][1:], reference["results"][1:])
+                        affected = result["results"][0]
+                        self.assertEqual(affected["sample_id"], reference["results"][0]["sample_id"])
+                        if kind == "time_course":
+                            self.assertEqual(affected["timestamp"], records[0]["timestamp"])
+                        self.assertIsNone(affected["concentration_mg_l"])
+                        self.assertIsNone(affected["replicate_sd_mg_l"])
+                        self.assertIsInstance(affected["review_reason"], str)
+                        self.assertTrue(affected["review_reason"].strip())
+
     def test_sandboxed_mutants_preserve_verified_release(self):
         with tempfile.TemporaryDirectory() as directory:
             repository = ReleaseRepository(Path(directory) / "releases.sqlite")

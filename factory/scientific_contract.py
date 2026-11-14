@@ -117,6 +117,20 @@ def _shift_counts(kind, offset, recipe):
     return payload, expected
 
 
+def _negative_corrected_signals(kind, recipe, *, single_replicate):
+    payload, expected = _fixture(kind, recipe)
+    records = payload["groups"][0]["records"]
+    for record in (records[-1:] if single_replicate else records):
+        # Reverse both corrected signals while retaining their in-range ratio.
+        # All three raw counts stay within the detector's unsigned range.
+        dark = record["dark_counts"]
+        record["blank_counts"] = 40000 - (record["blank_counts"] - dark)
+        record["sample_counts"] = 40000 - (record["sample_counts"] - dark)
+        record["dark_counts"] = 40000
+    _withhold(expected["results"][0])
+    return payload, expected
+
+
 def _invalid_calibration(kind, change, recipe):
     payload, expected = _fixture(kind, recipe)
     change(payload)
@@ -186,6 +200,11 @@ def case_plan(kind):
     for name, offset in (("negative detector counts", -129), ("fractional detector counts", .5),
                          ("saturated detector counts", 65535 - 32896)):
         yield name, "input-validation", partial(_shift_counts, kind, offset)
+
+    yield ("negative dark-corrected signals", "input-validation",
+           partial(_negative_corrected_signals, kind, single_replicate=False))
+    yield ("negative dark-corrected signals in one replicate", "input-validation",
+           partial(_negative_corrected_signals, kind, single_replicate=True))
 
     yield "required blank reference", "provenance", partial(_invalid_calibration, kind, _remove_reference)
     calibration_changes = [

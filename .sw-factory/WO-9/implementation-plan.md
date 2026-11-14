@@ -32,3 +32,7 @@ Extend the public-count challenges to isolate detector, timing, timestamp and re
 ## Drift Bot thread verification
 
 Reproduce each of the six inline comments against bb04a5a. Challenge elapsed-time validation with signed infinities and a candidate that retains its NaN/negative-time rejection. Exercise unit/setting mutations, invalid prerequisites and sandbox denial. Use the observed check names and outcomes in each GitHub reply.
+
+## Round 6 positivity revision
+
+Exercise negative dark-corrected sample and blank signals whose ratio reproduces the original valid transmission. Challenge both a wholly invalid group and a single invalid replicate among valid peers. Re-sign a candidate missing only the positivity guard, check rejection and stored-release integrity, and compare the retained release's results for affected and unaffected groups. Run full sandboxed discovery and the B12 replay before re-review.
