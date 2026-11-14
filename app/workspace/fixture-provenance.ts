@@ -7,11 +7,39 @@ export function pin({ lab_id, project_id, revision, sha256 }: Pin): Pin {
   return { lab_id, project_id, revision, sha256 };
 }
 
+function compareCodePoints(left: string, right: string): number {
+  // Python orders Unicode scalars. JS string comparison orders UTF-16 units.
+  for (let i = 0; i < left.length && i < right.length;) {
+    const a = left.codePointAt(i)!;
+    const b = right.codePointAt(i)!;
+    if (a !== b) return a - b;
+    i += a > 0xffff ? 2 : 1;
+  }
+  return left.length - right.length;
+}
+
+// Match canonical_json(json.loads(exported JSON)). The browser's wire format
+// determines which tokens Python reads as integers, including 0 for JS -0.
+function canonicalNumber(value: number): string {
+  if (!Number.isFinite(value)) throw new TypeError("Fixture records require finite JSON numbers.");
+  if (value !== 0 && Math.abs(value) < 1e-4) {
+    const [significand, exponent] = value.toExponential().split("e-");
+    return significand + "e-" + exponent.padStart(2, "0");
+  }
+  return JSON.stringify(value);
+}
+
 export function canonical(value: unknown): string {
-  if (Array.isArray(value)) return "[" + value.map(canonical).join(",") + "]";
+  if (typeof value === "number") return canonicalNumber(value);
+  if (typeof value === "string" && /[\uD800-\uDFFF]/u.test(value))
+    throw new TypeError("Fixture record strings must be encodable as UTF-8.");
+  if (Array.isArray(value)) return "[" + Array.from(value, item => canonical(item ?? null)).join(",") + "]";
   if (value !== null && typeof value === "object") {
-    return "{" + Object.keys(value).sort().map(key =>
-      JSON.stringify(key) + ":" + canonical((value as Record<string, unknown>)[key])
+    const record = value as Record<string, unknown>;
+    // Optional fields with undefined values are absent from the exported JSON.
+    const keys = Object.keys(record).filter(key => record[key] !== undefined);
+    return "{" + keys.sort(compareCodePoints).map(key =>
+      canonical(key) + ":" + canonical(record[key])
     ).join(",") + "}";
   }
   return JSON.stringify(value);

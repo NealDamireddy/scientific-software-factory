@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { expect, test } from "playwright/test";
+import { producerDigest } from "./producer-digest.cjs";
 
 async function openTab(page, tab) {
   await page.getByRole("navigation", { name: "Workspace views" }).getByRole("button", { name: tab }).click();
@@ -8,6 +9,38 @@ async function openTab(page, tab) {
 test.beforeEach(async ({ page }) => {
   await page.goto("/workspace/");
 });
+
+for (const concentration of ["0.125", "0.000001", "0.0000001"]) {
+  test(`downloaded session specification at ${concentration} verifies with the Python producer`, async ({ page }) => {
+    await openTab(page, "Specifications");
+    const editor = page.getByRole("region", { name: "Experiment specification" });
+    await editor.getByLabel("Saved specification", { exact: true }).selectOption({
+      label: "spec-concentration · revision 1 · approved",
+    });
+    await editor.getByLabel("Standard 1 concentration", { exact: true }).fill(concentration);
+    await editor.getByRole("button", { name: "Save draft revision" }).click();
+    await expect(editor.getByRole("status")).toHaveText("Saved unapproved draft revision 2.");
+    await editor.getByLabel("Confirm scientific fields for this revision").check();
+    await editor.getByRole("button", { name: "Approve revision" }).click();
+    await editor.getByRole("button", { name: "Submit experiment" }).click();
+    await expect(editor.getByRole("status")).toContainText("Submitted run fixture-");
+    const runId = (await editor.getByRole("status").innerText()).match(/fixture-[a-f0-9-]+/)[0];
+    await openTab(page, "Runs");
+    await page.getByRole("button", { name: new RegExp(runId) }).click();
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("region", { name: "Run details" }).getByRole("button", { name: "Download evidence" }).click();
+    const path = await (await downloadPromise).path();
+    const exported = readFileSync(path);
+    const report = JSON.parse(exported.toString("utf8"));
+    expect(report.specification_record.origin).toBe("fixture-session");
+    expect(report.specification_record.payload.standards[0].known_concentration).toBe(Number(concentration));
+
+    const expectedDigest = producerDigest(exported, "specification_record", "payload");
+    expect(report.specification.sha256).toBe(expectedDigest);
+    expect(report.specification.approval.specification_sha256).toBe(expectedDigest);
+    expect(report.run.spec_digest).toBe(expectedDigest);
+  });
+}
 
 test("context saves retain immutable lab and project revisions, ownership errors and conflicted input", async ({
   page,

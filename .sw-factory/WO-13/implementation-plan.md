@@ -30,3 +30,7 @@ Resolve historical project revisions by their full reference, then use the lab a
 ## Producer-conformance audit
 
 Compare the fixture against complete WO-6 context, WO-8 specification/approval and frozen calibration records, then reproduce discrepancies through the API boundary and Chromium. Capture reproducible producer fixtures, test read-only digest projections, exercise duplicate instrument and unresolved draft handling, and verify preview source identity against a real preview-mode build. Recheck the original WO-13 acceptance criteria, record remaining upstream dependencies, run the combined suite and monitor the published PR checks.
+
+## Session-created evidence
+
+Match the canonical UTF-8 bytes produced by Python when reading a fixture evidence download. Verify the revision, approval and run references against the complete downloaded payload with the producer's own serializer, including ordinary decimals and small numbers written using scientific notation.

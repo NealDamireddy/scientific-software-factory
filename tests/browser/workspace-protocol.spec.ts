@@ -2,6 +2,7 @@ import { test as base, expect } from "playwright/test";
 import golden from "../../fixtures/workspace/producer-records.json";
 import { digest } from "../../app/workspace/fixture-provenance";
 import { createFixtureClient } from "../../app/workspace/fixture";
+import { producerDigest } from "./producer-digest.cjs";
 
 const test = base.extend<{ store: Map<string, string> }>({
   store: async ({}, use) => {
@@ -21,6 +22,17 @@ const test = base.extend<{ store: Map<string, string> }>({
       else Reflect.deleteProperty(globalThis, "sessionStorage");
     }
   },
+});
+
+test("fixture digest matches the producer across JSON number and Unicode key boundaries", async () => {
+  const vectors = [
+    { levels: [-0, -1.234e-5, 0.0001, 0.00009, Number.MIN_VALUE] },
+    { levels: [1.5, 1.25e16, 1e20, 1e21, Number.MAX_VALUE] },
+    { "\u{10000}": ["line\nbreak", "μg/L"], "\ue000": null },
+  ];
+  for (const value of vectors) {
+    expect(await digest(value)).toBe(producerDigest(JSON.stringify(value)));
+  }
 });
 
 test("fixture rejects forged protocol fields at save, approval and submission", async ({ store }) => {

@@ -58,10 +58,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+      - uses: astral-sh/setup-uv@v6
+      - name: Install the Python producer for digest verification
+        run: uv sync --locked --python 3.13
       - run: npm ci
       - run: npm run build
       - run: npx --no-install playwright install --with-deps chromium
-      - run: npm test
+      - run: uv run --frozen npm test
       - name: Verify isolated preview and deployment source
         env:
           VERCEL_ENV: preview
