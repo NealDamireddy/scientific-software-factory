@@ -4,7 +4,7 @@ Each implementation checkout belongs to one agent. Use `git worktree list` and c
 
 ## November 14 merge queue
 
-The audited base is `505c66b`, which includes WO-6 and WO-7 through PR #5. Land the integration checks first. At this snapshot the three open implementation PRs have disjoint changed paths. Their runtime dependencies cross files.
+The audited base is `505c66b`, which includes WO-6 and WO-7 through PR #5. Land the integration checks first. The three implementation PRs have disjoint changed paths at their initial audited heads. The CI branch and WO-10 both edit the instrument API tests. WO-13 is in a separate worktree and edits the same npm manifests as CI. Reconcile the test command, Playwright version and lockfile before its build, then exercise the hosted workspace against WO-12. Their runtime dependencies cross files.
 
 | Order | PR and audited head | Handoff to check |
 | --- | --- | --- |
@@ -22,6 +22,6 @@ The audited base is `505c66b`, which includes WO-6 and WO-7 through PR #5. Land 
 
 ## Actual workflow and 8090 acceptance
 
-After the application services are integrated, run a fresh concentration acquisition and a two-point time course through the production scheduler, real Codex generation, trusted verifier and loopback instrument. Use new empty application, release and instrument stores. Retain the approved digest, model/CLI receipt, release and source revisions, job IDs, raw readings, calibration link and analysis outcomes. A withheld result or rejected build is evidence to investigate. Never substitute the recorded candidate source or bypass verification to finish a demo. Run the B12 presenter rehearsal described in [the demo runbook](DEMO-RUNBOOK.md) and replay its exported evidence.
+After WO-8, WO-9 and WO-10 are present, run `uv run --frozen python -m scripts.rehearse_experiments runs/integration-01` from the repository root on the authenticated presenter host. Choose a fresh directory for every attempt. This command drives a fresh concentration acquisition and a two-point time course through the production scheduler, real Codex generation, trusted verifier and loopback instrument. Use new empty application, release and instrument stores. Retain the approved digest, model/CLI receipt, release and source revisions, job IDs, raw readings, calibration link and analysis outcomes. A withheld result or rejected build is evidence to investigate. Never substitute the recorded candidate source or bypass verification to finish a demo. Run the B12 presenter rehearsal described in [the demo runbook](DEMO-RUNBOOK.md) and replay its exported evidence.
 
 Record final main SHA, CI link, live run identifiers and pass/fail evidence for the applicable acceptance criteria on each 8090 Work Order. Leave unresolved work open and link its remediation. Advance status only when the final integrated evidence supports that order’s criteria. WO-11 through WO-14 have their own delivery scope.
