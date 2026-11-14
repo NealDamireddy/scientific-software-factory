@@ -116,3 +116,31 @@ Verifier scientific-release@4 adds one wholly affected group and one group with 
 - The retained release withheld the affected concentration and SD, recorded a nonempty review reason and preserved the other rows and their timestamps. Rejection preserved the active pointer, manifest and artifact bytes.
 - Full unittest discovery passed 63/63 under macOS Seatbelt in 67.554 seconds. The B12 archive replay withheld U-01 and reproduced 32.006829774391655 mg/L for the twofold follow-up. Compilation and whitespace checks passed. Discovery emitted the pre-existing HTTP and SQLite resource warnings.
 - An independent scoped code review verified the challenge ratios, re-signed mutation, group-specific behavior and complete blocked reports, and found no outstanding positivity blocker. PR #4 and WO-9 remain available for independent re-review.
+
+## Round 8 — Independent re-review — APPROVED (work-order scope)
+
+Reviewed PR #4 head `7763601ab7228401d74086351486015839cfff90`, including implementation fix `67b2db29355490aa1a9864f59068136b07b456dc`, author response, and delta from Round 6 evidence commit `1faedf8`. Prior full requirements/blueprints/Knowledge Base alignment review remains applicable; this change adds independent fixtures and regressions without changing the acquisition/planning boundaries. A fresh code reviewer independently examined the fix and relevant verification/promotion paths and found no new issues. The primary reviewer ran full regression verification and independently repeated the original reproduction.
+
+### All recorded blockers closed
+
+- **Corrected-signal positivity:** the exact re-signed mutant missing only `min(blank, sample) <= dark` now fails exactly `negative dark-corrected signals` and `negative dark-corrected signals in one replicate` for both concentration and time_course. No candidate release is published. Original active pointers, loaded manifests and artifact bytes remain identical.
+- Independently submitted the original `(dark, blank, sample)` triples `(40000,7232,35904)`, `(40000,7232,37952)`, `(40000,7232,38976)` to retained verified source, with all three readings invalid and with only the last invalid. Each affected result has null concentration/SD and a nonblank review reason; all other rows match the clean retained-release results, preserving timepoint identities. The new fixtures preserve the positive transmission ratios while changing the corrected-signal sign, so rejection is not merely a logarithm error.
+- Previously fixed detector-range, finite timing (including signed infinity), timestamp, replicate, units and settings mutation regressions passed again. The fixture expectations remain factory-owned and analytically independent of candidate source/private simulator truth.
+- **Report completeness:** independently repeated source-revision failure. Concentration returns 53 outcomes (5 passed, 2 failed, 46 blocked), time_course 49 (5 passed, 2 failed, 42 blocked), with zero candidate executions and unchanged active releases. Blocking dependent checks is correct fail-closed behavior, not a remaining drift defect.
+
+### Independently executed verification
+
+- `python3 -m unittest discover -s tests -v`: **63/63 passed in 57.575 seconds** using real Linux bubblewrap; no mandatory skips or unsafe fallback.
+- Passing fixture releases satisfy **53 concentration** and **49 time-course** checks under `scientific-release@4`.
+- `python3 -m factory.replay_bundle public/b12/completed.json`: direct U-01 withheld; twofold follow-up **32.006829774391655 mg/L** for the original vial (**16.003414887195827 mg/L** diluted), matching author evidence.
+- `python3 -m compileall -q factory tests` and `git diff --check ffb80d1...HEAD`: passed.
+- Atomic rollback/history, digest rechecking before execution, compiled recipe equality, public-field projection, denied network/private reads/trusted writes and trusted-data retention regressions passed. Nonzero-intercept calibration, sample SD, alternate samples/calibrations, actual timepoint identity and recorded 1e-7 relative/absolute tolerance remain sound. No additional numerical/publication/isolation blocker found.
+- Test-only SQLite ResourceWarnings also seen in prior rounds are nonblocking; product repository operations explicitly close their connections.
+
+### Scope and decision
+
+**Verdict: APPROVED for WO-9's independently testable scope; ready for Neal's approval.** This supersedes the prior changes-requested recommendations. No remaining blocking findings identified. This is evidence for the supported verification contracts, not proof of arbitrary generated-source correctness or physical instrument validation.
+
+WO-6 real persisted context/profile, WO-7 real public acquisition outputs and WO-8 approval/trusted-recipe/worker composition remain recorded downstream integration dependencies, not WO-9 approval blockers. Live end-to-end integration, fresh model generation, planner/reuse, browser presentation and scheduling are not claimed as completed by this review. Current main's integration changes were not folded into the tested PR line.
+
+Only review evidence was appended. No implementation edits, merge, GitHub approval submission or Completed transition. Leave PR open and WO-9 In Review pending the user's decision.
