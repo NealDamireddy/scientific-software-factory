@@ -48,6 +48,10 @@ def _sha(value):
     return digest(canonical(value).encode())
 
 
+def _detail(value, limit=500):
+    return str(value)[:limit].encode("utf-8", errors="replace").decode()
+
+
 def _compatibility(spec, recipe):
     calibration = spec["calibration"]
     return {
@@ -180,7 +184,7 @@ class ReleasePlanner:
             if previous is None:
                 inserted = db.execute("INSERT OR IGNORE INTO preparations (state,body,id) VALUES (?,?,?)", values)
                 if not inserted.rowcount:
-                    return self.get(task["id"])
+                    return self._read(task["id"])
             elif not db.execute("UPDATE preparations SET state=?, body=? WHERE id=? AND state=?",
                                 (*values, previous)).rowcount:
                 raise ValueError("Preparation state changed; reload before retrying")
@@ -294,11 +298,11 @@ class ReleasePlanner:
                         source_revision=source_revision, worker_receipt=receipt)
         except Exception as error:
             # The worker is an external boundary. Preserve failure without using any prior source as its output.
-            failed = {"method": method, "outcome": "failed", "error": str(error)[:500]}
+            failed = {"method": method, "outcome": "failed", "error": _detail(error)}
             if isinstance(receipt, dict):
                 for field in ("method", "model", "cli"):
                     if isinstance(receipt.get(field), str) and receipt[field].strip():
-                        failed[field] = receipt[field][:256]
+                        failed[field] = _detail(receipt[field], 256)
             task.update(state="failed", worker_receipt=failed)
         return self._save(task, previous="generating")
 
@@ -322,7 +326,7 @@ class ReleasePlanner:
                                    context=context, profile=load_profile(), compiled_recipe=task["compiled_recipe"],
                                    candidate=task["candidate"],
                                    files={name: value.encode() for name, value in task["files"].items()})
-            canonical(report)
+            canonical(report).encode()
             task["verification"] = report
             release = report["release_id"]
             if release:
@@ -333,5 +337,5 @@ class ReleasePlanner:
             else:
                 task["state"] = "verification_failed"
         except Exception as error:
-            task.update(state="verification_failed", reason=str(error)[:500])
+            task.update(state="verification_failed", reason=_detail(error))
         return self._save(task, previous="verifying")
