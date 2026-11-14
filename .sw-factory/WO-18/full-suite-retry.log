@@ -1,0 +1,15 @@
+Retained result excerpts. Full local output is in runs/WO-18/full-suite-retry.log.
+
+ERROR: test_retry_after_accepted_job_and_draft_or_adapter_rejection (test_context_acquisition_integration.AcquisitionBoundaryTests.test_retry_after_accepted_job_and_draft_or_adapter_rejection)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR: test_timepoint_submits_the_reference_pinned_by_frozen_calibration (test_context_acquisition_integration.AcquisitionBoundaryTests.test_timepoint_submits_the_reference_pinned_by_frozen_calibration)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR: unittest.case.FunctionTestCase (test_saved_project_context_drives_fresh_acquisition)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR: test_concentration_then_two_point_time_course (test_experiment_composition.CompositionTests.test_concentration_then_two_point_time_course)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR: test_only_valid_known_standards_can_publish_a_fit (test_experiment_composition.CompositionTests.test_only_valid_known_standards_can_publish_a_fit)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+Ran 150 tests in 74.855s
+
+FAILED (errors=5)

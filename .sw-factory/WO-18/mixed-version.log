@@ -1,0 +1,17 @@
+127.0.0.1 - - [14/Nov/2026 13:13:45] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "GET /v1/acquisitions/a3657407d4e5472b930e011cc6fad7c3?pin_sha256=72dc2a18d432c5474824ef05222967479d40498f21583f69b143efdd8aa03a13 HTTP/1.1" 404 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "POST /v1/acquisitions/a3657407d4e5472b930e011cc6fad7c3/cancel?pin_sha256=72dc2a18d432c5474824ef05222967479d40498f21583f69b143efdd8aa03a13 HTTP/1.1" 404 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "GET /v1/acquisitions/a3657407d4e5472b930e011cc6fad7c3 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "GET /v1/acquisitions/7112260c20b54c38949e55b2554726a7 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "POST /v1/acquisitions/7112260c20b54c38949e55b2554726a7/cancel HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:45] "GET /v1/acquisitions/7112260c20b54c38949e55b2554726a7/measurements HTTP/1.1" 200 -
+old server: new client rejected, conditional POST 404, owner job a3657407d4e5472b930e011cc6fad7c3 running
+new server: old client submitted, polled, cancelled and retrieved partial job 7112260c20b54c38949e55b2554726a7

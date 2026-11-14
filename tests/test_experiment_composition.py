@@ -14,6 +14,8 @@ from factory.context_repository import SQLiteContextRepository
 from factory.uvvis_contract import canonical
 from factory.experiment_adapters import LocalExperimentBackend
 from factory.experiment_scheduler import ExperimentOrchestrator
+from factory.uvvis_adapter import InstrumentUnavailable
+from factory.uvvis_service import VirtualUvVisService
 
 
 class PreparationContentionTests(unittest.TestCase):
@@ -194,6 +196,16 @@ class CompositionTests(unittest.TestCase):
                                      schedule={"point_count": 2, "interval_s": 1})
             self.specs.approve(course["sha256"], actor="researcher",
                                confirmed_fields=self.specs.confirmation_fields(course))
+            if valid:
+                # A legacy fit needs a new receipt. Identical readings do not
+                # justify one if the source job reports a different approved order.
+                reported = backend.poll(job)
+                reordered = {**reported, "sample_ids": list(reversed(reported["sample_ids"]))}
+                with patch.object(VirtualUvVisService, "job", return_value=reordered):
+                    with self.assertRaisesRegex(InstrumentUnavailable, "sample_ids"):
+                        backend.inspect(course["sha256"], spec["instrument"]["instrument_id"])
+                with closing(sqlite3.connect(self.app)) as db:
+                    self.assertEqual(db.execute("SELECT COUNT(*) FROM validated_standard_fits_v1").fetchone(), (0,))
             gate = backend.inspect(course["sha256"], spec["instrument"]["instrument_id"])
             self.assertEqual(gate["calibration_ready"], valid, gate)
         with closing(sqlite3.connect(self.app)) as db:

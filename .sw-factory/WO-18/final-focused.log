@@ -1,0 +1,19 @@
+Retained result excerpts. Full local output is in runs/WO-18/final-focused.log.
+
+ERROR: test_all_channels_and_retain_invalid_counts (tests.test_uvvis_api.VirtualUvVisTests.test_all_channels_and_retain_invalid_counts)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR: test_concurrent_starts_cancel_and_reopen (tests.test_uvvis_api.VirtualUvVisTests.test_concurrent_starts_cancel_and_reopen)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR: test_contract_and_fresh_measurements (tests.test_uvvis_api.VirtualUvVisTests.test_contract_and_fresh_measurements)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR: test_equivalent_replicate_counts_reuse_one_job_across_restart (tests.test_uvvis_api.VirtualUvVisTests.test_equivalent_replicate_counts_reuse_one_job_across_restart)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR: test_lost_response_retries_only_keyed_write (tests.test_uvvis_api.VirtualUvVisTests.test_lost_response_retries_only_keyed_write)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR: test_malformed_acceptance_reconciles_by_key (tests.test_uvvis_api.VirtualUvVisTests.test_malformed_acceptance_reconciles_by_key)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR: test_reconcile_crash_snapshot_and_idempotent_retry (tests.test_uvvis_api.VirtualUvVisTests.test_reconcile_crash_snapshot_and_idempotent_retry)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+Ran 58 tests in 11.246s
+
+FAILED (errors=7)
