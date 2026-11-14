@@ -1,0 +1,92 @@
+test_approval_and_volume_validation (tests.test_b12_reuse_requests.RequestReuseTests.test_approval_and_volume_validation) ... ERROR
+test_archive_is_never_selected_as_live_source (tests.test_b12_reuse_requests.RequestReuseTests.test_archive_is_never_selected_as_live_source) ... ok
+test_fresh_then_reused_direct_requests_share_the_collection_contract (tests.test_b12_reuse_requests.RequestReuseTests.test_fresh_then_reused_direct_requests_share_the_collection_contract) ... FAIL
+test_http_renamed_sample_and_independent_preparations_reuse_original_releases (tests.test_b12_reuse_requests.RequestReuseTests.test_http_renamed_sample_and_independent_preparations_reuse_original_releases) ... ERROR
+test_mismatched_acquisition_or_result_identity_fails_closed (tests.test_b12_reuse_requests.RequestReuseTests.test_mismatched_acquisition_or_result_identity_fails_closed) ... ok
+test_missing_prepared_capability_requests_worker_and_preserves_direct_source (tests.test_b12_reuse_requests.RequestReuseTests.test_missing_prepared_capability_requests_worker_and_preserves_direct_source) ... ERROR
+test_historical_originals_prefer_matching_capability (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_historical_originals_prefer_matching_capability) ... ok
+test_ignores_read_only_and_reused_runs (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_ignores_read_only_and_reused_runs) ... ok
+test_parent_verifier_must_show_direct_pass_and_missing_preparation (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_parent_verifier_must_show_direct_pass_and_missing_preparation) ... ok
+test_passing_receipt_cannot_substitute_checks_or_outputs (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_passing_receipt_cannot_substitute_checks_or_outputs) ... ok
+test_rejects_changed_artifacts_even_when_status_verified (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_changed_artifacts_even_when_status_verified) ... ok
+test_rejects_incompatible_contracts_and_receipts (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_incompatible_contracts_and_receipts) ... ok
+test_rejects_incompatible_recipe_even_with_matching_revision (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_incompatible_recipe_even_with_matching_revision) ... ok
+test_rejects_task_folder_identity_mismatch_without_following_it (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_task_folder_identity_mismatch_without_following_it) ... ok
+test_approval_reuses_child_and_retry_preserves_preparation (tests.test_lab.TaskTests.test_approval_reuses_child_and_retry_preserves_preparation) ... ERROR
+test_failed_worker_preserves_failure_and_history (tests.test_lab.TaskTests.test_failed_worker_preserves_failure_and_history) ... ok
+test_rejects_bad_worker_recipe_and_view_before_writing (tests.test_lab.TaskTests.test_rejects_bad_worker_recipe_and_view_before_writing) ... ok
+test_rejects_blank_and_traversal (tests.test_lab.TaskTests.test_rejects_blank_and_traversal) ... ok
+test_rerun_and_label_require_the_correct_stage (tests.test_lab.TaskTests.test_rerun_and_label_require_the_correct_stage) ... ok
+
+======================================================================
+ERROR: test_approval_and_volume_validation (tests.test_b12_reuse_requests.RequestReuseTests.test_approval_and_volume_validation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_b12_reuse_requests.py", line 228, in test_approval_and_volume_validation
+    child = self.lab.approve(direct["id"], factor=4)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/lab.py", line 143, in approve
+    or observed != measurement["finding"]
+                   ~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'finding'
+
+======================================================================
+ERROR: test_http_renamed_sample_and_independent_preparations_reuse_original_releases (tests.test_b12_reuse_requests.RequestReuseTests.test_http_renamed_sample_and_independent_preparations_reuse_original_releases)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_b12_reuse_requests.py", line 101, in test_http_renamed_sample_and_independent_preparations_reuse_original_releases
+    with self.presenter() as request, patch.object(self.lab, "collect", side_effect=collect), \
+         ~~~~~~~~~~~~~~^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_b12_reuse_requests.py", line 57, in presenter
+    with ThreadingHTTPServer(("127.0.0.1", 0), Handler) as server:
+         ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/socketserver.py", line 457, in __init__
+    self.server_bind()
+    ~~~~~~~~~~~~~~~~^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/http/server.py", line 148, in server_bind
+    socketserver.TCPServer.server_bind(self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/socketserver.py", line 478, in server_bind
+    self.socket.bind(self.server_address)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 1] Operation not permitted
+
+======================================================================
+ERROR: test_missing_prepared_capability_requests_worker_and_preserves_direct_source (tests.test_b12_reuse_requests.RequestReuseTests.test_missing_prepared_capability_requests_worker_and_preserves_direct_source)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_b12_reuse_requests.py", line 212, in test_missing_prepared_capability_requests_worker_and_preserves_direct_source
+    approved = self.lab.approve(source["id"], factor=4)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/lab.py", line 143, in approve
+    or observed != measurement["finding"]
+                   ~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'finding'
+
+======================================================================
+ERROR: test_approval_reuses_child_and_retry_preserves_preparation (tests.test_lab.TaskTests.test_approval_reuses_child_and_retry_preserves_preparation)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_lab.py", line 58, in test_approval_reuses_child_and_retry_preserves_preparation
+    child = self.lab.approve(parent_id)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/lab.py", line 143, in approve
+    or observed != measurement["finding"]
+                   ~~~~~~~~~~~^^^^^^^^^^^
+KeyError: 'finding'
+
+======================================================================
+FAIL: test_fresh_then_reused_direct_requests_share_the_collection_contract (tests.test_b12_reuse_requests.RequestReuseTests.test_fresh_then_reused_direct_requests_share_the_collection_contract)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_b12_reuse_requests.py", line 170, in test_fresh_then_reused_direct_requests_share_the_collection_contract
+    self.assertEqual(new["status"], "verified", new.get("error"))
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'failed' != 'verified'
+- failed
++ verified
+ : Independent assay requirements failed
+
+----------------------------------------------------------------------
+Ran 19 tests in 0.107s
+
+FAILED (failures=1, errors=4)
