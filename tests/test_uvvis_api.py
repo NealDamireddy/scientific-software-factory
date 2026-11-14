@@ -1,10 +1,13 @@
 """Contract tests for the loopback v1 instrument, independent of context persistence."""
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 import http.client
 import json
 from pathlib import Path
+import select
 import sqlite3
+import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -207,6 +210,58 @@ class VirtualUvVisTests(unittest.TestCase):
         with instrument(self.store) as (_, reopened):
             self.assertEqual(reopened.poll(job_id)["status"], "cancelled")
             self.assertEqual(reopened.measurements(job_id), partial)
+
+    def test_same_instrument_excludes_second_process_with_different_store(self):
+        samples = Path(self.temp.name) / "samples.json"
+        samples.write_text(json.dumps(SAMPLES))
+        args = [sys.executable, "-m", "factory.uvvis_http", "--store", str(self.store),
+                "--samples", str(samples), "--port", "0", "--duration", "60"]
+        with subprocess.Popen(args, stdout=subprocess.PIPE, text=True) as owner:
+            try:
+                self.assertTrue(select.select([owner.stdout], [], [], 10)[0], "simulator startup timed out")
+                url = owner.stdout.readline().strip()
+                api = VirtualInstrumentAdapter(url, PIN["instrument_id"], PIN["profile_id"], SHA)
+                blank = api.blank(SETTINGS)
+                job = api.submit(SETTINGS, ["vial-q17"], blank["blank_id"], "owner")
+
+                other_store = Path(self.temp.name) / "other-jobs"
+                with self.assertRaisesRegex(BlockingIOError, PIN["instrument_id"]):
+                    with closing(VirtualUvVisService(other_store, SAMPLES)):
+                        pass
+                with closing(VirtualUvVisService(other_store, SAMPLES, instrument_id="another-instance")):
+                    self.assertEqual(api.poll(job["job_id"])["status"], "running")
+            finally:
+                owner.kill()
+        # The kernel releases the instance identity on abrupt process exit.
+        with instrument(other_store, duration_s=0) as (_, replacement):
+            blank = replacement.blank(SETTINGS)
+            job = replacement.submit(SETTINGS, ["vial-q17"], blank["blank_id"], "replacement")
+            until(lambda: replacement.poll(job["job_id"])["status"] == "completed")
+
+    def test_equivalent_replicate_counts_reuse_one_job_across_restart(self):
+        float_settings = {**SETTINGS, "replicates": 3.0}
+        with instrument(self.store, duration_s=0) as (_, api):
+            blank = api.blank(float_settings)["blank_id"]
+            job = api.submit(float_settings, ["vial-q17"], blank, "numeric-retry")
+            until(lambda: api.poll(job["job_id"])["status"] == "completed")
+            records = api.measurements(job["job_id"])["records"]
+            self.assertEqual(len(records), 3)
+            retry = api.submit(SETTINGS, ["vial-q17"], blank, "numeric-retry")
+            self.assertEqual(retry["job_id"], job["job_id"])
+            self.assertIs(type(retry["settings"]["replicates"]), int)
+
+        # Earlier versions wrote the original JSON representation to this column.
+        with closing(sqlite3.connect(self.store / "jobs.sqlite3")) as db, db:
+            saved_request = json.loads(db.execute("SELECT request FROM jobs").fetchone()[0])
+            saved_request["settings"]["replicates"] = 3.0
+            db.execute("UPDATE jobs SET request=? WHERE id=?", (json.dumps(saved_request), job["job_id"]))
+        with instrument(self.store, duration_s=0) as (service, api):
+            retry = api.submit(SETTINGS, ["vial-q17"], blank, "numeric-retry")
+            self.assertEqual(retry["job_id"], job["job_id"])
+            self.assertEqual(api.measurements(retry["job_id"])["records"], records)
+            with self.assertRaisesRegex(InstrumentError, "different request"):
+                api.submit({**SETTINGS, "replicates": 2}, ["vial-q17"], blank, "numeric-retry")
+            self.assertEqual(service.db.execute("SELECT COUNT(*) FROM jobs").fetchone()[0], 1)
 
     def test_reconcile_crash_snapshot_and_idempotent_retry(self):
         clock = Clock(block_after=1)

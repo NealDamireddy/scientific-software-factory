@@ -1,13 +1,17 @@
 """Private virtual detector, compatible references and crash-recoverable acquisitions."""
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import ExitStack
 from datetime import datetime, timezone
 import fcntl
+import hashlib
 import json
 import logging
 import math
+import os
 from pathlib import Path
 import random
 import sqlite3
+import stat
 import threading
 import time
 import uuid
@@ -45,6 +49,28 @@ def _private_models(samples):
     return models
 
 
+def _claim_instrument(instrument_id, resources):
+    # All local processes use the same inode, independent of store, port or TMPDIR.
+    # Leave the file in place: unlinking a locked inode permits a second owner.
+    identity = hashlib.sha256(instrument_id.encode("utf-8")).hexdigest()
+    path = Path("/tmp") / f"evolve-uvvis-instance-{identity}.lock"
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+    try:
+        fd = os.open(path, flags)
+    except FileNotFoundError:
+        try:
+            fd = os.open(path, flags | os.O_CREAT | os.O_EXCL, 0o444)
+        except FileExistsError:
+            fd = os.open(path, flags)
+    resources.callback(os.close, fd)
+    if not stat.S_ISREG(os.fstat(fd).st_mode):
+        raise OSError(f"Expected a regular instrument lock file at {path}")
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError as error:
+        raise BlockingIOError(f"Instrument {instrument_id!r} is already in use") from error
+
+
 class VirtualUvVisService:
     def __init__(self, store, samples, *, profile=None, instrument_id="uvvis-demo-01",
                  noise_sd_counts=DEFAULT_NOISE_COUNTS, duration_s=1, seed=None,
@@ -69,18 +95,18 @@ class VirtualUvVisService:
         self.active = {}
         store = Path(store)
         store.mkdir(mode=0o700, parents=True, exist_ok=True)
-        self.lease = (store / "instrument.lock").open("a")
-        try:
-            fcntl.flock(self.lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with ExitStack() as resources:
+            _claim_instrument(instrument_id, resources)
+            # Keep a separate store lease so another identity cannot reconcile our live jobs.
+            store_lock = resources.enter_context((store / "instrument.lock").open("a"))
+            fcntl.flock(store_lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
             self.db = sqlite3.connect(store / "jobs.sqlite3", check_same_thread=False)
+            resources.callback(self.db.close)
             self.db.row_factory = sqlite3.Row
             self._initialize_db()
             self.pool = ThreadPoolExecutor(max_workers=1)
-        except BaseException:
-            if hasattr(self, "db"):
-                self.db.close()
-            self.lease.close()
-            raise
+            resources.callback(self.pool.shutdown, wait=True)
+            self.resources = resources.pop_all()
 
     def _initialize_db(self):
         self.db.executescript("""
@@ -105,9 +131,7 @@ class VirtualUvVisService:
             self.db.execute("UPDATE jobs SET status='interrupted', finished=? WHERE status='running'", (utc_now(),))
             for event in self.active.values():
                 event.set()
-        self.pool.shutdown(wait=True)
-        self.db.close()
-        self.lease.close()
+        self.resources.close()
 
     def _check_request(self, shape, request):
         validate(shape, request)
@@ -150,10 +174,14 @@ class VirtualUvVisService:
         validate_key(key)
         with self.lock:
             self._check_request("acquisition_request", request)
-            payload = canonical(request)
+            settings = dict(request["settings"])
+            for field in ("wavelength_nm", "path_length_mm", "replicates"):
+                settings[field] = int(settings[field])
+            request = {**request, "settings": settings}
             old = self.db.execute("SELECT id,request FROM jobs WHERE submission_key=?", (key,)).fetchone()
             if old:
-                if old["request"] != payload:
+                # Jobs from earlier versions may contain equivalent integral JSON floats.
+                if json.loads(old["request"]) != request:
                     raise InstrumentError("Idempotency-Key", "already used for a different request", 409)
                 return self.job(old["id"])
             self._require_idle()
@@ -164,7 +192,7 @@ class VirtualUvVisService:
             started = self.monotonic()
             with self.db:
                 self.db.execute("INSERT INTO jobs VALUES (?,?,?,'running',?,NULL,?,?)",
-                                (job_id, key, payload, utc_now(), self.noise, self.duration))
+                                (job_id, key, canonical(request), utc_now(), self.noise, self.duration))
             stop = threading.Event()
             self.active[job_id] = stop
             self.pool.submit(self._run, job_id, request, reference, started, stop)
@@ -187,8 +215,7 @@ class VirtualUvVisService:
     def _run(self, job_id, request, reference, started, stop):
         try:
             ordinal = 0
-            # JSON Schema accepts integral numbers such as 3.0 as integers.
-            replicates = int(request["settings"]["replicates"])
+            replicates = request["settings"]["replicates"]
             total = len(request["sample_ids"]) * replicates
             for sample in request["sample_ids"]:
                 for replicate in range(1, replicates + 1):
