@@ -24,6 +24,15 @@ def generate(order, context, destination, base=None):
     (destination / "agent-prompt.txt").write_text(prompt)
     schema = {"type":"object","properties":{"source":{"type":"string"},"summary":{"type":"string"}},
               "required":["source","summary"],"additionalProperties":False}
+    message, receipt = invoke_worker(prompt, schema)
+    if not (0 < len(message["source"].encode()) <= 65536):
+        raise ValueError("Generated source exceeds size contract")
+    (destination / "analysis.py").write_text(message["source"].rstrip() + "\n")
+    dump(destination / "generation.json", {**receipt, "summary": message["summary"]})
+
+
+def invoke_worker(prompt, schema):
+    """Run a tool-free local coding worker and return its response and provenance."""
     with tempfile.TemporaryDirectory() as temp:
         work = Path(temp)
         dump(work / "schema.json", schema)
@@ -39,9 +48,6 @@ def generate(order, context, destination, base=None):
             errors = [line for line in result.stderr.splitlines() if "error" in line.lower()]
             raise RuntimeError("Codex failed: " + (errors[-1][:350] if errors else f"exit {result.returncode}"))
         message = json.loads((work / "answer.json").read_text())
-        if not (0 < len(message["source"].encode()) <= 65536):
-            raise ValueError("Generated source exceeds size contract")
-        (destination / "analysis.py").write_text(message["source"].rstrip() + "\n")
         model = next((line.partition(":")[2].strip() for line in result.stderr.splitlines() if line.startswith("model:")), "CLI default (identifier unavailable)")
-        dump(destination / "generation.json", {"method":"codex exec","cli":version,"model":model,
-             "summary":message["summary"],"attempts":1,"timeout_s":180,"tool_mode":"read-only, tool-free request"})
+        return message, {"method": "codex exec", "cli": version, "model": model,
+                         "attempts": 1, "timeout_s": 180, "tool_mode": "read-only, tool-free request"}
