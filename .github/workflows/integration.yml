@@ -20,6 +20,8 @@ jobs:
       - run: uv sync --locked --python 3.13
       - name: Run full suite with scientific sandbox and loopback instrument
         run: uv run --frozen python -m unittest discover -s tests -v
+      - name: Verify shared B12 acquisition, retry, archive and replay
+        run: uv run --frozen python .sw-factory/WO-16/check_combined.py
       - name: Check saved context against fresh acquisition
         if: hashFiles('factory/specifications.py') != ''
         run: uv run --frozen python -c 'from tests.test_context_acquisition_integration import test_saved_project_context_drives_fresh_acquisition as check; check()'

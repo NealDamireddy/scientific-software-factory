@@ -5,6 +5,7 @@ import json
 import re
 
 from . import b12_build
+from .b12_verification import validate_receipt
 from .archive_measurements import record, require, text_field, validate_calibration, validate_measurements
 from .archive_timing import validate_timing
 from .archive_verification import validate_verification
@@ -19,8 +20,11 @@ def _task_source(task, source):
     require(set(files) == set(b12_build.FILES), "source.files must contain all three release artifacts")
     for name, content in files.items():
         require(isinstance(content, str) and 0 < len(content.encode()) <= 65536, f"invalid source file {name}")
-    revision = b12_build.content_revision({name: content.encode() for name, content in files.items()})
-    require(task["revision"] == revision, "source revision digest mismatch")
+    source_bytes = {name: content.encode() for name, content in files.items()}
+    if "verification" in task:
+        validate_receipt(task, source_bytes, task["release_contract"])
+    else:
+        require(task["revision"] == b12_build.content_revision(source_bytes), "source revision digest mismatch")
     with record("source.views.json"):
         require(json.loads(files["views.json"]) == task["views"], "views differ from the retained task")
     with record("source.recipe.json"):

@@ -207,8 +207,15 @@ class Lab:
             task = self.task(task_id)
             if task["status"] != "failed" or not task.get("approval"):
                 raise ValueError("Only a failed approved revision can retry")
-            task = self.update(task_id, status="queued", error=None, checks=[], worker=None,
-                               revision=None, attempts=task.get("attempts",1)+1)
+            # A retry makes a new release-selection decision. Keep the experimental
+            # parent and approval, but discard the failed selection's attribution.
+            for field in ("origin_task_id", "origin_parent_revision", "origin_parent_checks",
+                          "origin_parent_task_id", "origin_parent_worker", "origin_parent_verification",
+                          "parent_verification", "verification", "release_contract", "parent_checks", "views"):
+                task.pop(field, None)
+            task.update(status="queued", error=None, checks=[], worker=None, revision=None,
+                        mode="fresh generation", attempts=task.get("attempts", 1) + 1)
+            save(self.path(task_id) / "task.json", task)
             self.pool.submit(self.generate, task_id)
             return task
 

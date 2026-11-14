@@ -21,6 +21,7 @@ if missing:
     sys.exit("Combined acceptance unavailable in this checkout. Missing " + ", ".join(missing))
 
 from factory import b12_build, optics
+from factory.archive import validate_archive
 from factory.context import read_json
 from factory.lab import Lab
 from tests import test_b12_reuse_requests as reuse
@@ -70,6 +71,55 @@ class CombinedAcceptance(unittest.TestCase):
                         self.assertEqual((task["status"], attempt["status"]), ("verified", "completed"))
                         self.assertEqual(task["result"]["sample_id"], sample)
             self.assertEqual(worker.call_count, 2)
+
+    def test_different_source_parent_receipt_and_archive_replay(self):
+        fixture = self.fixture
+        files = fixture.bundle["sources"][fixture.bundle["direct"]["id"]]["files"]
+        candidate = {"source": files["analysis.py"] + "\n# distinct experimental release",
+                     "recipe": json.loads(files["recipe.json"]), "views": json.loads(files["views.json"])}
+        receipt = {"method": "fixture", "model": "fixture-direct", "cli": "integration"}
+        with fixture.presenter() as request:
+            with patch.object(b12_build, "invoke_worker", return_value=(candidate, receipt)):
+                current = self.submit(request, "Seed alternate direct source")
+            self.assertEqual(current["status"], "verified", current.get("error"))
+            original = fixture.seed_live("direct")
+            prepared = fixture.seed_live("followup")
+            self.assertNotEqual(current["revision"], original["revision"])
+            with patch.object(b12_build, "invoke_worker", side_effect=AssertionError("unexpected worker")) as worker:
+                direct = self.submit(request, "Assay lot C")
+                fixture.assert_reused(direct, current)
+                child = request(f"/api/tasks/{direct['id']}/approve", {"factor": 4})
+                prefix = "/api/tasks/" + child["id"]
+                fixture.assert_reused(fixture.wait_for_task(child["id"]), prepared)
+                request(prefix + "/prepare", {"parent_id": "Assay lot C", "sample_id": "Assay lot C-4",
+                                              "sample_ml": 0.75, "final_ml": 3, "unit": "mL"})
+                request(prefix + "/rerun", {})
+                bundle = request(prefix + "/evidence")
+                worker.assert_not_called()
+        child = bundle["followup"]
+        self.assertEqual(child["origin_parent_task_id"], original["id"])
+        self.assertEqual(child["origin_parent_worker"], original["worker"])
+        self.assertEqual(child["origin_parent_verification"], prepared["parent_verification"])
+        self.assertEqual(child["parent_verification"]["source_revision"], current["revision"])
+        archive = Lab(fixture.store / "archive", archive=bundle, allow_generation=False)
+        try:
+            self.assertEqual(archive.source(child["id"])["files"], fixture.bundle["sources"][prepared["id"]]["files"])
+            self.assertEqual(archive.task(child["id"])["result"], child["result"])
+            replay = archive.replay(child["id"])["replay"]
+            self.assertTrue(replay["parent_matches"] and replay["child_matches"])
+        finally:
+            archive.close()
+        for role, key in (("direct", "verification"), ("followup", "verification"),
+                          ("followup", "parent_verification"), ("followup", "origin_parent_verification")):
+            for mutation in ("alter", "omit"):
+                with self.subTest(role=role, key=key, mutation=mutation):
+                    forged = deepcopy(bundle)
+                    if mutation == "alter":
+                        forged[role][key]["evidence_sha256"] = "0" * 64
+                    else:
+                        del forged[role][key]
+                    with self.assertRaisesRegex(ValueError, "(?i)verification"):
+                        validate_archive(forged)
 
     def test_renamed_fourfold_saturation_reopen_retry_and_archive(self):
         fixture = self.fixture
@@ -133,6 +183,7 @@ class CombinedAcceptance(unittest.TestCase):
                 with self.assertRaises(HTTPError) as reveal:
                     request(prefix + "/reveal", {})
                 self.assertEqual(reveal.exception.code, 400)
+                reveal.exception.close()
 
                 def child_request(suffix, body=None):
                     return request(prefix + suffix, body)
@@ -148,6 +199,7 @@ class CombinedAcceptance(unittest.TestCase):
         try:
             with fixture.presenter() as request:
                 self.assertTrue(request(prefix)["archived"])
+                self.assertTrue(request(prefix + "/replay", {})["replay"]["child_matches"])
         finally:
             fixture.lab.close()
         forged = deepcopy(package)

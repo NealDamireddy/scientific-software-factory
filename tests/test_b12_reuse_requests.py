@@ -295,6 +295,40 @@ print(json.dumps(result))
                     self.assertIn("sample", record["error"].lower())
                     worker.assert_not_called()
 
+    def test_failed_prepared_reuse_can_retry_as_fresh_generation(self):
+        direct = self.seed_live("direct")
+        prepared = self.seed_live("followup")
+        select = self.lab.select_source
+
+        def interrupted(task, folder):
+            self.assertEqual(select(task, folder)["origin_task_id"], prepared["id"])
+            raise RuntimeError("interrupted after release selection")
+
+        with patch.object(self.lab, "select_source", side_effect=interrupted):
+            child_id = self.lab.approve(direct["id"], 4)["id"]
+            failed = self.wait_for_task(child_id)
+        self.assertEqual(failed["status"], "failed")
+        self.assertEqual(failed["mode"], "verified source reuse")
+        # The original is no longer eligible when the user retries the approved task.
+        self.lab.update(prepared["id"], status="failed")
+        files = self.bundle["sources"][prepared["id"]]["files"]
+        candidate = {"source": files["analysis.py"] + "\n# replacement revision",
+                     "recipe": json.loads(files["recipe.json"]), "views": json.loads(files["views.json"])}
+        receipt = {"method": "fixture", "cli": "fixture", "model": "replacement"}
+        with patch("factory.b12_build.invoke_worker", return_value=(candidate, receipt)) as worker:
+            self.lab.retry(child_id)
+            recovered = self.wait_for_task(child_id)
+        worker.assert_called_once()
+        self.assertEqual(recovered["status"], "verified", recovered.get("error"))
+        self.assertEqual(recovered["mode"], "fresh generation")
+        self.assertFalse(any(key.startswith("origin_") for key in recovered))
+        self.assertNotEqual(recovered["revision"], prepared["revision"])
+        self.assertEqual(recovered["worker"], receipt)
+        self.assertEqual(recovered["parent_id"], direct["id"])
+        self.assertEqual(recovered["approval"], failed["approval"])
+        self.assertEqual(recovered["verification"], verification_receipt(
+            recovered["revision"], recovered["checks"], receipt, recovered["release_contract"]))
+
     def test_missing_prepared_capability_requests_worker_and_preserves_direct_source(self):
         source = self.seed_live("direct")
         folder = self.lab.path(source["id"])

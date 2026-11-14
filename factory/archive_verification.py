@@ -3,6 +3,7 @@ import math
 import re
 import sys
 
+from .b12_verification import verification_receipt
 from .optics import PROFILE, RECIPE
 
 
@@ -143,6 +144,35 @@ def validate_verification(direct, child):
     run_ids = {direct["id"], child["id"]}
     prepared_parent = _release_provenance("direct", direct, run_ids)
     _release_provenance("followup", child, run_ids)
+    # Older optical-checks@1 bundles predate receipts. If the producer supplies
+    # them, require the whole chain for each claimed release.
+    if any(field in task for task in (direct, child) for field in
+           ("verification", "parent_verification", "origin_parent_verification", "origin_parent_worker",
+            "origin_parent_task_id")):
+        for role, task in (("direct", direct), ("followup", child)):
+            if "verification" not in task:
+                raise ValueError(f"{role}.verification missing from revision-bound archive")
+            if "origin_parent_revision" in task:
+                origin_id = task.get("origin_parent_task_id")
+                if not isinstance(origin_id, str) or not re.fullmatch("[0-9a-f]{32}", origin_id):
+                    raise ValueError(f"{role}.origin_parent_task_id invalid")
+                receipt = verification_receipt(task["origin_parent_revision"], task["origin_parent_checks"],
+                                               task["origin_parent_worker"], task["release_contract"])
+                if task.get("origin_parent_verification") != receipt:
+                    raise ValueError(f"{role}.origin_parent_verification differs from retained original evidence")
+            elif any(field in task for field in ("origin_parent_verification", "origin_parent_worker",
+                                                  "origin_parent_task_id")):
+                raise ValueError(f"{role}.origin_parent_verification requires an original prepared release")
+        parent_receipt = verification_receipt(direct["revision"], child["parent_checks"], direct["worker"],
+                                              child["release_contract"])
+        if child.get("parent_verification") != parent_receipt:
+            raise ValueError("followup.parent_verification differs from experimental parent evidence")
+        if "parent_verification" in direct:
+            raise ValueError("direct.parent_verification requires an experimental parent")
+        if child.get("origin_parent_task_id") == direct.get("origin_task_id", direct["id"]):
+            if (child["origin_parent_revision"] != direct["revision"]
+                    or child["origin_parent_worker"] != direct["worker"]):
+                raise ValueError("followup.origin_parent_task_id conflicts with the retained direct source")
     _validate_suite("direct.checks", direct.get("checks"), _FULL if prepared_parent else _DIRECT)
     _validate_suite("followup.parent_checks", child.get("parent_checks"), _FULL, direct_source=not prepared_parent)
     _validate_suite("followup.checks", child.get("checks"), _FULL)
