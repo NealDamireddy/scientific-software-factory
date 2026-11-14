@@ -361,8 +361,10 @@ class Lab:
         if (result.get("sample_id") != sample_id or result.get("calibration_id") != calibration["id"]
                 or result.get("status") != ("ok" if finding["in_range"] else "review")):
             raise ValueError("Actual sample result disagrees with trusted range or provenance check")
-        if not finding["in_range"] and result.get("concentration_mg_l") is not None:
-            raise ValueError("Candidate returned an out-of-range concentration")
+        if not finding["in_range"] and (
+            "concentration_mg_l" not in result or result["concentration_mg_l"] is not None
+        ):
+            raise ValueError("Out-of-range result must include concentration_mg_l set to null")
         if finding["in_range"]:
             reference = (sum(finding["absorbances"])/3 - calibration["intercept"]) / calibration["slope"]
             actual = result.get("concentration_mg_l")

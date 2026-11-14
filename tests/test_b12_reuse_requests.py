@@ -237,6 +237,36 @@ class RequestReuseTests(unittest.TestCase):
         self.assertEqual(child["parent_verification"], verification_receipt(
             current["revision"], child["parent_checks"], current["worker"], child["release_contract"]))
 
+    def test_above_range_result_missing_concentration_fails_without_offering_approval(self):
+        # This candidate satisfies the public cases but omits the required null for the live vial.
+        source = """import json, sys
+sample = json.load(sys.stdin)
+cal = sample["calibration"]
+values = sample["absorbances"]
+in_range = all(cal["low"] <= value <= cal["high"] for value in values)
+result = {"sample_id": sample["sample_id"], "calibration_id": cal["id"],
+          "status": "ok" if in_range else "review"}
+if in_range:
+    result["concentration_mg_l"] = (sum(values) / len(values) - cal["intercept"]) / cal["slope"]
+elif sample["sample_id"] != "U-01":
+    result["concentration_mg_l"] = None
+print(json.dumps(result))
+"""
+        files = self.bundle["sources"][self.bundle["direct"]["id"]]["files"]
+        response = {"source": source, "recipe": json.loads(files["recipe.json"]),
+                    "views": json.loads(files["views.json"])}
+        with patch("factory.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})):
+            task = self.wait_for_task(self.lab.submit("Measure B12 at 550 nm")["id"])
+        acquisition = read_json(self.lab.path(task["id"]) / "acquisition.json")
+        self.assertTrue(acquisition["finding"]["above_range"])
+        self.assertEqual(task["status"], "failed")
+        self.assertIn("concentration_mg_l", task["error"])
+        self.assertNotIn("result", task)
+        self.assertNotIn("proposal", task)
+        with self.assertRaisesRegex(ValueError, "verified direct above-range run"):
+            self.lab.approve(task["id"])
+        self.assertEqual(len(self.lab.history()), 1)
+
     def test_mismatched_acquisition_or_result_identity_fails_closed(self):
         self.seed_live("direct")
         for corrupt in ("raw", "input", "result"):
