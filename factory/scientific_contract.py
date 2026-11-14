@@ -6,8 +6,8 @@ is one acquisition timepoint, identified by the timestamp of its first replicate
 Output preserves group order and reports sample SD in concentration units.
 """
 import math
-from copy import deepcopy
 from datetime import datetime, timedelta, timezone
+from functools import partial
 
 TOLERANCE = 1e-7
 _LOG_TWO = math.log10(2)
@@ -91,91 +91,129 @@ def _withhold(row):
     row.update(concentration_mg_l=None, replicate_sd_mg_l=None, review_reason=_REVIEW)
 
 
-def cases(experiment_type, compiled_recipe):
-    """Yield (check name, category, public input, independent reference output)."""
-    if experiment_type not in ("concentration", "time_course"):
-        raise ValueError("Unsupported scientific experiment type")
-    data, expected = _fixture(experiment_type, compiled_recipe)
-    yield "nonzero intercept, sample SD and identities", "numerical", data, expected
-    yield ("alternate calibration, samples and acquisition times", "numerical",
-           *_fixture(experiment_type, compiled_recipe, alternate=True))
+# Mutations below damage one independent public fixture at a time. They are
+# evaluated only when trusted inputs are available to construct a challenge.
+def _invalid_reading(kind, field, replacement, recipe):
+    payload, expected = _fixture(kind, recipe)
+    record = payload["groups"][0]["records"][-1]
+    if replacement is None:
+        del record[field]
+    elif callable(replacement):
+        record[field] = replacement(record[field])
+    else:
+        record[field] = replacement
+    _withhold(expected["results"][0])
+    return payload, expected
 
-    # Only one replicate is invalid. All other sample/timepoint estimates must survive.
-    profile_sha = data["calibration"]["profile_sha256"]
-    different_sha = ("1" if profile_sha[0] == "0" else "0") + profile_sha[1:]
+
+def _shift_counts(kind, offset, recipe):
+    payload, expected = _fixture(kind, recipe)
+    record = payload["groups"][0]["records"][-1]
+    # A common detector offset cancels from both dark-corrected differences.
+    # Only validating raw counts can reject these optically identical readings.
+    for field in ("dark_counts", "blank_counts", "sample_counts"):
+        record[field] += offset
+    _withhold(expected["results"][0])
+    return payload, expected
+
+
+def _invalid_calibration(kind, change, recipe):
+    payload, expected = _fixture(kind, recipe)
+    change(payload)
+    for row in expected["results"]:
+        _withhold(row)
+    return payload, expected
+
+
+def _remove_reference(payload):
+    payload["calibration"]["blank_id"] = None
+    for group in payload["groups"] + payload["standards"]:
+        for record in group["records"]:
+            record["blank_id"] = None
+
+
+def _reverse_standard_concentrations(payload):
+    standards = payload["standards"]
+    concentrations = [standard["concentration"] for standard in reversed(standards)]
+    for standard, concentration in zip(standards, concentrations):
+        standard["concentration"] = concentration
+
+
+def case_plan(kind):
+    """Yield check names/categories and lazy builders, without needing any handoff data."""
+    if kind not in ("concentration", "time_course"):
+        raise ValueError("Unsupported scientific experiment type")
+    yield "nonzero intercept, sample SD and identities", "numerical", partial(_fixture, kind)
+    yield ("alternate calibration, samples and acquisition times", "numerical",
+           partial(_fixture, kind, alternate=True))
+
+    # A single bad replicate withholds only its group. Deliberately malformed
+    # detector values still imply in-range absorbance if the raw-count guard is absent.
     for name, category, field, value in (
         ("measurement units", "input-validation", "unit", "AU"),
         ("nonfinite detector value", "input-validation", "sample_counts", float("nan")),
         ("dark-corrected transmission", "input-validation", "sample_counts", 128),
         ("detector findings", "input-validation", "findings", ["saturated detector"]),
+        ("nonfinite elapsed time", "input-validation", "elapsed_s", float("nan")),
+        ("negative elapsed time", "input-validation", "elapsed_s", -.25),
+        ("missing measurement timestamp", "input-validation", "timestamp", None),
+        ("malformed measurement timestamp", "input-validation", "timestamp", "not-a-timestamp"),
+        ("non-UTC measurement timestamp", "input-validation", "timestamp", "2026-02-03T10:05:07-04:00"),
+        ("repeated replicate identity", "input-validation", "replicate", 1),
+        ("nonpositive replicate identity", "input-validation", "replicate", 0),
+        ("fractional replicate identity", "input-validation", "replicate", 2.5),
         ("above calibration range", "numerical", "sample_counts", 128 + (32768 >> 7)),
         ("below calibration range", "numerical", "sample_counts", 128 + (32768 >> 1)),
-        ("wavelength compatibility", "settings", "wavelength_nm", compiled_recipe["settings"]["wavelength_nm"] + 1),
-        ("path length compatibility", "settings", "path_length_mm", compiled_recipe["settings"]["path_length_mm"] + 1),
+        ("wavelength compatibility", "settings", "wavelength_nm", lambda n: n + 1),
+        ("path length compatibility", "settings", "path_length_mm", lambda n: n + 1),
         ("unsupported measurement schema", "provenance", "schema_version", 2),
         ("invalid acquisition identity", "provenance", "job_id", "invalid"),
         ("mixed acquisition replicates", "provenance", "job_id", "f" * 32),
         ("mixed model revisions", "provenance", "model_revision", "other-optical@2"),
         ("blank identity", "provenance", "blank_id", "unreferenced-blank"),
-        ("instrument identity", "provenance", "instrument_id", data["calibration"]["instrument_id"] + "-other"),
-        ("profile revision", "provenance", "profile_id", data["calibration"]["profile_id"] + "-other"),
-        ("profile digest", "provenance", "profile_sha256", different_sha),
+        ("instrument identity", "provenance", "instrument_id", lambda s: s + "-other"),
+        ("profile revision", "provenance", "profile_id", lambda s: s + "-other"),
+        ("profile digest", "provenance", "profile_sha256", lambda s: ("1" if s[0] == "0" else "0") + s[1:]),
         ("sample identity", "provenance", "sample_id", "misassigned-vial"),
         ("simulated provenance", "provenance", "simulated", False),
+        ("missing measurement schema_version", "provenance", "schema_version", None),
+        ("missing measurement model_revision", "provenance", "model_revision", None),
     ):
-        challenge, target = deepcopy(data), deepcopy(expected)
-        challenge["groups"][0]["records"][-1][field] = value
-        _withhold(target["results"][0])
-        yield name, category, challenge, target
+        yield name, category, partial(_invalid_reading, kind, field, value)
 
-    for field in ("schema_version", "model_revision"):
-        challenge, target = deepcopy(data), deepcopy(expected)
-        del challenge["groups"][0]["records"][-1][field]
-        _withhold(target["results"][0])
-        yield f"missing measurement {field}", "provenance", challenge, target
+    for name, offset in (("negative detector counts", -129), ("fractional detector counts", .5),
+                         ("saturated detector counts", 65535 - 32896)):
+        yield name, "input-validation", partial(_shift_counts, kind, offset)
 
-    reviewed = deepcopy(expected)
-    for row in reviewed["results"]:
-        _withhold(row)
-
-    missing_reference = deepcopy(data)
-    missing_reference["calibration"]["blank_id"] = None
-    for group in missing_reference["groups"] + missing_reference["standards"]:
-        for record in group["records"]:
-            record["blank_id"] = None
-    yield "required blank reference", "provenance", missing_reference, reviewed
-
-    invalid_units = deepcopy(data)
-    invalid_units["calibration"]["unit"] = "mmol/L"
-    yield "calibration concentration units", "input-validation", invalid_units, reviewed
-
-    if experiment_type == "time_course":
-        for name, field, value in (("positive frozen slope", "slope", 0),
-                                   ("ordered calibration range", "high", 0)):
-            challenge = deepcopy(data)
-            challenge["calibration"][field] = value
-            yield name, "input-validation", challenge, reviewed
+    yield "required blank reference", "provenance", partial(_invalid_calibration, kind, _remove_reference)
+    calibration_changes = [
+        ("calibration concentration units", "input-validation", lambda p: p["calibration"].update(unit="mmol/L")),
+    ]
+    if kind == "time_course":
+        calibration_changes.extend([
+            ("positive frozen slope", "input-validation", lambda p: p["calibration"].update(slope=0)),
+            ("ordered calibration range", "input-validation", lambda p: p["calibration"].update(high=0)),
+        ])
     else:
-        for name, field, value in (
-            ("distinct known standards", "concentration", data["standards"][1]["concentration"]),
-            ("positive known standards", "concentration", 0),
-            ("standard concentration units", "unit", "mmol/L"),
-        ):
-            challenge = deepcopy(data)
-            challenge["standards"][0][field] = value
-            yield name, "input-validation", challenge, reviewed
-        reversed_fit = deepcopy(data)
-        for standard, source in zip(reversed_fit["standards"], reversed(data["standards"])):
-            standard["concentration"] = source["concentration"]
-        yield "positive fitted slope", "numerical", reversed_fit, reviewed
+        calibration_changes.extend([
+            ("distinct known standards", "input-validation",
+             lambda p: p["standards"][0].update(concentration=p["standards"][1]["concentration"])),
+            ("positive known standards", "input-validation", lambda p: p["standards"][0].update(concentration=0)),
+            ("standard concentration units", "input-validation", lambda p: p["standards"][0].update(unit="mmol/L")),
+            ("positive fitted slope", "numerical", _reverse_standard_concentrations),
+            ("standard blank identity", "provenance",
+             lambda p: p["standards"][1]["records"][0].update(blank_id="unreferenced-blank")),
+            ("mixed acquisition in standard", "provenance",
+             lambda p: p["standards"][1]["records"][0].update(job_id="f" * 32)),
+        ])
+    for name, category, change in calibration_changes:
+        yield name, category, partial(_invalid_calibration, kind, change)
 
-        broken_reference = deepcopy(data)
-        broken_reference["standards"][1]["records"][0]["blank_id"] = "unreferenced-blank"
-        yield "standard blank identity", "provenance", broken_reference, reviewed
 
-        mixed_standard = deepcopy(data)
-        mixed_standard["standards"][1]["records"][0]["job_id"] = "f" * 32
-        yield "mixed acquisition in standard", "provenance", mixed_standard, reviewed
+def cases(experiment_type, compiled_recipe):
+    """Yield (check name, category, public input, independent reference output)."""
+    for name, category, build in case_plan(experiment_type):
+        yield name, category, *build(compiled_recipe)
 
 
 def compare(actual, expected, path="output"):

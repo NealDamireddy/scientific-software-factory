@@ -1,4 +1,5 @@
 """Trusted WO-8 handoff for offline verification and release of scientific applications."""
+from contextlib import ExitStack
 import errno
 import json
 from pathlib import Path
@@ -9,11 +10,11 @@ from .b12_build import FILES, content_revision
 from .context import digest
 from .release_repository import canonical
 from .sandbox import execute
-from .scientific_contract import TOLERANCE, cases, compare
+from .scientific_contract import TOLERANCE, case_plan, compare
 
 
 TYPES = ("concentration", "time_course")
-VERIFIER = "scientific-release@1"
+VERIFIER = "scientific-release@2"
 ERRORS = (ValueError, TypeError, KeyError, RuntimeError, OSError, ArithmeticError, RecursionError, SyntaxError)
 
 
@@ -139,53 +140,65 @@ def verify_release(repository, *, experiment_type, context, profile, compiled_re
     """
     checks = []
 
-    def run(name, category, action):
-        try:
-            detail = action()
-        except ERRORS as exc:
-            checks.append(dict(name=name, category=category, passed=False, detail=str(exc)[:400]))
-            return False
-        checks.append(dict(name=name, category=category, passed=True, detail=detail or "Passed"))
-        return True
+    def run(name, category, action, blocked_by=None):
+        if blocked_by:
+            status, detail = "blocked", f"Blocked by {blocked_by}"
+        else:
+            try:
+                detail = action() or "Passed"
+                status = "passed"
+            except ERRORS as exc:
+                status, detail = "failed", str(exc)[:400]
+        checks.append(dict(name=name, category=category, status=status, passed=status == "passed", detail=detail))
+        return status == "passed"
 
     # Snapshot all mutable caller data before verification; publication reuses these bytes.
-    inputs = {}
     def snapshot():
-        inputs.update(json.loads(canonical(dict(context=context, profile=profile, recipe=compiled_recipe,
-                                                candidate=candidate))))
-        inputs["files"] = dict(files)
+        nonlocal context, profile, compiled_recipe, candidate, files
+        context, profile, compiled_recipe, candidate = json.loads(canonical([context, profile, compiled_recipe, candidate]))
+        files = dict(files)
 
     report = {"release_id": None, "checks": checks}
-    if not run("handoff snapshot", "provenance", snapshot):
-        return report
-    context, profile, compiled_recipe, candidate, files = (inputs[k] for k in
-                                                          ("context", "profile", "recipe", "candidate", "files"))
+    snapped = run("handoff snapshot", "provenance", snapshot)
+    snapshot_blocker = None if snapped else "handoff snapshot"
     kind = experiment_type
     supported = run("supported verification contract", "provenance",
                     lambda: require(kind in TYPES, "Unsupported experiment type"))
     pinned = run("pinned context and acquisition settings", "acquisition settings",
-                 lambda: check_context(context, profile, compiled_recipe, kind))
-    artifacts = run("candidate artifact and source digests", "provenance", lambda: check_files(files, candidate))
-    run("candidate worker and context", "provenance", lambda: check_receipt(candidate, context, kind))
+                 lambda: check_context(context, profile, compiled_recipe, kind), snapshot_blocker)
+    artifacts = run("candidate artifact and source digests", "provenance",
+                    lambda: check_files(files, candidate), snapshot_blocker)
+    run("candidate worker and context", "provenance", lambda: check_receipt(candidate, context, kind), snapshot_blocker)
     run("compiled recipe equality", "acquisition settings",
         lambda: require(canonical(read_artifact(files["recipe.json"])) == canonical(compiled_recipe),
-                        "Worker recipe differs from approved compiled recipe"))
-    run("display contract", "input validation", lambda: check_views(files["views.json"], kind))
-    if supported and pinned and artifacts:
-        with TemporaryDirectory() as tmp:
-            folder = Path(tmp)
-            safe = run("offline sandbox and trusted files", "isolation", lambda: isolation_probe(folder))
-            source = folder / "analysis.py"
-            source.write_bytes(files["analysis.py"])
-            for name, category, payload, expected in cases(kind, compiled_recipe):
+                        "Worker recipe differs from approved compiled recipe"), snapshot_blocker)
+    run("display contract", "input validation", lambda: check_views(files["views.json"], kind), snapshot_blocker)
+
+    if supported:
+        blockers = [name for name, passed in (("pinned context and acquisition settings", pinned),
+                                              ("candidate artifact and source digests", artifacts)) if not passed]
+        prerequisite = snapshot_blocker or ", ".join(blockers)
+        with ExitStack() as stack:
+            def prepare_sandbox():
+                nonlocal source
+                folder = Path(stack.enter_context(TemporaryDirectory()))
+                backend = isolation_probe(folder)
+                source = folder / "analysis.py"
+                source.write_bytes(files["analysis.py"])
+                return backend
+
+            source = None
+            safe = run("offline sandbox and trusted files", "isolation", prepare_sandbox, prerequisite)
+            case_blocker = None if safe else prerequisite or "offline sandbox and trusted files"
+            for name, category, build in case_plan(kind):
                 def evaluate():
-                    require(safe, "Blocked by sandbox readiness")
+                    payload, expected = build(compiled_recipe)
                     # Negative verifier fixtures deliberately include nonfinite measurement inputs.
                     actual, _ = execute(source, json.dumps(payload).encode())
                     compare(actual, expected)
                     if category == "numerical" and all(row["review_reason"] is None for row in expected["results"]):
                         return {"expected": expected, "observed": actual}
-                run(name, category, evaluate)
+                run(name, category, evaluate, case_blocker)
     if all(item["passed"] for item in checks):
         manifest = dict(experiment_type=kind, source_revision=candidate["source_revision"],
                         artifacts=candidate["artifacts"], context=context, public_profile=profile,

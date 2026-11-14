@@ -4,6 +4,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from factory.b12_build import content_revision
 from factory.context import ROOT, digest
@@ -118,6 +119,40 @@ class ReleaseTests(unittest.TestCase):
                          "nonzero intercept, sample SD and identities"} <= failures)
         self.assertEqual(self.repository.active("demo-lab", "visible-assay", "concentration"), previous)
         self.assertEqual(self.repository.load(previous)[1], handoff("concentration")["files"])
+
+    def test_blocked_checks_match_verified_manifest_without_running_candidate(self):
+        isolation = "offline sandbox and trusted files"
+        for kind in ("concentration", "time_course"):
+            original = self.promote(handoff(kind))
+            manifest, _ = self.repository.load(original)
+            expected = [(item["name"], item["category"]) for item in manifest["checks"]]
+            dependent = {name for name, _ in expected[expected.index((isolation, "isolation")):]}
+
+            for failure, mutate in (
+                ("candidate artifact and source digests", lambda d: d["candidate"].update(source_revision="bad")),
+                ("pinned context and acquisition settings", lambda d: d["compiled_recipe"].clear()),
+                ("handoff snapshot", lambda d: d["candidate"].update(invalid=float("nan"))),
+                (isolation, lambda d: None),
+            ):
+                with self.subTest(kind=kind, failure=failure):
+                    data = handoff(kind)
+                    mutate(data)
+                    with patch("factory.scientific_release.execute") as execute, patch(
+                        "factory.scientific_release.isolation_probe", side_effect=RuntimeError("unavailable")
+                    ) as probe:
+                        report = self.verify(data)
+                        execute.assert_not_called()
+                        self.assertEqual(probe.call_count, int(failure == isolation))
+
+                    self.assertIsNone(report["release_id"])
+                    self.assertEqual(self.repository.active("demo-lab", "visible-assay", kind), original)
+                    self.assertEqual([(c["name"], c["category"]) for c in report["checks"]], expected)
+                    by_name = {c["name"]: c for c in report["checks"]}
+                    self.assertEqual(by_name[failure]["status"], "failed")
+                    for name in dependent - {failure}:
+                        self.assertEqual(by_name[name]["status"], "blocked")
+                        self.assertFalse(by_name[name]["passed"])
+                        self.assertIn(failure, by_name[name]["detail"])
 
     def test_bad_metadata_and_malformed_artifacts_fail_closed(self):
         for mutation, failure in [

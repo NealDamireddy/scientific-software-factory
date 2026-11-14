@@ -24,3 +24,7 @@ The trusted WO-8 caller supplies its approved compiled recipe, pinned context, p
 Run focused unittest cases against temporary repositories and real sandbox processes. Run the full unittest discovery suite including B12 optics, follow-up, replay and sandbox. Inspect a verified manifest and analysis output, and check syntax and whitespace.
 
 The implemented handoff exposes verify_release in factory/scientific_release.py and analyze_release in factory/scientific_analysis.py. The latter loads and digest-checks retained bytes, projects public inputs and validates result rows after sandbox execution. The versioned verifier fixtures are in factory/scientific_contract.py, with a separately written standalone candidate under tests/fixtures.
+
+## Round 3 remediation
+
+Extend the public-count challenges to isolate detector, timing, timestamp and replicate validation. Re-sign single-guard mutations of the fixture candidate and exercise the real promotion path for both experiment types. Check that all dependent outcomes remain visible when verification prerequisites fail, without running candidate bytes. Repeat full unittest discovery and explicit B12 replay before handing the open PR back for review.
