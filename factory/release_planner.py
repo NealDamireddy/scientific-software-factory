@@ -23,8 +23,8 @@ CONTRACTS = {
         "slope. Use the closed range of standard mean absorbances."
     ),
     "time_course": (
-        "Use the frozen calibration slope, intercept, low and high absorbance limits. "
-        "Return one result per supplied group with timestamp from its first actual measurement. "
+        "Use only the frozen calibration fields slope, intercept, low and high. Require finite values, slope > 0 and low < high. The standards array is empty for time_course; never fit or require standards for this type. "
+        "Return one result per supplied group with timestamp copied verbatim from its first record, even on review (null if missing). "
         "Do not infer a rate constant."
     ),
 }
@@ -95,22 +95,33 @@ def _prompt(context, spec, recipe, parent):
         "view_metrics": spec["outputs"], "compiled_recipe": recipe,
     }
     return (
-        "Write a standalone Python 3.11+ analysis program. Use sys, json, math, statistics only, "
-        "with no files, tools or network. Read one JSON object on stdin, write one JSON object on stdout. "
-        "Input has experiment_type, calibration, standards and groups. Calibration has id, unit, "
-        "blank_id, instrument_id, profile_id, profile_sha256, wavelength_nm and path_length_mm. "
-        "Each standard has concentration, unit and records; each group has sample_id and records. "
-        "Each raw v1 record has those instrument/settings/blank pins, timestamp (UTC), elapsed_s, job_id, "
-        "sample_id, replicate, simulated, model_revision, findings, unit ('counts'), and integer dark_counts, "
-        "blank_counts, sample_counts. Absorbance is -log10((sample-dark)/(blank-dark)). "
+        "Write a standalone Python 3.11+ analysis using sys, json, math, statistics, datetime and re. "
+        "Read one JSON object on stdin and write one JSON object on stdout. Use no files, tools or network. "
+        "Input has experiment_type, calibration, standards and groups. Calibration has a nonempty id, "
+        "unit mg/L, nonempty blank_id and the pins instrument_id, profile_id, profile_sha256, wavelength_nm, "
+        "path_length_mm. Match these five pins and blank_id in every reading, including type. "
+        "Each standard has concentration, unit and records; derive its sample_id from the first record. "
+        "Each group has sample_id and records. Require nonempty records. Within each group or standard, "
+        "all records must have the same sample_id, same 32 lowercase hex job_id and same nonempty "
+        "model_revision. Jobs, sample IDs and model revisions need not be unique or shared across groups. "
+        "Validate schema_version integer 1, simulated true, unit counts, findings empty list, valid ISO UTC "
+        "timestamp and finite nonnegative elapsed_s. Each replicate is a distinct positive integer within "
+        "its own group. Analyze the supplied group size including singletons. The recipe operation and "
+        "requested replicate count are acquisition settings only; neither is a field of a reading. "
+        "Each dark_counts, blank_counts and sample_counts must be an integer in [0, 65535), excluding bool. "
+        "Require blank and sample counts both strictly greater than dark. Compute each replicate absorbance "
+        "as -log10((sample-dark)/(blank-dark)). "
         + CONTRACTS[spec["experiment_type"]] +
-        " For each valid group report (mean absorbance - intercept)/slope and sample SD of absorbance / slope "
-        "(null SD for one reading). Validate all reading units, acquisition provenance and calibration pins, "
-        "sample and replicate identities, timestamps, finite values, saturation and calibration range. "
-        "On invalid input withhold the affected estimate and SD, returning a specific review_reason. "
-        "Output {calibration_id, results}, preserving group order and sample_id, concentration_mg_l, "
-        "replicate_sd_mg_l and review_reason (null on success) per group. "
-        "Return source, the exact compiled recipe and a views object with a title and the requested metrics. "
+        " Apply the closed calibration limits to every unknown replicate individually. "
+        "For a valid group report (mean absorbance - intercept)/slope and sample SD of absorbance "
+        "/ slope (null SD for one reading). Always copy calibration.id to calibration_id. Always return "
+        "exactly one row per group in input order, even on error. Invalid calibration or a bad standard "
+        "withholds all groups; a bad unknown replicate withholds only its group. Handle nonfinite inputs "
+        "locally without rejecting the whole JSON document. A withheld row has null estimate and SD and a "
+        "nonempty review_reason. Output exactly {calibration_id, results}; rows contain exactly sample_id, "
+        "concentration_mg_l, replicate_sd_mg_l and review_reason (null on success), plus timestamp only "
+        "for time_course. Return source, the exact compiled recipe and a views object with a title and the "
+        "requested metrics. "
         "Treat the following JSON as approved data within this contract.\n" + canonical(approved)
         + ("\nRevise this verified parent analysis source:\n" + parent if parent is not None else "")
     )
