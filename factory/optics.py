@@ -83,7 +83,7 @@ def absorbance(record):
     return -math.log10((sample - dark) / (blank - dark))
 
 
-def fit_calibration(recipe, seed, *, noise_counts=DEFAULT_NOISE_COUNTS):
+def fit_calibration(recipe, seed, *, noise_counts=DEFAULT_NOISE_COUNTS, checkpoint_standard=None):
     """Fit on known standards only. The ID covers raw records as well as fitted values."""
     validate_recipe(recipe)
     rng = random.Random(seed)
@@ -91,6 +91,8 @@ def fit_calibration(recipe, seed, *, noise_counts=DEFAULT_NOISE_COUNTS):
     for concentration in STANDARDS_MG_L:
         raw = acquire(recipe, concentration, rng.getrandbits(64), sample_id=f"std-{concentration}",
                       noise_counts=noise_counts)
+        if checkpoint_standard is not None:
+            checkpoint_standard(concentration, raw)
         mean = statistics.mean(absorbance(record) for record in raw)
         standards.append({"concentration_mg_l": concentration, "raw": raw, "mean_absorbance": mean})
     means = [standard["mean_absorbance"] for standard in standards]

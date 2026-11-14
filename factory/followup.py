@@ -30,6 +30,12 @@ def _payload(raw, calibration, sample_id, preparation, recipe):
                 or record.get("instrument_profile") != calibration["instrument_profile"]
                 or record.get("source") != "simulated instrument" or record.get("units") != "counts"):
             raise ValueError("Raw readings do not match the pinned sample or instrument")
+        if "blank_settings" in record:
+            reference = record["blank_settings"]
+            expected = {"instrument_profile": calibration["instrument_profile"],
+                        "wavelength_nm": recipe["wavelength_nm"], "path_length_mm": 10}
+            if not isinstance(reference, dict) or any(reference.get(k) != v for k, v in expected.items()):
+                raise ValueError("Incompatible blank settings for this instrument, wavelength or path length")
         settings = record.get("settings", {})
         if any(settings.get(key) != value for key, value in recipe.items()) or settings.get("path_length_mm") != 10:
             raise ValueError("Raw acquisition settings differ from the released recipe")
@@ -45,6 +51,7 @@ def _checked_execution(folder, payload, finding):
     preparation = payload["preparation"]
     factor = validate_preparation(sample, preparation) if preparation is not None else 1
     result, sandbox = execute(folder / "analysis.py", json.dumps(payload, allow_nan=False).encode())
+    json.dumps(result, allow_nan=False)
     if result.get("sample_id") != sample or result.get("calibration_id") != cal["id"]:
         raise ValueError("Assay sample or calibration identifier mismatch")
     if not finding["in_range"]:
@@ -67,7 +74,7 @@ def _checked_execution(folder, payload, finding):
     return result, sandbox
 
 
-def run_followup(original_folder, child_folder, parent_task, child_task):
+def _followup_context(original_folder, child_folder, parent_task, child_task):
     parent_recipe = _released_recipe(original_folder, parent_task)
     child_recipe = _released_recipe(child_folder, child_task)
     if parent_recipe != child_recipe or child_task.get("parent_revision") != parent_task["revision"]:
@@ -95,10 +102,40 @@ def run_followup(original_folder, child_folder, parent_task, child_task):
     if not initial_finding["above_range"]:
         raise ValueError("Original measurement does not support the approved follow-up")
 
-    original_label = read_json(original_folder / "private.json")["prepared_mg_l"]
-    raw = acquire(child_recipe, original_label / factor, secrets.randbits(63), sample_id=child_id)
-    payload, finding = _payload(raw, calibration, child_id, preparation, child_recipe)
-    result, sandbox = _checked_execution(child_folder, payload, finding)
+    return child_recipe, calibration, preparation, factor
+
+
+def run_followup(original_folder, child_folder, parent_task, child_task, *, attempt=None):
+    """Run the released protocol, checkpointing live readings before either consumer sees them."""
+    field = "preflight"
+    try:
+        recipe, calibration, preparation, factor = _followup_context(
+            original_folder, child_folder, parent_task, child_task)
+        if attempt is not None and (
+                attempt.record["calibration_id"] != calibration["id"]
+                or attempt.record["preparation"] != preparation
+                or attempt.record["revision"] != child_task["revision"]):
+            raise ValueError("Recorded acquisition differs from its pinned calibration, preparation or release")
+        field = "acquisition"
+        if attempt is not None and attempt.record["status"] == "acquired":
+            raw = attempt.record["raw"]
+        else:
+            label = read_json(original_folder / "private.json")["prepared_mg_l"]
+            raw = acquire(recipe, label / factor, secrets.randbits(63), sample_id=preparation["sample_id"])
+            if attempt is not None:
+                attempt.acquired(raw)
+                raw = attempt.record["raw"]
+        field = "raw"
+        payload, finding = _payload(raw, calibration, preparation["sample_id"], preparation, recipe)
+        field = "analysis"
+        if attempt is not None:
+            attempt.save("acquired", finding=finding)
+        result, sandbox = _checked_execution(child_folder, payload, finding)
+    except (ValueError, RuntimeError, KeyError, TypeError, ArithmeticError, AttributeError, OSError) as error:
+        if attempt is None:
+            raise
+        attempt.reject(field, error)
+        return None
     return {
         "raw": raw, "calibration_id": calibration["id"], "input": payload,
         "result": result, "finding": finding, "sandbox": sandbox,
