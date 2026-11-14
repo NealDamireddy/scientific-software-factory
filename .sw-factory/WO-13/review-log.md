@@ -55,3 +55,11 @@ Independent cross-review also found a persisted specification projection could c
 Verification passed with a clean npm install, production export including TypeScript, all 37 Playwright tests, 104 Python tests, offline regeneration of the final producer capture and the WO-8-to-WO-9 handoff for both experiments. A separate preview export displayed its configured source SHA and issued zero live workspace requests. Independent reviewers approved the lifecycle, evidence and preview changes.
 
 **Verdict** APPROVED for fixture-tested delivery.
+
+## Session-created specification digests
+
+On the previous production export, Chromium saved, approved and submitted standards of `0.000001` and `0.0000001`. Python independently hashed the complete downloaded specifications and rejected both recorded digests. The control at `0.125` matched.
+
+The fixture now hashes the same UTF-8 representation that the producer derives from the exported JSON. The regression reads the original download bytes in Python and checks the specification, approval and run references. Further vectors cover exponent thresholds, subnormals, integers, Unicode keys and control characters. An independent reviewer confirmed that all six captured producer records retain their digests. The production build and all 42 Playwright tests passed.
+
+**Verdict** APPROVED for the fixture correction. Live integration still depends on the authenticated workspace and evidence services.
