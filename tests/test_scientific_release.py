@@ -99,6 +99,11 @@ class ReleaseTests(unittest.TestCase):
         integer_recipe = handoff("concentration")["compiled_recipe"]
         _, _, payload, expected = next(cases("concentration", integer_recipe))
         compare(analyze_release(self.repository, release, payload), expected)
+        for group in payload["groups"] + payload["standards"]:
+            group["records"][0].update(wavelength_nm=650.0, path_length_mm=10.0)
+        compare(analyze_release(self.repository, release, payload), expected)
+        payload["calibration"].update(wavelength_nm=650.0, path_length_mm=10.0)
+        compare(analyze_release(self.repository, release, payload), expected)
         for invalid in (True, "3", 2.5, 0, 11):
             with self.subTest(replicates=invalid):
                 recipe["settings"]["replicates"] = invalid

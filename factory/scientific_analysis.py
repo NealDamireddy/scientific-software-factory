@@ -23,6 +23,12 @@ def project_fields(source, fields):
     result = {key: source[key] for key in fields if key in source}
     if any(type(value) not in (str, int, float, bool, type(None)) for value in result.values()):
         raise ValueError("Expected scalar public fields")
+    # The instrument schema permits integral JSON floats for optical settings.
+    # Canonicalize only the sandbox projection, preserving the acquired records.
+    for key in OPTICAL_SETTINGS:
+        value = result.get(key)
+        if type(value) is float and value.is_integer():
+            result[key] = int(value)
     return result
 
 
