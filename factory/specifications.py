@@ -46,6 +46,11 @@ def _recipe_pin(instrument, profile):
     return pin
 
 
+def _time_course_standards_issue(spec):
+    if spec["experiment_type"] == "time_course" and spec["standards"] != []:
+        return "Remove the standards to use the frozen time-course calibration."
+
+
 def _check_samples(spec, errors):
     samples = spec["sample_ids"]
     if (not isinstance(samples, list) or not samples or not all(map(_identifier, samples))
@@ -53,6 +58,9 @@ def _check_samples(spec, errors):
         errors["sample_ids"] = "Select distinct opaque sample identifiers."
         samples = []
     standards = spec["standards"]
+    if issue := _time_course_standards_issue(spec):
+        errors["standards"] = issue
+        return
     if not isinstance(standards, list):
         errors["standards"] = "Supply a list of known standards."
         return
@@ -199,6 +207,12 @@ class ExperimentSpecificationService:
             raise ValueError(f"Edit one or more scientific fields from {sorted(_EDITABLE)}.")
         spec = self.get(sha)
         del spec["sha256"], spec["status"]
+        kind = changes.get("experiment_type", spec["experiment_type"])
+        if kind != spec["experiment_type"]:
+            if kind == "time_course":
+                changes.setdefault("standards", [])
+            elif kind == "concentration":
+                changes.setdefault("schedule", None)
         spec.update(changes)
         if "experiment_type" in changes:
             spec["verification_contract"] = f"{spec['experiment_type']}@1"
@@ -258,6 +272,9 @@ class ExperimentSpecificationService:
                                 FROM specification_approvals WHERE digest=?""", (sha,)).fetchone()
         if row is None:
             raise ValueError("Specification revision requires approval")
+        # Older approvals can predate the empty-standards time-course contract check.
+        if issue := _time_course_standards_issue(spec):
+            raise ValueError(f"standards: {issue}")
         if issue := _calibration_issue(spec, self.path):
             raise ValueError(f"calibration: {issue}")
         return spec, {"actor": row[0], "approved_at": row[1], "confirmed_fields": json.loads(row[2]),

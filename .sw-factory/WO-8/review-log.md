@@ -59,3 +59,9 @@ The candidate includes the live-worker contract correction from PR #9 and the in
 At implementation tree 82a5287, all 89 Python tests passed. The fixture-worker handoff against WO-9 at 1c2eb04 passed 53 concentration checks and 49 time-course checks. Both sample-only edits reused verified source with zero worker calls. The latest repair head 664a241 has the same tested tree. The offline B12 replay reproduced the follow-up estimate of 32.006829774391655 mg/L.
 
 Verdict: APPROVED
+
+## Final review of experiment-type edits
+
+At PR #6 head `21e2a8f`, both required checks passed, including 89 Python tests and three browser tests. Independent review reproduced a concentration draft converted to a time course that submitted three standards alongside the unknown. The time-course worker contract expects an empty standards array and a frozen calibration. PR #6 merged at `ffd582a` while the correction was in progress.
+
+The follow-up clears inherited standards on conversion to time course and an inherited schedule on conversion to concentration. Explicit incompatible values remain visible for correction. A persisted approval for an invalid time course cannot authorize a new acquisition. The loopback regression now converts the draft before submission and checks that exactly the unknown's three readings use the frozen reference. The 21 specification, acquisition and planner tests passed locally.
