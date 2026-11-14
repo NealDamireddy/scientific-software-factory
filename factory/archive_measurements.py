@@ -114,6 +114,7 @@ def _check_finding(saved, observed):
 def _completed_attempt(task, measurement, cal, sample, prep, recipe):
     # Packages produced before acquisition journaling have no attempt_id.
     if "acquisition_attempts" not in task and "attempt_id" not in measurement:
+        require("acquisition_attempt_id" not in task, "acquisition_attempt_id has no acquisition journal")
         allowed = (None, "collected") if prep is None else (None,)
         require(task.get("acquisition_status") in allowed, "acquisition_status lacks a completed attempt")
         return
@@ -124,6 +125,8 @@ def _completed_attempt(task, measurement, cal, sample, prep, recipe):
             "acquisition_attempts status must be completed")
     identifier = text_field(current, "id")
     require(measurement["attempt_id"] == identifier, "attempt_id differs from completed acquisition")
+    require(task.get("acquisition_attempt_id", identifier) == identifier,
+            "acquisition_attempt_id differs from completed acquisition")
     seen = set()
     previous_id = None
     for index, attempt in enumerate(attempts):

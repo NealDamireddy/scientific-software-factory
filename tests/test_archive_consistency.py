@@ -283,6 +283,17 @@ class ArchiveConsistencyTests(unittest.TestCase):
                     diagnostic = "attempt_id" if "ID" in mutation else "raw"
                     assert_archive_rejected(self, package, diagnostic)
 
+    def test_task_attempt_selector_must_identify_a_completed_journal_entry(self):
+        for role in ("direct", "followup"):
+            for journaled in (False, True):
+                for selector in ("f" * 32, None, False, {"id": "f" * 32}):
+                    with self.subTest(role=role, journaled=journaled, selector=selector):
+                        package = deepcopy(self.bundle)
+                        if journaled:
+                            add_completed_attempt(package, role)
+                        package[role]["acquisition_attempt_id"] = selector
+                        assert_archive_rejected(self, package, "acquisition_attempt_id")
+
     def test_direct_attempt_standard_checkpoints_match_frozen_calibration(self):
         attempt = add_completed_attempt(self.bundle, "direct")
         attempt["calibration_standards"] = [
@@ -379,6 +390,7 @@ class ArchiveConsistencyTests(unittest.TestCase):
         previous["raw"][0]["sample_counts"] = 65535
         current["retry_of"] = previous["id"]
         self.child["acquisition_attempts"].insert(0, previous)
+        self.child["acquisition_attempt_id"] = current["id"]
         with tempfile.TemporaryDirectory() as temp:
             lab = Lab(Path(temp) / "live", archive=self.bundle, allow_generation=False)
             self.addCleanup(lab.close)
@@ -390,6 +402,10 @@ class ArchiveConsistencyTests(unittest.TestCase):
             self.assertEqual(child["measurement"]["raw"], current["raw"])
             self.assertNotEqual(previous["raw"], child["measurement"]["raw"])
 
+        self.assertIsNotNone(self.child["score"])
+        self.child["acquisition_attempt_id"] = previous["id"]
+        self.reject("acquisition_attempt_id")
+        self.child["acquisition_attempt_id"] = current["id"]
         previous["finished_at"] = current["finished_at"]
         self.reject("started_at|finished_at")
 
@@ -495,9 +511,27 @@ class ArchiveConsistencyTests(unittest.TestCase):
             self.assertEqual(saved["measurement"]["raw"], self.measurement["raw"])
 
     def test_valid_history_is_inspectable_when_replay_is_unavailable(self):
+        self.assert_inspectable(HISTORICAL_RUN)
+
+    def test_journal_with_or_without_task_attempt_selector_is_inspectable(self):
+        for role in ("direct", "followup"):
+            add_completed_attempt(self.bundle, role)
+        with tempfile.TemporaryDirectory() as temp:
+            path = Path(temp) / "journaled.json"
+            for selected in (False, True):
+                with self.subTest(selected=selected):
+                    if selected:
+                        for role in ("direct", "followup"):
+                            task = self.bundle[role]
+                            task["acquisition_attempt_id"] = task["acquisition_attempts"][-1]["id"]
+                    path.write_text(json.dumps(self.bundle))
+                    self.assert_inspectable(path)
+
+    def assert_inspectable(self, path):
+        self.assertEqual(validate_archive(self.bundle), self.bundle)
         with patch.object(demo, "check_sandbox", side_effect=RuntimeError("replay unavailable")), \
                 patch("factory.replay_bundle.replay_package") as replay:
-            checks, archive = demo.readiness(0, HISTORICAL_RUN, archive_only=True)
+            checks, archive = demo.readiness(0, path, archive_only=True)
         self.assertFalse([detail for status, _, detail in checks if status == "FAIL"], checks)
         self.assertIn(("WARN", "Offline sandbox", "replay unavailable"), checks)
         self.assertIn(("WARN", "Archive replay"), [(s, n) for s, n, _ in checks])
@@ -530,6 +564,8 @@ class ArchiveConsistencyTests(unittest.TestCase):
                         self.assertEqual(task["mode"], "previous completed run")
                         self.assertEqual(task["result"], original["result"])
                         self.assertEqual(task["revision"], original["revision"])
+                        if "acquisition_attempt_id" in original:
+                            self.assertEqual(task["acquisition_attempt_id"], original["acquisition_attempt_id"])
                         self.assertEqual(get("/" + original["id"] + "/source"),
                                          self.bundle["sources"][original["id"]])
                     self.assertEqual(get("/" + self.child["id"] + "/evidence"), self.bundle)

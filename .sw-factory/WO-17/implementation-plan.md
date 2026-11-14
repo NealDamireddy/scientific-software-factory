@@ -13,3 +13,7 @@ The coordinated interfaces add optional WO-16 attempt journals and WO-19 source 
 ### Changes requested on 7dae053
 
 Reproduce the independent review's admissions through archive-only readiness and HTTP. Bind direct result fields and any declared follow-up sample to the retained preparation. Check timezone-aware measurement and journal timestamps against the producer's event order, including historical archives without journals. Add mutation and positive controls for these boundaries, repeat independent review, run focused tests and isolated replay, and verify the updated PR head in CI.
+
+### Selected acquisition attempt
+
+The pre-merge independent review will recheck direct result lineage, optional follow-up sample identity and recorded chronology. For a completed archive, bind the task's selected acquisition attempt to its measurement and the successful journal entry whenever the task declares a selector. Retain compatibility with older evidence that omits it. Verify rejection in both admission paths, obtain independent review, and keep the WO-16 HTTP retry acceptance case on its owner branch.
