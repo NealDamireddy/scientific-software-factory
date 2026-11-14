@@ -42,3 +42,32 @@ class TaskTests(unittest.TestCase):
             with patch("factory.b12_build.invoke_worker", return_value=(candidate, {})), self.assertRaises(ValueError):
                 b12_build.build("B12", self.store)
             self.assertFalse((self.store/"analysis.py").exists())
+
+    def test_approval_reuses_child_and_retry_preserves_preparation(self):
+        parent_id = "f" * 32
+        parent = self.store/parent_id
+        parent.mkdir()
+        for name in b12_build.FILES:
+            (parent/name).write_text("example")
+        from factory.lab import save
+        save(parent/"task.json", dict(id=parent_id, created="2026-11-01", status="verified",
+                                      revision=b12_build.revision(parent),
+                                      finding={"above_range": True,"absorbances":[0.2]*3}))
+        save(parent/"acquisition.json", {"calibration":{"high":0.15}})
+        with patch.object(self.lab.pool,"submit") as enqueue:
+            child = self.lab.approve(parent_id)
+            self.assertEqual(self.lab.approve(parent_id)["id"], child["id"])
+            enqueue.assert_called_once()
+        data = dict(sample_id="D",parent_id="U-01",sample_ml=1,final_ml=2,unit="mL")
+        with self.assertRaises(ValueError):
+            self.lab.prepare(child["id"], {**data,"final_ml":4})
+        self.lab.prepare(child["id"], data)
+        recorded = self.lab.task(child["id"])["preparation"]
+        self.assertEqual(recorded["sample_id"],"D")
+        self.assertEqual(self.lab.prepare(child["id"],data)["preparation"],recorded)
+        with self.assertRaisesRegex(ValueError,"already recorded"):
+            self.lab.prepare(child["id"], {**data,"sample_id":"another"})
+        self.lab.update(child["id"],status="failed")
+        with patch.object(self.lab.pool,"submit") as retry:
+            self.assertEqual(self.lab.retry(child["id"])["preparation"],recorded)
+            retry.assert_called_once()

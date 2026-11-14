@@ -30,6 +30,9 @@ dl{margin:0}.ids{display:grid;grid-template-columns:max-content minmax(0,1fr);ga
 details{margin-top:8px}summary{color:var(--leaf);font-weight:620;padding:3px 0}pre{max-height:320px;overflow:auto;background:#19342d;color:#e7f1db;border-radius:5px;padding:12px;font-size:12px;line-height:1.45;tab-size:4}
 .checks{padding:0;margin:0;list-style:none}.checks li{padding:5px 0;font-size:13px;overflow-wrap:anywhere}.checks li+li{border-top:1px solid #e9ece3}.checks summary{display:flex;justify-content:space-between;align-items:center;gap:8px;color:inherit;list-style:revert}.checks details{margin:0}
 #selectedBrief{white-space:pre-wrap;overflow-wrap:anywhere}.row{display:flex;gap:9px;align-items:center;flex-wrap:wrap}#sourceFiles{margin-top:8px}
+.proposal{background:#edf2e6;border:1px solid #c8d5bc;border-radius:8px;padding:14px;margin-top:14px}.proposal>p{margin:7px 0}.proposal dt{color:#3c5546}.proposal dd{font-family:inherit}.proposal .ids{margin-top:12px}.proposal .btn{margin-top:5px}
+.tracks{display:grid;grid-template-columns:1fr 1fr;gap:13px}.track{min-width:0;border-top:3px solid #668c61;padding:9px 0}.track+.track{border-color:#c38158}.track h3{margin:4px 0 6px}.volumes{display:flex;gap:8px;margin:7px 0}.volumes label{display:block;min-width:0;flex:1;font-size:12px}.volumes input{display:block;width:100%;min-width:0;margin-top:4px;background:white;border:1px solid #9fae9c;border-radius:5px;padding:6px 8px}.track .btn{font-size:13px}.track .ids{grid-template-columns:1fr;gap:1px}.track .ids dd{margin:0 0 5px}.track .small,.proposal p{overflow-wrap:anywhere}
+@media(max-width:550px){.tracks{grid-template-columns:1fr}.proposal .ids{grid-template-columns:1fr}.proposal .ids dd{margin-bottom:4px}}
 @media(max-width:730px){.columns{grid-template-columns:1fr}.history{max-height:180px}main{padding-top:20px}.panel+.panel{margin-top:10px}.heading{margin-bottom:14px}}
 </style>
 </head>
@@ -61,6 +64,21 @@ details{margin-top:8px}summary{color:var(--leaf);font-weight:620;padding:3px 0}p
 <div class="current-line"><p class="kicker" id="mode"></p><span class="pill" id="status"></span></div><h2 id="releaseTitle"></h2><p id="selectedBrief" class="small"></p>
 <dl class="ids" id="ids"></dl><p id="taskError" class="msg err" role="alert"></p>
 <section id="resultGroup" class="group" hidden><h3>Mystery vial</h3><dl class="metrics" id="metrics"></dl><p class="note" id="resultNote"></p><details><summary>Full analysis output</summary><pre id="rawResult"></pre></details></section>
+<section id="proposalGroup" class="proposal" hidden aria-labelledby="proposalTitle">
+<span class="kicker">Evaluation agent · PI decision</span><h3 id="proposalTitle">Proposed dilution</h3>
+<p id="proposalReason" class="small"></p><p id="proposalVolumes" class="small"></p><details id="proposalEvidence"><summary>Inspect the finding</summary><dl id="proposalRefs" class="ids"></dl></details>
+<p class="small"><strong>New app requirement</strong> · <span id="proposalRequirement"></span></p><button type="button" id="approve" class="btn">Approve follow-up and task</button>
+<p id="approvalError" class="msg err" role="alert"></p></section>
+<section id="followupGroup" class="group" hidden aria-label="Approved follow-up">
+<div class="tracks"><div class="track"><span class="kicker">Researcher</span><h3>Prepare the follow-up vial</h3>
+<p class="small" id="prepInstruction">U-01 → U-01-D1 · equal parts sample and solvent</p>
+<form id="prepForm"><div class="volumes"><label>Sample (mL)<input id="sampleVolume" type="number" step="any" min="0" value="1" required></label>
+<label>Final volume (mL)<input id="finalVolume" type="number" step="any" min="0" value="2" required></label></div><button class="btn light" id="prepare" type="submit">Record preparation</button></form>
+<dl class="ids" id="prepRecord"></dl><p id="prepareError" class="msg err" role="alert"></p></div>
+<div class="track"><span class="kicker">EVOLVE</span><h3>Build prepared-sample support</h3><p id="childBuild" class="small"></p>
+<button id="inspectDiff" type="button" class="btn light" hidden>Inspect source changes</button>
+<button id="retryChild" type="button" class="btn light" hidden>Retry failed build</button><p id="retryError" class="msg err" role="alert"></p></div></div></section>
+<section id="parentCheckGroup" class="group" hidden><h3>v1 on the follow-up requirements</h3><ul class="checks" id="parentChecks"></ul></section>
 <section id="checkGroup" class="group" hidden><h3>Independent checks</h3><ul class="checks" id="checks"></ul></section>
 <div class="group"><details id="contextGroup" hidden><summary>Lab and project context</summary><pre id="context"></pre></details><details id="workerGroup" hidden><summary>Coding worker receipt</summary><pre id="worker"></pre></details>
 <details id="sourceGroup" hidden><summary>Generated source and recipe</summary><div class="row" id="sourceFiles"><label for="sourceSelect">Artifact</label><select id="sourceSelect"></select><button id="retrySource" class="btn light" type="button" hidden>Retry</button></div><p class="msg" id="sourceMessage" role="status"></p><pre id="sourceText" tabindex="0"></pre></details></div>
@@ -80,6 +98,8 @@ let sourceToken = 0;
 let sourceCache = null;
 let sourceLoading = false;
 let activePoll = 0;
+let mutation = null;
+let preferDiff = false;
 const activeKey = 'evolve.activeTask';
 function remember(id) {
   try { if (id) sessionStorage.setItem(activeKey,id); else sessionStorage.removeItem(activeKey); } catch {}
@@ -132,22 +152,60 @@ function renderActive(task) {
 }
 function updateSubmit() {
   const active=records.get(activeId);
-  el('generate').disabled=Boolean(active&&!terminal(active.status));
+  el('generate').disabled=Boolean(mutation || (active&&!terminal(active.status)));
 }
-function renderChecks(checks) {
-  el('checks').replaceChildren();
-  show('checkGroup',Array.isArray(checks)&&checks.length>0);
+function renderChecks(checks,listId='checks',groupId='checkGroup') {
+  el(listId).replaceChildren();
+  show(groupId,Array.isArray(checks)&&checks.length>0);
   for(const check of checks||[]) {
     const item=document.createElement('li'),details=document.createElement('details'),summary=document.createElement('summary');
     const name=document.createElement('span'),state=document.createElement('span'),pre=document.createElement('pre');
     name.textContent=check.name||'Reference check';state.className='pill'+(check.pass?'':' fail');state.textContent=check.pass?'Pass':'Fail';
-    pre.textContent=print(check);summary.append(name,state);details.append(summary,pre);item.append(details);el('checks').append(item);
+    pre.textContent=print(check);summary.append(name,state);details.append(summary,pre);item.append(details);el(listId).append(item);
   }
+}
+function childOf(parent) {
+  if(parent.child_id&&records.has(parent.child_id))return records.get(parent.child_id);
+  return [...records.values()].find(task=>task.parent_id===parent.id);
+}
+function dataRows(id,values) {
+  const list=el(id);list.replaceChildren();
+  for(const [name,value] of values)if(value!=null)identify(list,name,print(value));
+}
+function renderFollowup(task) {
+  const proposal=task.proposal;
+  const isChild=Boolean(task.parent_revision);
+  const child=childOf(task);
+  show('proposalGroup',Boolean(proposal)&&!isChild&&task.status==='verified');
+  if(proposal){
+    write('proposalReason',proposal.reason);
+    write('proposalVolumes',proposal.volumes);
+    write('proposalRequirement',proposal.requirement);
+    dataRows('proposalRefs',[
+      ['Source task',task.id],['Calibration',task.result?.calibration_id],['Upper standard',proposal.upper_standard],
+      ['Vial readings',proposal.readings],['Protocol',proposal.protocol]
+    ]);
+    write('approve',child||task.child_id?'Open approved follow-up':'Approve follow-up and task');
+    el('approve').disabled=Boolean(mutation);
+  }
+  show('followupGroup',isChild);
+  renderChecks(task.parent_checks,'parentChecks','parentCheckGroup');
+  if(!isChild)return;
+  const prep=task.preparation;
+  show('prepForm',!prep);
+  el('prepare').disabled=Boolean(mutation);
+  dataRows('prepRecord',prep?[
+    ['Parent vial',prep.parent_id],['Prepared vial',prep.sample_id],['Sample volume',prep.sample_ml+' '+prep.unit],
+    ['Final volume',prep.final_ml+' '+prep.unit],['Dilution factor',prep.final_ml/prep.sample_ml]
+  ]:[]);
+  const buildNotes={queued:'The follow-up is queued for the local worker.',generating:'The worker is updating the parent app.',verifying:'The factory is running independent checks.',verified:'The factory verified and released this revision.',failed:'The revision failed. The previous release remains available.'};
+  write('childBuild',buildNotes[task.status]||task.status);
+  show('inspectDiff',Boolean(task.revision));show('retryChild',task.status==='failed');el('retryChild').disabled=Boolean(mutation);
 }
 function renderDetail(task) {
   show('initial',false);show('detail',true);write('mode',fresh?'Fresh generation':'Previous completed run');badge(el('status'),task.status);
   write('releaseTitle',task.views?.title||'B12 assay');write('selectedBrief',task.brief);
-  const ids=el('ids');ids.replaceChildren();identify(ids,'Task',task.id);identify(ids,'Source revision',task.revision);identify(ids,'Parent revision',task.parent_revision);
+  const ids=el('ids');ids.replaceChildren();identify(ids,'Task',task.id);identify(ids,'Acquisition',task.acquisition_status);identify(ids,'Source revision',task.revision);identify(ids,'Parent revision',task.parent_revision);
   write('taskError',task.error);
   const result=task.result;show('resultGroup',result!=null);
   el('metrics').replaceChildren();
@@ -156,14 +214,15 @@ function renderDetail(task) {
     for(const key of keys) if(typeof key==='string'&&Object.hasOwn(result,key))metric(el('metrics'),key,result[key]);
     write('rawResult',result);write('resultNote',result.status==='review'?'The reading requires review before an original-vial concentration can be reported.':'');
   }
-  renderChecks(task.checks);
+  renderFollowup(task);renderChecks(task.checks);
   for(const key of ['worker','context']){show(key+'Group',task[key]!=null);write(key,task[key]);}
   show('sourceGroup',Boolean(task.revision));
   if(el('sourceGroup').open&&!el('sourceGroup').hidden)loadSource();
 }
 function select(task,isFresh) {
-  selectedId=task.id;fresh=isFresh;sourceToken++;sourceCache=null;sourceLoading=false;el('sourceGroup').open=false;
-  for(const id of ['sourceSelect','sourceText','sourceMessage'])el(id).replaceChildren();
+  selectedId=task.id;fresh=isFresh;sourceToken++;sourceCache=null;sourceLoading=false;preferDiff=false;el('sourceGroup').open=false;
+  for(const id of ['sourceSelect','sourceText','sourceMessage','approvalError','prepareError','retryError'])el(id).replaceChildren();
+  el('prepForm').reset();el('proposalEvidence').open=false;
   show('retrySource',false);renderDetail(task);renderHistory();
   if(activeId&&records.has(activeId))renderActive(records.get(activeId));
 }
@@ -181,13 +240,63 @@ async function loadSource() {
     if(payload.diff)sourceCache['Changes from parent']=payload.diff;
     const keys=Object.keys(sourceCache);const select=el('sourceSelect');select.replaceChildren();
     for(const key of keys)select.add(new Option(key,key));
+    if(preferDiff&&payload.diff)select.value='Changes from parent';
     write('sourceMessage',keys.length?'':'No source artifacts were returned.');renderSource();
   }catch(e){if(token===sourceToken){write('sourceMessage',e.message);show('retrySource',true);}}
   finally{if(token===sourceToken)sourceLoading=false;}
 }
 el('sourceGroup').addEventListener('toggle',()=>{if(el('sourceGroup').open)loadSource();});
 el('sourceSelect').onchange=renderSource;el('retrySource').onclick=loadSource;
+el('inspectDiff').onclick=async()=>{
+  const token=sourceToken;
+  preferDiff=true;el('sourceGroup').open=true;await loadSource();
+  if(sourceToken!==token)return;
+  if(sourceCache&&Object.hasOwn(sourceCache,'Changes from parent'))el('sourceSelect').value='Changes from parent';
+  renderSource();el('sourceSelect').focus();
+};
 el('inspectActive').onclick=()=>{if(activeId&&records.has(activeId))select(records.get(activeId),true);};
+function activate(task,fromNewRequest) {
+  records.set(task.id,task);
+  if(terminal(task.status)&&!fromNewRequest){select(task,false);return;}
+  activeId=task.id;remember(task.id);select(task,true);watch(task.id);
+}
+function post(path,payload) {
+  return api(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+}
+async function followupAction(action,payload,errorId) {
+  if(mutation||!selectedId)return;
+  const id=selectedId;
+  mutation=action;write(errorId,'');renderFollowup(records.get(id));updateSubmit();
+  try {
+    const task=await post('/api/tasks/'+encodeURIComponent(id)+'/'+action,payload);
+    records.set(task.id,task);
+    if(action==='prepare'){
+      if(selectedId===id)renderDetail(task);
+    }else if(selectedId===id)activate(task,true);
+    else{
+      activeId=task.id;remember(task.id);renderActive(task);watch(task.id);
+    }
+    renderHistory();
+  }catch(e){if(selectedId===id)write(errorId,e.message);}
+  finally{
+    mutation=null;updateSubmit();
+    if(selectedId&&records.has(selectedId))renderFollowup(records.get(selectedId));
+  }
+}
+el('approve').onclick=()=>{
+  const child=childOf(records.get(selectedId));
+  if(child){activate(child,false);return;}
+  followupAction('approve',{},'approvalError');
+};
+el('retryChild').onclick=()=>followupAction('retry',{},'retryError');
+el('prepForm').onsubmit=event=>{
+  event.preventDefault();
+  const sampleMl=el('sampleVolume').valueAsNumber,finalMl=el('finalVolume').valueAsNumber;
+  if(!Number.isFinite(sampleMl)||!Number.isFinite(finalMl)||sampleMl<=0||finalMl<=sampleMl){
+    write('prepareError','Enter positive volumes with a final volume greater than the sample volume.');return;
+  }
+  followupAction('prepare',{sample_ml:sampleMl,final_ml:finalMl,unit:'mL',parent_id:'U-01',sample_id:'U-01-D1'},'prepareError');
+};
 async function watch(id) {
   const generation=++activePoll;clearTimeout(pollTimer);
   const tick=async()=>{

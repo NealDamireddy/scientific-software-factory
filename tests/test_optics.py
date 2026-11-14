@@ -77,7 +77,23 @@ print(json.dumps({'status': 'ok' if valid else 'review', 'sample_id': s['sample_
             source = Path(temp) / 'analysis.py'
             source.write_text(candidate)
             self.assertTrue(all(check['pass'] for check in optics.verify_candidate(source)))
+            prepared = {c['name']: c['pass'] for c in optics.verify_candidate(source, prepared=True)}
+            self.assertTrue(prepared['direct-mean-and-intercept'])
+            self.assertFalse(prepared['prepared-2x'])
+            self.assertFalse(prepared['prepared-4x'])
             source.write_text(candidate.replace("mean(a)", "a[0]"))
             results = {check['name']: check['pass'] for check in optics.verify_candidate(source)}
             self.assertFalse(results['direct-mean-and-intercept'])
             self.assertTrue(results['above-calibration'])
+
+    def test_preparation_record_and_actual_factor(self):
+        prep = {"id": "P-1", "parent_id": "U-1", "sample_ml": 0.25, "final_ml": 1, "unit": "mL"}
+        self.assertEqual(optics.validate_preparation("D-1", prep), 4)
+        for key, value in (("id", ""), ("parent_id", None), ("parent_id", "D-1"),
+                           ("sample_ml", True), ("sample_ml", float("nan")), ("sample_ml", 0),
+                           ("final_ml", float("inf")), ("final_ml", 0.25),
+                           ("final_ml", -1), ("unit", "L")):
+            with self.subTest(key=key, value=value), self.assertRaisesRegex(ValueError, key):
+                optics.validate_preparation("D-1", {**prep, key: value})
+        with self.assertRaisesRegex(ValueError, "factor"):
+            optics.validate_preparation("D-1", {**prep, "final_ml": 1e308, "sample_ml": 1e-308})

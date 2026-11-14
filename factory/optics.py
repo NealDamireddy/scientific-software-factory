@@ -27,7 +27,7 @@ MODEL_SLOPE = 8700 / (1000 * 1355.37)
 
 
 def _finite_number(value):
-    return type(value) in (int, float) and math.isfinite(value)
+    return type(value) in (int, float) and -math.inf < value < math.inf
 
 
 def validate_recipe(recipe):
@@ -123,6 +123,32 @@ def assess(raw, cal):
     }
 
 
+def validate_preparation(sample_id, prep):
+    """Check the actual, linked preparation before acquisition or correction."""
+    if not isinstance(prep, dict):
+        raise ValueError("preparation record required")
+    identifiers = {"sample_id": sample_id, "parent_id": prep.get("parent_id"), "id": prep.get("id")}
+    for field, identifier in identifiers.items():
+        if not isinstance(identifier, str) or not identifier.strip() or identifier != identifier.strip():
+            raise ValueError(f"Invalid {field}")
+    if prep["parent_id"] == sample_id:
+        raise ValueError("parent_id must differ from sample_id")
+    if prep.get("unit") != "mL":
+        raise ValueError("unit must be mL")
+    for field in ("sample_ml", "final_ml"):
+        if not _finite_number(prep.get(field)) or prep[field] <= 0:
+            raise ValueError(f"{field} must be positive and finite")
+    if prep["final_ml"] <= prep["sample_ml"]:
+        raise ValueError("final_ml must exceed sample_ml")
+    try:
+        factor = prep["final_ml"] / prep["sample_ml"]
+    except OverflowError as error:
+        raise ValueError("Dilution factor must be finite") from error
+    if not math.isfinite(factor):
+        raise ValueError("Dilution factor must be finite")
+    return factor
+
+
 def _check_case(source, name, sample, expected):
     try:
         actual, _ = execute(source, json.dumps(sample, allow_nan=False).encode())
@@ -146,8 +172,6 @@ def _check_case(source, name, sample, expected):
 
 def verify_candidate(source, prepared=False):
     """Exercise unknowns spanning the range with a nonzero intercept in isolated processes."""
-    if prepared:
-        raise ValueError("Prepared-sample verification has not been registered")
     cal = {"id": "ref-cal-v1", "slope": 0.01, "intercept": 0.02, "low": 0.05, "high": 0.26}
     fixtures = (
         ("direct-mean-and-intercept", (0.10, 0.11, 0.21), 12.0),
@@ -163,5 +187,39 @@ def verify_candidate(source, prepared=False):
             "sample_id": name, "calibration_id": cal["id"],
             "status": "review" if concentration is None else "ok", "concentration_mg_l": concentration,
         }
+        checks.append(_check_case(source, name, sample, expected))
+    if prepared:
+        checks.extend(_verify_prepared(source, cal))
+    return checks
+
+
+def _verify_prepared(source, cal):
+    twofold = {"id": "P2", "parent_id": "R2", "sample_ml": 1, "final_ml": 2, "unit": "mL"}
+    fourfold = {"id": "P4", "parent_id": "R4", "sample_ml": 0.5, "final_ml": 2, "unit": "mL"}
+    fixtures = [
+        ("prepared-2x", "D2", (0.09, 0.10, 0.14), twofold, {
+            "status": "ok", "concentration_mg_l": 18.0, "diluted_mg_l": 9.0,
+            "factor": 2.0, "parent_id": "R2", "preparation_id": "P2",
+        }),
+        ("prepared-4x", "D4", (0.07, 0.08, 0.12), fourfold, {
+            "status": "ok", "concentration_mg_l": 28.0, "diluted_mg_l": 7.0,
+            "factor": 4.0, "parent_id": "R4", "preparation_id": "P4",
+        }),
+    ]
+    review = {"status": "review", "concentration_mg_l": None}
+    # A dilution does not guarantee that its new readings will be in range.
+    fixtures.append(("prepared-one-outside", "D2", (0.21, 0.21, 0.27), twofold, review))
+    for name, changes in (
+        ("missing-parent", {"parent_id": None}), ("self-parent", {"parent_id": "D2"}),
+        ("missing-preparation-id", {"id": ""}), ("invalid-unit", {"unit": "L"}),
+        ("zero-sample", {"sample_ml": 0}), ("invalid-final-volume", {"final_ml": -1}),
+        ("equal-volumes", {"final_ml": 1}), ("invalid-volume-type", {"sample_ml": True}),
+    ):
+        fixtures.append((f"prepared-{name}", "D2", (0.09, 0.10, 0.14), {**twofold, **changes}, review))
+
+    checks = []
+    for name, child, values, preparation, output in fixtures:
+        sample = {"sample_id": child, "absorbances": values, "calibration": cal, "preparation": preparation}
+        expected = {"sample_id": child, "calibration_id": cal["id"], **output}
         checks.append(_check_case(source, name, sample, expected))
     return checks

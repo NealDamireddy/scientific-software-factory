@@ -2,6 +2,7 @@
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
+import difflib
 import fcntl
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
@@ -15,7 +16,7 @@ import uuid
 
 from . import b12_build
 from .context import ROOT, read_json
-from .optics import PROFILE, RECIPE, acquire, assess, fit_calibration, validate_recipe, verify_candidate
+from .optics import PROFILE, RECIPE, validate_preparation, acquire, assess, fit_calibration, validate_recipe, verify_candidate
 from .sandbox import execute
 
 
@@ -42,7 +43,7 @@ class Lab:
         self.lease.close()
 
     def history(self):
-        return sorted((read_json(p) for p in self.store.glob("*/task.json")),
+        return sorted((self.task(p.parent.name) for p in self.store.glob("*/task.json")),
                       key=lambda r: r["created"], reverse=True)
 
     def path(self, task_id):
@@ -54,11 +55,20 @@ class Lab:
         return folder
 
     def task(self, task_id):
-        return read_json(self.path(task_id) / "task.json")
+        task = read_json(self.path(task_id) / "task.json")
+        if task["status"] == "verified" and not task.get("parent_id") and task.get("finding", {}).get("above_range"):
+            data = read_json(self.path(task_id)/"acquisition.json")
+            task["proposal"] = {
+                "reason": "All three readings exceed the strongest standard. The protocol permits a twofold dilution followed by three fresh readings.",
+                "protocol": PROFILE["protocol"], "upper_standard": data["calibration"]["high"],
+                "readings": task["finding"]["absorbances"], "volumes": "One volume sample plus one volume matching solvent",
+                "requirement": "Trace a prepared vial to its parent and use the actual volumes to recover its original concentration.",
+            }
+        return task
 
     def update(self, task_id, **fields):
         with self.lock:
-            task = {**self.task(task_id), **fields}
+            task = {**read_json(self.path(task_id) / "task.json"), **fields}
             save(self.path(task_id) / "task.json", task)
             return task
 
@@ -68,15 +78,80 @@ class Lab:
         for wavelength in re.findall(r"(\d+(?:\.\d+)?)\s*(?:nm|nanomet(?:er|re)s?)\b", brief, re.I):
             if float(wavelength) != RECIPE["wavelength_nm"]:
                 raise ValueError("The simulated instrument implements only the 550 nm channel")
+        return self.enqueue(brief)
+
+    def enqueue(self, brief, **fields):
         with self.lock:
             task_id = uuid.uuid4().hex
             folder = self.store / task_id
             folder.mkdir(mode=0o700)
             task = dict(id=task_id, brief=brief.strip(), status="queued", context=PROFILE,
-                        created=datetime.now(timezone.utc).isoformat(), mode="fresh generation")
+                        created=datetime.now(timezone.utc).isoformat(), mode="fresh generation", **fields)
             save(folder / "task.json", task)
             self.pool.submit(self.generate, task_id)
             return task
+
+    def approve(self, task_id):
+        with self.lock:
+            original = self.task(task_id)
+            if not original.get("proposal") or original.get("parent_id"):
+                raise ValueError("A verified direct above-range run is required")
+            for task in self.history():
+                if task.get("parent_id") == task_id:
+                    return self.task(task["id"])
+            if b12_build.revision(self.path(task_id)) != original["revision"]:
+                raise ValueError("Parent source digest mismatch")
+            return self.enqueue(original["proposal"]["requirement"], parent_id=task_id,
+                                parent_revision=original["revision"], approval={
+                                    "approved_at": datetime.now(timezone.utc).isoformat(),
+                                    "origin": task_id, "factor": 2, "protocol": PROFILE["protocol"]})
+
+    def prepare(self, task_id, data):
+        with self.lock:
+            task = self.task(task_id)
+            if not task.get("approval"):
+                raise ValueError("Approve follow-up before recording preparation")
+            child = data.get("sample_id")
+            if not isinstance(child, str) or not child.strip() or len(child) > 120:
+                raise ValueError("Enter a prepared vial ID")
+            prep = {key: data.get(key) for key in ("parent_id", "sample_ml", "final_ml", "unit")}
+            prep["id"] = "prep-" + task_id
+            factor = validate_preparation(child, prep)
+            if prep["parent_id"] != "U-01" or not math.isclose(factor,task["approval"]["factor"]):
+                raise ValueError("Preparation differs from approved parent or factor")
+            prep["sample_id"] = child
+            if task.get("preparation") and prep != task["preparation"]:
+                raise ValueError("Preparation already recorded")
+            return self.update(task_id, preparation=prep)
+
+    def retry(self, task_id):
+        with self.lock:
+            task = self.task(task_id)
+            if task["status"] != "failed" or not task.get("approval"):
+                raise ValueError("Only a failed approved revision can retry")
+            task = self.update(task_id, status="queued", error=None, checks=[], worker=None,
+                               revision=None, attempts=task.get("attempts",1)+1)
+            self.pool.submit(self.generate, task_id)
+            return task
+
+    def revise(self, task, folder):
+        parent = self.path(task["parent_id"])
+        if b12_build.revision(parent) != task["parent_revision"]:
+            raise ValueError("Parent source digest mismatch")
+        previous = verify_candidate(parent/"analysis.py", prepared=True)
+        self.update(task["id"], parent_checks=previous)
+        if all(case["pass"] for case in previous):
+            raise ValueError("The parent already supports the requested capability")
+        receipt = b12_build.build(task["brief"], folder, (parent/"analysis.py").read_text())
+        revision = b12_build.revision(folder)
+        if revision == task["parent_revision"]:
+            raise ValueError("The candidate has no source changes")
+        self.update(task["id"], status="verifying", worker=receipt, revision=revision)
+        checks = verify_candidate(folder/"analysis.py", prepared=True)
+        self.update(task["id"], checks=checks)
+        if not checks or not all(case["pass"] for case in checks):
+            raise ValueError("Prepared-sample release failed its independent requirements")
+        self.update(task["id"], status="verified", views=read_json(folder/"views.json"))
 
     def collect(self, task_id):
         folder = self.path(task_id)
@@ -99,10 +174,12 @@ class Lab:
         try:
             task = self.update(task_id, status="generating")
             folder = self.path(task_id)
+            if task.get("parent_id"):
+                self.revise(task, folder)
+                return
             with ThreadPoolExecutor(max_workers=1) as bench:
                 acquisition = bench.submit(self.collect, task_id)
                 receipt = b12_build.build(task["brief"], folder)
-            recipe = read_json(folder / "recipe.json")
             self.update(task_id, status="verifying", worker=receipt, revision=b12_build.revision(folder))
             checks = verify_candidate(folder / "analysis.py")
             if not checks or not all(check["pass"] for check in checks):
@@ -130,8 +207,15 @@ class Lab:
 
     def source(self, task_id):
         folder = self.path(task_id)
-        return {"files": {n: (folder/n).read_text() for n in b12_build.FILES if (folder/n).is_file()},
-                "diff": ""}
+        files = {n: (folder/n).read_text() for n in b12_build.FILES if (folder/n).is_file()}
+        task = self.task(task_id)
+        diff = []
+        if task.get("parent_id"):
+            parent = self.path(task["parent_id"])
+            for name, content in files.items():
+                diff.extend(difflib.unified_diff((parent/name).read_text().splitlines(True),
+                                                 content.splitlines(True), "v1/"+name, "v2/"+name))
+        return {"files": files, "diff": "".join(diff)}
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -164,6 +248,13 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError("JSON object required")
                 if parts == ["api","tasks"]:
                     return self.send(202, lab.submit(body.get("brief")))
+                if len(parts) == 4 and parts[:2] == ["api","tasks"]:
+                    if parts[3] == "approve":
+                        return self.send(202, lab.approve(parts[2]))
+                    if parts[3] == "prepare":
+                        return self.send(200, lab.prepare(parts[2], body))
+                    if parts[3] == "retry":
+                        return self.send(202, lab.retry(parts[2]))
             elif parts == [""]:
                 return self.send(200, Path(__file__).with_name("presenter.html").read_bytes(), "text/html; charset=utf-8")
             elif parts == ["api","tasks"]:
