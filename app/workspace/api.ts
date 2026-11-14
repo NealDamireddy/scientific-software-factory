@@ -63,10 +63,10 @@ export type SpecInput = {
   instrument: Instrument;
   experiment_type: ExperimentType;
   sample_ids: string[];
-  standards: Standard[];
+  standards: { sample_id: string; known_concentration: number | null }[];
   calibration: Calibration | null;
-  settings: Settings;
-  schedule: { interval_s: number; point_count: number } | null;
+  settings: Omit<Settings, "replicates" | "path_length_mm"> & {replicates: number | null; path_length_mm: number | null};
+  schedule: { interval_s: number | null; point_count: number | null } | null;
   units: Units;
   outputs: string[];
   validation_criteria: string[];
@@ -83,6 +83,7 @@ export type Specification = SpecInput & {
   sha256: string;
   status: "draft" | "approved";
   approval: Approval | null;
+  unresolved_fields?: FieldErrors;
 };
 export type ResultRow = {
   sample_id: string;
@@ -249,7 +250,9 @@ export function createLiveClient(baseUrl = ""): WorkspaceClient {
       // The authorized route streams the artifact. Refuse a sign-in page or an empty success.
       if (response.status === 204 || response.headers.get("Content-Type")?.includes("text/html"))
         throw invalidResponse();
-      return response.blob();
+      const artifact = await response.blob();
+      if (!artifact.size) throw invalidResponse();
+      return artifact;
     },
     async endSession() {
       await request("session/logout", undefined, {});

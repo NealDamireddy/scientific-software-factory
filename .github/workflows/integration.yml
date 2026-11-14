@@ -62,3 +62,10 @@ jobs:
       - run: npm run build
       - run: npx --no-install playwright install --with-deps chromium
       - run: npm test
+      - name: Verify isolated preview and deployment source
+        env:
+          VERCEL_ENV: preview
+          VERCEL_GIT_COMMIT_SHA: ${{ github.sha }}
+        run: |
+          npm run build
+          npm test -- workspace-access.spec.mjs -g "workspace identifies the source commit"

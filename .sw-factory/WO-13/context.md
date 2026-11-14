@@ -38,4 +38,4 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 
 ## Knowledge Base and producer handoffs
 
-The EVOLVE Knowledge Base Plan (9f095369-805b-4489-bc06-961275cbc2cd) supplies the retained B12 narrative and scientific-review boundary. WO-6 context records are available on main. WO-8 specification and approval, WO-9 result/release, and WO-10 scheduler fields were checked on their implementation branches. WO-11 and WO-12 are pending upstream integration.
+The EVOLVE Knowledge Base Plan (9f095369-805b-4489-bc06-961275cbc2cd) supplies the retained B12 narrative and scientific-review boundary. The audit used main at 69b6d33 for WO-6 context, WO-8 specification and approval, and WO-9 result/release. WO-10 scheduler semantics were checked against its implementation branch. WO-11 and WO-12 are pending upstream integration.

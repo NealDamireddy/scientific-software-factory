@@ -34,6 +34,8 @@ export function queuedRun(run_id: string, spec: Specification, submitted_at: str
 
 export const recordedAt = "2026-11-12T09:10:47Z";
 export function recordedRuns(concentration: Specification, course: Specification): Run[] {
+  const calibration = course.calibration;
+  if (!calibration) throw new Error("The recorded time-course fixture requires its saved calibration.");
   const stamp = (time: string) => "2026-11-12T" + time + "Z";
   const first: Run = {
     ...queuedRun("fixture-concentration", concentration, stamp("08:59:50")),
@@ -54,7 +56,7 @@ export function recordedRuns(concentration: Specification, course: Specification
     analysis_started_at: stamp("09:00:18"),
     analysis_finished_at: stamp("09:00:20"),
     result: {
-      calibration_id: "cal-visible-01",
+      calibration_id: calibration.id,
       unit: "mg/L",
       results: [
         { sample_id: "vial-q17", concentration_mg_l: 4.8, replicate_sd_mg_l: 0.12, review_reason: null },
@@ -80,7 +82,7 @@ export function recordedRuns(concentration: Specification, course: Specification
     analysis_started_at: stamp("09:05:39"),
     analysis_finished_at: stamp("09:05:40"),
     result: {
-      calibration_id: "cal-visible-01",
+      calibration_id: calibration.id,
       unit: "mg/L",
       results: [
         {
@@ -124,7 +126,7 @@ export function recordedRuns(concentration: Specification, course: Specification
       recipe: "verified",
       software: "failed",
       acquisition: "interrupted",
-      analysis: "pending",
+      analysis: "blocked",
       job_id: "job-104",
       preparation: "revision",
       software_started_at: stamp("09:06:52"),

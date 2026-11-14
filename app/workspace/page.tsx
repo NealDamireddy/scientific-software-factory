@@ -309,6 +309,9 @@ export default function Workspace() {
               <Activity size={15} /> Virtual UV–Vis laboratory
             </p>
             <h1>Researcher workspace</h1>
+            {preview && (
+              <p>Preview commit <code>{process.env.NEXT_PUBLIC_PREVIEW_COMMIT || "unavailable"}</code></p>
+            )}
           </div>
           {scope && !ended && (
             <button className="ws-end" onClick={() => void endSession()}>

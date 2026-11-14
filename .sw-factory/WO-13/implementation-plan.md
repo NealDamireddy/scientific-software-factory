@@ -26,3 +26,7 @@ Use production-export browser checks with isolated fixtures and intercepted live
 ## Follow-up verification of immutable specification context
 
 Resolve historical project revisions by their full reference, then use the lab and instrument recorded for that revision. Preserve the original specification context on edits, approvals and submissions, including when older fixture records already exist. Selecting another context starts a separate specification. Verify identical project payload digests across different revisions, forged requests, new IDs and the approval status of both revisions through the fixture and Chromium.
+
+## Producer-conformance audit
+
+Compare the fixture against complete WO-6 context, WO-8 specification/approval and frozen calibration records, then reproduce discrepancies through the API boundary and Chromium. Capture reproducible producer fixtures, test read-only digest projections, exercise duplicate instrument and unresolved draft handling, and verify preview source identity against a real preview-mode build. Recheck the original WO-13 acceptance criteria, record remaining upstream dependencies, run the combined suite and monitor the published PR checks.

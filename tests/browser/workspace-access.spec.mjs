@@ -189,7 +189,7 @@ test("live evidence is fetched through the scoped API and denied evidence never 
   const snapshot = await page.evaluate(
     () =>
       JSON.parse(
-        sessionStorage.getItem("evolve.workspace.fixture.v1/visible-assay"),
+        sessionStorage.getItem("evolve.workspace.fixture.v2/visible-assay"),
       ).snapshot,
   );
   const calls = [];
@@ -204,6 +204,8 @@ test("live evidence is fetched through the scoped API and denied evidence never 
         contentType: "application/zip",
         body: "authorized bundle bytes",
       });
+    if (calls.length === 2)
+      return route.fulfill({ status: 200, contentType: "application/zip", body: "" });
     return route.fulfill({
       status: 401,
       json: { code: "expired_session", message: "hidden report" },
@@ -218,11 +220,34 @@ test("live evidence is fetched through the scoped API and denied evidence never 
   for await (const chunk of await file.createReadStream()) chunks.push(chunk);
   expect(Buffer.concat(chunks).toString()).toBe("authorized bundle bytes");
   await evidence.click();
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("invalid response");
+  await evidence.click();
   await expect(page.getByRole("main").getByRole("alert")).toContainText(
     "Session expired",
   );
   await expect(page.locator("body")).not.toContainText(/job-101|hidden report/);
   expect(calls).toEqual(
-    Array(2).fill("/v1/runs/fixture-concentration/evidence"),
+    Array(3).fill("/v1/runs/fixture-concentration/evidence"),
   );
+});
+
+test("workspace identifies the source commit and isolates live access in preview builds", async ({ page }) => {
+  const preview = process.env.VERCEL_ENV === "preview";
+  const requests = [];
+  await page.route("**/v1/**", (route) => {
+    requests.push(route.request().url());
+    return route.fulfill({ status: 503 });
+  });
+  await page.goto(preview ? "/workspace/?mode=live&project=source-check" : "/workspace/");
+  const commit = page.getByText(/^Preview commit /);
+  if (preview) {
+    await expect(commit).toHaveText("Preview commit " + (process.env.VERCEL_GIT_COMMIT_SHA || "unavailable"));
+    await expect(page.getByLabel("Data source").locator('option[value="live"]')).toBeDisabled();
+    await expect(page.getByText("Live access is unavailable in this preview.")).toBeVisible();
+    await page.getByLabel("Data source").selectOption("fixture");
+  } else {
+    await expect(commit).toHaveCount(0);
+  }
+  await expect(page.getByRole("heading", { name: "Experiment runs" })).toBeVisible();
+  expect(requests).toEqual([]);
 });

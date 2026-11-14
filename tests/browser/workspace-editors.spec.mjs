@@ -97,6 +97,14 @@ test("concentration draft requires explicit science, exact approval and a new ap
   await save.click();
   await expect(wavelength).toHaveAttribute("aria-invalid", "true");
   await expect(samples).toHaveValue("specimen-A");
+  const incompleteDigest = await selection.inputValue();
+  await page.reload();
+  await openTab(page, "Specifications");
+  await selection.selectOption(incompleteDigest);
+  await expect(wavelength).toHaveAttribute("aria-invalid", "true");
+  await expect(samples).toHaveValue("specimen-A");
+  await expect(approve).toBeDisabled();
+  await expect(submit).toBeDisabled();
   await page.getByText("Fixture controls", { exact: true }).click();
   await page.getByLabel("Response to next requests").selectOption("unavailable");
   await wavelength.fill("650");
@@ -108,12 +116,12 @@ test("concentration draft requires explicit science, exact approval and a new ap
   await expect(wavelength).toHaveValue("650");
   await page.getByLabel("Response to next requests").selectOption("");
   await save.click();
-  await expect(editor.getByRole("status")).toContainText("Saved unapproved draft revision 1.");
+  await expect(editor.getByRole("status")).toContainText("Saved unapproved draft revision 2.");
   await expect(approve).toBeDisabled();
   await expect(submit).toBeDisabled();
   await editor.getByLabel("Confirm scientific fields for this revision").check();
   await approve.click();
-  await expect(editor.getByRole("status")).toContainText("Approved revision 1.");
+  await expect(editor.getByRole("status")).toContainText("Approved revision 2.");
   const originalDigest = await selection.inputValue();
   await expect(editor.getByText("Approved digest").locator("+ dd")).toHaveText(originalDigest);
   await expect(editor.getByText("Pinned project").locator("+ dd")).toContainText(
@@ -125,7 +133,7 @@ test("concentration draft requires explicit science, exact approval and a new ap
   await samples.fill("specimen-B");
   await expect(submit).toBeDisabled();
   await save.click();
-  await expect(editor.getByRole("status")).toContainText("Saved unapproved draft revision 2.");
+  await expect(editor.getByRole("status")).toContainText("Saved unapproved draft revision 3.");
   const newDigest = await selection.inputValue();
   expect(newDigest).not.toBe(originalDigest);
   await expect(submit).toBeDisabled();
@@ -137,7 +145,7 @@ test("concentration draft requires explicit science, exact approval and a new ap
   await expect(editor.getByLabel("Confirm scientific fields for this revision")).not.toBeChecked();
   await editor.getByLabel("Confirm scientific fields for this revision").check();
   await approve.click();
-  await expect(editor.getByRole("status")).toContainText("Approved revision 2.");
+  await expect(editor.getByRole("status")).toContainText("Approved revision 3.");
   await submit.click();
   await expect(editor.getByRole("status")).toContainText("Submitted run fixture-");
   const run = (await editor.getByRole("status").textContent()).match(/fixture-[a-f0-9-]+/)[0];
@@ -161,22 +169,38 @@ test("time course requires the selected calibration, interval and point count be
   const points = editor.getByLabel("Point count");
   await expect(interval).toHaveValue("");
   await expect(points).toHaveValue("");
+  await interval.fill("8");
   await editor.getByRole("button", { name: "Save draft revision" }).click();
   await expect(editor.getByLabel("Frozen calibration")).toHaveAttribute("aria-invalid", "true");
+  await expect(interval).toHaveValue("8");
+  await expect(points).toHaveValue("");
+  await expect(editor.getByRole("button", { name: "Approve revision" })).toBeDisabled();
   await editor.getByLabel("Frozen calibration").selectOption({ index: 1 });
   await interval.fill("3601");
   await points.fill("1");
   expect(await interval.evaluate((el) => el.validity.rangeOverflow)).toBe(true);
   expect(await points.evaluate((el) => el.validity.rangeUnderflow)).toBe(true);
+  await editor.getByRole("button", { name: "Save draft revision" }).click();
+  await expect(editor.getByRole("status")).toHaveText("Saved unapproved draft revision 2.");
+  const saved = editor.getByLabel("Saved specification", {exact: true});
+  const digest = await saved.inputValue();
+  await page.reload();
+  await openTab(page, "Specifications");
+  await saved.selectOption(digest);
+  await expect(interval).toHaveValue("3601");
+  await expect(points).toHaveValue("1");
+  await expect(interval).toHaveAccessibleDescription(/1–3600/);
+  await expect(points).toHaveAccessibleDescription(/2–100/);
+  await expect(editor.getByRole("button", { name: "Approve revision" })).toBeDisabled();
   await interval.fill("1");
   await points.fill("100");
   await editor.getByRole("button", { name: "Save draft revision" }).click();
-  await expect(editor.getByRole("status")).toContainText("Saved unapproved draft revision 1.");
+  await expect(editor.getByRole("status")).toContainText("Saved unapproved draft revision 3.");
   const confirm = editor.getByLabel(/Confirm scientific fields for this revision/);
   await expect(confirm).toHaveAccessibleName(/interval 1 s and 100 points/);
   await confirm.check();
   await editor.getByRole("button", { name: "Approve revision" }).click();
-  await expect(editor.getByRole("status")).toContainText("Approved revision 1.");
+  await expect(editor.getByRole("status")).toContainText("Approved revision 3.");
   await editor.getByRole("button", { name: "Submit experiment" }).click();
   await expect(editor.getByRole("status")).toContainText("Submitted run fixture-");
 });
@@ -260,20 +284,20 @@ test("fixture rejects sample collisions, incomplete standards and unsupported pr
   const editor = page.getByRole("region", {name:"Experiment specification"});
   const save = editor.getByRole("button", {name:"Save draft revision"});
   const samples = editor.getByLabel("Sample IDs (one per line)");
-  const alert = page.getByRole("main").getByRole("alert");
+  const issues = editor.getByRole("region", {name:"Unresolved scientific fields"});
   await editor.getByRole("button", {name:"Use project protocol"}).click();
   await editor.getByLabel("Wavelength (nm)").fill("650");
   for (const ids of ["vial-q17\nvial-q17", "std-1"]) {
     await samples.fill(ids);
     await save.click();
-    await expect(alert).toContainText(/sample_ids|standards/);
-    await expect(editor.getByRole("button", {name:"Approve revision"})).toHaveCount(0);
+    await expect(issues).toContainText(/sample_ids|standards/);
+    await expect(editor.getByRole("button", {name:"Approve revision"})).toBeDisabled();
     await expect(samples).toHaveValue(ids);
   }
   await samples.fill("vial-q17");
   await editor.getByRole("button", {name:"Add standard"}).click();
   await save.click();
-  await expect(alert).toContainText("standards");
+  await expect(issues).toContainText("standards");
   await editor.getByRole("button", {name:"Remove standard 4"}).click();
   await openTab(page, "Lab & project");
   const project = page.getByRole("form", {name:"Project context"});
@@ -281,11 +305,12 @@ test("fixture rejects sample collisions, incomplete standards and unsupported pr
   await project.getByRole("button", {name:"Save project revision"}).click();
   await expect(project.getByRole("status")).toContainText("Saved project revision 2");
   await openTab(page, "Specifications");
+  await editor.getByLabel("Saved specification", {exact:true}).selectOption({ label: "New specification" });
   await editor.getByLabel("Specification project revision").selectOption("2");
   await editor.getByRole("button", {name:"Use project protocol"}).click();
   await save.click();
-  await expect(alert).toContainText("mg/L");
-  await expect(editor.getByRole("button", {name:"Approve revision"})).toHaveCount(0);
+  await expect(issues).toContainText("mg/L");
+  await expect(editor.getByRole("button", {name:"Approve revision"})).toBeDisabled();
 });
 
 test("protected specification fields follow the pinned protocol and experiment type", async ({page}) => {
@@ -368,4 +393,49 @@ test("saved edits retain historical context and new specifications can choose ei
     await expect(pinned("Pinned lab")).toContainText("revision " + contextRevision + " ·");
     await expect(submit).toBeDisabled();
   }
+});
+
+test("duplicate instrument shows the correction at the edited ID and preserves all inputs", async ({ page }) => {
+  await openTab(page, "Lab & project");
+  const lab = page.getByRole("form", {name: "Lab context"});
+  await lab.getByLabel("Lab name").fill("Lab with secondary instrument");
+  await lab.getByRole("button", {name: "Add instrument"}).click();
+  const first = lab.getByRole("group", {name: "Instrument 1"});
+  const second = lab.getByRole("group", {name: "Instrument 2"});
+  for (const label of ["Instrument ID", "Profile ID", "Profile digest (SHA-256)"]) {
+    await second.getByLabel(label, {exact:true}).fill(await first.getByLabel(label, {exact:true}).inputValue());
+  }
+  const id = second.getByLabel("Instrument ID", {exact:true});
+  const save = lab.getByRole("button", {name: "Save lab revision"});
+  await save.click();
+  await expect(id).toHaveAccessibleDescription(/duplicate instrument ID/i);
+  await expect(id).toHaveValue(await first.getByLabel("Instrument ID", {exact:true}).inputValue());
+  await expect(lab.getByLabel("Lab name")).toHaveValue("Lab with secondary instrument");
+  await expect(lab.getByLabel("Lab revision")).toHaveValue("1");
+  await id.fill("invalid id");
+  await save.click();
+  await expect(id).toHaveAccessibleDescription(/instrument ID containing/i);
+  await id.fill("secondary-uvvis");
+  await save.click();
+  await expect(lab.getByRole("status")).toHaveText("Saved lab revision 2.");
+});
+
+test("a concentration edit preserves the selected optional frozen calibration", async ({page}) => {
+  await openTab(page, "Specifications");
+  const editor = page.getByRole("region", {name:"Experiment specification"});
+  const calibration = editor.getByLabel("Frozen calibration (optional)");
+  const save = editor.getByRole("button", {name:"Save draft revision"});
+  await editor.getByRole("button", {name:"Use project protocol"}).click();
+  await editor.getByLabel("Wavelength (nm)").fill("650");
+  await calibration.selectOption({index:1});
+  const digest = await calibration.inputValue();
+  await save.click();
+  await expect(editor.getByRole("status")).toHaveText("Saved unapproved draft revision 1.");
+  await editor.getByLabel("Sample IDs (one per line)").fill("vial-after-edit");
+  await save.click();
+  await expect(editor.getByRole("status")).toHaveText("Saved unapproved draft revision 2.");
+  await expect(calibration).toHaveValue(digest);
+  await editor.getByLabel("Confirm scientific fields for this revision").check();
+  await editor.getByRole("button", {name:"Approve revision"}).click();
+  await expect(editor.getByRole("status")).toHaveText("Approved revision 2.");
 });

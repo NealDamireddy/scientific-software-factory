@@ -37,3 +37,21 @@ Chromium reproduction confirmed a gap in WO-8 parity. The editor now presents un
 Compared the editor and fixture with WO-8 start and edit semantics. Existing revisions retain their original project, lab and instrument references. New specifications receive new IDs and can select a historical project and its recorded lab. The fixture rejects attempts to change the original references, including previously stored repinned revisions, on edit, approval and submission.
 
 Independent review approved the change. The production export, TypeScript check and all 29 Playwright tests passed. The direct fixture and Chromium regressions exercise equal project payload digests across different revisions, historical starts, edits, distinct IDs, fresh approval and preservation of the earlier approval. Three targeted WO-8 producer tests also passed. Live authenticated integration remains pending.
+
+## Producer-conformance audit
+
+Three fresh reviewers compared WO-13 and its linked 8090 records with WO-6/8/9 on main at 69b6d33 and the WO-10 scheduler on its implementation branch. WO-11 and WO-12 were still in Backlog.
+
+| Area | Reproduction and correction |
+| --- | --- |
+| Specification and calibration provenance | The old adapter hashed its public specification projection and calibration reference metadata. The checked-in capture now comes from the producer's SQLite context, specification and approval services and its persisted frozen-fit test fixture. Python regenerates it and checks the complete payload digests. Browser tests follow each run's reference through evidence to the full record. Session edits have separate fixture-local provenance. |
+| Context edits | Chromium on the old export saved two instruments with the same ID as lab revision 2. The corrected response identifies the duplicate row, preserves the input and revision, and allows a corrected retry. Context identifier and list checks cover other UI-reachable WO-6 constraints. |
+| Drafts and approvals | The old fixture rejected an incomplete draft at save. Scientific findings now accompany the saved draft and gate approval. Tests reopen partial and out-of-range drafts, correct them, and approve the selected digest, including an older unapproved revision. Mutating protected protocol fields and substituting context pins still fail. |
+| Preview and execution state | The preview now displays the build's Vercel source commit. CI builds a preview and checks identity and live-request isolation in Chromium. Interrupted acquisition displays the scheduler's blocked analysis state. A zero-byte HTTP 200 evidence response yields an error. |
+| Live integration | The hosted provider contract remains unverified. Fixture operations, intercepted HTTP, a Vercel build and producer regeneration demonstrate frontend behavior only. Authenticated restart persistence, real job orchestration and authorized private evidence remain pending the upstream services. |
+
+Independent cross-review also found a persisted specification projection could change under an existing digest. Approval, submission and evidence export now check the projection against the complete record and its digest. Tests exercise both captured and session-created records and preserve the original time-course draft alongside its approved revision.
+
+Verification passed with a clean npm install, production export including TypeScript, all 37 Playwright tests, 104 Python tests, offline regeneration of the final producer capture and the WO-8-to-WO-9 handoff for both experiments. A separate preview export displayed its configured source SHA and issued zero live workspace requests. Independent reviewers approved the lifecycle, evidence and preview changes.
+
+**Verdict** APPROVED for fixture-tested delivery.

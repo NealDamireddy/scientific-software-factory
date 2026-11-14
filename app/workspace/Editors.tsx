@@ -406,12 +406,12 @@ function specForm(project?: Pin, spec?: Specification) {
     sample_ids: spec?.sample_ids.join("\n") ?? "",
     standards: (spec?.standards ?? []).map((s) => ({
       sample_id: s.sample_id,
-      level: String(s.known_concentration),
+      level: String(s.known_concentration ?? ""),
     })),
     calibration: spec?.calibration?.sha256 ?? "",
     wavelength: String(spec?.settings.wavelength_nm ?? ""),
-    replicates: String(spec?.settings.replicates ?? 3),
-    pathLength: String(spec?.settings.path_length_mm ?? 10),
+    replicates: String(spec ? spec.settings.replicates ?? "" : 3),
+    pathLength: String(spec ? spec.settings.path_length_mm ?? "" : 10),
     interval: String(spec?.schedule?.interval_s ?? ""),
     points: String(spec?.schedule?.point_count ?? ""),
   };
@@ -477,7 +477,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
         ? []
         : (protocol.standards ?? []).map((s) => ({
             sample_id: s.sample_id,
-            level: String(s.known_concentration),
+            level: String(s.known_concentration ?? ""),
           })),
     });
   }
@@ -499,19 +499,17 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
       validation_criteria: project.payload.validation_criteria,
       standards: course
         ? []
-        : form.standards.map((s) => ({ sample_id: s.sample_id, known_concentration: Number(s.level) })),
-      calibration: course
-        ? (snapshot.calibrations.find((row) => row.sha256 === form.calibration) ?? null)
-        : null,
+        : form.standards.map((s) => ({ sample_id: s.sample_id, known_concentration: s.level ? Number(s.level) : null })),
+      calibration: snapshot.calibrations.find((row) => row.sha256 === form.calibration) ?? null,
       settings: {
         operation: "measure-absorbance",
         wavelength_nm: form.wavelength ? Number(form.wavelength) : null,
-        path_length_mm: Number(form.pathLength),
-        replicates: Number(form.replicates),
+        path_length_mm: form.pathLength ? Number(form.pathLength) : null,
+        replicates: form.replicates ? Number(form.replicates) : null,
       },
       schedule:
-        course && form.interval && form.points
-          ? { interval_s: Number(form.interval), point_count: Number(form.points) }
+        course && (form.interval || form.points)
+          ? { interval_s: form.interval ? Number(form.interval) : null, point_count: form.points ? Number(form.points) : null }
           : null,
     };
     const saved = await operate(() => client.saveSpecification(projectId, payload, record?.revision ?? 0));
@@ -541,6 +539,8 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
     }
   }
   const approved = !!record?.approval && !dirty;
+  const unresolved = !dirty ? record?.unresolved_fields ?? {} : {};
+  const reviewErrors = { ...unresolved, ...errors };
   return (
     <section className="workspace-card" aria-label="Experiment specification">
       <h2>Experiment specification</h2>
@@ -557,6 +557,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
         ))}
       </Select>
       <form
+        noValidate
         aria-label="Specification fields"
         onSubmit={(event) => {
           event.preventDefault();
@@ -572,7 +573,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
               label="Specification project revision"
               value={String(form.projectRevision ?? "")}
               onChange={(value) => update({ projectRevision: Number(value) || undefined })}
-              error={errors.project}
+              error={reviewErrors.project}
             >
               <option value="">Select a project revision</option>
               {snapshot.projects.map((p) => (
@@ -585,7 +586,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
           <Select
             label="Experiment type"
             value={form.experiment_type}
-            error={errors.experiment_type}
+            error={reviewErrors.experiment_type}
             onChange={(value) =>
               update({ experiment_type: value as SpecInput["experiment_type"] })
             }
@@ -629,21 +630,21 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
             multiline
             value={form.sample_ids}
             onChange={(sample_ids) => update({ sample_ids })}
-            error={errors.sample_ids}
+            error={reviewErrors.sample_ids}
           />
           <Field
             label="Expected outputs (one per line)"
             multiline
             value={outputs.join("\n")}
             readOnly
-            error={errors.outputs}
+            error={reviewErrors.outputs}
           />
           <Field
             label="Specification validation criteria (one per line)"
             multiline
             value={criteria.join("\n")}
             readOnly
-            error={errors.validation_criteria}
+            error={reviewErrors.validation_criteria}
           />
           {(["concentration", "wavelength", "path_length"] as const).map((key, i) => (
             <Field
@@ -653,26 +654,25 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
               }
               value={units?.[key] ?? ""}
               readOnly
-              error={errors["units." + key]}
+              error={reviewErrors["units." + key]}
             />
           ))}
         </div>
         <p>To change protocol units or validation criteria, save a project revision and start a new specification from it.</p>
-        {course ? (
-          <Select
-            label="Frozen calibration"
-            value={form.calibration}
-            onChange={(calibration) => update({ calibration })}
-            error={errors.calibration}
-          >
-            <option value="">Select a calibration</option>
-            {snapshot.calibrations.map((c) => (
-              <option key={c.sha256} value={c.sha256}>
-                {c.id} · {c.unit} · {c.settings.wavelength_nm} nm · {c.sha256}
-              </option>
-            ))}
-          </Select>
-        ) : (
+        <Select
+          label={course ? "Frozen calibration" : "Frozen calibration (optional)"}
+          value={form.calibration}
+          onChange={(calibration) => update({ calibration })}
+          error={reviewErrors.calibration}
+        >
+          <option value="">{course ? "Select a calibration" : "No saved calibration"}</option>
+          {snapshot.calibrations.map((c) => (
+            <option key={c.sha256} value={c.sha256}>
+              {c.id} · {c.unit} · {c.settings.wavelength_nm} nm · {c.sha256}
+            </option>
+          ))}
+        </Select>
+        {!course && (
           <fieldset>
             <legend>Calibration standards</legend>
             {form.standards.map((s, index) => (
@@ -705,7 +705,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
                 </button>
               </div>
             ))}
-            {errors.standards && <p>{errors.standards}</p>}
+            {reviewErrors.standards && <p>{reviewErrors.standards}</p>}
             <button
               type="button"
               onClick={() => update({ standards: [...form.standards, { sample_id: "", level: "" }] })}
@@ -723,7 +723,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
               step="any"
               value={form.wavelength}
               onChange={(wavelength) => update({ wavelength })}
-              error={errors["settings.wavelength_nm"]}
+              error={reviewErrors["settings.wavelength_nm"]}
             />
             <Field
               label="Replicates"
@@ -732,7 +732,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
               min={1}
               max={10}
               onChange={(replicates) => update({ replicates })}
-              error={errors["settings.replicates"]}
+              error={reviewErrors["settings.replicates"]}
             />
             <Field
               label="Path length (mm)"
@@ -740,7 +740,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
               step="any"
               value={form.pathLength}
               onChange={(pathLength) => update({ pathLength })}
-              error={errors["settings.path_length_mm"]}
+              error={reviewErrors["settings.path_length_mm"]}
             />
             {course && (
               <>
@@ -752,7 +752,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
                   step="any"
                   value={form.interval}
                   onChange={(interval) => update({ interval })}
-                  error={errors["schedule.interval_s"]}
+                  error={reviewErrors["schedule.interval_s"]}
                 />
                 <Field
                   label="Point count"
@@ -762,7 +762,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
                   step={1}
                   value={form.points}
                   onChange={(points) => update({ points })}
-                  error={errors["schedule.point_count"]}
+                  error={reviewErrors["schedule.point_count"]}
                 />
               </>
             )}
@@ -808,12 +808,16 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
               </>
             )}
           </dl>
+          {Object.keys(unresolved).length > 0 && <div aria-label="Unresolved scientific fields" role="region">
+            <h4>Resolve before approval</h4>
+            <ul>{Object.entries(unresolved).map(([field, reason]) => <li key={field}>{field} · {reason}</li>)}</ul>
+          </div>}
           {!record.approval && (
             <label className="confirm-fields">
               <input
                 type="checkbox"
                 checked={confirmed}
-                disabled={dirty}
+                disabled={dirty || Object.keys(unresolved).length > 0}
                 onChange={(event) => setConfirmed(event.target.checked)}
               />
               Confirm scientific fields for this revision

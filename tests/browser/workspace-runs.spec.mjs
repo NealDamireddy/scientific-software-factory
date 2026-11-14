@@ -82,6 +82,7 @@ test("pending preparation leaves recipe state intact and incomplete evidence has
   await expect(
     incomplete.getByRole("table", { name: /measurements/ }),
   ).toHaveCount(0);
+  await expect(incomplete.getByRole("row", { name: /^Analysis blocked/ })).toBeVisible();
   const downloadPromise = page.waitForEvent("download");
   await incomplete.getByRole("button", { name: "Download evidence" }).click();
   const download = await downloadPromise;
