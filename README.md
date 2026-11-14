@@ -72,3 +72,5 @@ The existing static EPR/B12 workbench remains available with `npm ci` and
 `npm run dev`; `npm run build` exports it to `out/`. Node and the web build are not
 required for the local B12 demo. The lower-level `python -m factory.lab` entry point
 remains available without the launcher's readiness checks or bundled fallback.
+
+For serial virtual UV–Vis experiments, see the [local scheduler and two-experiment test](docs/EXPERIMENT-SCHEDULER.md).
