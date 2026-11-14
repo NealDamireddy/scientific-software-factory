@@ -49,6 +49,16 @@ when you deliberately need a different port or a separate rehearsal store.
 
 **[Five-minute rehearsal and troubleshooting](docs/DEMO-RUNBOOK.md)**
 
+## Researcher workspace
+
+Open `/workspace/` for the UV–Vis researcher interface. **Fixture demo** keeps revisions and saved runs in the current browser tab. The fixture controls can return access or service failures. End session clears demo changes. The EPR workbench at `/` and the B12 archive at `/b12/` retain their recorded workflows.
+
+The preset specifications and approvals come from the WO-8 service. Its calibration fixture supplies the complete synthetic frozen fit. Their digests and corresponding records are in [the producer fixture](fixtures/workspace/producer-records.json). Regenerate it with `python -m tests.test_workspace_golden --write` in the project Python environment. Specifications created or edited in a browser tab have fixture-local records and approvals.
+
+**Live workspace** uses the versioned workspace API at the same origin, or at the trusted origin supplied through `NEXT_PUBLIC_WORKSPACE_API_URL` at build time. It sends the workspace session cookie and requires a project ID. Vercel previews use fixtures only and display the source commit from `VERCEL_GIT_COMMIT_SHA`. Live smoke testing requires the authenticated WO-12 service and WO-11 evidence endpoint.
+
+Run `npm ci`, `npx playwright install chromium`, `npm run build` and `uv run --frozen npm test` to exercise the production export. Browser tests use isolated fixture data and intercepted API responses. The Python producer independently verifies downloaded session evidence.
+
 ## Verify and reproduce
 
 ```sh
@@ -73,12 +83,4 @@ The existing static EPR/B12 workbench remains available with `npm ci` and
 required for the local B12 demo. The lower-level `python -m factory.lab` entry point
 remains available without the launcher's readiness checks or bundled fallback.
 
-### Researcher workspace
-
-Open `/workspace/` for the UV–Vis researcher interface. **Fixture demo** keeps revisions and saved runs in the current browser tab. The fixture controls can return access or service failures. End session clears demo changes. The EPR workbench at `/` and the B12 archive at `/b12/` retain their recorded workflows.
-
-The preset specifications and approvals come from the WO-8 service. Its calibration fixture supplies the complete synthetic frozen fit. Their digests and corresponding records are in [the producer fixture](fixtures/workspace/producer-records.json). Regenerate it with `python -m tests.test_workspace_golden --write` in the project Python environment. Specifications created or edited in a browser tab have fixture-local records and approvals.
-
-**Live workspace** uses the versioned workspace API at the same origin, or at the trusted origin supplied through `NEXT_PUBLIC_WORKSPACE_API_URL` at build time. It sends the workspace session cookie and requires a project ID. Vercel previews use fixtures only and display the source commit from `VERCEL_GIT_COMMIT_SHA`. Live smoke testing requires the authenticated WO-12 service and WO-11 evidence endpoint.
-
-Run `npm ci`, `npx playwright install chromium`, `npm run build` and `npm test` to exercise the production export. Browser tests use isolated fixture data and intercepted API responses.
+For serial virtual UV–Vis experiments, see the [local scheduler and two-experiment test](docs/EXPERIMENT-SCHEDULER.md).

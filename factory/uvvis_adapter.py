@@ -43,7 +43,12 @@ class VirtualInstrumentAdapter:
                 result = json.loads(response.read(8 * 1024 * 1024 + 1))
                 if response.status >= 300:
                     raise InstrumentError(result["field"], result["reason"], response.status)
-                validate(shape, result)
+                # A malformed success response can follow an accepted POST. It is
+                # not an authoritative rejection and must not free a scheduling lease.
+                try:
+                    validate(shape, result)
+                except InstrumentError as error:
+                    raise InstrumentUnavailable("invalid simulator response") from error
                 return result
             except InstrumentError:
                 raise
