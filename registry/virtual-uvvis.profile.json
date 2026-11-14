@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "profile_id": "virtual-uvvis@1",
+  "wavelengths_nm": [450, 550, 650],
+  "path_lengths_mm": [10],
+  "replicate_limits": {"min": 1, "max": 10},
+  "operations": ["measure-absorbance"],
+  "blank_reference_required": true,
+  "simulated": true
+}

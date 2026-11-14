@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Virtual UV–Vis API version 1",
+  "oneOf": [
+    {"$ref":"#/$defs/capabilities"}, {"$ref":"#/$defs/blank_request"},
+    {"$ref":"#/$defs/blank"}, {"$ref":"#/$defs/acquisition_request"},
+    {"$ref":"#/$defs/job"}, {"$ref":"#/$defs/measurements"}
+  ],
+  "$defs": {
+    "id": {"type":"string","minLength":1,"maxLength":200,"pattern":"^\\S(?:.*\\S)?$"},
+    "job_id": {"type":"string","pattern":"^[a-f0-9]{32}$"},
+    "sha256": {"type":"string","pattern":"^[a-f0-9]{64}$"},
+    "pin": {
+      "type":"object","required":["schema_version","instrument_id","profile_id","profile_sha256"],
+      "properties": {
+        "schema_version":{"const":1,"type":"integer"}, "instrument_id":{"$ref":"#/$defs/id"},
+        "profile_id":{"$ref":"#/$defs/id"}, "profile_sha256":{"$ref":"#/$defs/sha256"}
+      }
+    },
+    "capabilities": {
+      "allOf":[{"$ref":"#/$defs/pin"}], "type":"object","unevaluatedProperties":false,
+      "required":["profile","simulated"],"properties":{"profile":{"type":"object"},"simulated":{"const":true}}
+    },
+    "settings": {
+      "type":"object","additionalProperties":false,
+      "required":["operation","wavelength_nm","path_length_mm","replicates"],
+      "properties":{
+        "operation":{"type":"string"}, "wavelength_nm":{"type":"integer"},
+        "path_length_mm":{"type":"integer"},"replicates":{"type":"integer","minimum":1}
+      }
+    },
+    "blank_request": {
+      "allOf":[{"$ref":"#/$defs/pin"}],"type":"object","unevaluatedProperties":false,
+      "required":["settings"],"properties":{"settings":{"$ref":"#/$defs/settings"}}
+    },
+    "reference": {
+      "allOf":[{"$ref":"#/$defs/pin"}],"type":"object",
+      "required":["blank_id","timestamp","wavelength_nm","path_length_mm","dark_counts","blank_counts","simulated"],
+      "properties":{
+        "blank_id":{"$ref":"#/$defs/id"},"timestamp":{"type":"string","format":"date-time"},
+        "wavelength_nm":{"type":"integer"},"path_length_mm":{"type":"integer"},
+        "dark_counts":{"type":"integer"},"blank_counts":{"type":"integer"},"simulated":{"const":true}
+      }
+    },
+    "blank":{"allOf":[{"$ref":"#/$defs/reference"}],"unevaluatedProperties":false},
+    "acquisition_request": {
+      "allOf":[{"$ref":"#/$defs/pin"}],"type":"object","unevaluatedProperties":false,
+      "required":["settings","sample_ids","blank_id"],"properties":{
+        "settings":{"$ref":"#/$defs/settings"},"blank_id":{"$ref":"#/$defs/id"},
+        "sample_ids":{"type":"array","minItems":1,"maxItems":100,"uniqueItems":true,"items":{"$ref":"#/$defs/id"}}
+      }
+    },
+    "job": {
+      "allOf":[{"$ref":"#/$defs/pin"}],"type":"object","unevaluatedProperties":false,
+      "required":["job_id","status","started_at","finished_at","settings","sample_ids","blank_id","noise_sd_counts","duration_s","reading_count","simulated"],
+      "properties":{
+        "job_id":{"$ref":"#/$defs/job_id"}, "status":{"enum":["running","completed","cancelled","interrupted"]},
+        "started_at":{"type":"string","format":"date-time"},"finished_at":{"type":["string","null"],"format":"date-time"},
+        "settings":{"$ref":"#/$defs/settings"},"sample_ids":{"type":"array","items":{"$ref":"#/$defs/id"}},
+        "blank_id":{"$ref":"#/$defs/id"}, "noise_sd_counts":{"type":"number","minimum":0,"maximum":100},
+        "duration_s":{"type":"number","minimum":0,"maximum":60},"reading_count":{"type":"integer","minimum":0},
+        "simulated":{"const":true}
+      }
+    },
+    "measurement_record": {
+      "allOf":[{"$ref":"#/$defs/reference"}],"type":"object","unevaluatedProperties":false,
+      "required":["job_id","sample_id","replicate","elapsed_s","sample_counts","unit","model_revision","findings"],
+      "properties":{
+        "job_id":{"$ref":"#/$defs/job_id"},"sample_id":{"$ref":"#/$defs/id"},"replicate":{"type":"integer","minimum":1},
+        "elapsed_s":{"type":"number","minimum":0},"sample_counts":{"type":"integer"},"unit":{"const":"counts"},
+        "model_revision":{"type":"string"},"findings":{"type":"array","items":{"type":"string"}}
+      }
+    },
+    "measurements": {
+      "type":"object","additionalProperties":false,"required":["schema_version","job_id","complete","records"],
+      "properties":{
+        "schema_version":{"const":1},"job_id":{"$ref":"#/$defs/job_id"},"complete":{"type":"boolean"},
+        "records":{"type":"array","items":{"$ref":"#/$defs/measurement_record"}}
+      }
+    }
+  }
+}
