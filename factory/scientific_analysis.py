@@ -66,7 +66,10 @@ def public_input(payload, kind):
     for group in groups:
         if not isinstance(group.get("sample_id"), str) or not group["sample_id"].strip():
             raise ValueError("Expected sample identity")
-    standards = [project_group(item, ("concentration", "unit")) for item in array(payload, "standards")]
+    supplied = array(payload, "standards")
+    if kind == "time_course" and supplied:
+        raise ValueError("Time-course analysis requires a frozen calibration and empty standards")
+    standards = [project_group(item, ("concentration", "unit")) for item in supplied]
     return dict(experiment_type=kind, calibration=calibration, standards=standards, groups=groups)
 
 
@@ -131,6 +134,11 @@ def analyze_release(repository, release_id, payload):
     data = public_input(payload, kind)
     calibration = data["calibration"]
     reason = calibration_mismatch(calibration, json.loads(files["recipe.json"]))
+    if kind == "time_course" and not reason:
+        if not all(finite(calibration.get(k)) for k in ("slope", "intercept", "low", "high")):
+            reason = "Frozen calibration requires finite slope, intercept and bounds"
+        elif calibration["slope"] <= 0 or calibration["low"] >= calibration["high"]:
+            reason = "Frozen calibration requires a positive slope and increasing bounds"
     if reason:
         rows = [dict(result_identity(kind, group), concentration_mg_l=None, replicate_sd_mg_l=None,
                      review_reason=reason) for group in data["groups"]]
