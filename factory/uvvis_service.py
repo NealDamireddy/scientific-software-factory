@@ -187,10 +187,11 @@ class VirtualUvVisService:
     def _run(self, job_id, request, reference, started, stop):
         try:
             ordinal = 0
-            settings = request["settings"]
-            total = len(request["sample_ids"]) * settings["replicates"]
+            # JSON Schema accepts integral numbers such as 3.0 as integers.
+            replicates = int(request["settings"]["replicates"])
+            total = len(request["sample_ids"]) * replicates
             for sample in request["sample_ids"]:
-                for replicate in range(1, settings["replicates"] + 1):
+                for replicate in range(1, replicates + 1):
                     self.wait(stop, self.duration)
                     with self.lock, self.db:
                         if stop.is_set():

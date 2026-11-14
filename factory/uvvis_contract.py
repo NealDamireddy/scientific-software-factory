@@ -72,5 +72,5 @@ def validate_settings(settings, profile):
         if settings[field] not in profile[supported]:
             raise InstrumentError(field, "unsupported by this instrument profile")
     limits = profile["replicate_limits"]
-    if type(settings["replicates"]) is not int or not limits["min"] <= settings["replicates"] <= limits["max"]:
+    if not limits["min"] <= settings["replicates"] <= limits["max"]:
         raise InstrumentError("replicates", "outside the integer replicate limits")
