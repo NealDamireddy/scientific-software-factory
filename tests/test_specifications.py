@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
+import json
 from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
@@ -160,6 +161,55 @@ class SpecificationTests(unittest.TestCase):
         self.assertIn("timestamp", valid["outputs"])
         receipt = self.approve(valid)
         self.assertLessEqual({"calibration", "schedule", "settings"}, set(receipt["confirmed_fields"]))
+
+    def test_changing_experiment_type_drops_only_inherited_incompatible_fields(self):
+        original = self.start()
+        self.approve(original)
+        ref = save_calibration_fixture(self.path, original)
+        schedule = {"interval_s": 5, "point_count": 3}
+        time_course = self.service.edit(original["sha256"], experiment_type="time_course",
+                                        calibration=ref, schedule=schedule)
+        self.assertEqual(time_course["standards"], [])
+        self.assertEqual(time_course["status"], "draft")
+        self.assertEqual(time_course["sample_ids"], original["sample_ids"])
+        self.assertEqual(time_course["settings"], original["settings"])
+        self.approve(time_course)
+        self.assertEqual(self.service.approved(original["sha256"])[0]["standards"], original["standards"])
+
+        concentration = self.service.edit(time_course["sha256"], experiment_type="concentration",
+                                          standards=original["standards"])
+        self.assertIsNone(concentration["schedule"])
+        self.assertEqual(concentration["calibration"], ref)
+        self.approve(concentration)
+        self.assertEqual(self.service.approved(time_course["sha256"])[0]["schedule"], schedule)
+
+    def test_explicit_incompatible_fields_remain_visible_and_prevent_approval(self):
+        original = self.start()
+        schedule = {"interval_s": 5, "point_count": 3}
+        invalid = self.service.edit(original["sha256"], experiment_type="time_course",
+                                    standards=original["standards"], schedule=schedule,
+                                    calibration=save_calibration_fixture(self.path, original))
+        self.assertEqual(invalid["standards"], original["standards"])
+        self.assertEqual(set(self.service.unresolved(invalid)), {"standards"})
+        with self.assertRaisesRegex(ValueError, "standards"):
+            self.approve(invalid)
+        with self.assertRaisesRegex(ValueError, "approval"):
+            self.service.compile_recipe(invalid["sha256"])
+
+        # Simulate an approval persisted by the previous implementation. Keep its
+        # historical receipt but refuse to derive an acquisition from it.
+        with closing(sqlite3.connect(self.path)) as db, db:
+            db.execute("INSERT INTO specification_approvals VALUES (?, ?, ?, ?)",
+                       (invalid["sha256"], "historical-researcher", "2026-11-14T10:00:00+00:00",
+                        json.dumps(self.service.confirmation_fields(invalid))))
+        with self.assertRaisesRegex(ValueError, "standards"):
+            self.service.compile_recipe(invalid["sha256"])
+
+        concentration = self.service.edit(invalid["sha256"], experiment_type="concentration", schedule=schedule)
+        self.assertEqual(concentration["schedule"], schedule)
+        self.assertEqual(set(self.service.unresolved(concentration)), {"schedule"})
+        with self.assertRaisesRegex(ValueError, "schedule"):
+            self.approve(concentration)
 
     def test_calibration_must_resolve_to_exact_frozen_record(self):
         spec = self.start(experiment_type="time_course")

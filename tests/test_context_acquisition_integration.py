@@ -126,7 +126,9 @@ class AcquisitionBoundaryTests(unittest.TestCase):
         repo = SQLiteContextRepository(db)
         lab, project = load_demo(repo)
         specs = ExperimentSpecificationService(repo, db)
-        spec = specs.start(lab.lab_id, project.project_id, experiment_type="time_course")
+        concentration = specs.start(lab.lab_id, project.project_id)
+        self.assertEqual(len(concentration["standards"]), 3)
+        spec = specs.edit(concentration["sha256"], experiment_type="time_course")
         store = root / "jobs"
         adapter = self.enterContext(live_instrument(store, spec["instrument"], []))
         acquisitions = ApprovedAcquisition(specs, db, adapter)
