@@ -152,3 +152,39 @@ Reviewed PR #4 with WO-6 and WO-7 on main at `505c66b`. WO-7 accepts an integral
 Independent probes passed for concentration and time course, original input preservation, and rejection of a changed worker recipe. All 82 discovered tests passed at `ab6ad5e` across two invocations under macOS Seatbelt. Nine acquisition tests encountered a competing local instrument lease during discovery and all nine passed on a separate run. The B12 replay withheld direct U-01 and returned 32.006829774391655 mg/L for the twofold follow-up. Compilation and whitespace checks passed. The independent Linux review previously reproduced both release manifests and the fail-closed prerequisite behavior.
 
 The six original Drift Bot findings and its later prerequisite-reporting comment have evidence replies and are resolved. Final code review approved for WO-9. Live WO-8 composition is downstream.
+
+## Round 10 — Renewed independent review — CHANGES_REQUESTED (post-merge follow-up)
+
+Reviewed current WO-9, AC-APP-002.1–.7, both linked blueprints, their unresolved drift comments, Knowledge Base Plan, PR replies and required CI. Started at `1c2eb04fae9acad5f4eb917a1148c06cb29b5a65`; refreshed after concurrent upstream integration to `cc7a23787354ee3c70f5ea57dd5d65e5e9006428` over `8aa01f0741d56e3d8f80d35a91deffa0028c97c7`. WO-9's verifier/runtime/contract/repository files are unchanged between those two heads. A fresh independent reviewer examined the complete WO-9 change and relevant producer contracts; the primary reviewer independently reproduced the finding on both revisions and reran verification on the final head.
+
+PR #4 was merged externally by NealDamireddy at 2026-11-14T19:55:59Z while this review was running, merge commit `69b6d333fc1a862d5e79a0291fa858c1090063f1`. This reviewer performed no merge or status transition. The finding is now a post-merge correction needed before WO-9 sign-off.
+
+### One blocking P2 finding — missing nonfinite frozen-calibration bound verification
+
+**Dimension:** numerical/input-validation verification; requirements/blueprint alignment. **Anchors:** `factory/scientific_contract.py:213–217` and `factory/scientific_analysis.py:127–143`. The time-course contract challenges zero slope and reversed range but never NaN/infinite frozen bounds. The runtime accepts calibration bounds in its caller payload and checks settings/output finiteness, not bound finiteness or approved calibration digest identity.
+
+Actual Linux bubblewrap reproduction in temporary repositories:
+
+1. Promote the original time-course fixture and retain its release ID.
+2. Remove only low/high finiteness validation from the candidate: retain `finite(...)` for slope/intercept, read low/high directly, and make the final `math.isfinite` guard check slope/intercept only. Keep positive slope, ordered range, all measurement guards, OLS/estimation and error handling unchanged. Re-sign artifact/source metadata.
+3. The deficient candidate passes **49/49 checks**, publishes and replaces the previous active release.
+4. Analyze the clean independent time-course fixture with only calibration.high changed to `NaN`, then `+Infinity`. The promoted mutant returns **8.25 mg/L**, sample SD **2.5000000000000004**, and review_reason=null in both cases. The original candidate withholds the same inputs with `Invalid calibration: high must be a finite number`.
+
+This is an ordinary missing validation guard, not fixture-specific overfitting. It demonstrates a gap in WO-9's explicitly scoped finite-value/calibration-range verification. **Correction:** add independent nonfinite low/high challenges (NaN and signed infinity), require withheld estimates/SD with review reasons, and add a re-signed bound-validation mutation regression proving rejection and unchanged prior active pointer/manifest/artifacts. Exercise both original retained source and deficient-source certification.
+
+**Impact limitation:** WO-8's normal approval path validates the stored frozen calibration's digest, settings and finite slope/intercept/bounds (`factory/specifications.py:105–121`). These malformed-bound inputs do not pass that approval boundary. This is **not a demonstrated bypass of the approved production workflow**, and the original fixture already handles invalid bounds correctly. Severity is P2, not P1. The independent WO-9 gate nevertheless certifies deficient source, and standalone `analyze_release` does not enforce a validated/digest-bound calibration precondition. Passing upstream validation/handoff does not exercise this missing negative contract case.
+
+### Independently corroborated evidence
+
+- On initial head 1c2eb04, full discovery passed **82/82 in 59.134s** under Linux bubblewrap in one invocation.
+- On refreshed final head cc7a237, `python3 -m unittest discover -s tests -v` passed **103/103 in 60.360s**, including real saved-context acquisition and all previous detector/timing/positivity/units/settings/provenance mutation, rollback/history/digest/isolation regressions. No unsafe fallback or mandatory-check skip.
+- `python3 scripts/check_wo8_wo9_handoff.py HEAD HEAD` passed against cc7a237 for both refs: real specification/planner/verifier/repository with fixture worker, **53 concentration / 49 time-course checks** under scientific-release@5. Both sample-only changes reused the same source/release with **zero additional worker calls**. Concentration release `3088c169a8a5628071eb59cd6aa99790f0cbed95d87bcfc7cecb1fd030b33bbb`; time-course release `b4d4308b9ea5ec23b76bd820091cad94b47750f33f105f5217f97a4e1cbe6131`.
+- B12 replay on both reviewed heads reproduced direct U-01 withheld and twofold follow-up **32.006829774391655 mg/L** for the original vial (16.003414887195827 mg/L diluted). Compilation/whitespace checks passed.
+- Numerical fixture references remain public-count based with nonzero intercept, sample SD, alternate calibrations/sample identities, actual timepoint identities and recorded 1e-7 relative/absolute tolerance. No new OLS/SD/isolation/publication-transaction defect found. Original report-completeness and positivity findings remain fixed.
+- Independently read the earlier CI failure log: 1c2eb04's handoff step failed because the WO-8 script was absent, not because scoped tests failed. Final cc7a237 includes that upstream script; both required GitHub checks are **green** in run `43634257666`. Production browser verification is supporting hosted/static evidence, not proof against the new calibration mutation. The renewed finding exists despite passing CI.
+
+### Scope and work-order recommendation
+
+Planner/generation/reuse drift comments concern APP-001/003 ownership, not missing WO-9 scope. WO-6/7/8 handoffs are not treated as blockers; their composition now has independent fixture-worker evidence. No fresh model generation, scheduler/browser completion, kinetic inference or physical validation is required for this finding. Existing CI conditional-gate concerns are separate workflow ownership; native sandbox failures were not skipped in either tested suite.
+
+**Verdict:** one new P2 verification issue; hold WO-9 sign-off pending correction. This revises the earlier approval-readiness recommendation based on newly reproduced evidence; it does not reopen the fixed prior findings. Since PR #4 merged externally during review, implement a follow-up correction rather than representing the merged PR as awaiting merge. WO-9 remained In Review at the final record read. Only review evidence was appended on the original working branch; no implementation edits, main-branch edits, formal approval or Completed transition.
