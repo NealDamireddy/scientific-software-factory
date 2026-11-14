@@ -144,3 +144,11 @@ Reviewed PR #4 head `7763601ab7228401d74086351486015839cfff90`, including implem
 WO-6 real persisted context/profile, WO-7 real public acquisition outputs and WO-8 approval/trusted-recipe/worker composition remain recorded downstream integration dependencies, not WO-9 approval blockers. Live end-to-end integration, fresh model generation, planner/reuse, browser presentation and scheduling are not claimed as completed by this review. Current main's integration changes were not folded into the tested PR line.
 
 Only review evidence was appended. No implementation edits, merge, GitHub approval submission or Completed transition. Leave PR open and WO-9 In Review pending the user's decision.
+
+## Round 9 — Final independent merge review
+
+Reviewed PR #4 with WO-6 and WO-7 on main at `505c66b`. WO-7 accepts an integral JSON replicate count such as `3.0`; the verifier rejected it. Commit `3caa11f` uses the upstream settings validator. Commit `ab6ad5e` handles equivalent integer and floating-point optical settings in the candidate's public input. Frozen measurements and exact worker recipe bytes retain their original representation. The regression covers mixed calibration, standard and sample settings, and rejects invalid counts.
+
+Independent probes passed for concentration and time course, original input preservation, and rejection of a changed worker recipe. All 82 discovered tests passed at `ab6ad5e` across two invocations under macOS Seatbelt. Nine acquisition tests encountered a competing local instrument lease during discovery and all nine passed on a separate run. The B12 replay withheld direct U-01 and returned 32.006829774391655 mg/L for the twofold follow-up. Compilation and whitespace checks passed. The independent Linux review previously reproduced both release manifests and the fail-closed prerequisite behavior.
+
+The six original Drift Bot findings and its later prerequisite-reporting comment have evidence replies and are resolved. Final code review approved for WO-9. Live WO-8 composition is downstream.
