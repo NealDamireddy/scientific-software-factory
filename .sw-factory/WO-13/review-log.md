@@ -31,3 +31,9 @@ The fixture and intercepted HTTP checks cover optimistic revisions, exact-digest
 ## Follow-up · protected specification fields
 
 Chromium reproduction confirmed a gap in WO-8 parity. The editor now presents units, validation criteria and expected outputs as read-only. New drafts derive the first two from their pinned project revision and outputs from the experiment type. Ordinary edits retain the original project pin. The fixture rejects divergent projections on save and rechecks stored records before approval and submission. Regression coverage includes forged requests, previously persisted invalid records, changing experiment type and adopting revised project criteria in a new specification.
+
+## Follow-up · immutable context across specification revisions
+
+Compared the editor and fixture with WO-8 start and edit semantics. Existing revisions retain their original project, lab and instrument references. New specifications receive new IDs and can select a historical project and its recorded lab. The fixture rejects attempts to change the original references, including previously stored repinned revisions, on edit, approval and submission.
+
+Independent review approved the change. The production export, TypeScript check and all 29 Playwright tests passed. The direct fixture and Chromium regressions exercise equal project payload digests across different revisions, historical starts, edits, distinct IDs, fresh approval and preservation of the earlier approval. Three targeted WO-8 producer tests also passed. Live authenticated integration remains pending.

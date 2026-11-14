@@ -22,3 +22,7 @@ A project/session-scoped client loads immutable context and specification histor
 ## Testing
 
 Use production-export browser checks with isolated fixtures and intercepted live HTTP responses for denial, revision conflicts, stale snapshots, evidence, session changes and archive links. Test both experiment types and malformed or withheld measurements. Run Python regression discovery and compare any sandbox failures against the documented runtime requirements. Real authenticated smoke tests depend on WO-11/12 service availability.
+
+## Follow-up verification of immutable specification context
+
+Resolve historical project revisions by their full reference, then use the lab and instrument recorded for that revision. Preserve the original specification context on edits, approvals and submissions, including when older fixture records already exist. Selecting another context starts a separate specification. Verify identical project payload digests across different revisions, forged requests, new IDs and the approval status of both revisions through the fixture and Chromium.

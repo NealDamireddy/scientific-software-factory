@@ -193,33 +193,23 @@ function checkSamples(input: SpecInput, fields: FieldErrors) {
 
 // These checks model the editable fixture responses only. The live client
 // submits the researcher's inputs to the service for authoritative validation.
-function checkSpec(input: SpecInput, state: Snapshot, prior?: Specification) {
+function checkSpec(input: SpecInput, state: Snapshot) {
   const fields: FieldErrors = {};
-  const project = prior ? state.projects.find(p => p.revision === prior.project.revision && p.sha256 === prior.project.sha256) : current(state.projects);
-  if (!project) throw new WorkspaceError(409, "Pinned project revision is unavailable.");
-  const lab = state.labs.find(
-    (item) => item.revision === project.lab_revision && item.sha256 === project.lab_sha256,
-  );
-  if (
-    input.project.sha256 !== project.sha256 ||
-    input.project.revision !== project.revision ||
-    input.project.project_id !== state.project_id ||
-    !lab ||
-    input.lab.lab_id !== lab.lab_id ||
-    input.lab.revision !== lab.revision ||
-    input.lab.sha256 !== lab.sha256
-  ) {
-    throw new WorkspaceError(
-      409,
-      "Context revisions changed. Reopen the current project revision.",
-      {},
-      "conflict",
-    );
+  const first = state.specifications.find((item) => item.specification_id === input.specification_id);
+  if (first && (canonical(input.project) !== canonical(first.project) ||
+      canonical(input.lab) !== canonical(first.lab) || canonical(input.instrument) !== canonical(first.instrument))) {
+    throw new WorkspaceError(409, "Start a new specification to use different context.", {}, "conflict");
   }
-  if (
-    !lab.payload.instruments.some((i) => canonical(i) === canonical(input.instrument)) ||
-    input.instrument.instrument_id !== project.payload.instrument_id
-  )
+
+  const project = state.projects.find((item) => canonical(pin(item)) === canonical(input.project));
+  if (!project || project.project_id !== state.project_id)
+    throw new WorkspaceError(409, "Pinned project revision is unavailable.", {}, "conflict");
+  const lab = state.labs.find((item) => item.lab_id === project.lab_id &&
+    item.revision === project.lab_revision && item.sha256 === project.lab_sha256);
+  if (!lab || canonical(pin(lab)) !== canonical(input.lab))
+    throw new WorkspaceError(409, "Lab pin differs from the selected project revision.", {}, "conflict");
+  const instrument = lab.payload.instruments.find((item) => item.instrument_id === project.payload.instrument_id);
+  if (!instrument || canonical(instrument) !== canonical(input.instrument))
     fields.instrument = "Select the instrument pinned to this project revision.";
   if (!["concentration", "time_course"].includes(input.experiment_type))
     fields.experiment_type = "Unsupported experiment type.";
@@ -352,8 +342,10 @@ export function createFixtureClient(
         const prior = snapshot.specifications.filter(
           (spec) => spec.specification_id === payload.specification_id,
         );
+        if (payload.specification_id !== undefined && !prior.length)
+          throw new WorkspaceError(404, "Specification is unavailable.");
         compare(current(prior)?.revision ?? 0, expected);
-        checkSpec(payload, snapshot, current(prior));
+        checkSpec(payload, snapshot);
         const record = await draft(payload, payload.specification_id || crypto.randomUUID(), expected + 1);
         snapshot.specifications.push(record);
         return record;
@@ -365,7 +357,7 @@ export function createFixtureClient(
         );
         if (!latest || latest.sha256 !== spec.sha256 || latest.revision !== spec.revision)
           throw new WorkspaceError(409, "The specification revision changed.");
-        checkSpec(latest, snapshot, latest);
+        checkSpec(latest, snapshot);
         if (latest.approval) return latest;
         if (canonical([...confirmed].sort()) !== canonical(confirmationFields(latest)))
           field("confirmation", "Confirm every scientific field on this revision.");
@@ -380,7 +372,7 @@ export function createFixtureClient(
         );
         if (!saved?.approval || saved.approval.specification_sha256 !== saved.sha256)
           field("approval", "Approve this exact specification revision.");
-        checkSpec(saved, snapshot, saved);
+        checkSpec(saved, snapshot);
         const prior = submissions.find((submission) => submission.key === key);
         if (prior && prior.digest !== saved.sha256)
           throw new WorkspaceError(409, "Submission key already used for another revision.");

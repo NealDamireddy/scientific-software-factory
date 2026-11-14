@@ -433,7 +433,11 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
   const submission = useRef("");
   const [submitted, setSubmitted] = useState(false);
   const record = form.record;
-  const project = snapshot.projects.find((row) => row.revision === form.projectRevision);
+  const project = snapshot.projects.find((row) =>
+    row.project_id === projectId &&
+    row.revision === (record?.project.revision ?? form.projectRevision) &&
+    (!record || (row.sha256 === record.project.sha256 && row.lab_id === record.project.lab_id)),
+  );
   const lab = snapshot.labs.find(
     (row) =>
       row.lab_id === project?.lab_id &&
@@ -485,9 +489,9 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
     }
     const payload: SpecInput = {
       ...(record && { specification_id: record.specification_id }),
-      lab: contextPin(lab),
-      project: contextPin(project),
-      instrument,
+      lab: record?.lab ?? contextPin(lab),
+      project: record?.project ?? contextPin(project),
+      instrument: record?.instrument ?? instrument,
       experiment_type: form.experiment_type,
       sample_ids: lines(form.sample_ids),
       units: project.payload.units,
@@ -560,19 +564,24 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
         }}
       >
         <div className="field-grid">
-          <Select
-            label="Specification project revision"
-            value={String(form.projectRevision ?? "")}
-            onChange={(value) => update({ projectRevision: Number(value) || undefined })}
-            error={errors.project}
-          >
-            {!record && <option value="">Select a project revision</option>}
-            {snapshot.projects.filter((p) => !record || p.sha256 === record.project.sha256).map((p) => (
-              <option key={p.revision} value={p.revision}>
-                {p.project_id} · revision {p.revision}
-              </option>
-            ))}
-          </Select>
+          {record ? (
+            <Field label="Specification project revision" readOnly
+              value={record.project.project_id + " · revision " + record.project.revision} />
+          ) : (
+            <Select
+              label="Specification project revision"
+              value={String(form.projectRevision ?? "")}
+              onChange={(value) => update({ projectRevision: Number(value) || undefined })}
+              error={errors.project}
+            >
+              <option value="">Select a project revision</option>
+              {snapshot.projects.map((p) => (
+                <option key={p.revision} value={p.revision}>
+                  {p.project_id} · revision {p.revision}
+                </option>
+              ))}
+            </Select>
+          )}
           <Select
             label="Experiment type"
             value={form.experiment_type}

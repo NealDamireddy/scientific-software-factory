@@ -310,3 +310,62 @@ test("protected specification fields follow the pinned protocol and experiment t
   await editor.getByLabel("Specification project revision").selectOption("2");
   await expect(criteria).toHaveValue("Revised protocol threshold");
 });
+
+test("saved edits retain historical context and new specifications can choose either revision", async ({ page }) => {
+  await openTab(page, "Lab & project");
+  const lab = page.getByRole("form", { name: "Lab context" });
+  await lab.getByLabel("Lab name").fill("Revised assay lab");
+  await lab.getByRole("button", { name: "Save lab revision" }).click();
+  await expect(lab.getByRole("status")).toHaveText("Saved lab revision 2.");
+  const project = page.getByRole("form", { name: "Project context" });
+  // An unchanged project payload repeats its digest while the saved revision pins lab 2.
+  await project.getByRole("button", { name: "Save project revision" }).click();
+  await expect(project.getByRole("status")).toHaveText("Saved project revision 2.");
+
+  await openTab(page, "Specifications");
+  const editor = page.getByRole("region", { name: "Experiment specification" });
+  const saved = editor.getByLabel("Saved specification", { exact: true });
+  const revision = editor.getByLabel("Specification project revision");
+  const pinned = (label) => editor.getByText(label, { exact: true }).locator("+ dd");
+  const save = editor.getByRole("button", { name: "Save draft revision" });
+  const submit = editor.getByRole("button", { name: "Submit experiment" });
+  await saved.selectOption({ label: "spec-concentration · revision 1 · approved" });
+  const original = await saved.inputValue();
+  const oldLab = await pinned("Pinned lab").innerText();
+  const oldProject = await pinned("Pinned project").innerText();
+  const projectDigest = await pinned("Pinned project").locator("code").innerText();
+  await expect(revision).not.toBeEditable();
+  await editor.getByLabel("Sample IDs (one per line)").fill("historical-specimen");
+  await save.click();
+  await expect(editor.getByRole("status")).toHaveText("Saved unapproved draft revision 2.");
+  await expect(saved.locator("option:checked")).toHaveText("spec-concentration · revision 2 · draft");
+  await expect(pinned("Pinned lab")).toHaveText(oldLab);
+  await expect(pinned("Pinned project")).toHaveText(oldProject);
+  const edited = await saved.inputValue();
+  expect(edited).not.toBe(original);
+  await expect(submit).toBeDisabled();
+  await expect(editor.getByLabel("Confirm scientific fields for this revision")).not.toBeChecked();
+  await editor.getByLabel("Confirm scientific fields for this revision").check();
+  await editor.getByRole("button", { name: "Approve revision" }).click();
+  await expect(pinned("Approved digest")).toHaveText(edited);
+  await saved.selectOption(original);
+  await expect(pinned("Approved digest")).toHaveText(original);
+  await expect(editor.getByLabel("Sample IDs (one per line)")).not.toHaveValue("historical-specimen");
+
+  const ids = new Set(["spec-concentration"]);
+  for (const contextRevision of ["1", "2"]) {
+    await saved.selectOption({ label: "New specification" });
+    await revision.selectOption(contextRevision);
+    await editor.getByRole("button", { name: "Use project protocol" }).click();
+    await editor.getByLabel("Wavelength (nm)", { exact: true }).fill("650");
+    await save.click();
+    await expect(editor.getByRole("status")).toHaveText("Saved unapproved draft revision 1.");
+    const id = (await saved.locator("option:checked").innerText()).split(" · ")[0];
+    expect(ids.has(id)).toBe(false);
+    ids.add(id);
+    await expect(pinned("Pinned project")).toContainText("revision " + contextRevision + " ·");
+    await expect(pinned("Pinned project").locator("code")).toHaveText(projectDigest);
+    await expect(pinned("Pinned lab")).toContainText("revision " + contextRevision + " ·");
+    await expect(submit).toBeDisabled();
+  }
+});
