@@ -23,6 +23,9 @@ jobs:
       - name: Check saved context against fresh acquisition
         if: hashFiles('factory/specifications.py') != ''
         run: uv run --frozen python -c 'from tests.test_context_acquisition_integration import test_saved_project_context_drives_fresh_acquisition as check; check()'
+      - name: Verify the approved planner-to-publisher handoff for both experiments
+        if: hashFiles('factory/scientific_release.py') != ''
+        run: uv run --frozen python scripts/check_wo8_wo9_handoff.py HEAD HEAD
       - name: Require scheduler composition when the scheduler ships
         if: hashFiles('factory/experiment_scheduler.py') != ''
         run: |

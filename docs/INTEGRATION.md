@@ -4,12 +4,12 @@ Each implementation checkout belongs to one agent. Use `git worktree list` and c
 
 ## November 14 merge queue
 
-The audited base is `505c66b`, which includes WO-6 and WO-7 through PR #5. Land the integration checks first. The three implementation PRs have disjoint changed paths at their initial audited heads. The CI branch and WO-10 both edit the instrument API tests. WO-13 is in a separate worktree and edits the same npm manifests as CI. Reconcile the test command, Playwright version and lockfile before its build, then exercise the hosted workspace against WO-12. Their runtime dependencies cross files.
+The audited base is `505c66b`, which includes WO-6 and WO-7 through PR #5. Land the integration checks first. The three implementation PRs have disjoint changed paths at their initial audited heads. The CI branch and WO-10 both edit the instrument API tests. WO-13 is in a separate worktree and shares the npm manifests, Playwright config, browser test directory and ignore file with CI. Reconcile the test command, browser suites and lockfile before its build, then exercise the hosted workspace against WO-12. Their runtime dependencies cross files.
 
 | Order | PR and audited head | Handoff to check |
 | --- | --- | --- |
-| 1 | WO-8, #6, `5c7592b` | Immutable WO-6 context and profile pins → approved specification digest → compiled WO-7 recipe and fresh blank/job. Changes the shared settings validator in `factory/uvvis_contract.py`. The planner must retain unpublished candidates until a verifier accepts them. |
-| 2 | WO-9, #4, `e9de01c` | Planner candidate bytes, receipt, recipe digest and context → independent concentration/time-course verifier → immutable release manifest and scoped active pointer. Check a rejected candidate preserves the previous release. |
+| 1 | WO-8, #6, `4e783ab`, plus repair #9 at `e5f5cf4` | Immutable WO-6 context and profile pins → approved specification digest → compiled WO-7 recipe and fresh blank/job. Changes the shared settings validator in `factory/uvvis_contract.py`. The live worker must receive the exact reading fields and use frozen calibration for time courses. #9 corrects the contract that caused the first live candidates to be withheld. |
+| 2 | WO-9, #4, `deca34e` | Planner candidate bytes, receipt, recipe digest and context → independent concentration/time-course verifier → immutable release manifest and scoped active pointer. Check a rejected candidate preserves the previous release. |
 | 3 | WO-10, #7, `87f7b30` | Scheduler consumes the WO-8 approval, planner and acquisition services and the WO-9 verifier and release repository. Check FIFO leases, retry identity, blank reuse, timepoint job IDs, calibration identity and analysis with the verified release. Changes `factory/uvvis_adapter.py` and its API tests. |
 
 ## Before each merge
