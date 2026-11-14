@@ -16,12 +16,13 @@ import threading
 from urllib.parse import urlsplit
 import uuid
 
+from .b12_attempts import Attempt, now
 from . import b12_build
 from .archive import validate_archive
 from .context import ROOT, read_json
-from .optics import PROFILE, RECIPE, validate_preparation, acquire, assess, calibration_digest, fit_calibration, validate_recipe, verify_candidate
+from .optics import PROFILE, RECIPE, validate_preparation, acquire, calibration_digest, fit_calibration, validate_recipe, verify_candidate
 from .sandbox import execute
-from .followup import run_followup, replay_acquisition
+from .followup import _payload, run_followup, replay_acquisition
 
 
 def save(path, obj):
@@ -183,21 +184,55 @@ class Lab:
         self.update(task["id"], status="verified", views=read_json(folder/"views.json"))
 
     def collect(self, task_id):
-        folder = self.path(task_id)
-        recipe = validate_recipe(RECIPE)
-        calibration = fit_calibration(recipe, secrets.randbits(63))
-        # Separate blind label record. Neither the worker nor the analyst is given this file.
-        label = 30 + secrets.randbelow(9)
-        save(folder / "private.json", {"prepared_mg_l": label})
-        raw = acquire(recipe, label, secrets.randbits(63), sample_id="U-01")
-        finding = assess(raw, calibration)
-        payload = dict(sample_id="U-01", absorbances=finding["absorbances"],
-                       calibration={k: calibration[k] for k in ("id","slope","intercept","low","high")},
-                       preparation=None)
-        acquisition = dict(raw=raw, calibration=calibration, input=payload, finding=finding)
-        save(folder / "acquisition.json", acquisition)
-        self.update(task_id, acquisition_status="collected")
-        return acquisition
+        with self.lock:
+            task = self.task(task_id)
+            if task.get("parent_id"):
+                raise ValueError("Prepared samples require an approved follow-up")
+            folder = self.path(task_id)
+            path = folder / "acquisition.json"
+            history = task.get("acquisition_attempts")
+            if not history and path.exists():
+                # Historical direct acquisitions predate the attempt journal.
+                return read_json(path)
+            recipe = validate_recipe(RECIPE)
+            sample_id = task.get("sample_id", "U-01")
+            attempt, fresh = Attempt.open(self, task, sample_id=sample_id, settings=recipe)
+            status = attempt.record["status"]
+            if status in ("collected", "completed"):
+                return read_json(path)
+            if status == "acquiring" and not fresh:
+                attempt.interrupted()
+            if attempt.record["status"] in ("interrupted", "rejected"):
+                raise ValueError(attempt.record["failure"]["reason"])
+
+            field = "calibration"
+            try:
+                if fresh:
+                    calibration = fit_calibration(recipe, secrets.randbits(63))
+                    save(path, {"attempt_id": attempt.record["id"], "calibration": calibration})
+                    attempt.save("acquiring", calibration_id=calibration["id"])
+                    field = "acquisition"
+                    label = 30 + secrets.randbelow(9)
+                    save(folder / "private.json", {"prepared_mg_l": label})
+                    raw = acquire(recipe, label, secrets.randbits(63), sample_id=sample_id)
+                    attempt.acquired(raw)
+                else:
+                    calibration = read_json(path)["calibration"]
+                    if (calibration["id"] != attempt.record["calibration_id"]
+                            or calibration_digest(calibration) != calibration["id"]):
+                        raise ValueError("Frozen calibration digest mismatch")
+                field = "raw"
+                raw = attempt.record["raw"]
+                payload, finding = _payload(raw, calibration, sample_id, None, recipe)
+            except (ValueError, RuntimeError, KeyError, TypeError, ArithmeticError, AttributeError) as error:
+                attempt.reject(field, error)
+                raise ValueError(str(error)) from error
+
+            acquisition = dict(attempt_id=attempt.record["id"], raw=raw, calibration=calibration,
+                               input=payload, finding=finding)
+            save(path, acquisition)
+            attempt.save("collected", finding=finding)
+            return acquisition
 
     def generate(self, task_id):
         try:
@@ -234,17 +269,44 @@ class Lab:
         except Exception as error:
             self.update(task_id, status="failed", error=str(error)[:1800])
 
-    def rerun(self, task_id):
+    def rerun(self, task_id, *, retry_of=None):
         self.require_live(task_id)
         with self.lock:
             child = self.task(task_id)
             if child.get("status") != "verified" or not child.get("preparation") or not child.get("approval"):
                 raise ValueError("Both a recorded preparation and a verified revision are required")
-            if child.get("measurement"):
+            if child.get("measurement") and retry_of is None:
                 return child
+            if child.get("measurement") and not child.get("acquisition_attempts"):
+                raise ValueError("Completed historical measurements cannot be retried")
+
             parent = self.task(child["parent_id"])
-            measurement = run_followup(self.path(parent["id"]), self.path(task_id), parent, child)
-            return self.update(task_id, measurement=measurement, result=measurement["result"])
+            attempt, fresh = Attempt.open(
+                self, child, sample_id=child["preparation"].get("sample_id"), settings=RECIPE,
+                calibration_id=parent["result"]["calibration_id"], retry_of=retry_of)
+            if not fresh:
+                if attempt.record["id"] != child["acquisition_attempts"][-1]["id"]:
+                    # A repeated retry key selects its own successor. The live task
+                    # still points at the latest attempt, which may have succeeded.
+                    response = {key: value for key, value in child.items()
+                                if key not in ("measurement", "result", "score", "replay")}
+                    return {**response, "acquisition_attempt_id": attempt.record["id"],
+                            "acquisition_status": attempt.record["status"]}
+                if attempt.record["status"] == "acquiring":
+                    return attempt.interrupted()
+                if attempt.record["status"] != "acquired":
+                    return child
+
+            measurement = run_followup(self.path(parent["id"]), self.path(task_id), parent, child,
+                                       attempt=attempt)
+            if measurement is None:
+                return self.task(task_id)
+            if not measurement["finding"]["in_range"]:
+                return attempt.save("rejected", finding=measurement["finding"], finished_at=now(),
+                                    failure={"field": "range", "reason": "Follow-up outside frozen calibration"})
+            measurement["attempt_id"] = attempt.record["id"]
+            return attempt.save("completed", finished_at=now(), finding=measurement["finding"],
+                                task_fields={"measurement": measurement, "result": measurement["result"]})
 
     def reveal(self, task_id):
         self.require_live(task_id)
