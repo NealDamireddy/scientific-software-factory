@@ -11,14 +11,14 @@ import unittest
 from unittest.mock import patch
 
 from factory.approved_acquisition import ApprovedAcquisition
-from factory.context import digest
-from factory.context_repository import SQLiteContextRepository, canonical_json
+from factory.context_repository import SQLiteContextRepository
 from factory.specifications import ExperimentSpecificationService
 from factory.uvvis_adapter import InstrumentUnavailable, VirtualInstrumentAdapter
 from factory.uvvis_contract import InstrumentError
 from factory.uvvis_http import make_server
 from factory.uvvis_service import VirtualUvVisService
 from tests.test_context_repository import load_demo
+from tests.test_specifications import save_calibration_fixture
 from tests.test_uvvis_api import SAMPLES, until
 
 
@@ -98,9 +98,13 @@ def test_saved_project_context_drives_fresh_acquisition():
             records = measurements["records"]
             assert Counter(r["sample_id"] for r in records) == dict.fromkeys(selected, 3)
             assert [r["replicate"] for r in records if r["sample_id"] == unknown] == [1, 2, 3]
-            assert before <= datetime.fromisoformat(blank["timestamp"]) <= datetime.fromisoformat(job["started_at"])
+            started = datetime.fromisoformat(job["started_at"])
+            finished = datetime.fromisoformat(job["finished_at"])
+            assert before <= datetime.fromisoformat(blank["timestamp"]) <= started <= finished <= after
             for record in records:
-                assert before <= datetime.fromisoformat(record["timestamp"]) <= after
+                assert started <= datetime.fromisoformat(record["timestamp"]) <= finished
+                assert record["dark_counts"] == blank["dark_counts"]
+                assert record["blank_counts"] == blank["blank_counts"]
                 assert record["job_id"] == job_id and record["blank_id"] == blank["blank_id"]
                 assert record["elapsed_s"] >= 0 and record["simulated"] is True
                 assert record["wavelength_nm"] == 650 and record["path_length_mm"] == 10
@@ -131,11 +135,7 @@ class AcquisitionBoundaryTests(unittest.TestCase):
         for blank_id, error in ((other["blank_id"], "incompatible reference"),
                                 ("absent-reference", "unknown reference"), (reference["blank_id"], None)):
             with self.subTest(blank_id=blank_id):
-                calibration = {"id": "cal-1", "contract": "absorbance-linear@1",
-                               "settings": {k: spec["settings"][k] for k in ("wavelength_nm", "path_length_mm")},
-                               "unit": "mg/L", "blank_id": blank_id,
-                               **{k: spec["instrument"][k] for k in ("instrument_id", "profile_sha256")}}
-                calibration["sha256"] = digest(canonical_json(calibration).encode())
+                calibration = save_calibration_fixture(db, spec, id="cal-1", blank_id=blank_id)
                 spec = specs.edit(spec["sha256"], calibration=calibration, schedule={"interval_s": 5, "point_count": 3})
                 specs.approve(spec["sha256"], actor="local-researcher", confirmed_fields=specs.confirmation_fields(spec))
                 key = f"point-1-{blank_id}"

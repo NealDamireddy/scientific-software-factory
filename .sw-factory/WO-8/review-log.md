@@ -29,3 +29,23 @@ The specification and acquisition reviewer approved 99a4335 after running the fi
 Backend-only scope. The loopback instrument and verifier were real. Worker responses used fixtures; a live model generation rehearsal is separate. Scoped locks protect task ownership and allow recovery after process death. The host controls candidate paths, reads immutable revisions and retains verifier evidence. A transport retry reuses its saved acquisition request and job identity.
 
 Verdict: APPROVED
+
+## Round 3 — approval and integration review
+
+Reproduced the original failure at 5c7592b. A saved 201-character instrument ID passed review and persisted approval, then recipe compilation raised InstrumentError. At 8e47eb1 the review and compiler use the same acquisition-schema pin validator. A 200-character ID approves and compiles. A 201-character ID yields an instrument.instrument_id correction and stays draft.
+
+The service resolves a supplied calibration reference from the run service's SQLite store, recomputes the full canonical payload digest and matches the calibration identity, lab/project, instrument, profile, settings, units and blank. Missing and forged references fail before approval. Deleted and altered records fail at use. An independent reviewer exercised the actual WO-10 calibration writer, approved its result and compiled the pinned 650 nm time-course recipe.
+
+The required loopback acquisition test passed. Job 034fbcd15863420a92fbc6758ef6a587 produced 12 readings after the project changed to 450 nm. Each reading used the acquired reference's dark and blank counts, fell within the job's recorded start and finish, and retained the approved 650 nm setting.
+
+The reproducible fixture-worker handoff used WO-8 8e47eb156ba9afb2959b1b24fe9c7f2a9700191a and WO-9 ab6ad5e39a1d6b0c97cf6f91ccbfdfb779ef9e87. The real scientific-release@5 verifier passed 53 concentration checks and 49 time-course checks. Both sample-only edits reused the same release ID and source revision with zero worker calls. The report records every check name, category and status, the approved specification digests, release IDs, source revisions and composed Git tree. [Handoff report](handoff-report.json)
+
+Reproduce from a repository containing both commits, using the project's Python runtime on a supported offline sandbox host:
+
+```sh
+python scripts/check_wo8_wo9_handoff.py 8e47eb156ba9afb2959b1b24fe9c7f2a9700191a ab6ad5e39a1d6b0c97cf6f91ccbfdfb779ef9e87
+```
+
+Full discovery passed 89 tests under macOS Seatbelt. The archived B12 replay withheld the original estimate and reproduced 32.006829774391655 mg/L for the follow-up. Python compileall and git diff --check passed.
+
+Independent review verdict: APPROVED
