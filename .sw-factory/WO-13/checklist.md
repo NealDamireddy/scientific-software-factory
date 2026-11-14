@@ -59,4 +59,4 @@
 - [x] Review log is complete (`review-log.md`)
 - [x] Implementation plan was followed (`implementation-plan.md`)
 - [x] All intended files are present in the working tree
-- [ ] Work order status updated to `in_review`
+- [x] Work order status updated to `in_review`

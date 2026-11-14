@@ -3,7 +3,7 @@
 # Work Order Entity Index: WO-13
 
 **Initialized At (UTC):** 2026-11-14T19:27:05Z
-**Current Status:** in_progress
+**Current Status:** in_review
 
 ## Work Order
 
@@ -34,7 +34,7 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/wo-13-researcher-workspace
-- Pull Request URL:
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/11
 
 ## Knowledge Base and producer handoffs
 
