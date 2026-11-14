@@ -106,3 +106,13 @@ This is a verifier coverage defect admitting scientifically invalid measurements
 WO-6 canonical/persisted context, WO-7 actual public acquisitions and WO-8 approvals/trusted recipe/real worker handoff remain separately recorded integration dependencies, not WO-9 approval blockers. Review is scoped to the PR line; current main's newly merged WO-6/7 integration is not claimed to have been retested here. No live model or unfinished browser/scheduling functionality is required to close this finding.
 
 **Final work-order verdict:** CHANGES_REQUESTED; not yet ready for approval because of the one reproduced positivity-verification gap. The two original blockers are closed. Preserve In Review. No merge, formal approval or Completed transition; only review evidence was appended.
+
+## Round 7 — Corrected-signal positivity
+
+Applied the Round 6 change in 67b2db2 and submitted it for independent re-review. On the reviewed implementation, deleting only the corrected-signal positivity guard and re-signing the candidate promoted both releases (51/51 and 47/47). The three published detector triples produced unflagged estimates of 5.157894736842106 mg/L and 8.25 mg/L respectively.
+
+Verifier scientific-release@4 adds one wholly affected group and one group with a single affected replicate. All raw counts are in range. Reversing both corrected signals retains the exact positive transmission ratio, isolating the defect from detector bounds and the logarithm's domain. Against the same candidate, both contracts now fail exactly those two challenges. A good candidate passes 53 concentration checks or 49 time-course checks.
+
+- The retained release withheld the affected concentration and SD, recorded a nonempty review reason and preserved the other rows and their timestamps. Rejection preserved the active pointer, manifest and artifact bytes.
+- Full unittest discovery passed 63/63 under macOS Seatbelt in 67.554 seconds. The B12 archive replay withheld U-01 and reproduced 32.006829774391655 mg/L for the twofold follow-up. Compilation and whitespace checks passed. Discovery emitted the pre-existing HTTP and SQLite resource warnings.
+- An independent scoped code review verified the challenge ratios, re-signed mutation, group-specific behavior and complete blocked reports, and found no outstanding positivity blocker. PR #4 and WO-9 remain available for independent re-review.
