@@ -12,3 +12,4 @@ runs/
 *.egg-info/
 public/runtime/
 .vercel
+test-results/
