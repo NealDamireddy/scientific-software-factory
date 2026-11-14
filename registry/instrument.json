@@ -1,0 +1,45 @@
+{
+  "id": "epr-01",
+  "name": "X-band CW-EPR",
+  "model": "SSF CW simulator v1",
+  "manufacturer": "Scientific Software Factory (simulation)",
+  "environment": "File-only simulation · v1.0",
+  "interface": "Normalized CSV with acquisition JSON",
+  "formats": [
+    "CSV",
+    "JSON"
+  ],
+  "firmware": "No physical firmware",
+  "metadata": [
+    "sample_id",
+    "instrument",
+    "frequency_GHz",
+    "acquisition_mode",
+    "units",
+    "synthetic"
+  ],
+  "capabilities": {
+    "read-export": {
+      "status": "supported",
+      "reason": "Both registered fixtures use the local CSV reader."
+    },
+    "measure-linewidth": {
+      "status": "supported",
+      "reason": "The simulator exports a field-swept derivative trace."
+    },
+    "fit-curie": {
+      "status": "supported",
+      "reason": "The workspace includes a synthetic, pre-integrated intensity series with absolute temperatures."
+    },
+    "pulse-acquisition": {
+      "status": "unsupported",
+      "reason": "This file-only CW simulator has no pulse or acquisition interface."
+    },
+    "vendor-binary": {
+      "status": "unknown",
+      "reason": "No vendor binary parser has been qualified for this profile."
+    }
+  },
+  "reference": "https://www.cif.iastate.edu/files/inline-files/CW%20EPR%20Primer%28XenonSoftware%29.pdf",
+  "reference_scope": "Bruker primer §2.7 describes derivative linewidth and integration. Instrument identity, formats and capabilities here apply solely to the local simulator."
+}

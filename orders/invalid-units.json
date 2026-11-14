@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "id": "SSF-003",
+  "origin": "local",
+  "lab": "northfield",
+  "project": "curie",
+  "objective": "Fit integrated intensity against inverse absolute temperature to recover a Curie coefficient and background.",
+  "behavior": "Use statistics.linear_regression with x=1/T and y=integrated intensity. Return coefficient_au_K, background_au, and rmse_au. No weighting.",
+  "instrument": "epr-01",
+  "operations": [
+    "read-export",
+    "fit-curie"
+  ],
+  "input": {
+    "dataset": "temperature",
+    "units": {
+      "temperature": "°C",
+      "intensity": "a.u."
+    }
+  },
+  "parameters": {
+    "model": "I(T) = C/T + b",
+    "weights": "uniform",
+    "input": "pre-integrated intensity"
+  },
+  "acceptance": [
+    "curie-recovery"
+  ],
+  "verification": [
+    "metadata",
+    "units",
+    "schema",
+    "capabilities",
+    "reference",
+    "provenance"
+  ],
+  "review": [
+    "Assess model suitability, normalization, saturation and the comparability of integrated intensities across temperatures."
+  ]
+}

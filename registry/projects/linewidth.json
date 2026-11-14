@@ -1,0 +1,25 @@
+{
+  "id": "linewidth",
+  "name": "CW spectral linewidth",
+  "short": "Linewidth",
+  "description": "Measure peak-to-peak width and resonance center in an isolated CW-EPR derivative line.",
+  "dataset": "gaussian",
+  "columns": [
+    "field_mT",
+    "signal_au"
+  ],
+  "units": {
+    "field": "mT",
+    "signal": "a.u."
+  },
+  "operation": "measure-linewidth",
+  "parameters": {
+    "method": "sampled extrema",
+    "baseline": "zero",
+    "smoothing": "none"
+  },
+  "contract": "Return center_mT as the midpoint of the fields at maximum and minimum signal, and linewidth_mT as their absolute field separation.",
+  "reference": "derivative-extrema",
+  "human": "Confirm an isolated, well-resolved line and inspect baseline and field calibration.",
+  "lab": "northfield"
+}

@@ -1,0 +1,16 @@
+{
+  "id": "publication-v1",
+  "checks": [
+    "metadata",
+    "units",
+    "schema",
+    "capabilities",
+    "reference",
+    "provenance"
+  ],
+  "human": [
+    "Interpretation of the physical model",
+    "Transfer to measured spectra and instrument calibration"
+  ],
+  "scope": "Engineering reproducibility on synthetic fixtures"
+}

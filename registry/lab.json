@@ -1,0 +1,19 @@
+{
+  "id": "northfield",
+  "name": "Northfield Biophysics Lab",
+  "description": "Demonstration workspace for offline spin spectroscopy.",
+  "instrument": "epr-01",
+  "projects": [
+    "linewidth",
+    "curie"
+  ],
+  "standards": "publication-v1",
+  "approved_libraries": [
+    "Python standard library (csv, json, math, statistics)"
+  ],
+  "resources": [
+    "Deterministic synthetic reference fixtures",
+    "Normalized CSV interchange format",
+    "Publication evidence checklist"
+  ]
+}

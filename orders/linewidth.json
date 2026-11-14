@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "id": "SSF-001",
+  "origin": "local",
+  "lab": "northfield",
+  "project": "linewidth",
+  "objective": "Measure peak-to-peak width and resonance center in an isolated CW-EPR derivative line.",
+  "behavior": "Return center_mT as the midpoint of the fields at maximum and minimum signal, and linewidth_mT as their absolute field separation.",
+  "instrument": "epr-01",
+  "operations": [
+    "read-export",
+    "measure-linewidth"
+  ],
+  "input": {
+    "dataset": "gaussian",
+    "units": {
+      "field": "mT",
+      "signal": "a.u."
+    }
+  },
+  "parameters": {
+    "method": "sampled extrema",
+    "baseline": "zero",
+    "smoothing": "none"
+  },
+  "acceptance": [
+    "derivative-extrema"
+  ],
+  "verification": [
+    "metadata",
+    "units",
+    "schema",
+    "capabilities",
+    "reference",
+    "provenance"
+  ],
+  "review": [
+    "Confirm an isolated, well-resolved line and inspect baseline and field calibration."
+  ]
+}
