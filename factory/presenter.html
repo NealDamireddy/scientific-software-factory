@@ -49,7 +49,7 @@ details{margin-top:8px}summary{color:var(--leaf);font-weight:620;padding:3px 0}p
 <form id="requestForm">
 <label class="field" for="brief">PI request</label>
 <textarea id="brief" required maxlength="2000">Build an app that measures vitamin B12 in an unknown vial with our 550 nm spectrophotometer. Show the concentration in mg/L and flag readings outside calibration.</textarea>
-<button class="btn" id="generate" type="submit">Generate app</button>
+<button class="btn" id="generate" type="submit" disabled>Generate app</button>
 </form><p id="submissionMessage" class="msg" role="status"></p><p id="requestError" class="msg err" role="alert"></p>
 </section>
 <section class="panel" aria-labelledby="activeTitle" id="activePanel" hidden>
@@ -105,6 +105,7 @@ const terminal = status => status === 'verified' || status === 'failed';
 const records = new Map();
 let selectedId = null;
 let activeId = null;
+let allowGeneration = false;
 let fresh = false;
 let pollTimer;
 let sourceToken = 0;
@@ -165,7 +166,7 @@ function renderActive(task) {
 }
 function updateSubmit() {
   const active=records.get(activeId);
-  el('generate').disabled=Boolean(mutation || (active&&!terminal(active.status)));
+  el('generate').disabled=!allowGeneration || Boolean(mutation || (active&&!terminal(active.status)));
 }
 function renderChecks(checks,listId='checks',groupId='checkGroup') {
   el(listId).replaceChildren();
@@ -370,6 +371,7 @@ async function watch(id) {
 }
 el('requestForm').onsubmit=async event=>{
   event.preventDefault();
+  if(!allowGeneration)return;
   const brief=el('brief').value.trim();
   if(!brief){write('requestError','Enter the scientific objective.');el('brief').focus();return;}
   el('generate').disabled=true;write('requestError','');write('submissionMessage','Submitting to the local worker…');
@@ -381,7 +383,14 @@ el('requestForm').onsubmit=async event=>{
 };
 async function initialize() {
   try{
-    const {tasks}=await api('/api/tasks');
+    const {tasks,allow_generation}=await api('/api/tasks');
+    allowGeneration=allow_generation!==false;
+    show('requestForm',allowGeneration);
+    if(!allowGeneration){
+      write('requestTitle','Archive-only presenter');
+      write('submissionMessage','Select a previous run to inspect its source, replay its readings or download its evidence.');
+    }
+    updateSubmit();
     for(const task of tasks||[])if(!records.has(task.id))records.set(task.id,task);
     renderHistory();
     if(activeId)return;

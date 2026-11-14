@@ -52,6 +52,25 @@ class ArchiveTests(unittest.TestCase):
                 self.lab.submit("Measure B12 at 550 nm")
             worker.assert_not_called()
 
+    def test_archive_only_ignores_live_store_even_when_running_or_ids_overlap(self):
+        store = Path(self.temp.name) / "presenter"
+        live = Lab(store)
+        self.addCleanup(live.close)
+        active_id = "a" * 32
+        for identifier in (active_id, self.child):
+            folder = store / identifier
+            folder.mkdir()
+            (folder / "task.json").write_text('{"status":"generating"}')
+        previous = Lab(store, archive=self.bundle, allow_generation=False)
+        self.addCleanup(previous.close)
+        self.assertEqual({t["id"] for t in previous.history()}, {self.direct, self.child})
+        self.assertTrue(previous.task(self.child)["archived"])
+        self.assertEqual(previous.evidence(self.child), self.bundle)
+        with self.assertRaises(FileNotFoundError):
+            previous.task(active_id)
+        for identifier in (active_id, self.child):
+            self.assertEqual(read_json(store / identifier / "task.json"), {"status": "generating"})
+
     def test_replay_reexecutes_without_changing_retained_evidence(self):
         with patch("factory.replay_bundle.replay_package") as replay:
             self.assertTrue(self.lab.replay(self.child)["replay"]["parent_matches"])
@@ -107,6 +126,8 @@ class ArchiveTests(unittest.TestCase):
         self.addCleanup(thread.join)
         self.addCleanup(server.shutdown)
         base = f"http://127.0.0.1:{port}"
+        with urlopen(base + "/api/tasks") as response:
+            self.assertFalse(json.load(response)["allow_generation"])
         for suffix in ("", "/source", "/evidence"):
             with urlopen(base + "/api/tasks/" + self.child + suffix) as response:
                 self.assertEqual(response.status, 200)

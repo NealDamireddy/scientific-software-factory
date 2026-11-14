@@ -75,8 +75,14 @@ def check_archive(path):
 
 
 def check_port(port):
-    with socket.socket() as probe:
-        probe.bind(("127.0.0.1", port))
+    try:
+        with socket.socket() as probe:
+            # Match the presenter's immediate restart behavior after a connection closes.
+            probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            probe.bind(("127.0.0.1", port))
+            probe.listen()
+    except OSError as error:
+        raise RuntimeError(f"Cannot bind loopback port {port}. Stop the previous presenter with Ctrl+C or choose --port with another unused port") from error
     return "Loopback port is available"
 
 
@@ -93,7 +99,7 @@ def readiness(port, archive_path, *, archive_only=False):
             checks.append(("FAIL" if required else "WARN", name, str(error)))
             return False
 
-    run("Python", lambda: check_python())
+    run("Python", check_python)
     dependencies = run("Dependencies", check_dependencies)
     if dependencies:
         try:
@@ -139,7 +145,8 @@ def main(argv=None):
     for status, name, detail in checks:
         print(f"{status:4} {name}: {detail}", flush=True)
     if any(status == "FAIL" for status, _, _ in checks):
-        print("Demo not ready. Resolve the failures above. For read-only fallback, use --archive-only.", flush=True)
+        print("Demo not ready. Resolve the failures above." +
+              (" For read-only fallback, use --archive-only." if not args.archive_only else ""), flush=True)
         return 1
     if args.check:
         return 0
