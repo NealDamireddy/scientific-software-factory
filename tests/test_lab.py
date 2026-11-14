@@ -44,16 +44,16 @@ class TaskTests(unittest.TestCase):
             self.assertFalse((self.store/"analysis.py").exists())
 
     def test_approval_reuses_child_and_retry_preserves_preparation(self):
-        parent_id = "f" * 32
+        from factory.context import ROOT, read_json
+        from factory.lab import save
+        bundle = read_json(ROOT / "public/b12/completed.json")
+        parent_id = bundle["direct"]["id"]
         parent = self.store/parent_id
         parent.mkdir()
-        for name in b12_build.FILES:
-            (parent/name).write_text("example")
-        from factory.lab import save
-        save(parent/"task.json", dict(id=parent_id, created="2026-11-01", status="verified",
-                                      revision=b12_build.revision(parent),
-                                      finding={"above_range": True,"absorbances":[0.2]*3}))
-        save(parent/"acquisition.json", {"calibration":{"high":0.15}})
+        for name, source in bundle["sources"][parent_id]["files"].items():
+            (parent/name).write_text(source)
+        save(parent/"task.json", bundle["direct"])
+        save(parent/"acquisition.json", bundle["initial"])
         with patch.object(self.lab.pool,"submit") as enqueue:
             child = self.lab.approve(parent_id)
             self.assertEqual(self.lab.approve(parent_id)["id"], child["id"])
