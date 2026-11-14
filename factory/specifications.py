@@ -9,7 +9,7 @@ from uuid import uuid4
 
 from .context import digest
 from .context_repository import ContextRepository, RevisionConflict, canonical_json
-from .uvvis_contract import load_profile, profile_sha256, settings_issues, validate, validate_settings
+from .uvvis_contract import InstrumentError, load_profile, profile_sha256, settings_issues, validate, validate_settings
 
 TYPES = ("concentration", "time_course")
 _EDITABLE = {"settings", "sample_ids", "standards", "calibration", "schedule", "experiment_type"}
@@ -32,6 +32,18 @@ def _identifier(value):
 
 def _number(value):
     return type(value) in (float, int) and -float("inf") < value < float("inf")
+
+
+def _recipe_pin(instrument, profile):
+    """Project the saved instrument onto the exact pin the adapter will receive."""
+    pin = {"schema_version": 1, **{k: instrument.get(k) for k in
+                                  ("instrument_id", "profile_id", "profile_sha256")}}
+    validate("pin", pin)
+    if pin["profile_id"] != profile["profile_id"]:
+        raise InstrumentError("profile_id", "Select the registered virtual UV–Vis profile.")
+    if pin["profile_sha256"] != profile_sha256(profile):
+        raise InstrumentError("profile_sha256", "Select the registered virtual UV–Vis profile digest.")
+    return pin
 
 
 def _check_samples(spec, errors):
@@ -59,7 +71,8 @@ def _check_samples(spec, errors):
         errors["sample_ids"] = "Acquisition supports at most 100 combined samples and standards."
 
 
-def _check_calibration(spec, errors):
+def _calibration_issue(spec, db_path):
+    """Resolve the approved reference against the local run service's frozen calibration."""
     ref = spec["calibration"]
     if ref is None and spec["experiment_type"] != "time_course":
         return
@@ -67,13 +80,38 @@ def _check_calibration(spec, errors):
     if (not isinstance(ref, dict) or set(ref) != required or not _identifier(ref["id"])
             or not _identifier(ref["blank_id"])
             or not isinstance(ref["sha256"], str) or not re.fullmatch("[0-9a-f]{64}", ref["sha256"])):
-        errors["calibration"] = "Supply a frozen calibration identity, digest, blank_id, contract, units and instrument settings."
-        return
+        return "Supply a frozen calibration identity, digest, blank_id, contract, units and instrument settings."
     settings = spec["settings"] if isinstance(spec["settings"], dict) else {}
     if (ref["contract"] != "absorbance-linear@1" or ref["unit"] != spec["units"].get("concentration")
             or any(ref[k] != spec["instrument"][k] for k in ("instrument_id", "profile_sha256"))
             or ref["settings"] != {k: settings.get(k) for k in ("wavelength_nm", "path_length_mm")}):
-        errors["calibration"] = "Calibration contract, instrument, units or optical settings are incompatible."
+        return "Calibration contract, instrument, units or optical settings are incompatible."
+
+    # Only the run service writes run_calibrations. An installation which has
+    # never frozen a fit has no table yet.
+    with closing(sqlite3.connect(db_path)) as db:
+        exists = db.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name='run_calibrations'").fetchone()
+        row = db.execute("SELECT payload FROM run_calibrations WHERE sha256=?", (ref["sha256"],)).fetchone() if exists else None
+    if row is None:
+        return "Select an existing frozen calibration from this project."
+    try:
+        record = json.loads(row[0])
+        actual_digest = digest(canonical_json(record).encode())
+        if not isinstance(record, dict) or actual_digest != ref["sha256"]:
+            return "Frozen calibration differs from its pinned digest."
+        expected = {
+            **{k: ref[k] for k in ("id", "contract", "unit", "blank_id", "instrument_id", "profile_sha256")},
+            **ref["settings"], "lab_id": spec["lab"]["lab_id"], "project_id": spec["project"]["project_id"],
+            "profile_id": spec["instrument"]["profile_id"],
+        }
+        if any(record.get(k) != value for k, value in expected.items()):
+            return "Frozen calibration differs from the approved reference or project."
+        if (not all(_number(record.get(k)) for k in ("slope", "intercept", "low", "high"))
+                or record["slope"] <= 0 or record["low"] >= record["high"]):
+            return "Frozen calibration has no usable linear fit."
+    except (TypeError, ValueError):
+        return "Frozen calibration payload is invalid."
+    return None
 
 
 def _check_schedule(spec, errors):
@@ -174,8 +212,7 @@ class ExperimentSpecificationService:
         fields.update(k for k in ("standards", "calibration", "schedule") if spec[k])
         return sorted(fields)
 
-    @staticmethod
-    def unresolved(spec):
+    def unresolved(self, spec):
         errors = {}
         if spec["experiment_type"] not in TYPES:
             errors["experiment_type"] = "Unsupported experiment type: no verification contract."
@@ -184,16 +221,18 @@ class ExperimentSpecificationService:
             if spec["units"].get(key) != unit:
                 errors[f"units.{key}"] = f"The v1 contract requires {unit}."
         profile = load_profile()
-        pin = spec["instrument"]
-        if pin["profile_id"] != profile["profile_id"] or pin["profile_sha256"] != profile_sha256(profile):
-            errors["instrument"] = "This recipe requires the pinned virtual UV–Vis profile."
+        try:
+            _recipe_pin(spec["instrument"], profile)
+        except InstrumentError as issue:
+            errors[f"instrument.{issue.field}"] = issue.reason
         settings = spec["settings"]
         for issue in settings_issues(settings, profile):
             field = f"settings.{issue.field}" if issue.field != "settings" else "settings"
             errors.setdefault(field, issue.reason)
         _check_samples(spec, errors)
         _check_schedule(spec, errors)
-        _check_calibration(spec, errors)
+        if issue := _calibration_issue(spec, self.path):
+            errors["calibration"] = issue
         return errors
 
     def approve(self, sha, *, actor, confirmed_fields):
@@ -219,6 +258,8 @@ class ExperimentSpecificationService:
                                 FROM specification_approvals WHERE digest=?""", (sha,)).fetchone()
         if row is None:
             raise ValueError("Specification revision requires approval")
+        if issue := _calibration_issue(spec, self.path):
+            raise ValueError(f"calibration: {issue}")
         return spec, {"actor": row[0], "approved_at": row[1], "confirmed_fields": json.loads(row[2]),
                       "specification_sha256": sha}
 
@@ -227,8 +268,8 @@ class ExperimentSpecificationService:
         settings = spec["settings"].copy()
         for key in ("wavelength_nm", "path_length_mm", "replicates"):
             settings[key] = int(settings[key])
-        recipe = {"schema_version": 1, **{k: spec["instrument"][k] for k in
-                                          ("instrument_id", "profile_id", "profile_sha256")}, "settings": settings}
+        profile = load_profile()
+        recipe = {**_recipe_pin(spec["instrument"], profile), "settings": settings}
         validate("blank_request", recipe)
-        validate_settings(settings, load_profile())
+        validate_settings(settings, profile)
         return recipe
