@@ -23,11 +23,12 @@ from tests.test_uvvis_api import SAMPLES, until
 
 
 @contextmanager
-def live_instrument(store, instrument, standards):
+def live_instrument(store, instrument, standards, *, duration_s=0):
     # Public standard concentrations and simulator-only models are loaded on the instrument side.
     models = {**SAMPLES, **{s["sample_id"]: {"concentration_mg_l": s["known_concentration"]}
                             for s in standards}}
-    with closing(VirtualUvVisService(store, models, duration_s=0)) as service, make_server(service) as server:
+    with closing(VirtualUvVisService(store, models, duration_s=duration_s,
+                                     instrument_id=instrument["instrument_id"])) as service, make_server(service) as server:
         thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01})
         thread.start()
         try:

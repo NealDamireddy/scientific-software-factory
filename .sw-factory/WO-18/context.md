@@ -3,7 +3,7 @@
 # Work Order Entity Index: WO-18
 
 **Initialized At (UTC):** 2026-11-14T21:06:18Z
-**Current Status:** Backlog (Factory tracker). The independent engineering review approved the lane. Automatic approval review rejected the tracker transition, and the coordinator confirmed that publication approval excludes status changes.
+**Current Status:** Backlog (Factory tracker). Independent engineering review approved the amended lane for 8090 re-evaluation after the two P2 findings on 0db1044. Automatic approval review rejected the tracker transition, and the coordinator confirmed that publication approval excludes status changes.
 
 ## Work Order
 

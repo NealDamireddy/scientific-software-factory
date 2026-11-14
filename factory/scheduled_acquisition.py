@@ -104,7 +104,7 @@ class ScheduledAcquisition:
         self._save(series)
 
     def _point_report(self, job_id, *, cancel=False):
-        read = self.adapter.cancel if cancel else self.adapter.poll
+        read = self.acquisition.cancel if cancel else self.acquisition.poll
         report = read(job_id)
         if (report["job_id"] != job_id
                 or report["status"] not in {"running", "completed", "cancelled", "interrupted"}):
@@ -227,7 +227,7 @@ class ScheduledAcquisition:
         points = []
         for point in series["points"]:
             if point["job_id"]:
-                data = self.adapter.measurements(point["job_id"])
+                data = self.acquisition.measurements(point["job_id"])
                 if data["job_id"] != point["job_id"] or any(r["job_id"] != data["job_id"] for r in data["records"]):
                     raise ValueError("Measurement belongs to a different remote point")
                 if point["status"] == "completed" and (not data["complete"] or

@@ -68,3 +68,38 @@ Two early 150-test runs and one 58-test run collided with another process holdin
 The final coordinated run passed all 150 discovered tests in 83.355 seconds, zero skips (Python 3.14.9, macOS). See exclusive-full-suite.txt. This includes all 58 lane-focused tests, actual saved-context acquisition, scheduler restart, scientific sandbox composition, B12 and EPR Python regressions. Source compilation and base-relative whitespace checks passed. The 2-second body deadline applies after headers have been parsed. Handling a slow or unfinished header is outside WO-18.
 
 **Final independent engineering verdict: APPROVED.** PR #16 is a lane review branch. The five-lane aggregate checks are outstanding; the user requested that branches stay separate. The Factory tracker still shows Backlog. Approval review rejected the requested move to In Progress, and publication authority excludes status transitions.
+
+## Round 3 — independent 8090 evaluation of 0db1044
+
+**CHANGES_REQUESTED.** The evaluator reproduced a complete envelope on cancelled/interrupted snapshots, an empty job accepted as complete and 600 nm returned under the 650 nm-capable fixture's original pin. Jointly altered job/records exposed a gap in comparisons with the approved request. The demonstrated impact was adapter acceptance. Downstream publication of an incorrect scientific result was not demonstrated. The evaluator requested HTTP regression coverage, including a real running-to-completed transition and persisted approved request checks across restart.
+
+## Round 4 — review of both P2 repairs
+
+### Lifecycle and approval boundaries
+
+- A complete result requires a completed job and the complete nonempty sample/replicate set. An initially running job may finish between the guarded HTTP reads. The adapter confirms completion and immutable fields with a second guarded poll. Real completion during the test was accepted; cancelled, interrupted, still-running and mutated follow-up reports were rejected as InstrumentUnavailable. Legitimate partial records remain readable.
+- Submitted and returned job sample lists use the same schema (1–100 unique sample IDs). Returned job settings must match the verified live profile, including the supported operation, wavelength, path length and replicate range.
+- ApprovedAcquisition reads the persisted request by its unique remote job ID. The adapter checks immutable request fields before accepting a job or its measurements or sending cancellation. Single-job scheduling, scheduled timepoints and historical fit revalidation use this path after restart. Unbound raw clients can pass the trusted expected_request explicitly. An unbound raw client without that input can validate profile and consistency only.
+- No database migration or wire negotiation was introduced. The coordinator approved the narrow approval and scheduler interface changes before editing. The server-first upgrade remains necessary for the guarded lifecycle routes on older servers. Original-version behavior is exercised using the actual pinned server and client.
+
+### Reproduction and review evidence
+
+See p2-reproductions.txt for prior failures. The adapter worker reproduced the contradictory terminal and empty complete cases and a jointly altered 600 nm job/record set. The approvals worker reproduced consistent substitution of a different supported wavelength (650→450), samples and blank across a reopened backend, plus an owner-observed unwanted cancellation from a time course. The lead reproduced a reordered sample list accepted by historical fit revalidation. The corrected historical path withholds the validation receipt and resumes successfully with the original source. No scientific-result corruption was established.
+
+The independent reviewer inspected the adapter, approval repository, scheduler routing, schema and regression paths and reran all 10 new real-loopback tests. Their verdict was APPROVED. The lead checked the implementation diff, the historical calibration path and the existing scheduler reconciliation behavior. The server still validates the owning instrument and job under its lock before cancellation. Job requests in the simulator store are immutable and validated at submission.
+
+### Verification commands
+
+```sh
+python -m unittest tests.test_uvvis_job_validation tests.test_uvvis_identity -v
+python -m unittest tests.test_uvvis_approved_identity tests.test_scheduled_acquisition -v
+python -m unittest tests.test_experiment_composition.CompositionTests.test_only_valid_known_standards_can_publish_a_fit -v
+python -m unittest discover -s tests -v
+python .sw-factory/WO-18/check_compatibility.py
+python -m compileall -q factory tests
+git diff --check
+```
+
+The adapter/identity suites passed 19 tests and the approval/time-course suites passed 10. The full suite passed all 160 tests in 82.226 seconds with zero skips on macOS (Python 3.14.9). The actual pinned older service rejected guarded cancellation with HTTP 404, and its owning client still observed the running job. The original unqualified client successfully submitted, polled, cancelled and retrieved incomplete results from the updated server. Compilation and diff checks passed.
+
+Repeat these checks if the implementation or integration base changes. The original seven acceptance criteria and their evidence map above remain applicable. The separate five-lane combined-tree gate is outstanding. Engineering verdict for the two new findings: **APPROVED for independent 8090 re-evaluation**.

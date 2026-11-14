@@ -60,3 +60,13 @@
 - [x] All intended files are present in the working tree
 - [SKIP] Work order status updated to `in_review`
   Skip reason: Automatic approval review rejected the tracker transition. The coordinator confirmed status updates are outside the subsequent publication approval. Factory remains in Backlog.
+
+
+## Reopened after independent evaluation of 0db1044
+
+- [x] Read the two P2 findings, refresh Factory context and inspect the persisted approval and lifecycle entry points.
+- [x] Reproduce the terminal-state, sample list, settings and durable request issues on the reviewed head.
+- [x] Agree the optional expected_request interface and approval/series/calibration touchpoints with the coordinator.
+- [x] Review implementation and exercise each reproduction plus positive controls.
+- [x] Run the full regression, saved-context/scheduler and original-version compatibility checks.
+- [x] Obtain an independent code review and record the results.

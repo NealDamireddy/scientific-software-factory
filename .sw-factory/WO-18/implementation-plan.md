@@ -14,3 +14,9 @@ The trusted adapter binds the lifecycle of each simulated acquisition to the ins
 - Run the new lifecycle and deadline regressions against the pinned production code first. Save failing output. Exercise the real HTTP server with correct and mismatched adapters, incomplete bytes, a held-open client and post-shutdown lock reacquisition.
 - Exercise a saved-context scheduler through a real adapter with an accepted but unverifiable response. Restart with the stored dispatch key and compare actual simulator job rows. Run the existing UV–Vis API/profile, saved-context, scheduler, time-course and composition suites.
 - Compile Python, inspect diff, run the supported Python regression suite, and collect lane PR CI. Repeat saved-context acquisition, scheduler reconciliation, composition and full integration gates on the combined WO-15–19 checkout. WO-14 is deferred.
+
+## Independent 8090 review of 0db1044
+
+Reproduce cancelled/interrupted complete envelopes, empty/duplicate/oversize sample lists and settings outside the pinned profile using real HTTP. Validate returned jobs before accepting status or records. Confirm a complete envelope after a running snapshot by polling the same job again with the immutable request fields. For approved operations, fetch the persisted canonical wire request through the existing unique job ID and compare its pins, ordered samples, settings and blank at every lifecycle operation, including after restart. Route single jobs, scheduled points and historical fit revalidation through that boundary. Keep direct raw adapter calls working without an application database.
+
+Test a real transition to completion between the two HTTP reads, forged terminal results, unsupported settings and jointly substituted but supported approved values. Re-run the prior identity, timeout, scheduler, calibration, compatibility, full Python and hosted CI checks. Retain server-first rollout; cross-version negotiation is outside these two findings.
