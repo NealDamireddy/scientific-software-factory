@@ -3,7 +3,7 @@
 # Work Order Entity Index: WO-8
 
 **Initialized At (UTC):** 2026-11-14T19:04:26Z
-**Current Status:** in_progress
+**Current Status:** in_review
 
 ## Work Order
 
@@ -33,6 +33,6 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/wo-8-approved-preparation
-- Pull Request URL:
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/6
 
 Knowledge Base: Plan (9f095369-805b-4489-bc06-961275cbc2cd). Retain the worker receipt, bound candidate files and verified parent source. The instrument owns simulation and measurements, the application owns approval, and the verifier owns promotion.

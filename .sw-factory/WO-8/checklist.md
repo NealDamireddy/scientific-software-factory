@@ -58,4 +58,6 @@
 - [x] Review log is complete (`review-log.md`)
 - [x] Implementation plan was followed (`implementation-plan.md`)
 - [x] All intended files are present in the working tree
-- [ ] Work order status updated to `in_review`
+- [x] Work order status updated to `in_review`
+
+8090 applied the PR link and In Review status. Evidence comment thread: e98e0ab1-f3f3-44d0-b912-a545c5a8eb71.
