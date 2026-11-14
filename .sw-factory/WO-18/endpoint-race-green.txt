@@ -1,0 +1,39 @@
+Corrected adapter and instrument. python3 -m unittest tests.test_uvvis_identity -v
+Wire excerpts from route replacement and the legacy cancel-route fixture
+
+test_serving_instance_changes_after_preflight (tests.test_uvvis_identity.LifecycleIdentityTests.test_serving_instance_changes_after_preflight) ... 127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/acquisitions/1cb7b7f255044cbc8bace89f3d60d450 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/acquisitions/1cb7b7f255044cbc8bace89f3d60d450/measurements HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/acquisitions/1cb7b7f255044cbc8bace89f3d60d450?pin_sha256=66edd0e0686788fdc348b41184d538907c5abcd8b035147bc37e461be39bfb03 HTTP/1.1" 409 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/acquisitions/1cb7b7f255044cbc8bace89f3d60d450?pin_sha256=66edd0e0686788fdc348b41184d538907c5abcd8b035147bc37e461be39bfb03 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/acquisitions/1cb7b7f255044cbc8bace89f3d60d450?pin_sha256=66edd0e0686788fdc348b41184d538907c5abcd8b035147bc37e461be39bfb03 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/acquisitions/1cb7b7f255044cbc8bace89f3d60d450/measurements?pin_sha256=66edd0e0686788fdc348b41184d538907c5abcd8b035147bc37e461be39bfb03 HTTP/1.1" 409 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/acquisitions/1cb7b7f255044cbc8bace89f3d60d450?pin_sha256=66edd0e0686788fdc348b41184d538907c5abcd8b035147bc37e461be39bfb03 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/acquisitions/1cb7b7f255044cbc8bace89f3d60d450?pin_sha256=66edd0e0686788fdc348b41184d538907c5abcd8b035147bc37e461be39bfb03 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "POST /v1/acquisitions/1cb7b7f255044cbc8bace89f3d60d450/cancel?pin_sha256=66edd0e0686788fdc348b41184d538907c5abcd8b035147bc37e461be39bfb03 HTTP/1.1" 409 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/acquisitions/1cb7b7f255044cbc8bace89f3d60d450?pin_sha256=66edd0e0686788fdc348b41184d538907c5abcd8b035147bc37e461be39bfb03 HTTP/1.1" 200 -
+ok
+
+test_owned_cancel_fails_closed_on_a_legacy_cancel_route (tests.test_uvvis_identity.LifecycleIdentityTests.test_owned_cancel_fails_closed_on_a_legacy_cancel_route) ... 127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/acquisitions/e867b538b28e4280920570e6af7cd5a9?pin_sha256=66edd0e0686788fdc348b41184d538907c5abcd8b035147bc37e461be39bfb03 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "POST /v1/acquisitions/e867b538b28e4280920570e6af7cd5a9/cancel?pin_sha256=66edd0e0686788fdc348b41184d538907c5abcd8b035147bc37e461be39bfb03 HTTP/1.1" 404 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:27] "GET /v1/acquisitions/e867b538b28e4280920570e6af7cd5a9?pin_sha256=66edd0e0686788fdc348b41184d538907c5abcd8b035147bc37e461be39bfb03 HTTP/1.1" 200 -
+ok
+
+Ran 12 tests in 0.311s
+
+OK

@@ -71,7 +71,7 @@ class LocalExperimentBackend:
             raise ValueError("Frozen calibration requires revalidation from its original standard readings")
         trace = self.acquisitions.get(row[0])
         spec, _ = self.specs.approved(trace["specification_sha256"])
-        readings = self.instrument.measurements(job_id)
+        readings = self.acquisitions.measurements(job_id)
         if (spec["experiment_type"] != "concentration" or readings["job_id"] != job_id
                 or trace["request"]["blank_id"] != cal["blank_id"]):
             raise ValueError("Frozen calibration differs from its approved source job")
@@ -145,7 +145,7 @@ class LocalExperimentBackend:
         return trace["job_id"]
 
     def _remote(self, job_id):
-        return self.series if job_id.startswith("series:") else self.instrument
+        return self.series if job_id.startswith("series:") else self.acquisitions
 
     def poll(self, job_id):
         return self._remote(job_id).poll(job_id)

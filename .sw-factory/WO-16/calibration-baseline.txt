@@ -1,0 +1,50 @@
+Source snapshot b97086482369346985c0aae3de2666208dc378ba
+Initial detector fault regressions on isolated source using real task storage and loopback HTTP.
+
+test_invalid_first_blank (tests.test_b12_checkpoints.CalibrationCheckpointTests.test_invalid_first_blank) ... 127.0.0.1 - - [14/Nov/2026 13:36:50] "GET /api/tasks/c335ac942d784fc1bba8fc299db737a8 HTTP/1.1" 200 -
+ERROR
+test_later_standard_retains_all_preceding_readings (tests.test_b12_checkpoints.CalibrationCheckpointTests.test_later_standard_retains_all_preceding_readings) ... 127.0.0.1 - - [14/Nov/2026 13:36:50] "GET /api/tasks/4f2e9eb85a614ca8835531ef8ff9a32d HTTP/1.1" 200 -
+ERROR
+test_saturated_first_standard (tests.test_b12_checkpoints.CalibrationCheckpointTests.test_saturated_first_standard) ... 127.0.0.1 - - [14/Nov/2026 13:36:50] "GET /api/tasks/89ac5de79d02443ea67612196fea2574 HTTP/1.1" 200 -
+ERROR
+
+======================================================================
+ERROR: test_invalid_first_blank (tests.test_b12_checkpoints.CalibrationCheckpointTests.test_invalid_first_blank)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tests/test_b12_checkpoints.py", line 15, in test_invalid_first_blank
+    self.check_standard_rejection(0, "blank")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "tests/test_b12_checkpoints.py", line 49, in check_standard_rejection
+    self.assertEqual(attempt["calibration_standards"], observed)
+                     ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'calibration_standards'
+
+======================================================================
+ERROR: test_later_standard_retains_all_preceding_readings (tests.test_b12_checkpoints.CalibrationCheckpointTests.test_later_standard_retains_all_preceding_readings)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tests/test_b12_checkpoints.py", line 18, in test_later_standard_retains_all_preceding_readings
+    self.check_standard_rejection(2, "saturated")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "tests/test_b12_checkpoints.py", line 49, in check_standard_rejection
+    self.assertEqual(attempt["calibration_standards"], observed)
+                     ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'calibration_standards'
+
+======================================================================
+ERROR: test_saturated_first_standard (tests.test_b12_checkpoints.CalibrationCheckpointTests.test_saturated_first_standard)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "tests/test_b12_checkpoints.py", line 12, in test_saturated_first_standard
+    self.check_standard_rejection(0, "saturated")
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "tests/test_b12_checkpoints.py", line 49, in check_standard_rejection
+    self.assertEqual(attempt["calibration_standards"], observed)
+                     ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyError: 'calibration_standards'
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.083s
+
+FAILED (errors=3)

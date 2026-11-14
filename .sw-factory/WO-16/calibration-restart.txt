@@ -1,0 +1,8 @@
+Opening 1, attempt 2eac7ad4a930474892ec0a34fb316bf2, rejected, {'field': 'calibration', 'reason': 'Saturated detector'}, polls: 3 standard acquisitions
+3 mg/L (dark, blank, sample): [(85, 49991, 47835), (118, 49998, 47842), (98, 49995, 47837)]
+5 mg/L (dark, blank, sample): [(98, 50004, 46452), (94, 50010, 46438), (94, 50002, 46447)]
+10 mg/L (dark, blank, sample): [(108, 50006, 43141), (109, 49992, 65535), (100, 50005, 43144)]
+Opening 2, attempt 2eac7ad4a930474892ec0a34fb316bf2, rejected, {'field': 'calibration', 'reason': 'Saturated detector'}, polls: 3 standard acquisitions
+3 mg/L (dark, blank, sample): [(85, 49991, 47835), (118, 49998, 47842), (98, 49995, 47837)]
+5 mg/L (dark, blank, sample): [(98, 50004, 46452), (94, 50010, 46438), (94, 50002, 46447)]
+10 mg/L (dark, blank, sample): [(108, 50006, 43141), (109, 49992, 65535), (100, 50005, 43144)]

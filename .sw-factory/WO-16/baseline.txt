@@ -1,0 +1,32 @@
+saturated opening=1 HTTP=400 error=Saturated detector acquired=1
+  task GET: 200
+  task: {'status': 'verified', 'attempt_id': None, 'measurement': None, 'result': None, 'error': None, 'score': None}
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+saturated opening=2 HTTP=400 error=Saturated detector acquired=2
+  task GET: 200
+  task: {'status': 'verified', 'attempt_id': None, 'measurement': None, 'result': None, 'error': None, 'score': None}
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+bad_blank opening=1 HTTP=400 error=Invalid blank: reference must exceed the dark reading acquired=1
+  task GET: 200
+  task: {'status': 'verified', 'attempt_id': None, 'measurement': None, 'result': None, 'error': None, 'score': None}
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+bad_blank opening=2 HTTP=400 error=Invalid blank: reference must exceed the dark reading acquired=2
+  task GET: 200
+  task: {'status': 'verified', 'attempt_id': None, 'measurement': None, 'result': None, 'error': None, 'score': None}
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+candidate opening=1 HTTP=400 error=fixture candidate failed acquired=1
+  task GET: 200
+  task: {'status': 'verified', 'attempt_id': None, 'measurement': None, 'result': None, 'error': None, 'score': None}
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+candidate opening=2 HTTP=400 error=fixture candidate failed acquired=2
+  task GET: 200
+  task: {'status': 'verified', 'attempt_id': None, 'measurement': None, 'result': None, 'error': None, 'score': None}
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+direct requested sample: Renamed-01 recorded: U-01
+direct fault: Saturated detector files: ['private.json', 'task.json']

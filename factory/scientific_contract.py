@@ -10,6 +10,7 @@ from datetime import datetime, timedelta, timezone
 from functools import partial
 
 TOLERANCE = 1e-7
+VERIFIER = "scientific-release@6"
 _LOG_TWO = math.log10(2)
 _REVIEW = object()
 _EPOCH = datetime(2026, 2, 3, 14, 5, tzinfo=timezone.utc)
@@ -139,6 +140,19 @@ def _invalid_calibration(kind, change, recipe):
     return payload, expected
 
 
+def _frozen_value(field, value, recipe):
+    return _invalid_calibration("time_course", lambda p: p["calibration"].update({field: value}), recipe)
+
+
+def _conflicting_standards(recipe):
+    payload, expected = _fixture("time_course", recipe)
+    # Compatible pins, but the standard-derived slope is 19/28 rather than 0.4
+    # in units of log10(2). The referenced frozen calibration remains authoritative.
+    concentration, _ = _fixture("concentration", recipe)
+    payload["standards"] = concentration["standards"]
+    return payload, expected
+
+
 def _remove_reference(payload):
     payload["calibration"]["blank_id"] = None
     for group in payload["groups"] + payload["standards"]:
@@ -211,9 +225,19 @@ def case_plan(kind):
         ("calibration concentration units", "input-validation", lambda p: p["calibration"].update(unit="mmol/L")),
     ]
     if kind == "time_course":
+        for field in ("slope", "intercept", "low", "high"):
+            for label, value in (("NaN", math.nan), ("positive infinite", math.inf),
+                                 ("negative infinite", -math.inf)):
+                yield f"{label} frozen {field}", "input-validation", partial(_frozen_value, field, value)
+        yield "supplied standards cannot replace frozen fit", "numerical", _conflicting_standards
         calibration_changes.extend([
             ("positive frozen slope", "input-validation", lambda p: p["calibration"].update(slope=0)),
+            ("negative frozen slope", "input-validation", lambda p: p["calibration"].update(slope=-1)),
             ("ordered calibration range", "input-validation", lambda p: p["calibration"].update(high=0)),
+            # The singleton timepoint is exactly at this absorbance. Merely checking each
+            # replicate against an inclusive range cannot reject a zero-width fit.
+            ("equal calibration bounds", "input-validation",
+             lambda p: p["calibration"].update(low=-math.log10(.125), high=-math.log10(.125))),
         ])
     else:
         calibration_changes.extend([

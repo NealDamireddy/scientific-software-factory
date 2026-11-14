@@ -1,0 +1,31 @@
+test_uncertain_success_retains_lease_and_recovers_one_remote_job (tests.test_uvvis_scheduler_identity.SchedulerIdentityTests.test_uncertain_success_retains_lease_and_recovers_one_remote_job) ... ERROR
+
+======================================================================
+ERROR: test_uncertain_success_retains_lease_and_recovers_one_remote_job (tests.test_uvvis_scheduler_identity.SchedulerIdentityTests.test_uncertain_success_retains_lease_and_recovers_one_remote_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_scheduler_identity.py", line 45, in test_uncertain_success_retains_lease_and_recovers_one_remote_job
+    with live_instrument(store, pin, spec["standards"]) as adapter, scheduler(adapter) as worker:
+         ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_context_acquisition_integration.py", line 30, in live_instrument
+    with closing(VirtualUvVisService(store, models, duration_s=0)) as service, make_server(service) as server:
+                                                                               ~~~~~~~~~~~^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/factory/uvvis_http.py", line 65, in make_server
+    server = ThreadingHTTPServer(("127.0.0.1", port), InstrumentHandler)
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/socketserver.py", line 457, in __init__
+    self.server_bind()
+    ~~~~~~~~~~~~~~~~^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/http/server.py", line 148, in server_bind
+    socketserver.TCPServer.server_bind(self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/socketserver.py", line 478, in server_bind
+    self.socket.bind(self.server_address)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+PermissionError: [Errno 1] Operation not permitted
+
+----------------------------------------------------------------------
+Ran 1 test in 0.012s
+
+FAILED (errors=1)

@@ -3,6 +3,7 @@ from contextlib import closing
 import json
 import sqlite3
 
+from .uvvis_adapter import InstrumentUnavailable
 from .uvvis_contract import canonical, validate, validate_key, validate_pins
 
 
@@ -82,6 +83,27 @@ class ApprovedAcquisition:
             if updated.rowcount != 1:
                 raise ValueError("Submission already linked to a different instrument job")
         return self.get(key)
+
+    def _request_for_job(self, job_id):
+        with closing(sqlite3.connect(self.sqlite_path)) as db:
+            row = db.execute("SELECT request FROM approved_acquisitions WHERE job_id=?", (job_id,)).fetchone()
+        if row is None:
+            raise InstrumentUnavailable("No approved request for this acquisition job")
+        try:
+            request = json.loads(row[0])
+            validate("acquisition_request", request)
+        except (ValueError, TypeError) as error:
+            raise InstrumentUnavailable("Invalid saved acquisition request") from error
+        return request
+
+    def poll(self, job_id):
+        return self.adapter.poll(job_id, expected_request=self._request_for_job(job_id))
+
+    def cancel(self, job_id):
+        return self.adapter.cancel(job_id, expected_request=self._request_for_job(job_id))
+
+    def measurements(self, job_id):
+        return self.adapter.measurements(job_id, expected_request=self._request_for_job(job_id))
 
     def get(self, key):
         """The instrument owns measurement records, indexed by this persisted job ID."""

@@ -1,0 +1,673 @@
+{
+  "verifier": "scientific-release@6",
+  "valid_release_id": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+  "valid_checks_passed": 64,
+  "resigned_candidate": {
+    "experiment_type": "time_course",
+    "verification_contract": "time_course@1",
+    "context_sha256": "6adff222e88e4d46f5de8335f91f45c1822d195efa1a9a8fa5e2c567025f902a",
+    "worker_receipt": {
+      "method": "fixture",
+      "outcome": "completed",
+      "source_revision": "d2a472cf25d32dd30ea893f71c71b6eb3761d913bf376face48d45c76f36023d"
+    },
+    "artifacts": {
+      "analysis.py": "15ae923d8fff101aa517ebad6cc67ced5b897c3c06abdbc94b60db14d7d2d074",
+      "recipe.json": "62a89dbc9b41ed1797d85559d94fb68aaddbe5e3b8df71b31406937f0ad11b87",
+      "views.json": "374efa0dc22f7e9469f0ecb177a366081a3c49c8a4da48aef65def83a31c874f"
+    },
+    "source_revision": "d2a472cf25d32dd30ea893f71c71b6eb3761d913bf376face48d45c76f36023d"
+  },
+  "report": {
+    "release_id": null,
+    "checks": [
+      {
+        "name": "handoff snapshot",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "supported verification contract",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "pinned context and acquisition settings",
+        "category": "acquisition settings",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "candidate artifact and source digests",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "candidate worker and context",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "compiled recipe equality",
+        "category": "acquisition settings",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "display contract",
+        "category": "input validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "offline sandbox and trusted files",
+        "category": "isolation",
+        "status": "passed",
+        "passed": true,
+        "detail": "macOS Seatbelt"
+      },
+      {
+        "name": "nonzero intercept, sample SD and identities",
+        "category": "numerical",
+        "status": "passed",
+        "passed": true,
+        "detail": {
+          "expected": {
+            "calibration_id": "calibrant-F2",
+            "results": [
+              {
+                "sample_id": "copper-14",
+                "concentration_mg_l": 8.249999999999998,
+                "replicate_sd_mg_l": 2.5,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:07.375000+00:00"
+              },
+              {
+                "sample_id": "copper-14",
+                "concentration_mg_l": 5.749999999999999,
+                "replicate_sd_mg_l": null,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:19.625000+00:00"
+              },
+              {
+                "sample_id": "ochre-83",
+                "concentration_mg_l": 8.249999999999998,
+                "replicate_sd_mg_l": 3.5355339059327378,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:42.125000+00:00"
+              }
+            ]
+          },
+          "observed": {
+            "calibration_id": "calibrant-F2",
+            "results": [
+              {
+                "sample_id": "copper-14",
+                "concentration_mg_l": 8.25,
+                "replicate_sd_mg_l": 2.5000000000000004,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:07.375000+00:00"
+              },
+              {
+                "sample_id": "copper-14",
+                "concentration_mg_l": 5.749999999999999,
+                "replicate_sd_mg_l": null,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:19.625000+00:00"
+              },
+              {
+                "sample_id": "ochre-83",
+                "concentration_mg_l": 8.25,
+                "replicate_sd_mg_l": 3.5355339059327378,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:42.125000+00:00"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "alternate calibration, samples and acquisition times",
+        "category": "numerical",
+        "status": "passed",
+        "passed": true,
+        "detail": {
+          "expected": {
+            "calibration_id": "calibrant-Q7",
+            "results": [
+              {
+                "sample_id": "violet-36",
+                "concentration_mg_l": 11.580645161290322,
+                "replicate_sd_mg_l": 2.280989616730799,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:09.875000+00:00"
+              },
+              {
+                "sample_id": "violet-36",
+                "concentration_mg_l": 6.741935483870967,
+                "replicate_sd_mg_l": null,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:22.125000+00:00"
+              },
+              {
+                "sample_id": "coral-57",
+                "concentration_mg_l": 9.96774193548387,
+                "replicate_sd_mg_l": 4.561979233461598,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:44.625000+00:00"
+              },
+              {
+                "sample_id": "coral-57",
+                "concentration_mg_l": 9.96774193548387,
+                "replicate_sd_mg_l": 9.123958466923195,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:06:07.750000+00:00"
+              }
+            ]
+          },
+          "observed": {
+            "calibration_id": "calibrant-Q7",
+            "results": [
+              {
+                "sample_id": "violet-36",
+                "concentration_mg_l": 11.580645161290324,
+                "replicate_sd_mg_l": 2.280989616730799,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:09.875000+00:00"
+              },
+              {
+                "sample_id": "violet-36",
+                "concentration_mg_l": 6.741935483870967,
+                "replicate_sd_mg_l": null,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:22.125000+00:00"
+              },
+              {
+                "sample_id": "coral-57",
+                "concentration_mg_l": 9.96774193548387,
+                "replicate_sd_mg_l": 4.561979233461598,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:44.625000+00:00"
+              },
+              {
+                "sample_id": "coral-57",
+                "concentration_mg_l": 9.96774193548387,
+                "replicate_sd_mg_l": 9.123958466923192,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:06:07.750000+00:00"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "measurement units",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "nonfinite detector value",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "dark-corrected transmission",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "detector findings",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "nonfinite elapsed time",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "positive infinite elapsed time",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "negative infinite elapsed time",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "negative elapsed time",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "missing measurement timestamp",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "malformed measurement timestamp",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "non-UTC measurement timestamp",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "repeated replicate identity",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "nonpositive replicate identity",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "fractional replicate identity",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "above calibration range",
+        "category": "numerical",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "below calibration range",
+        "category": "numerical",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "wavelength compatibility",
+        "category": "settings",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "path length compatibility",
+        "category": "settings",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "unsupported measurement schema",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "invalid acquisition identity",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "mixed acquisition replicates",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "mixed model revisions",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "blank identity",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "instrument identity",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "profile revision",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "profile digest",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "sample identity",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "simulated provenance",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "missing measurement schema_version",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "missing measurement model_revision",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "negative detector counts",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "fractional detector counts",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "saturated detector counts",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "negative dark-corrected signals",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "negative dark-corrected signals in one replicate",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "required blank reference",
+        "category": "provenance",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "NaN frozen slope",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "positive infinite frozen slope",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "negative infinite frozen slope",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "NaN frozen intercept",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "positive infinite frozen intercept",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "negative infinite frozen intercept",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "NaN frozen low",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "positive infinite frozen low",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "negative infinite frozen low",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "NaN frozen high",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "positive infinite frozen high",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "negative infinite frozen high",
+        "category": "input-validation",
+        "status": "failed",
+        "passed": false,
+        "detail": "output.results[0].concentration_mg_l differs from reference"
+      },
+      {
+        "name": "supplied standards cannot replace frozen fit",
+        "category": "numerical",
+        "status": "passed",
+        "passed": true,
+        "detail": {
+          "expected": {
+            "calibration_id": "calibrant-F2",
+            "results": [
+              {
+                "sample_id": "copper-14",
+                "concentration_mg_l": 8.249999999999998,
+                "replicate_sd_mg_l": 2.5,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:07.375000+00:00"
+              },
+              {
+                "sample_id": "copper-14",
+                "concentration_mg_l": 5.749999999999999,
+                "replicate_sd_mg_l": null,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:19.625000+00:00"
+              },
+              {
+                "sample_id": "ochre-83",
+                "concentration_mg_l": 8.249999999999998,
+                "replicate_sd_mg_l": 3.5355339059327378,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:42.125000+00:00"
+              }
+            ]
+          },
+          "observed": {
+            "calibration_id": "calibrant-F2",
+            "results": [
+              {
+                "sample_id": "copper-14",
+                "concentration_mg_l": 8.25,
+                "replicate_sd_mg_l": 2.5000000000000004,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:07.375000+00:00"
+              },
+              {
+                "sample_id": "copper-14",
+                "concentration_mg_l": 5.749999999999999,
+                "replicate_sd_mg_l": null,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:19.625000+00:00"
+              },
+              {
+                "sample_id": "ochre-83",
+                "concentration_mg_l": 8.25,
+                "replicate_sd_mg_l": 3.5355339059327378,
+                "review_reason": null,
+                "timestamp": "2026-02-03T14:05:42.125000+00:00"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "name": "calibration concentration units",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "positive frozen slope",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "negative frozen slope",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "ordered calibration range",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      },
+      {
+        "name": "equal calibration bounds",
+        "category": "input-validation",
+        "status": "passed",
+        "passed": true,
+        "detail": "Passed"
+      }
+    ]
+  },
+  "status_counts": {
+    "passed": 52,
+    "failed": 12
+  },
+  "active_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+  "manifest_sha256_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+  "artifacts_sha256_after": {
+    "analysis.py": "c64844e1b33becf8d6be1c71d21c7503f40a355a72ab5d8c97172d46d9d196b6",
+    "recipe.json": "62a89dbc9b41ed1797d85559d94fb68aaddbe5e3b8df71b31406937f0ad11b87",
+    "views.json": "374efa0dc22f7e9469f0ecb177a366081a3c49c8a4da48aef65def83a31c874f"
+  },
+  "reopened_tables_byte_identical": [
+    "scientific_active",
+    "scientific_blobs",
+    "scientific_manifests"
+  ],
+  "base_control": {
+    "base": "ae7d2f3d2f2cb98d52f7e6a5d8ffda911096bf08",
+    "verifier": "scientific-release@5",
+    "active_before": "7db4b273dc9baa48b0276843eef5cf5a7282148154cc88d2c65c363ebe2c457e",
+    "active_after": "613da299b529c4368422ce00fa828f506e2cc25251d9c0ce0da17e60f2ca9b9c",
+    "same_resigned_source": "d2a472cf25d32dd30ea893f71c71b6eb3761d913bf376face48d45c76f36023d",
+    "passed": 49,
+    "failed": 0,
+    "blocked": 0
+  }
+}

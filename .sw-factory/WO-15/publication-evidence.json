@@ -1,0 +1,285 @@
+{
+  "runtime": {
+    "python": "3.14.6",
+    "sandbox": "macOS Seatbelt"
+  },
+  "base": {
+    "commit": "ae7d2f3d2f2cb98d52f7e6a5d8ffda911096bf08",
+    "verifier": "scientific-release@5",
+    "mutants": {
+      "unguarded": {
+        "checks": {
+          "passed": 49,
+          "failed": 0,
+          "blocked": 0
+        },
+        "active_before": "7db4b273dc9baa48b0276843eef5cf5a7282148154cc88d2c65c363ebe2c457e",
+        "active_after": "91713497d4daafe3d143b9c57f0b04c84efb5cb2a5e4737968d70d26cfae2577",
+        "release_id": "91713497d4daafe3d143b9c57f0b04c84efb5cb2a5e4737968d70d26cfae2577",
+        "source_revision": "91092df6c8718abe3c81091cd44ed6207e9ab707ea2f5b8dd320fcfbd4d50496",
+        "observed_first_row": {
+          "sample_id": "copper-14",
+          "concentration_mg_l": 8.25,
+          "replicate_sd_mg_l": 2.5000000000000004,
+          "review_reason": null,
+          "timestamp": "2026-02-03T14:05:07.375000+00:00"
+        }
+      },
+      "infinite slope": {
+        "checks": {
+          "passed": 49,
+          "failed": 0,
+          "blocked": 0
+        },
+        "active_before": "7db4b273dc9baa48b0276843eef5cf5a7282148154cc88d2c65c363ebe2c457e",
+        "active_after": "e4eed07af51edc2512edc6c974c785f730b9fa55fcc6f512864c800962374abe",
+        "release_id": "e4eed07af51edc2512edc6c974c785f730b9fa55fcc6f512864c800962374abe",
+        "source_revision": "3f8ff54355abcf22aead05527150bab98e5f13e2957227b59c3893c70b343027",
+        "observed_first_row": {
+          "sample_id": "copper-14",
+          "concentration_mg_l": 0.0,
+          "replicate_sd_mg_l": 0.0,
+          "review_reason": null,
+          "timestamp": "2026-02-03T14:05:07.375000+00:00"
+        }
+      },
+      "infinite low": {
+        "checks": {
+          "passed": 49,
+          "failed": 0,
+          "blocked": 0
+        },
+        "active_before": "7db4b273dc9baa48b0276843eef5cf5a7282148154cc88d2c65c363ebe2c457e",
+        "active_after": "d98b537214c403bebd5e239eb30b21007d91938e4d3cd0253bb943b1cbf2dea1",
+        "release_id": "d98b537214c403bebd5e239eb30b21007d91938e4d3cd0253bb943b1cbf2dea1",
+        "source_revision": "92c13c1fffe2c5cd0103301a56e4bafbbc12be2327ebef165414c402046e336d",
+        "observed_first_row": {
+          "sample_id": "copper-14",
+          "concentration_mg_l": 8.25,
+          "replicate_sd_mg_l": 2.5000000000000004,
+          "review_reason": null,
+          "timestamp": "2026-02-03T14:05:07.375000+00:00"
+        }
+      },
+      "infinite high": {
+        "checks": {
+          "passed": 49,
+          "failed": 0,
+          "blocked": 0
+        },
+        "active_before": "7db4b273dc9baa48b0276843eef5cf5a7282148154cc88d2c65c363ebe2c457e",
+        "active_after": "3bb00368385408bc42a6e09a629787594cb131491cb8e3f4ced71a8165de25e2",
+        "release_id": "3bb00368385408bc42a6e09a629787594cb131491cb8e3f4ced71a8165de25e2",
+        "source_revision": "dcff07686bfb7abfd2a904a3bd99d50db6f3f4bdad1df8252b4ae89bfbef5cb8",
+        "observed_first_row": {
+          "sample_id": "copper-14",
+          "concentration_mg_l": 8.25,
+          "replicate_sd_mg_l": 2.5000000000000004,
+          "review_reason": null,
+          "timestamp": "2026-02-03T14:05:07.375000+00:00"
+        }
+      },
+      "refit": {
+        "checks": {
+          "passed": 49,
+          "failed": 0,
+          "blocked": 0
+        },
+        "active_before": "7db4b273dc9baa48b0276843eef5cf5a7282148154cc88d2c65c363ebe2c457e",
+        "active_after": "67e36844e1fc351351f667313c1739b8df7680e5ad01ead179981cd03c766086",
+        "release_id": "67e36844e1fc351351f667313c1739b8df7680e5ad01ead179981cd03c766086",
+        "source_revision": "925419dd481b9ca35e9e590637df541b653c95dbd0e80f003a1cf776552a5592",
+        "observed_first_row": {
+          "sample_id": "copper-14",
+          "concentration_mg_l": 5.157894736842106,
+          "replicate_sd_mg_l": 1.4736842105263164,
+          "review_reason": null,
+          "timestamp": "2026-02-03T14:05:07.375000+00:00"
+        }
+      }
+    },
+    "valid_release": {
+      "active": "7db4b273dc9baa48b0276843eef5cf5a7282148154cc88d2c65c363ebe2c457e",
+      "checks": {
+        "passed": 49,
+        "failed": 0,
+        "blocked": 0
+      }
+    },
+    "valid_first_row": {
+      "sample_id": "copper-14",
+      "concentration_mg_l": 8.25,
+      "replicate_sd_mg_l": 2.5000000000000004,
+      "review_reason": null,
+      "timestamp": "2026-02-03T14:05:07.375000+00:00"
+    },
+    "restricted_runner_attempt": {
+      "checks": {
+        "passed": 7,
+        "failed": 1,
+        "blocked": 41
+      },
+      "release_id": null,
+      "failure": "offline sandbox and trusted files: macOS Seatbelt exit 71: sandbox-exec: sandbox_apply: Operation not permitted"
+    }
+  },
+  "patched": {
+    "verifier": "scientific-release@6",
+    "mutants": {
+      "unguarded": {
+        "source_revision": "91092df6c8718abe3c81091cd44ed6207e9ab707ea2f5b8dd320fcfbd4d50496",
+        "release_id": null,
+        "checks": {
+          "passed": 59,
+          "failed": 5,
+          "blocked": 0
+        },
+        "check_plan_sha256": "0efd3de23c8f268594f0869f2f222ffcbab14e5d82481bbf66b58eae2a91b7e1",
+        "failures": [
+          {
+            "name": "positive infinite frozen slope",
+            "category": "input-validation",
+            "status": "failed",
+            "passed": false,
+            "detail": "output.results[0].concentration_mg_l differs from reference"
+          },
+          {
+            "name": "NaN frozen low",
+            "category": "input-validation",
+            "status": "failed",
+            "passed": false,
+            "detail": "output.results[0].concentration_mg_l differs from reference"
+          },
+          {
+            "name": "negative infinite frozen low",
+            "category": "input-validation",
+            "status": "failed",
+            "passed": false,
+            "detail": "output.results[0].concentration_mg_l differs from reference"
+          },
+          {
+            "name": "NaN frozen high",
+            "category": "input-validation",
+            "status": "failed",
+            "passed": false,
+            "detail": "output.results[0].concentration_mg_l differs from reference"
+          },
+          {
+            "name": "positive infinite frozen high",
+            "category": "input-validation",
+            "status": "failed",
+            "passed": false,
+            "detail": "output.results[0].concentration_mg_l differs from reference"
+          }
+        ],
+        "active_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+        "manifest_sha256_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+        "artifacts_identical": true
+      },
+      "infinite slope": {
+        "source_revision": "3f8ff54355abcf22aead05527150bab98e5f13e2957227b59c3893c70b343027",
+        "release_id": null,
+        "checks": {
+          "passed": 63,
+          "failed": 1,
+          "blocked": 0
+        },
+        "check_plan_sha256": "0efd3de23c8f268594f0869f2f222ffcbab14e5d82481bbf66b58eae2a91b7e1",
+        "failures": [
+          {
+            "name": "positive infinite frozen slope",
+            "category": "input-validation",
+            "status": "failed",
+            "passed": false,
+            "detail": "output.results[0].concentration_mg_l differs from reference"
+          }
+        ],
+        "active_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+        "manifest_sha256_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+        "artifacts_identical": true
+      },
+      "infinite low": {
+        "source_revision": "92c13c1fffe2c5cd0103301a56e4bafbbc12be2327ebef165414c402046e336d",
+        "release_id": null,
+        "checks": {
+          "passed": 63,
+          "failed": 1,
+          "blocked": 0
+        },
+        "check_plan_sha256": "0efd3de23c8f268594f0869f2f222ffcbab14e5d82481bbf66b58eae2a91b7e1",
+        "failures": [
+          {
+            "name": "negative infinite frozen low",
+            "category": "input-validation",
+            "status": "failed",
+            "passed": false,
+            "detail": "output.results[0].concentration_mg_l differs from reference"
+          }
+        ],
+        "active_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+        "manifest_sha256_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+        "artifacts_identical": true
+      },
+      "infinite high": {
+        "source_revision": "dcff07686bfb7abfd2a904a3bd99d50db6f3f4bdad1df8252b4ae89bfbef5cb8",
+        "release_id": null,
+        "checks": {
+          "passed": 63,
+          "failed": 1,
+          "blocked": 0
+        },
+        "check_plan_sha256": "0efd3de23c8f268594f0869f2f222ffcbab14e5d82481bbf66b58eae2a91b7e1",
+        "failures": [
+          {
+            "name": "positive infinite frozen high",
+            "category": "input-validation",
+            "status": "failed",
+            "passed": false,
+            "detail": "output.results[0].concentration_mg_l differs from reference"
+          }
+        ],
+        "active_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+        "manifest_sha256_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+        "artifacts_identical": true
+      },
+      "refit": {
+        "source_revision": "925419dd481b9ca35e9e590637df541b653c95dbd0e80f003a1cf776552a5592",
+        "release_id": null,
+        "checks": {
+          "passed": 63,
+          "failed": 1,
+          "blocked": 0
+        },
+        "check_plan_sha256": "0efd3de23c8f268594f0869f2f222ffcbab14e5d82481bbf66b58eae2a91b7e1",
+        "failures": [
+          {
+            "name": "supplied standards cannot replace frozen fit",
+            "category": "numerical",
+            "status": "failed",
+            "passed": false,
+            "detail": "output.results[0].concentration_mg_l outside contract tolerance"
+          }
+        ],
+        "active_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+        "manifest_sha256_after": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+        "artifacts_identical": true
+      }
+    },
+    "valid_release": {
+      "active": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+      "source_revision": "0378a2594dae2252f1ef52eac4fc16a0cf320a840983045231672e56e72046e0",
+      "manifest_sha256": "86604cafb4296416f6a1aa3e75c579568e94192f2770aee25adbd99f305b3baa",
+      "artifacts": {
+        "analysis.py": "c64844e1b33becf8d6be1c71d21c7503f40a355a72ab5d8c97172d46d9d196b6",
+        "recipe.json": "62a89dbc9b41ed1797d85559d94fb68aaddbe5e3b8df71b31406937f0ad11b87",
+        "views.json": "374efa0dc22f7e9469f0ecb177a366081a3c49c8a4da48aef65def83a31c874f"
+      },
+      "checks": {
+        "passed": 64,
+        "failed": 0,
+        "blocked": 0
+      },
+      "check_plan_sha256": "0efd3de23c8f268594f0869f2f222ffcbab14e5d82481bbf66b58eae2a91b7e1"
+    }
+  }
+}

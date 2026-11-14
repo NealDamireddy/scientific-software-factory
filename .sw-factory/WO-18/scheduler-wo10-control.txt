@@ -1,0 +1,16 @@
+test_uncertain_success_retains_lease_and_recovers_one_remote_job (tests.test_uvvis_scheduler_identity.SchedulerIdentityTests.test_uncertain_success_retains_lease_and_recovers_one_remote_job) ... 127.0.0.1 - - [14/Nov/2026 13:08:11] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:11] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:08:11] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:11] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:08:11] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:08:11] "GET /v1/acquisitions/e8e610e67d9b4c2687c2cd767149d500 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:11] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:11] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:08:11] "GET /v1/acquisitions/e8e610e67d9b4c2687c2cd767149d500 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:11] "GET /v1/acquisitions/e8e610e67d9b4c2687c2cd767149d500/measurements HTTP/1.1" 200 -
+ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.070s
+
+OK
