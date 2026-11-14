@@ -85,3 +85,68 @@
   .ws-bar nav button { padding: 11px 8px; } .ws-refresh { margin-bottom: 8px; }
   .ws-first { flex-wrap: wrap; } .ws-first button { margin-left: 0; }
 }
+
+.workspace { --paper:#f7f7f0; --surface:#fffef9; }
+.workspace main,.ws-top > div {width:min(1380px,100%);}
+.workspace main {padding-top:16px;}
+.ws-heading {padding-bottom:8px;}
+.ws-heading > div {display:flex;align-items:center;gap:16px;}
+.ws-scope {background:transparent;border:0;padding:0;gap:16px;}
+.ws-source {max-width:none;}
+.ws-bar {margin:8px 0 22px;}
+.ws-controls {margin-top:24px;font-size:14px;}
+.workspace h1 {font-size:clamp(30px,3.4vw,48px);letter-spacing:-.05em;line-height:1.13;font-weight:580;}
+.workspace summary {cursor:pointer;font-weight:590;}
+.runs-layout {display:grid;grid-template-columns:minmax(175px,20%) minmax(0,1fr);gap:22px;align-items:start;}
+.workspace .run-index h2 {font-size:17px;margin:10px 0 14px;}
+.workspace .run-picker {display:flex;flex-direction:column;gap:0;}
+.workspace .run-option {background:transparent;border:0;border-bottom:1px solid var(--rule);border-radius:0;padding:14px 12px;overflow-wrap:anywhere;}
+.workspace .run-option span {font-size:13px;}
+.workspace .selected-run {padding:22px 26px;border-radius:4px;border-top:3px solid var(--leaf);}
+.run-origin,.timeline-origin,.release,.review {color:var(--dim);}
+.run-title {display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin:.35rem 0;}
+.run-title > strong {font-size:15px;color:var(--leaf);}
+.release b {margin-left:.5em;color:var(--leaf);overflow-wrap:anywhere;}
+.run-overview {display:grid;grid-template-columns:minmax(0,1.85fr) minmax(170px,1fr);margin:20px 0;border-block:1px solid var(--rule);}
+.workspace .run-overview h3 {font-size:20px;margin:0 0 5px;}
+.timing,.outcome {padding:18px 0;min-width:0;}
+.outcome {border-left:1px solid var(--rule);padding-left:20px;}
+.reading {display:block;font-size:clamp(29px,3vw,47px);line-height:1.18;letter-spacing:-.055em;color:var(--leaf);}
+.review {font-size:14px;margin-top:16px;}
+.review strong,.lane small {display:block;}
+.timing {padding-right:20px;}
+.timeline-origin {font-size:13px;margin-bottom:12px;}
+.lane {display:grid;grid-template-columns:146px 1fr;align-items:center;min-height:44px;}
+.lane small {font-size:13px;color:var(--dim);}
+.track {height:38px;position:relative;border-inline:1px solid var(--rule);border-bottom:1px solid var(--rule);background:#f4f5ed;}
+.track i {position:absolute;top:12px;height:13px;background:#255f49;}
+.track .acquisition {background:#ad8138;border-block:3px double #f8edcf;}
+.track .analysis,.track .point {background:#283e4a;}
+.track .point {width:2px;transform:translateX(-50%);}
+.axis {margin:0 0 12px 146px;display:flex;justify-content:space-between;font-size:13px;color:var(--dim);}
+.technical {margin:14px 0;padding:10px 0;border-top:1px solid var(--rule);overflow-wrap:anywhere;}
+.workspace .ws-editor .workspace-card {border:0;border-top:1px solid var(--rule);border-radius:0;padding:20px 0;background:transparent;}
+.ws-editor .workspace-field {margin-block:5px;}
+.workspace .ws-editor .workspace-card fieldset {border:0;border-top:1px solid var(--rule);padding:10px 0;border-radius:0;}
+.workspace .ws-editor h1 + p,.context-lead > p {max-width:78ch;margin:10px 0;font-size:18px;}
+.context-lead dl {display:grid;grid-template-columns:1fr 2fr 2fr;gap:18px;margin:20px 0;}
+.ws-editor select {max-width:100%;}
+.workspace .ws-editor > div {max-width:920px;}
+.workspace .field-error {font-size:14px;}
+.workspace [aria-invalid=true] {border-color:#943726;}
+.workspace .ws-editor button:disabled {opacity:.6;}
+@media (max-width:1000px) {
+  .runs-layout {grid-template-columns:1fr;gap:12px;}
+  .workspace .run-picker {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media (max-width:650px) {
+  .workspace main {padding-top:12px;}
+  .workspace .selected-run {padding:16px;}
+  .run-overview,.context-lead dl {grid-template-columns:1fr;}
+  .outcome {border-left:0;border-top:1px solid var(--rule);padding-left:0;}
+  .timing {padding-right:0;}
+  .lane {grid-template-columns:125px 1fr;}
+  .axis {margin-left:125px;}
+  .ws-heading > div {flex-wrap:wrap;}
+  .ws-bar nav button {font-size:14px;}
+}

@@ -3,7 +3,7 @@ import { test, expect } from "playwright/test";
 async function response(page, value) {
   const select = page.getByLabel("Response to next requests");
   if (!(await select.isVisible()))
-    await page.getByText("Fixture controls", { exact: true }).click();
+    await page.getByText("Demo controls", { exact: true }).click();
   await select.selectOption(value);
 }
 
@@ -41,7 +41,7 @@ test("a failed poll freezes server timing and a successful poll clears stale sta
 }) => {
   await page.clock.install();
   await page.goto("/workspace/");
-  await page.getByRole("button", { name: /fixture-pending/ }).click();
+  await page.getByRole("button", { name: /Concentration · Analysis pending/ }).click();
   const details = page.getByRole("region", { name: "Run details" });
   await expect(details).toContainText("17 s · pending");
   await response(page, "unavailable");
@@ -72,11 +72,11 @@ test("project switches discard private drafts, session end clears demo revisions
   await page
     .getByLabel("Lab name", { exact: true })
     .fill("Unsaved private draft");
-  await page.getByLabel("Fixture project").selectOption("foreign-project");
+  await page.getByLabel("Project", {exact:true}).selectOption("foreign-project");
   await expect(page.getByRole("main").getByRole("alert")).toContainText(
     "Access denied",
   );
-  await page.getByLabel("Fixture project").selectOption("empty-assay");
+  await page.getByLabel("Project", {exact:true}).selectOption("empty-assay");
   await expect(
     page.getByRole("heading", { name: "Create your first experiment" }),
   ).toBeVisible();
@@ -84,7 +84,7 @@ test("project switches discard private drafts, session end clears demo revisions
   await expect(
     page.getByLabel("Sample IDs (one per line)", { exact: true }),
   ).toHaveValue("");
-  await page.getByLabel("Fixture project").selectOption("visible-assay");
+  await page.getByLabel("Project", {exact:true}).selectOption("visible-assay");
   await page.getByRole("button", { name: "Lab & project" }).click();
   await expect(page.getByLabel("Lab name", { exact: true })).toHaveValue(
     "Edited demo lab",
@@ -185,6 +185,7 @@ test("live evidence is fetched through the scoped API and denied evidence never 
 }) => {
   const id = "evidence-check";
   await page.goto("/workspace/");
+  await page.getByText("Run details and exact timestamps").click();
   await expect(page.getByText("job-101", { exact: true })).toBeVisible();
   const snapshot = await page.evaluate(
     () =>

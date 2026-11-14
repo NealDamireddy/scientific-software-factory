@@ -2,11 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity,
   Archive,
   ArrowUpRight,
   FlaskConical,
-  Layers,
   LogOut,
   RefreshCw,
 } from "lucide-react";
@@ -187,7 +185,7 @@ function ProjectWorkspace({
         <p role="status" className="ws-alert">
           {snapshot
             ? `Stale progress · Last recorded ${snapshot.recorded_at}. Showing saved records.`
-            : `${mode === "live" ? "Live execution" : "Fixture service"} unavailable. Retry to load this workspace.`}
+            : `${mode === "live" ? "Live execution" : "Demo service"} unavailable. Retry to load this workspace.`}
         </p>
       )}
       {!snapshot && !error && !readMessage && (
@@ -211,14 +209,14 @@ function ProjectWorkspace({
             </div>
           )}
           <div hidden={tab !== "runs"}>
-            <RunViews {...{ snapshot, client, projectId, operate, stale }} />
+            <RunViews demo={mode === "fixture"} {...{ snapshot, client, projectId, operate, stale }} />
           </div>
           <fieldset
             className="ws-editor"
             hidden={tab === "runs"}
             disabled={busy}
           >
-            <Editors
+            <Editors editProject={() => setTab("context")}
               {...{ snapshot, client, projectId, operate, errors }}
               section={tab === "context" ? "context" : "specification"}
             />
@@ -305,13 +303,8 @@ export default function Workspace() {
       <main>
         <div className="ws-heading">
           <div>
-            <p className="ws-kicker">
-              <Activity size={15} /> Virtual UV–Vis laboratory
-            </p>
-            <h1>Researcher workspace</h1>
-            {preview && (
-              <p>Preview commit <code>{process.env.NEXT_PUBLIC_PREVIEW_COMMIT || "unavailable"}</code></p>
-            )}
+            <strong>UV–Vis laboratory</strong>
+            {preview && <details><summary>Build details</summary><p>Preview commit <code>{process.env.NEXT_PUBLIC_PREVIEW_COMMIT || "unavailable"}</code></p></details>}
           </div>
           {scope && !ended && (
             <button className="ws-end" onClick={() => void endSession()}>
@@ -352,7 +345,7 @@ export default function Workspace() {
                       })
                     }
                   >
-                    <option value="fixture">Fixture demo</option>
+                    <option value="fixture">Demo data</option>
                     <option value="live" disabled={preview}>
                       Live workspace
                     </option>
@@ -360,7 +353,7 @@ export default function Workspace() {
                 </label>
                 {scope.mode === "fixture" ? (
                   <label>
-                    Fixture project
+                    Project
                     <select
                       value={scope.projectId}
                       onChange={(e) =>
@@ -396,19 +389,26 @@ export default function Workspace() {
                   )
                 )}
                 <div className="ws-source">
-                  <Layers size={17} />
+
                   <p>
                     {scope.mode === "fixture"
-                      ? "Isolated fixture data. Actions affect only this demo session."
+                      ? "Changes apply only to this demo session."
                       : preview
                         ? "Live access is unavailable in this preview."
                         : "Authenticated workspace API. Project access is checked by the service."}
                   </p>
                 </div>
               </div>
+              {scope.projectId && !(preview && mode === "live") && (
+                <ProjectWorkspace
+                  key={scope.mode + "/" + scope.projectId}
+                  client={client}
+                  {...scope}
+                />
+              )}
               {scope.mode === "fixture" && (
                 <details className="ws-controls">
-                  <summary>Fixture controls</summary>
+                  <summary>Demo controls</summary>
                   <label>
                     Response to next requests
                     <select
@@ -425,13 +425,6 @@ export default function Workspace() {
                     </select>
                   </label>
                 </details>
-              )}
-              {scope.projectId && !(preview && mode === "live") && (
-                <ProjectWorkspace
-                  key={scope.mode + "/" + scope.projectId}
-                  client={client}
-                  {...scope}
-                />
               )}
             </>
           )

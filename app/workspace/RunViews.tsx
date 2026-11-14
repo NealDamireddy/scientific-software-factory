@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { Timeline } from "./Timeline";
 import type { Run, Snapshot, WorkspaceClient } from "./api";
 
 function RecordedTime({ value }: { value: string | null }) {
@@ -38,7 +39,7 @@ const experimentNames = {
   time_course: "Time course",
 };
 const provenanceNames = {
-  simulated: "Simulated acquisition",
+  simulated: "Simulated instrument",
   archive: "Archived run",
   replay: "Replay of saved measurements",
 };
@@ -53,6 +54,13 @@ const stages = [
   ["acquisition", "Acquisition"],
   ["analysis", "Analysis"],
 ] as const;
+
+function runState(run: Run) {
+  if (terminalIncomplete.has(run.acquisition)) return "Acquisition " + run.acquisition;
+  if (run.analysis === "completed" && run.acquisition === "completed") return "Complete";
+  if (run.acquisition === "completed" || run.analysis === "blocked") return "Analysis " + run.analysis;
+  return "Acquisition " + run.acquisition;
+}
 
 function RecordedProgress({ run }: { run: Run }) {
   return (
@@ -121,16 +129,6 @@ function RecordedProgress({ run }: { run: Run }) {
           {run.software_wait_pending && " · pending at last update"}
         </Fact>
       </dl>
-      {run.blockers.length > 0 && (
-        <div className="run-notice">
-          <h4>Recorded blockers</h4>
-          <ul>
-            {run.blockers.map((blocker, index) => (
-              <li key={index}>{blocker}</li>
-            ))}
-          </ul>
-        </div>
-      )}
     </>
   );
 }
@@ -225,6 +223,7 @@ function ScientificResult({ run }: { run: Run }) {
 
 type RunViewProps = {
   snapshot: Snapshot;
+  demo: boolean;
   client: WorkspaceClient;
   projectId: string;
   stale: boolean;
@@ -241,6 +240,7 @@ function RunDetails({
   operate,
   stale,
   recordedAt,
+  demo,
 }: Omit<RunViewProps, "snapshot"> & {
   run: Run;
   recordedAt: string;
@@ -278,19 +278,40 @@ function RunDetails({
     }
   }
 
+  const result = run.acquisition === "completed" && run.analysis === "completed" &&
+    run.release_id && run.source_revision ? run.result : null;
+  const rows = result?.results ?? [];
+  const single = run.experiment_type === "concentration" && rows.length === 1;
+  const reasons = [...new Set(rows.flatMap(row => row.review_reason ? [row.review_reason] : []))];
+  const coursePoint = run.experiment_type === "time_course"
+    ? rows.find(row => row.concentration_mg_l !== null && row.elapsed_s != null)
+    : undefined;
   return (
-    <section className="workspace-card" aria-label="Run details">
-      <h2>{experimentNames[run.experiment_type]} run</h2>
-      <p>
-        {stale ? "Stale progress. Last known snapshot" : "Recorded snapshot"} ·{" "}
-        <RecordedTime value={recordedAt} />
-      </p>
-      <RecordedProgress run={run} />
-      <h3>Scientific result</h3>
-      <ScientificResult run={run} />
-      <p>
-        <strong>Scientific review</strong> · {run.scientific_review}
-      </p>
+    <section className="workspace-card selected-run" aria-label="Run details">
+      <p className="run-origin">{demo ? "Recorded demo run" : "Workspace run"} · {provenanceNames[run.provenance]}</p>
+      <div className="run-title"><h1>{experimentNames[run.experiment_type]} run</h1><strong>{runState(run)}</strong></div>
+      <p className="release">{run.preparation === "reuse" ? "Reused software release" : "Software release"} <b>{run.release_id ?? "Awaiting verified release"}</b></p>
+      <div className="run-overview">
+        <Timeline run={run}/>
+        <section className="outcome">
+          <h3>{result ? "Scientific result" : "Run status"}</h3>
+          {result ? <>
+            <p>{single ? rows[0].sample_id : experimentNames[run.experiment_type]}</p>
+            <strong className="reading">{single ? (rows[0].concentration_mg_l === null ? "Withheld" : rows[0].concentration_mg_l + " " + result.unit) :
+              rows.length + (run.experiment_type === "time_course" ? " time points" : " measurements")}</strong>
+            {single && <p>Replicate SD {rows[0].replicate_sd_mg_l === null ? "unavailable" : rows[0].replicate_sd_mg_l + " " + result.unit}</p>}
+            {coursePoint && <p>{coursePoint.concentration_mg_l} {result.unit} at {coursePoint.elapsed_s} s</p>}
+            {reasons.map(reason => <p key={reason}>{reason}</p>)}
+          </> : <ScientificResult run={run}/>}
+          {run.blockers.map((blocker,i) => <p key={i}>{blocker}</p>)}
+          <p className="review"><strong>Scientific review</strong>{run.scientific_review}</p>
+        </section>
+      </div>
+      {result && <ScientificResult run={run}/>}
+      <details className="technical"><summary>Run details and exact timestamps</summary>
+        <p>{stale ? "Stale progress. Last known snapshot" : "Recorded snapshot"} · <RecordedTime value={recordedAt}/></p>
+        <RecordedProgress run={run}/>
+      </details>
       <div className="actions">
         <button type="button" disabled={downloading} onClick={downloadEvidence}>
           {downloading ? "Requesting evidence…" : "Download evidence"}
@@ -317,8 +338,8 @@ export default function RunViews({ snapshot, ...props }: RunViewProps) {
     );
 
   return (
-    <>
-      <section className="workspace-card" aria-labelledby={heading}>
+    <div className="runs-layout">
+      <section className="run-index" aria-labelledby={heading}>
         <h2 id={heading}>Experiment runs</h2>
         <div className="run-picker">
           {snapshot.runs.map((item) => (
@@ -326,13 +347,13 @@ export default function RunViews({ snapshot, ...props }: RunViewProps) {
               type="button"
               key={item.run_id}
               className="run-option"
+              data-run-id={item.run_id}
               aria-pressed={item.run_id === run.run_id}
               onClick={() => setSelected(item.run_id)}
             >
-              <strong>{experimentNames[item.experiment_type]}</strong>{" "}
-              <code>{item.run_id}</code>
+              <strong>{experimentNames[item.experiment_type]} · {runState(item)}</strong>
               <span>
-                Acquisition {item.acquisition} · Analysis {item.analysis}
+                {item.result?.results[0]?.sample_id || snapshot.specifications.find(s => s.sha256 === item.spec_digest)?.sample_ids.join(", ") || "Sample unspecified"} · {item.submitted_at.split("T")[1]?.replace("Z", " UTC") || item.submitted_at}
               </span>
             </button>
           ))}
@@ -344,6 +365,6 @@ export default function RunViews({ snapshot, ...props }: RunViewProps) {
         run={run}
         recordedAt={snapshot.recorded_at}
       />
-    </>
+    </div>
   );
 }
