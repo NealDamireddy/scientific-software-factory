@@ -2,8 +2,12 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Archive,
-  ArrowUpRight,
+  Activity,
+  Blocks,
+  ChevronRight,
+  FolderOpen,
+  LayoutGrid,
+  SlidersHorizontal,
   FlaskConical,
   LogOut,
   RefreshCw,
@@ -11,20 +15,22 @@ import {
 import { createLiveClient, WorkspaceError } from "./api";
 import type { FieldErrors, Mode, Snapshot, WorkspaceClient } from "./api";
 import { createFixtureClient } from "./fixture";
+import ProjectDirectory, { Archives, projectName } from "./ProjectDirectory";
+import RefineData from "./RefineData";
 import Editors from "./Editors";
 import RunViews from "./RunViews";
 import "./workspace.css";
 
 type Scope = { mode: Mode; projectId: string };
-type Tab = "runs" | "context" | "specification";
+type Tab = "runs" | "context" | "specification" | "refine";
 type Fault = "unauthenticated" | "expired" | "forbidden" | "unavailable";
 const preview = process.env.NEXT_PUBLIC_FIXTURE_PREVIEW === "1";
-const initialProject = "visible-assay";
-const tabs: [Tab, string][] = [
-  ["runs", "Runs"],
-  ["context", "Lab & project"],
-  ["specification", "Specifications"],
-];
+const tabs = [
+  ["specification", "Build application", Blocks],
+  ["refine", "Refine data", SlidersHorizontal],
+  ["runs", "Runs", Activity],
+  ["context", "Lab & project", FolderOpen],
+] as const;
 
 function ProjectWorkspace({
   client,
@@ -149,13 +155,13 @@ function ProjectWorkspace({
     <>
       <div className="ws-bar">
         <nav aria-label="Workspace views">
-          {tabs.map(([value, name]) => (
+          {tabs.map(([value, name, Icon]) => (
             <button
               key={value}
               aria-current={tab === value ? "page" : undefined}
               onClick={() => setTab(value)}
             >
-              {name}
+              <Icon size={16} /> {name}
             </button>
           ))}
         </nav>
@@ -211,9 +217,10 @@ function ProjectWorkspace({
           <div hidden={tab !== "runs"}>
             <RunViews demo={mode === "fixture"} {...{ snapshot, client, projectId, operate, stale }} />
           </div>
+          {tab === "refine" && <RefineData runs={snapshot.runs} />}
           <fieldset
             className="ws-editor"
-            hidden={tab === "runs"}
+            hidden={tab !== "context" && tab !== "specification"}
             disabled={busy}
           >
             <Editors editProject={() => setTab("context")}
@@ -240,14 +247,17 @@ export default function Workspace() {
     setFault(value);
   }
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const mode = params.get("mode") === "live" ? "live" : "fixture";
-    setScope({
-      mode,
-      projectId:
-        params.get("project") || (mode === "fixture" ? initialProject : ""),
-    });
-    setProjectInput(params.get("project") || "");
+    function syncLocation() {
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get("mode") === "live" ? "live" : "fixture";
+      const projectId = params.get("project") || "";
+      setScope({mode, projectId});
+      setProjectInput(projectId);
+      setResponse("");
+    }
+    syncLocation();
+    window.addEventListener("popstate", syncLocation);
+    return () => window.removeEventListener("popstate", syncLocation);
   }, []);
   function open(next: Scope) {
     setSessionMessage("");
@@ -257,7 +267,7 @@ export default function Workspace() {
     const url = new URL(window.location.href);
     url.searchParams.set("mode", next.mode);
     url.searchParams.set("project", next.projectId);
-    window.history.replaceState(null, "", url);
+    window.history.pushState(null, "", url);
   }
   const mode = scope?.mode;
   const client = useMemo(
@@ -284,34 +294,16 @@ export default function Workspace() {
   }
   return (
     <div className="workspace">
-      <header className="ws-top">
-        <div>
-          <strong>
-            <FlaskConical size={21} /> EVOLVE
-          </strong>
-          <nav aria-label="Archive navigation">
-            <Archive size={15} />
-            <a href="/">
-              EPR archive <ArrowUpRight size={13} />
-            </a>
-            <a href="/b12/">
-              B12 archive <ArrowUpRight size={13} />
-            </a>
-          </nav>
-        </div>
-      </header>
+      <header className="ws-top"><div>
+        <a className="ws-brand" href="/"><FlaskConical size={24}/> EVOLVE</a>
+        <span className="ws-lab">UV–Vis laboratory</span>
+        {scope && !ended && <button className="ws-end" onClick={() => void endSession()}><LogOut size={15}/> End session</button>}
+      </div></header>
       <main>
-        <div className="ws-heading">
-          <div>
-            <strong>UV–Vis laboratory</strong>
-            {preview && <details><summary>Build details</summary><p>Preview commit <code>{process.env.NEXT_PUBLIC_PREVIEW_COMMIT || "unavailable"}</code></p></details>}
-          </div>
-          {scope && !ended && (
-            <button className="ws-end" onClick={() => void endSession()}>
-              <LogOut size={15} /> End session
-            </button>
-          )}
-        </div>
+        <nav className="breadcrumb" aria-label="Breadcrumb"><LayoutGrid size={15}/><a href={mode === "live" ? "/workspace/?mode=live" : "/"}>Lab projects</a>
+          {scope?.projectId && <><ChevronRight size={14}/><span>{mode === "fixture" ? projectName(scope.projectId) : scope.projectId}</span></>}
+        </nav>
+        {preview && <details><summary>Build details</summary><p>Preview commit <code>{process.env.NEXT_PUBLIC_PREVIEW_COMMIT || "unavailable"}</code></p></details>}
         {ended ? (
           <section className="workspace-card">
             <h2>Session closed</h2>
@@ -332,73 +324,19 @@ export default function Workspace() {
         ) : (
           scope && (
             <>
-              <div className="ws-scope">
-                <label>
-                  Data source
-                  <select
-                    value={scope.mode}
-                    onChange={(e) =>
-                      open({
-                        mode: e.target.value as Mode,
-                        projectId:
-                          e.target.value === "fixture" ? initialProject : "",
-                      })
-                    }
-                  >
-                    <option value="fixture">Demo data</option>
-                    <option value="live" disabled={preview}>
-                      Live workspace
-                    </option>
-                  </select>
-                </label>
-                {scope.mode === "fixture" ? (
-                  <label>
-                    Project
-                    <select
-                      value={scope.projectId}
-                      onChange={(e) =>
-                        open({ ...scope, projectId: e.target.value })
-                      }
-                    >
-                      <option value="visible-assay">Visible assay</option>
-                      <option value="empty-assay">New assay</option>
-                      <option value="foreign-project">
-                        Restricted project
-                      </option>
-                    </select>
-                  </label>
-                ) : (
-                  !preview && (
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        if (projectInput.trim())
-                          open({ ...scope, projectId: projectInput.trim() });
-                      }}
-                    >
-                      <label>
-                        Project ID
-                        <input
-                          required
-                          value={projectInput}
-                          onChange={(e) => setProjectInput(e.target.value)}
-                        />
-                      </label>
-                      <button>Open project</button>
-                    </form>
-                  )
-                )}
-                <div className="ws-source">
-
-                  <p>
-                    {scope.mode === "fixture"
-                      ? "Changes apply only to this demo session."
-                      : preview
-                        ? "Live access is unavailable in this preview."
-                        : "Authenticated workspace API. Project access is checked by the service."}
-                  </p>
-                </div>
+              <div className="directory-heading">
+                <div><h1>{scope.projectId ? (mode === "fixture" ? projectName(scope.projectId) : scope.projectId) : "Lab projects"}</h1>
+                  <p>{scope.projectId ? (mode === "fixture" ? "Demo workspace · Changes apply only to this demo session." : "Authenticated workspace") : "Choose a project to build an application or work with its data."}</p></div>
+                <label className="data-source">Data source<select value={scope.mode} onChange={e => open({mode:e.target.value as Mode, projectId:""})}>
+                  <option value="fixture">Demo data</option><option value="live" disabled={preview}>Live workspace</option>
+                </select></label>
               </div>
+              {scope.mode === "fixture" && !scope.projectId && <><ProjectDirectory/><Archives/></>}
+              {scope.mode === "live" && (preview ? <p>Live access is unavailable in this preview.</p> :
+                <form className="live-project" onSubmit={e => {e.preventDefault(); if(projectInput.trim()) open({mode:"live",projectId:projectInput.trim()});}}>
+                  <label>Project ID<input required value={projectInput} onChange={e => setProjectInput(e.target.value)}/></label>
+                  <button>Open project</button>
+                </form>)}
               {scope.projectId && !(preview && mode === "live") && (
                 <ProjectWorkspace
                   key={scope.mode + "/" + scope.projectId}
@@ -406,9 +344,12 @@ export default function Workspace() {
                   {...scope}
                 />
               )}
-              {scope.mode === "fixture" && (
+              {scope.mode === "fixture" && scope.projectId && (
                 <details className="ws-controls">
                   <summary>Demo controls</summary>
+                  <label>Project<select value={scope.projectId} onChange={e => open({...scope, projectId:e.target.value})}>
+                    <option value="visible-assay">Visible absorbance assay</option><option value="empty-assay">Assay development</option><option value="foreign-project">Restricted project</option>
+                  </select></label>
                   <label>
                     Response to next requests
                     <select

@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 
 for (const project of ["CW linewidth", "Temperature series"]) {
   test(project + " replays its verified release", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/epr/");
     await page.getByRole("button", { name: project, exact: true }).click();
     await page.getByRole("button", { name: "Run work order" }).click();
     const run = page.getByRole("button", { name: "Run preflight & replay" });

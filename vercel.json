@@ -1,1 +1,10 @@
-{"framework":null,"buildCommand":"npm run build","outputDirectory":"out"}
+{
+  "framework": null,
+  "buildCommand": "npm run build",
+  "outputDirectory": "out",
+  "functions": {
+    "api/instrument.py": {
+      "includeFiles": "public/b12/completed.json"
+    }
+  }
+}
