@@ -3,7 +3,7 @@
 # Work Order Entity Index: WO-15
 
 **Initialized At (UTC):** 2026-11-14T21:06:54Z
-**Current Status:** Backlog (attempted in_progress update rejected by automatic approval review)
+**Current Status:** Backlog. Automatic approval review rejected In Progress and In Review, citing the earlier backlog instruction. The PR link was accepted.
 
 ## Work Order
 
@@ -31,4 +31,12 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: 8090/wo-15-frozen-calibration-e650ee81
-- Pull Request URL:
+- Draft pull request: https://github.com/NealDamireddy/scientific-software-factory/pull/14
+
+## Baseline and dependencies
+
+- Initial worktree HEAD and remote main both matched ae7d2f3d2f2cb98d52f7e6a5d8ffda911096bf08 before editing.
+- Knowledge Base Plan (9f095369-805b-4489-bc06-961275cbc2cd). Factory owns frozen calibrations, the independent offline verifier and release decisions.
+- WO-8 aa0f100 already rejects nonempty time-course standards at specification approval/compilation. WO-10 4c9e6e9 validates the concentration-derived fit before freezing. The pinned-base publication reproduction bypassed neither guard: it submitted five deficient candidates to the real independent release verifier.
+- The integration coordinator confirmed publisher/compatibility ownership for this lane. The approved candidate protocol is time_course@1 and the mandatory verifier suite is scientific-release@6. The concentration compatibility policy and legacy storage format are preserved.
+- No lane implementation dependency. WO-11, WO-12, model-connected preparation and the WO-14 live rehearsal are outside this lane. The integration owner will repeat the combined-tree gates after all five heads are frozen.
