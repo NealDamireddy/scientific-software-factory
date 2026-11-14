@@ -1,67 +1,21 @@
-<!--lint disable strong-marker-->
-
-# Review Log: WO-6
-
-**Work Order:** WO-6 — Persist versioned lab and project context
-**Initialized At (UTC):** 2026-11-14T18:15:12Z
-
-This file records review and verification rounds. Append new rounds; do not overwrite prior rounds.
-
----
+# WO-6 review log
 
 ## Round 1
 
-### Requirements Alignment
+The coordinating agent independently reviewed the changed paths between origin/main and a8afbd8. The review covered the SQLite migration, transaction boundaries, context and profile schemas, ownership checks, digest calculation, fixtures and repository contract tests.
 
-**Blocking:**
+### Requirements and blueprint
 
-**Advisory:**
+AC-CTX-001.1–001.5 and AC-CTX-002.6 passed review. Expected-revision writes run under one database write transaction, reject stale updates and preserve prior records. Each project revision pins the owning lab revision and its public digest. The reusable profile and the lab-owned instrument instance have distinct identities.
 
-### Blueprint Alignment
+### Tests and external behavior
 
-**Blocking:**
+- The full Python suite passed all 61 tests with native sandbox support, including B12 acquisition, verification and archived replay. The reviewer independently ran all nine new repository and profile tests.
+- In the combined local acceptance run, the coordinator reopened the pinned 650 nm project revision after saving a newer 450 nm revision. Its instrument and settings produced 12 fresh readings through the WO-7 HTTP service with a compatible blank, including three unknown replicates.
+- The diff passed Git whitespace checks. This backend order introduces no UI.
 
-**Advisory:**
+### Privacy and data safety
 
-### Architecture And Conventions
+The public profile and context payloads reject undeclared fields. The saved fixture contains known standards, public settings and an opaque unknown sample ID. Profile identity and its digest exclude runtime connection details and simulator-private model parameters.
 
-**Blocking:**
-
-**Advisory:**
-
-### Tests And Build
-
-**Commands run:**
-
-**Blocking:**
-
-**Advisory:**
-
-### User-Facing Verification
-
-**Skipped:** _yes/no_ - _reason if yes_
-
-**Evidence:**
-
-**Blocking:**
-
-**Advisory:**
-
-### Security, Privacy, And Data Safety
-
-**Skipped:** _yes/no_ - _reason if yes_
-
-**Blocking:**
-
-**Advisory:**
-
-### Round 1 Verdict
-
-- Total blocking:
-- Total advisory:
-- Files reviewed:
-- **Verdict:** _APPROVED or CHANGES_REQUESTED_
-
----
-
-<!-- Subsequent rounds: copy the structure above and increment the round number. -->
+**Verdict** APPROVED. The reviewer found no blocking or advisory issues.
