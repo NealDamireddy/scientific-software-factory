@@ -1,0 +1,61 @@
+name: EVOLVE integration
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+
+jobs:
+  science:
+    name: Scientific integration
+    runs-on: macos-15
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --locked --python 3.13
+      - name: Run full suite with scientific sandbox and loopback instrument
+        run: uv run --frozen python -m unittest discover -s tests -v
+      - name: Check saved context against fresh acquisition
+        if: hashFiles('factory/specifications.py') != ''
+        run: uv run --frozen python -c 'from tests.test_context_acquisition_integration import test_saved_project_context_drives_fresh_acquisition as check; check()'
+      - name: Require scheduler composition when the scheduler ships
+        if: hashFiles('factory/experiment_scheduler.py') != ''
+        run: |
+          uv run --frozen python - <<'PY'
+          import unittest
+          from tests.test_experiment_composition import CompositionTests
+          suite = unittest.defaultTestLoader.loadTestsFromTestCase(CompositionTests)
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          if not result.testsRun or result.skipped or not result.wasSuccessful():
+              raise SystemExit("Scheduler must pass against the real preparation and verifier services")
+          PY
+      - name: Replay archived B12 releases and score the retained assay
+        run: |
+          uv run --frozen python -m factory.replay_bundle public/b12/completed.json
+          uv run --frozen python -m factory.benchmark public/b12/completed.json --out "$RUNNER_TEMP/b12-scored"
+      - name: Verify retained EPR evidence
+        run: |
+          for report in public/evidence/*/*/report.json; do
+            uv run --frozen python -m factory verify "$(dirname "$report")"
+          done
+
+  web:
+    name: Production build and browser regressions
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci
+      - run: npm run build
+      - run: npx --no-install playwright install --with-deps chromium
+      - run: npm test

@@ -218,7 +218,8 @@ class VirtualUvVisTests(unittest.TestCase):
                 "--samples", str(samples), "--port", "0", "--duration", "60"]
         with subprocess.Popen(args, stdout=subprocess.PIPE, text=True) as owner:
             try:
-                self.assertTrue(select.select([owner.stdout], [], [], 10)[0], "simulator startup timed out")
+                # Cold HTTP server startup on hosted macOS can exceed 30 seconds.
+                self.assertTrue(select.select([owner.stdout], [], [], 90)[0], "simulator startup timed out")
                 url = owner.stdout.readline().strip()
                 api = VirtualInstrumentAdapter(url, PIN["instrument_id"], PIN["profile_id"], SHA)
                 blank = api.blank(SETTINGS)
