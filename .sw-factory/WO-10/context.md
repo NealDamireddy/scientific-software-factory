@@ -3,7 +3,7 @@
 # Work Order Entity Index: WO-10
 
 **Initialized At (UTC):** 2026-11-14T19:08:50Z
-**Current Status:** in_progress
+**Current Status:** in_review
 
 ## Work Order
 
@@ -31,6 +31,6 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/wo-10-experiment-scheduler
-- Pull Request URL:
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/7
 
 Knowledge Base: Plan (9f095369-805b-4489-bc06-961275cbc2cd). Keep simulation and worker labels private; use saved inputs, pinned releases and measured timing. Scope is RUN-001.1–7 and RUN-002.1–3. Evidence export, frontend stale-state presentation and hosting belong to later work.

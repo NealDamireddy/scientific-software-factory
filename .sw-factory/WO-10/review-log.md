@@ -25,4 +25,6 @@ Development base: 505c66b. Integration inputs: WO-8 at 5c7592bd2dd1929d38f21122c
 - An initial attempt to run two full suites concurrently collided on WO-7's host-wide test instrument lock. Regressions were rerun sequentially without weakening instrument exclusivity.
 - The full combined suite and focused composition checks use loopback HTTP and macOS Seatbelt. No frontend code or build configuration changed.
 
+- Final combined regression on the implementation commit: **122 passed, zero skipped** (72.420 s). The same 16 scheduler cases also passed directly on the branch.
+
 Independent review verdict: **APPROVED**.
