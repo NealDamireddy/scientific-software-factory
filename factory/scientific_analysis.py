@@ -23,6 +23,12 @@ def project_fields(source, fields):
     result = {key: source[key] for key in fields if key in source}
     if any(type(value) not in (str, int, float, bool, type(None)) for value in result.values()):
         raise ValueError("Expected scalar public fields")
+    # The instrument schema permits integral JSON floats for optical settings.
+    # Canonicalize only the sandbox projection, preserving the acquired records.
+    for key in OPTICAL_SETTINGS:
+        value = result.get(key)
+        if type(value) is float and value.is_integer():
+            result[key] = int(value)
     return result
 
 
@@ -112,7 +118,8 @@ def calibration_mismatch(calibration, recipe):
         pins["blank_id"] = recipe["blank_id"]
     for field, expected in pins.items():
         value = calibration.get(field)
-        if type(value) is not type(expected) or value != expected:
+        # WO-7 optical settings use JSON integers, including integral float spellings.
+        if value != expected or (field in OPTICAL_SETTINGS and not finite(value)):
             return f"Calibration {field} differs from the verified acquisition recipe"
     return None
 

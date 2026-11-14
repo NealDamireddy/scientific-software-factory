@@ -11,10 +11,11 @@ from .context import digest
 from .release_repository import canonical
 from .sandbox import execute
 from .scientific_contract import TOLERANCE, case_plan, compare
+from .uvvis_contract import validate_settings
 
 
 TYPES = ("concentration", "time_course")
-VERIFIER = "scientific-release@4"
+VERIFIER = "scientific-release@5"
 ERRORS = (ValueError, TypeError, KeyError, RuntimeError, OSError, ArithmeticError, RecursionError, SyntaxError)
 
 
@@ -57,14 +58,9 @@ def check_context(context, profile, recipe, kind):
             and instrument["profile_sha256"] == digest(canonical(profile)), "Invalid instrument or profile pin")
     require(all(recipe[k] == instrument[k] for k in ("instrument_id", "profile_id", "profile_sha256")),
             "Compiled recipe has different instrument pins")
-    settings = recipe["settings"]
-    require(type(recipe["schema_version"]) is int and recipe["schema_version"] == 1
-            and settings["operation"] in profile["operations"], "Unsupported recipe operation or version")
-    for key, supported in (("wavelength_nm", "wavelengths_nm"), ("path_length_mm", "path_lengths_mm")):
-        require(type(settings[key]) is int and settings[key] in profile[supported], f"Unsupported {key}")
-    limits = profile["replicate_limits"]
-    require(type(settings["replicates"]) is int and limits["min"] <= settings["replicates"] <= limits["max"],
-            "Unsupported replicate count")
+    require(type(recipe["schema_version"]) in (int, float) and recipe["schema_version"] == 1,
+            "Unsupported recipe version")
+    validate_settings(recipe["settings"], profile)
 
 
 def check_files(files, candidate):
