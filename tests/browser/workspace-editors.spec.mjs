@@ -254,3 +254,36 @@ test("live specification handoff surfaces an unsupported type and preserves the 
   });
   expect(request.payload.settings.wavelength_nm).toBeNull();
 });
+
+test("fixture rejects sample collisions, incomplete standards and unsupported protocol units", async ({page}) => {
+  await openTab(page, "Specifications");
+  const editor = page.getByRole("region", {name:"Experiment specification"});
+  const save = editor.getByRole("button", {name:"Save draft revision"});
+  const samples = editor.getByLabel("Sample IDs (one per line)");
+  const alert = page.getByRole("main").getByRole("alert");
+  await editor.getByRole("button", {name:"Use project protocol"}).click();
+  await editor.getByLabel("Wavelength (nm)").fill("650");
+  for (const ids of ["vial-q17\nvial-q17", "std-1"]) {
+    await samples.fill(ids);
+    await save.click();
+    await expect(alert).toContainText(/sample_ids|standards/);
+    await expect(editor.getByRole("button", {name:"Approve revision"})).toHaveCount(0);
+    await expect(samples).toHaveValue(ids);
+  }
+  await samples.fill("vial-q17");
+  await editor.getByRole("button", {name:"Add standard"}).click();
+  await save.click();
+  await expect(alert).toContainText("standards");
+  await editor.getByRole("button", {name:"Remove standard 4"}).click();
+  await openTab(page, "Lab & project");
+  const project = page.getByRole("form", {name:"Project context"});
+  await project.getByLabel("Concentration unit", {exact:true}).fill("mol/L");
+  await project.getByRole("button", {name:"Save project revision"}).click();
+  await expect(project.getByRole("status")).toContainText("Saved project revision 2");
+  await openTab(page, "Specifications");
+  await editor.getByLabel("Specification project revision").selectOption("2");
+  await editor.getByRole("button", {name:"Use project protocol"}).click();
+  await save.click();
+  await expect(alert).toContainText("mg/L");
+  await expect(editor.getByRole("button", {name:"Approve revision"})).toHaveCount(0);
+});

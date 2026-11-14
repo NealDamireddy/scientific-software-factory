@@ -161,6 +161,36 @@ async function seed(projectId: string): Promise<Store> {
   return { snapshot, submissions: [] };
 }
 
+// Sample and standard IDs share the acquisition contract's namespace.
+function checkSamples(input: SpecInput, fields: FieldErrors) {
+  const identifier = /^[A-Za-z0-9][A-Za-z0-9._-]{0,199}$/;
+  const ids = new Set(input.sample_ids);
+  if (
+    !ids.size ||
+    ids.size !== input.sample_ids.length ||
+    input.sample_ids.some((id) => !identifier.test(id))
+  )
+    fields.sample_ids = "Select distinct opaque sample identifiers.";
+  const levels = new Set<number>();
+  for (const { sample_id, known_concentration } of input.standards) {
+    if (
+      !identifier.test(sample_id) ||
+      ids.has(sample_id) ||
+      !Number.isFinite(known_concentration) ||
+      known_concentration <= 0
+    ) {
+      fields.standards =
+        "Use distinct standard IDs, separate from unknowns, with finite positive known levels.";
+      return;
+    }
+    ids.add(sample_id);
+    levels.add(known_concentration);
+  }
+  if (input.experiment_type === "concentration" && levels.size < 3)
+    fields.standards = "Provide three distinct positive standard levels.";
+  if (ids.size > 100) fields.sample_ids = "Acquisition supports at most 100 combined samples and standards.";
+}
+
 // These checks model the editable fixture responses only. The live client
 // submits the researcher's inputs to the service for authoritative validation.
 function checkSpec(input: SpecInput, state: Snapshot) {
@@ -202,17 +232,7 @@ function checkSpec(input: SpecInput, state: Snapshot) {
     input.settings.replicates > 10
   )
     fields["settings.replicates"] = "Select 1–10 replicates.";
-  if (!input.sample_ids.length || input.sample_ids.some((id) => !id.trim()))
-    fields.sample_ids = "Provide the sample identifiers.";
-  if (
-    input.experiment_type === "concentration" &&
-    new Set(
-      input.standards
-        .filter((s) => s.sample_id && s.known_concentration > 0)
-        .map((s) => s.known_concentration),
-    ).size < 3
-  )
-    fields.standards = "Provide three distinct positive standard levels.";
+  checkSamples(input, fields);
   if (input.experiment_type === "time_course") {
     const calibration = state.calibrations.find((c) => canonical(c) === canonical(input.calibration));
     if (!calibration) fields.calibration = "Select a saved calibration.";
@@ -241,6 +261,9 @@ function checkSpec(input: SpecInput, state: Snapshot) {
   }
   if (canonical(input.units) !== canonical(project.payload.units))
     fields.units = "Confirm the units from the project protocol.";
+  for (const [key, unit] of Object.entries(demo.project.units) as [keyof Project["units"], string][]) {
+    if (input.units[key] !== unit) fields["units." + key] = "The v1 contract requires " + unit + ".";
+  }
   if (!input.outputs.length) fields.outputs = "Confirm expected outputs.";
   if (!input.validation_criteria.length) fields.validation_criteria = "Confirm validation criteria.";
   if (Object.keys(fields).length)
