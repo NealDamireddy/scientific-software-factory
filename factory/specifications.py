@@ -3,14 +3,13 @@ from contextlib import closing
 from dataclasses import asdict
 from datetime import datetime, timezone
 import json
-import math
 import re
 import sqlite3
 from uuid import uuid4
 
 from .context import digest
 from .context_repository import ContextRepository, RevisionConflict, canonical_json
-from .uvvis_contract import load_profile, profile_sha256, validate, validate_settings
+from .uvvis_contract import load_profile, profile_sha256, settings_issues, validate, validate_settings
 
 TYPES = ("concentration", "time_course")
 _EDITABLE = {"settings", "sample_ids", "standards", "calibration", "schedule", "experiment_type"}
@@ -32,7 +31,7 @@ def _identifier(value):
 
 
 def _number(value):
-    return type(value) in (float, int) and -1e308 <= value <= 1e308 and math.isfinite(value)
+    return type(value) in (float, int) and -float("inf") < value < float("inf")
 
 
 def _check_samples(spec, errors):
@@ -64,10 +63,11 @@ def _check_calibration(spec, errors):
     ref = spec["calibration"]
     if ref is None and spec["experiment_type"] != "time_course":
         return
-    required = {"id", "sha256", "contract", "settings", "unit", "instrument_id", "profile_sha256"}
+    required = {"id", "sha256", "contract", "settings", "unit", "instrument_id", "profile_sha256", "blank_id"}
     if (not isinstance(ref, dict) or set(ref) != required or not _identifier(ref["id"])
+            or not _identifier(ref["blank_id"])
             or not isinstance(ref["sha256"], str) or not re.fullmatch("[0-9a-f]{64}", ref["sha256"])):
-        errors["calibration"] = "Supply a frozen calibration identity, digest, contract, units and instrument settings."
+        errors["calibration"] = "Supply a frozen calibration identity, digest, blank_id, contract, units and instrument settings."
         return
     settings = spec["settings"] if isinstance(spec["settings"], dict) else {}
     if (ref["contract"] != "absorbance-linear@1" or ref["unit"] != spec["units"].get("concentration")
@@ -188,16 +188,9 @@ class ExperimentSpecificationService:
         if pin["profile_id"] != profile["profile_id"] or pin["profile_sha256"] != profile_sha256(profile):
             errors["instrument"] = "This recipe requires the pinned virtual UV–Vis profile."
         settings = spec["settings"]
-        if not isinstance(settings, dict):
-            errors["settings"] = "Supply the measurement settings."
-        else:
-            for field in ("operation", "wavelength_nm", "path_length_mm", "replicates"):
-                if field not in settings:
-                    errors[f"settings.{field}"] = "Selection required."
-            try:
-                validate_settings(settings, profile)
-            except ValueError as exc:
-                errors[f"settings.{exc.field}" if exc.field != "settings" else "settings"] = exc.reason
+        for issue in settings_issues(settings, profile):
+            field = f"settings.{issue.field}" if issue.field != "settings" else "settings"
+            errors.setdefault(field, issue.reason)
         _check_samples(spec, errors)
         _check_schedule(spec, errors)
         _check_calibration(spec, errors)

@@ -23,24 +23,36 @@ class ApprovedAcquisition:
                 job_id TEXT UNIQUE
             )""")
 
+    def _blank(self, recipe, calibration):
+        if calibration is not None:
+            # The instrument checks existence and optical compatibility on submission.
+            # Retain the reference from the calibration with its source identity.
+            if not calibration.get("blank_id"):
+                raise ValueError("The approved calibration is missing its blank reference")
+            return {"blank_id": calibration["blank_id"], "source": "frozen_calibration",
+                    "calibration_id": calibration["id"], "calibration_sha256": calibration["sha256"]}
+        settings = recipe["settings"]
+        blank = self.adapter.blank(settings)
+        validate_pins(recipe, blank)
+        if any(blank[name] != settings[name] for name in ("wavelength_nm", "path_length_mm")):
+            raise ValueError("Blank settings do not match the approved recipe")
+        return blank
+
     def submit(self, spec_digest, *, key):
-        """Acquire a compatible blank and submit the exact approved samples and settings."""
+        """Submit a single batch (one timepoint), reusing the approved calibration's blank."""
         validate_key(key)
         spec, approval = self.specifications.approved(spec_digest)
         recipe = self.specifications.compile_recipe(spec_digest)
         validate_pins(recipe, self.adapter.pin)
         sample_ids = [row["sample_id"] for row in spec["standards"]] + spec["sample_ids"]
-        settings = recipe["settings"]
+        calibration = spec["calibration"]
         with closing(sqlite3.connect(self.sqlite_path)) as db, db:
             # Serialize creation so competing clients persist the same reference for this key.
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("""SELECT specification_sha256, request, job_id
                                 FROM approved_acquisitions WHERE submission_key=?""", (key,)).fetchone()
             if row is None:
-                blank = self.adapter.blank(settings)
-                validate_pins(recipe, blank)
-                if any(blank[name] != settings[name] for name in ("wavelength_nm", "path_length_mm")):
-                    raise ValueError("Blank settings do not match the approved recipe")
+                blank = self._blank(recipe, calibration)
                 request = {**recipe, "blank_id": blank["blank_id"], "sample_ids": sample_ids}
                 validate("acquisition_request", request)
                 provenance = {"project": spec["project"], "lab": spec["lab"],
@@ -53,9 +65,11 @@ class ApprovedAcquisition:
             else:
                 if row[0] != spec_digest:
                     raise ValueError("Submission key already belongs to a different specification")
+                request = json.loads(row[1])
+                if calibration is not None and request["blank_id"] != calibration.get("blank_id"):
+                    raise ValueError("Saved submission does not use the approved calibration blank")
                 if row[2] is not None:
                     return self.get(key)
-                request = json.loads(row[1])
 
         # The blank, exact request and key survive a lost response or a process restart.
         job = self.adapter.submit(request["settings"], request["sample_ids"], request["blank_id"], key)

@@ -93,11 +93,20 @@ class SpecificationTests(unittest.TestCase):
                     self.approve(spec)
                 spec = self.start()
 
+    def test_lists_all_incompatible_and_missing_settings_together(self):
+        spec = self.start()
+        revised = self.service.edit(spec["sha256"], settings={"operation": "scan", "wavelength_nm": 600,
+                                                            "path_length_mm": 5, "replicates": 99})
+        fields = {"settings.operation", "settings.wavelength_nm", "settings.path_length_mm", "settings.replicates"}
+        self.assertEqual(self.service.unresolved(revised).keys(), fields)
+        empty = self.service.edit(revised["sha256"], settings={})
+        self.assertEqual(self.service.unresolved(empty).keys(), fields)
+
     def test_time_course_requires_confirmed_schedule_and_compatible_calibration(self):
         spec = self.start(experiment_type="time_course")
         self.assertEqual(set(self.service.unresolved(spec)), {"calibration", "schedule"})
         calibration = {
-            "id": "frozen-cal", "sha256": "3" * 64, "contract": "absorbance-linear@1", "unit": "mg/L",
+            "id": "frozen-cal", "blank_id": "ref-1", "sha256": "3" * 64, "contract": "absorbance-linear@1", "unit": "mg/L",
             "settings": {"wavelength_nm": 650, "path_length_mm": 10},
             **{k: spec["instrument"][k] for k in ("instrument_id", "profile_sha256")},
         }
@@ -105,6 +114,8 @@ class SpecificationTests(unittest.TestCase):
                                 schedule={"interval_s": 0, "point_count": 101})
         self.assertEqual(set(self.service.unresolved(bad)), {"calibration", "schedule.interval_s", "schedule.point_count"})
         valid = self.service.edit(bad["sha256"], calibration=calibration, schedule={"interval_s": 1, "point_count": 100})
+        missing_blank = {**valid, "calibration": {k: v for k, v in calibration.items() if k != "blank_id"}}
+        self.assertIn("calibration", self.service.unresolved(missing_blank))
         self.assertIn("timestamp", valid["outputs"])
         receipt = self.approve(valid)
         self.assertLessEqual({"calibration", "schedule", "settings"}, set(receipt["confirmed_fields"]))

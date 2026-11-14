@@ -11,7 +11,8 @@ import unittest
 from unittest.mock import patch
 
 from factory.approved_acquisition import ApprovedAcquisition
-from factory.context_repository import SQLiteContextRepository
+from factory.context import digest
+from factory.context_repository import SQLiteContextRepository, canonical_json
 from factory.specifications import ExperimentSpecificationService
 from factory.uvvis_adapter import InstrumentUnavailable, VirtualInstrumentAdapter
 from factory.uvvis_contract import InstrumentError
@@ -115,6 +116,51 @@ def test_saved_project_context_drives_fresh_acquisition():
 
 
 class AcquisitionBoundaryTests(unittest.TestCase):
+    def test_timepoint_submits_the_reference_pinned_by_frozen_calibration(self):
+        root = Path(self.enterContext(tempfile.TemporaryDirectory()))
+        db = root / "application.sqlite"
+        repo = SQLiteContextRepository(db)
+        lab, project = load_demo(repo)
+        specs = ExperimentSpecificationService(repo, db)
+        spec = specs.start(lab.lab_id, project.project_id, experiment_type="time_course")
+        store = root / "jobs"
+        adapter = self.enterContext(live_instrument(store, spec["instrument"], []))
+        acquisitions = ApprovedAcquisition(specs, db, adapter)
+        reference = adapter.blank(spec["settings"])
+        other = adapter.blank({**spec["settings"], "wavelength_nm": 450})
+        for blank_id, error in ((other["blank_id"], "incompatible reference"),
+                                ("absent-reference", "unknown reference"), (reference["blank_id"], None)):
+            with self.subTest(blank_id=blank_id):
+                calibration = {"id": "cal-1", "contract": "absorbance-linear@1",
+                               "settings": {k: spec["settings"][k] for k in ("wavelength_nm", "path_length_mm")},
+                               "unit": "mg/L", "blank_id": blank_id,
+                               **{k: spec["instrument"][k] for k in ("instrument_id", "profile_sha256")}}
+                calibration["sha256"] = digest(canonical_json(calibration).encode())
+                spec = specs.edit(spec["sha256"], calibration=calibration, schedule={"interval_s": 5, "point_count": 3})
+                specs.approve(spec["sha256"], actor="local-researcher", confirmed_fields=specs.confirmation_fields(spec))
+                key = f"point-1-{blank_id}"
+                if error:
+                    with self.assertRaisesRegex(InstrumentError, error):
+                        acquisitions.submit(spec["sha256"], key=key)
+                    self.assertIsNone(acquisitions.get(key)["job_id"])
+                    continue
+                trace = acquisitions.submit(spec["sha256"], key=key)
+                self.assertEqual(trace["blank"], {"blank_id": blank_id, "source": "frozen_calibration",
+                                                  "calibration_id": "cal-1", "calibration_sha256": calibration["sha256"]})
+                self.assertEqual(trace["request"]["blank_id"], blank_id)
+                self.assertEqual(trace["request"]["sample_ids"], project.payload["sample_ids"])
+                until(lambda: adapter.poll(trace["job_id"])["status"] == "completed")
+                result = adapter.measurements(trace["job_id"])
+                self.assertTrue(result["complete"])
+                self.assertEqual([row["replicate"] for row in result["records"]], [1, 2, 3])
+                for row in result["records"]:
+                    self.assertEqual(row["blank_id"], reference["blank_id"])
+                    self.assertEqual(row["wavelength_nm"], reference["wavelength_nm"])
+                    self.assertEqual(row["blank_counts"], reference["blank_counts"])
+        with closing(sqlite3.connect(store / "jobs.sqlite3")) as instrument_db:
+            self.assertEqual(instrument_db.execute("SELECT count(*) FROM blanks").fetchone(), (2,))
+            self.assertEqual(instrument_db.execute("SELECT count(*) FROM jobs").fetchone(), (1,))
+
     def test_retry_after_accepted_job_and_draft_or_adapter_rejection(self):
         root = Path(self.enterContext(tempfile.TemporaryDirectory()))
         db = root / "application.sqlite"
