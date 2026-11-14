@@ -86,6 +86,23 @@ class VirtualUvVisTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.store = Path(self.temp.name) / "jobs"
 
+    def test_malformed_acceptance_reconciles_by_key(self):
+        with instrument(self.store, duration_s=0) as (service, api):
+            blank = api.blank(SETTINGS)["blank_id"]
+            ids = []
+            submit = service.submit
+
+            def lose_identity(request, key):
+                job = submit(request, key)
+                ids.append(job.pop("job_id"))
+                return job
+
+            with patch.object(service, "submit", side_effect=lose_identity):
+                with self.assertRaises(InstrumentUnavailable):
+                    api.submit(SETTINGS, ["vial-q17"], blank, "uncertain-success")
+            recovered = api.submit(SETTINGS, ["vial-q17"], blank, "uncertain-success")
+            self.assertEqual(set(ids), {recovered["job_id"]})
+
     def test_contract_and_fresh_measurements(self):
         self.assertEqual(profile_sha256(PROFILE), SHA)
         clock = Clock()

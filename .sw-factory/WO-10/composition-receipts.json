@@ -1,0 +1,45 @@
+[
+  {
+    "run_id": "cb7892294b4945cdab34b1c9601c1a16",
+    "specification_sha256": "e6bd504a21c858b31c19cf5f40688ad923a010cc28604a68aa94013e99ab2619",
+    "remote_jobs": [
+      "558fefecc92047a5a8b55926f3f5cfb3"
+    ],
+    "readings": 12,
+    "release_id": "af658f5233044b2bfd8e1612a1855141e462d636b481bba1a9d1e10152ea17d7",
+    "calibration_id": "cal-558fefecc92047a5a8b55926f3f5cfb3",
+    "acquisition_started_at": "2026-11-14T19:18:12.645564+00:00",
+    "acquisition_finished_at": "2026-11-14T19:18:12.649200+00:00",
+    "software_ready_at": "2026-11-14T19:18:14.532657+00:00",
+    "software_wait_s": 1.883457
+  },
+  {
+    "run_id": "7e73fe2fdae241bc93aab5300a300445",
+    "specification_sha256": "3cc6fb93cf108f8fcd94ebeeb3b2d24bb54ff1b56d1488c15da7803b67ad9095",
+    "remote_jobs": [
+      "82b74b5c02ca4b658772bdc7f6a4bd4c",
+      "1128763562194338a042ac1339953d33"
+    ],
+    "readings": 6,
+    "release_id": "eb80aeb51a93842490794c4e0d8e08b37f8b37c205173867f5d171b3f22442e5",
+    "calibration_id": "cal-558fefecc92047a5a8b55926f3f5cfb3",
+    "acquisition_started_at": "2026-11-14T19:18:14.744422+00:00",
+    "acquisition_finished_at": "2026-11-14T19:18:15.783561+00:00",
+    "software_ready_at": "2026-11-14T19:18:16.502489+00:00",
+    "software_wait_s": 0.718928
+  },
+  {
+    "run_id": "ad7d62b7f816439d8343e347b00bef3a",
+    "specification_sha256": "2481966c4d1d1168291248173c20a0aa82649913b91ced13289ea671ea51c1c7",
+    "remote_jobs": [
+      "0a015f5d686b4bc4a3ee9738a4e41442"
+    ],
+    "readings": 12,
+    "release_id": "af658f5233044b2bfd8e1612a1855141e462d636b481bba1a9d1e10152ea17d7",
+    "calibration_id": "cal-0a015f5d686b4bc4a3ee9738a4e41442",
+    "acquisition_started_at": "2026-11-14T19:18:16.603871+00:00",
+    "acquisition_finished_at": "2026-11-14T19:18:16.607776+00:00",
+    "software_ready_at": "2026-11-14T19:18:16.601066+00:00",
+    "software_wait_s": 0.0
+  }
+]
