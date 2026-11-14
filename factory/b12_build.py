@@ -67,6 +67,10 @@ views.metrics keys for v2: """ + json.dumps(metrics) + "\nParent source:\n" + pa
     return receipt
 
 
-def revision(folder: Path):
-    manifest = {name: hashlib.sha256((folder / name).read_bytes()).hexdigest() for name in FILES}
+def content_revision(files):
+    manifest = {name: hashlib.sha256(files[name]).hexdigest() for name in FILES}
     return hashlib.sha256(json.dumps(manifest, sort_keys=True).encode()).hexdigest()
+
+
+def revision(folder: Path):
+    return content_revision({name: (folder / name).read_bytes() for name in FILES})

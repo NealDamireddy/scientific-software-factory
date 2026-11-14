@@ -1,5 +1,6 @@
 """Presenter-laptop EVOLVE service. Start with python -m factory.lab."""
 import argparse
+from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 import difflib
@@ -16,6 +17,7 @@ from urllib.parse import urlsplit
 import uuid
 
 from . import b12_build
+from .archive import validate_archive
 from .context import ROOT, read_json
 from .optics import PROFILE, RECIPE, validate_preparation, acquire, assess, calibration_digest, fit_calibration, validate_recipe, verify_candidate
 from .sandbox import execute
@@ -29,7 +31,11 @@ def save(path, obj):
 
 
 class Lab:
-    def __init__(self, store):
+    def __init__(self, store, *, archive=None, allow_generation=True):
+        self.archive = validate_archive(archive) if archive is not None else None
+        self.archived = ({task["id"]: task for task in (self.archive["direct"], self.archive["followup"])}
+                         if self.archive else {})
+        self.allow_generation = allow_generation
         self.store = Path(store)
         self.store.mkdir(mode=0o700, parents=True, exist_ok=True)
         self.lease = (self.store / ".lock").open("a")
@@ -45,8 +51,9 @@ class Lab:
         self.lease.close()
 
     def history(self):
-        return sorted((self.task(p.parent.name) for p in self.store.glob("*/task.json")),
-                      key=lambda r: r["created"], reverse=True)
+        live = {p.parent.name: self.task(p.parent.name) for p in self.store.glob("*/task.json")}
+        saved = [self.task(identifier) for identifier in self.archived if identifier not in live]
+        return sorted([*live.values(), *saved], key=lambda r: r["created"], reverse=True)
 
     def path(self, task_id):
         if not re.fullmatch(r"[0-9a-f]{32}", task_id):
@@ -57,6 +64,8 @@ class Lab:
         return folder
 
     def task(self, task_id):
+        if task_id in self.archived and not (self.store / task_id).exists():
+            return {**deepcopy(self.archived[task_id]), "mode": "previous completed run", "archived": True}
         task = read_json(self.path(task_id) / "task.json")
         if task["status"] == "verified" and not task.get("parent_id") and task.get("finding", {}).get("above_range"):
             data = read_json(self.path(task_id)/"acquisition.json")
@@ -70,7 +79,12 @@ class Lab:
             }
         return task
 
+    def require_live(self, task_id):
+        if self.task(task_id).get("archived"):
+            raise ValueError("Previous completed runs are read-only; submit a new PI request for fresh generation")
+
     def update(self, task_id, **fields):
+        self.require_live(task_id)
         with self.lock:
             task = {**read_json(self.path(task_id) / "task.json"), **fields}
             save(self.path(task_id) / "task.json", task)
@@ -85,6 +99,8 @@ class Lab:
         return self.enqueue(brief)
 
     def enqueue(self, brief, **fields):
+        if not self.allow_generation:
+            raise ValueError("Archive-only mode: fresh generation is disabled. Run python -m factory.demo --check on the presenter laptop")
         with self.lock:
             task_id = uuid.uuid4().hex
             folder = self.store / task_id
@@ -96,6 +112,7 @@ class Lab:
             return task
 
     def approve(self, task_id):
+        self.require_live(task_id)
         with self.lock:
             original = self.task(task_id)
             if not original.get("proposal") or original.get("parent_id"):
@@ -111,6 +128,7 @@ class Lab:
                                     "origin": task_id, "factor": 2, "protocol": PROFILE["protocol"]})
 
     def prepare(self, task_id, data):
+        self.require_live(task_id)
         with self.lock:
             task = self.task(task_id)
             if not task.get("approval"):
@@ -129,6 +147,7 @@ class Lab:
             return self.update(task_id, preparation=prep)
 
     def retry(self, task_id):
+        self.require_live(task_id)
         with self.lock:
             task = self.task(task_id)
             if task["status"] != "failed" or not task.get("approval"):
@@ -210,6 +229,7 @@ class Lab:
             self.update(task_id, status="failed", error=str(error)[:1800])
 
     def rerun(self, task_id):
+        self.require_live(task_id)
         with self.lock:
             child = self.task(task_id)
             if child.get("status") != "verified" or not child.get("preparation") or not child.get("approval"):
@@ -221,6 +241,7 @@ class Lab:
             return self.update(task_id, measurement=measurement, result=measurement["result"])
 
     def reveal(self, task_id):
+        self.require_live(task_id)
         with self.lock:
             child = self.task(task_id)
             if not child.get("measurement") or child["result"]["status"] != "ok":
@@ -233,6 +254,13 @@ class Lab:
                                                    signed_error_mg_l=prediction-prepared))
 
     def replay(self, task_id):
+        if self.task(task_id).get("archived"):
+            if task_id != self.archive["followup"]["id"]:
+                raise ValueError("Select the archived follow-up to replay both acquisitions")
+            from .replay_bundle import replay_package
+            replay_package(self.archive)
+            return {**self.task(task_id), "replay": dict(parent_matches=True, child_matches=True,
+                    calibration_id=self.archive["initial"]["calibration"]["id"])}
         with self.lock:
             child = self.task(task_id)
             if not child.get("measurement"):
@@ -252,6 +280,10 @@ class Lab:
             return self.update(task_id, replay=dict(parent_matches=True, child_matches=True, calibration_id=cal["id"]))
 
     def evidence(self, task_id):
+        if self.task(task_id).get("archived"):
+            if task_id != self.archive["followup"]["id"]:
+                raise ValueError("Select the archived follow-up to download its evidence")
+            return deepcopy(self.archive)
         with self.lock:
             child = self.task(task_id)
             if not child.get("measurement"):
@@ -287,6 +319,8 @@ class Lab:
                         ([] if child["result"]["status"] == "ok" else ["Follow-up outside calibration."])}
 
     def source(self, task_id):
+        if self.task(task_id).get("archived"):
+            return deepcopy(self.archive["sources"][task_id])
         folder = self.path(task_id)
         files = {n: (folder/n).read_text() for n in b12_build.FILES if (folder/n).is_file()}
         task = self.task(task_id)
@@ -369,10 +403,14 @@ def main():
     parser.add_argument("--port", type=int, default=8765)
     parser.add_argument("--store", type=Path, default=ROOT/"runs"/"b12")
     args = parser.parse_args()
-    with ThreadingHTTPServer(("127.0.0.1", args.port), Handler) as server:
+    serve(args.port, args.store)
+
+
+def serve(port, store, *, archive=None, allow_generation=True):
+    with ThreadingHTTPServer(("127.0.0.1", port), Handler) as server:
         port = server.server_port
         server.hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
-        server.lab = Lab(args.store)
+        server.lab = Lab(store, archive=archive, allow_generation=allow_generation)
         print(f"EVOLVE presenter http://127.0.0.1:{port}", flush=True)
         try:
             server.serve_forever()
