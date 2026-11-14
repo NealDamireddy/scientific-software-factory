@@ -1,0 +1,67 @@
+Base ae7d2f3d2f2cb98d52f7e6a5d8ffda911096bf08
+python3 -m unittest tests.test_uvvis_identity -v (failure excerpts)
+
+ERROR: test_rejected_retry_after_lost_post_cannot_prove_no_acquisition (tests.test_uvvis_identity.LifecycleIdentityTests.test_rejected_retry_after_lost_post_cannot_prove_no_acquisition)
+factory.uvvis_contract.InstrumentError: instrument_id: instrument busy
+FAIL: test_cancel_validates_its_returned_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_cancel_validates_its_returned_job) (field='instrument_id')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_cancel_validates_its_returned_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_cancel_validates_its_returned_job) (field='profile_id')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_cancel_validates_its_returned_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_cancel_validates_its_returned_job) (field='profile_sha256')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_cancel_validates_its_returned_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_cancel_validates_its_returned_job) (field='job_id')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='instrument_id', operation='poll')
+AssertionError: InstrumentError not raised
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='instrument_id', operation='measurements')
+AssertionError: InstrumentError not raised
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='instrument_id', operation='cancel')
+AssertionError: InstrumentError not raised
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='instrument_id', owner_state=True)
+AssertionError: 'cancelled' != 'running'
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='profile_id', operation='poll')
+AssertionError: InstrumentError not raised
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='profile_id', operation='measurements')
+AssertionError: InstrumentError not raised
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='profile_id', operation='cancel')
+AssertionError: InstrumentError not raised
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='profile_id', owner_state=True)
+AssertionError: 'cancelled' != 'running'
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='profile_sha256', operation='poll')
+AssertionError: InstrumentError not raised
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='profile_sha256', operation='measurements')
+AssertionError: InstrumentError not raised
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='profile_sha256', operation='cancel')
+AssertionError: InstrumentError not raised
+FAIL: test_foreign_adapter_cannot_cancel_or_read_an_empty_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_foreign_adapter_cannot_cancel_or_read_an_empty_job) (field='profile_sha256', owner_state=True)
+AssertionError: 'cancelled' != 'running'
+FAIL: test_keyed_submit_with_foreign_response_remains_uncertain (tests.test_uvvis_identity.LifecycleIdentityTests.test_keyed_submit_with_foreign_response_remains_uncertain)
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_measurement_envelope_and_every_record_match_the_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_measurement_envelope_and_every_record_match_the_job) (field='instrument_id')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_measurement_envelope_and_every_record_match_the_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_measurement_envelope_and_every_record_match_the_job) (field='profile_id')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_measurement_envelope_and_every_record_match_the_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_measurement_envelope_and_every_record_match_the_job) (field='profile_sha256')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_measurement_envelope_and_every_record_match_the_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_measurement_envelope_and_every_record_match_the_job) (field='job_id')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_measurement_envelope_and_every_record_match_the_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_measurement_envelope_and_every_record_match_the_job) (field='blank_id')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_measurement_envelope_and_every_record_match_the_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_measurement_envelope_and_every_record_match_the_job) (field='sample_id')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_measurement_envelope_and_every_record_match_the_job (tests.test_uvvis_identity.LifecycleIdentityTests.test_measurement_envelope_and_every_record_match_the_job)
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_short_http_body_with_valid_json_is_uncertain (tests.test_uvvis_identity.LifecycleIdentityTests.test_short_http_body_with_valid_json_is_uncertain)
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_substituted_or_incomplete_job_prevents_cancel (tests.test_uvvis_identity.LifecycleIdentityTests.test_substituted_or_incomplete_job_prevents_cancel) (field='instrument_id')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_substituted_or_incomplete_job_prevents_cancel (tests.test_uvvis_identity.LifecycleIdentityTests.test_substituted_or_incomplete_job_prevents_cancel) (field='profile_id')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_substituted_or_incomplete_job_prevents_cancel (tests.test_uvvis_identity.LifecycleIdentityTests.test_substituted_or_incomplete_job_prevents_cancel) (field='profile_sha256')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_substituted_or_incomplete_job_prevents_cancel (tests.test_uvvis_identity.LifecycleIdentityTests.test_substituted_or_incomplete_job_prevents_cancel) (field='job_id')
+AssertionError: InstrumentUnavailable not raised
+FAIL: test_substituted_or_incomplete_job_prevents_cancel (tests.test_uvvis_identity.LifecycleIdentityTests.test_substituted_or_incomplete_job_prevents_cancel) (field='missing', owner_state=True)
+AssertionError: 'cancelled' != 'running'
+Ran 8 tests in 0.195s
+FAILED (failures=30, errors=1)

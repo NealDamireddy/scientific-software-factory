@@ -1,0 +1,32 @@
+test_uncertain_success_retains_lease_and_recovers_one_remote_job (tests.test_uvvis_scheduler_identity.SchedulerIdentityTests.test_uncertain_success_retains_lease_and_recovers_one_remote_job) ... 127.0.0.1 - - [14/Nov/2026 13:07:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:07:54] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:07:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:07:54] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:07:54] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:07:54] "GET /v1/acquisitions/e7bd17c95f9e4afbbbe1bfcd611f3667 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:07:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:07:54] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:07:54] "GET /v1/acquisitions/e7bd17c95f9e4afbbbe1bfcd611f3667 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:07:54] "GET /v1/acquisitions/e7bd17c95f9e4afbbbe1bfcd611f3667/measurements HTTP/1.1" 200 -
+FAIL
+
+======================================================================
+FAIL: test_uncertain_success_retains_lease_and_recovers_one_remote_job (tests.test_uvvis_scheduler_identity.SchedulerIdentityTests.test_uncertain_success_retains_lease_and_recovers_one_remote_job)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_scheduler_identity.py", line 64, in test_uncertain_success_retains_lease_and_recovers_one_remote_job
+    self.assertEqual(accepted, [recovered["job_id"]])
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Lists differ: ['e7bd17c95f9e4afbbbe1bfcd611f3667', 'e7bd17c95f9e4afbbbe1bfcd611f3667'] != ['e7bd17c95f9e4afbbbe1bfcd611f3667']
+
+First list contains 1 additional elements.
+First extra element 1:
+'e7bd17c95f9e4afbbbe1bfcd611f3667'
+
+- ['e7bd17c95f9e4afbbbe1bfcd611f3667', 'e7bd17c95f9e4afbbbe1bfcd611f3667']
++ ['e7bd17c95f9e4afbbbe1bfcd611f3667']
+
+----------------------------------------------------------------------
+Ran 1 test in 0.065s
+
+FAILED (failures=1)

@@ -1,0 +1,64 @@
+Round 1 adapter and server before per-request guard, after the first implementation.
+test_serving_instance_changes_after_preflight (tests.test_uvvis_identity.LifecycleIdentityTests.test_serving_instance_changes_after_preflight) ... 127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/acquisitions/77e31818dc814683a4e8e1fbe5b51314 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/acquisitions/77e31818dc814683a4e8e1fbe5b51314/measurements HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/acquisitions/77e31818dc814683a4e8e1fbe5b51314 HTTP/1.1" 200 -
+
+  test_serving_instance_changes_after_preflight (tests.test_uvvis_identity.LifecycleIdentityTests.test_serving_instance_changes_after_preflight) (method='poll') ... FAIL
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/acquisitions/77e31818dc814683a4e8e1fbe5b51314 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/acquisitions/77e31818dc814683a4e8e1fbe5b51314 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/acquisitions/77e31818dc814683a4e8e1fbe5b51314/measurements HTTP/1.1" 200 -
+  test_serving_instance_changes_after_preflight (tests.test_uvvis_identity.LifecycleIdentityTests.test_serving_instance_changes_after_preflight) (method='measurements') ... FAIL
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/acquisitions/77e31818dc814683a4e8e1fbe5b51314 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/acquisitions/77e31818dc814683a4e8e1fbe5b51314 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "POST /v1/acquisitions/77e31818dc814683a4e8e1fbe5b51314/cancel HTTP/1.1" 409 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/acquisitions/77e31818dc814683a4e8e1fbe5b51314 HTTP/1.1" 200 -
+test_owned_cancel_fails_closed_on_a_legacy_cancel_route (tests.test_uvvis_identity.LifecycleIdentityTests.test_owned_cancel_fails_closed_on_a_legacy_cancel_route) ... 127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "GET /v1/acquisitions/e6ee35de6c224e03abefcc22ea790354 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:13:08] "POST /v1/acquisitions/e6ee35de6c224e03abefcc22ea790354/cancel HTTP/1.1" 200 -
+FAIL
+
+======================================================================
+FAIL: test_serving_instance_changes_after_preflight (tests.test_uvvis_identity.LifecycleIdentityTests.test_serving_instance_changes_after_preflight) (method='poll')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_identity.py", line 96, in test_serving_instance_changes_after_preflight
+    with self.assertRaises(InstrumentError) as error:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: InstrumentError not raised
+
+======================================================================
+FAIL: test_serving_instance_changes_after_preflight (tests.test_uvvis_identity.LifecycleIdentityTests.test_serving_instance_changes_after_preflight) (method='measurements')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_identity.py", line 96, in test_serving_instance_changes_after_preflight
+    with self.assertRaises(InstrumentError) as error:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: InstrumentError not raised
+
+======================================================================
+FAIL: test_owned_cancel_fails_closed_on_a_legacy_cancel_route (tests.test_uvvis_identity.LifecycleIdentityTests.test_owned_cancel_fails_closed_on_a_legacy_cancel_route)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_identity.py", line 119, in test_owned_cancel_fails_closed_on_a_legacy_cancel_route
+    with self.assertRaises(InstrumentError) as error:
+         ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: InstrumentError not raised
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.048s
+
+FAILED (failures=3)
