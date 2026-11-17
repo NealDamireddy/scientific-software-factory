@@ -27,4 +27,4 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/wo-37-runtime-work-orders
-- Pull Request URL: pending
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/24
