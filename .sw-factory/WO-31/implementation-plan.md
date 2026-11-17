@@ -21,3 +21,7 @@ Trusted services supply an authenticated principal. Each method checks the reque
 ## Testing
 
 Use unittest with an adapter-construction callable and fixture principals. Assert exact provenance, immutable history, draft state, stale edits, scoped denial, bad pins, retained decisions and reconciliation through a fresh repository object. Check SQLite migration composition and competing writers. Manually inspect the callable API on a temporary database. Run the repository Python suite with its pinned dependencies.
+
+## Hosted adapter handoff
+
+Subclass SQLScientificArtifactRepository and implement transaction(write=...) as a context manager yielding a positional-parameter SQL executor. Its docstring specifies row names, snapshot and write serialization requirements. The shared implementation owns authorization, payload and pin checks, decision receipts, revision comparisons and reconciliation. The hosted adapter supplies equivalent tables, foreign keys, generated row identities and append-only enforcement. Run check_repository(case, make_repository) against an isolated database.

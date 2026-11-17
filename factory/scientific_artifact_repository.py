@@ -153,6 +153,8 @@ class SQLScientificArtifactRepository:
     def save(self, lab_id, project_id, kind, artifact_id, payload, *, expected_revision, references=()):
         self._authorize(lab_id, project_id, WRITE)
         key = _key(lab_id, project_id, kind, artifact_id)
+        if not isinstance(references, (tuple, list)):
+            raise ValueError("Supply a sequence of artifact pins")
         references = tuple(references)
         if references:
             self._authorize(lab_id, project_id, READ)
@@ -165,7 +167,10 @@ class SQLScientificArtifactRepository:
             raise ValueError("expected_revision must be zero or a positive integer")
         if not isinstance(payload, dict):
             raise ValueError("Scientific payload must be a JSON object")
-        encoded = canonical_json(payload)
+        try:
+            encoded = canonical_json(payload)
+        except TypeError as exc:
+            raise ValueError("Scientific payload must contain JSON fields") from exc
         snapshot = json.loads(encoded)
         if snapshot != payload:
             raise ValueError("Scientific payload must contain JSON fields")
@@ -212,7 +217,7 @@ class SQLScientificArtifactRepository:
             raise PermissionError("Human scientific decision required")
         if specification.kind != "specification" or decision not in ("approved", "rejected"):
             raise ValueError("Supply a scientific specification pin and decision")
-        if not _text(rationale) or isinstance(limitations, str):
+        if not _text(rationale) or not isinstance(limitations, (tuple, list)):
             raise ValueError("Supply a rationale and a sequence of limitations")
         limitations = tuple(limitations)
         if not all(_text(item) for item in limitations):

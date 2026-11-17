@@ -57,6 +57,11 @@ def check_repository(case: TestCase, make_repository: RepositoryFactory) -> None
     case.assertIsNone(spec.predecessor)
 
     editor = make_repository(FixturePrincipal("editor"))
+    revised_knowledge = editor.save(*principal.scope, "knowledge", "protocol",
+                                    dict(payload, source_revision="v2", content_ref="evidence/protocol-v2",
+                                         evidence_gaps=[]), expected_revision=1)
+    case.assertEqual(revised_knowledge.author_id, "editor")
+    case.assertEqual(revised_knowledge.predecessor, knowledge.pin)
     next_req = editor.save(*principal.scope, "requirement", "r", {"objective": "corrected absorbance"},
                            references=(knowledge.pin,), expected_revision=1)
     case.assertEqual(next_req.predecessor, requirement.pin)
@@ -66,6 +71,10 @@ def check_repository(case: TestCase, make_repository: RepositoryFactory) -> None
     case.assertEqual(repo.reconciliation(late.pin), (replace(marker, blueprint=late.pin),))
 
     decider = make_repository(FixturePrincipal("approver", actions=(DECIDE,)))
+    for invalid_limitations in (42, "plain text", {"limitation": "virtual"}):
+        with case.assertRaises(ValueError):
+            decider.decide(spec.pin, "approved", rationale="Malformed limitations", limitations=invalid_limitations)
+    case.assertEqual(repo.decisions(spec.pin), ())
     rejected = decider.decide(spec.pin, "rejected", rationale="Needs independent check",
                               limitations=("simulated only",))
     approved = decider.decide(spec.pin, "approved", rationale="Checked protocol", limitations=("simulated only",))
@@ -90,7 +99,10 @@ def check_repository(case: TestCase, make_repository: RepositoryFactory) -> None
     case.assertEqual(next_spec.predecessor, spec.pin)
     case.assertEqual(reopened.decisions(spec.pin), (rejected, approved))
     case.assertEqual(reopened.decisions(next_spec.pin), ())
-    case.assertEqual(reopened.get(*principal.scope, "knowledge", "protocol", revision=1), knowledge)
+    case.assertEqual(reopened.history(*principal.scope, "knowledge", "protocol"), (knowledge, revised_knowledge))
+    case.assertEqual(reopened.get(*principal.scope, "knowledge", "protocol", revision=1).payload, payload)
+    case.assertEqual(reopened.get(*principal.scope, "knowledge", "protocol"), revised_knowledge)
+    case.assertEqual(reopened.get(*principal.scope, "requirement", "r", revision=1).references, (knowledge.pin,))
     case.assertEqual(reopened.get(*principal.scope, "blueprint", "b").references, (requirement.pin,))
     case.assertEqual(reopened.reconciliation(blueprint.pin), (marker,))
 
