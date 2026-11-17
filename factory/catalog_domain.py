@@ -1,4 +1,4 @@
-"""Shared repository semantics. Adapters implement one scoped transaction hook."""
+"""Shared repository semantics over scoped transactions and exact revision lookup."""
 from abc import ABC, abstractmethod
 from contextlib import AbstractContextManager
 from datetime import datetime, timezone
@@ -35,6 +35,19 @@ class CatalogDomainRepository(ABC):
         persisted receipt and return detached records. History is oldest first.
         """
         ...
+
+    @abstractmethod
+    def _read_by_id(self, kind: Kind, lab_id: str, revision_id: str) -> CatalogRecord | None:
+        """Filter on all three selectors and include the exact revision's receipt."""
+        ...
+
+    def get_by_id(self, kind: Kind, lab_id: str, revision_id: str, *, principal: Principal) -> CatalogRecord:
+        authorize(principal, lab_id, READ)
+        validate_stream(kind, lab_id, revision_id)
+        record = self._read_by_id(kind, lab_id, revision_id)
+        if record is None:
+            raise KeyError("No matching catalog record")
+        return record
 
     def get(self, kind: Kind, lab_id: str, record_id: str, *, revision: int | None = None,
             principal: Principal) -> CatalogRecord:

@@ -72,6 +72,10 @@ class CatalogRepository(Protocol):
         """Read the specified revision, or the head when revision is omitted."""
         ...
 
+    def get_by_id(self, kind: Kind, lab_id: str, revision_id: str, *, principal: Principal) -> CatalogRecord:
+        """Resolve an exact revision ID, including a source revision cited by a claim."""
+        ...
+
     def history(self, kind: Kind, lab_id: str, record_id: str, *,
                 principal: Principal) -> tuple[CatalogRecord, ...]:
         """All revisions in ascending order. An unknown stream raises KeyError."""

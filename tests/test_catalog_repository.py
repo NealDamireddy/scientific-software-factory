@@ -53,3 +53,15 @@ class SQLiteCatalogTests(CatalogRepositoryContract, unittest.TestCase):
         with closing(sqlite3.connect(path)) as db:
             self.assertEqual(db.execute("SELECT name FROM sqlite_schema WHERE type='table'").fetchall(),
                              [("catalog_approvals",)])
+
+    def test_persisted_revisions_and_receipts_are_immutable(self):
+        _, draft = self.new_catalog()
+        receipt = self.repo.approve(draft.pin, principal=self.curator)
+        with closing(sqlite3.connect(self.path)) as db:
+            for table, field in (("catalog_revisions", "payload"), ("catalog_approvals", "approver")):
+                for sql in (f"UPDATE {table} SET {field}='overwrite'", f"DELETE FROM {table}",
+                            f"INSERT OR REPLACE INTO {table} SELECT * FROM {table}"):
+                    with self.subTest(sql=sql), self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
+                        db.execute(sql)
+        record = self.open_repository().get("catalog", LAB, draft.pin.record_id, principal=self.curator)
+        self.assertEqual((record.pin, record.approval), (draft.pin, receipt))

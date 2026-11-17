@@ -3,6 +3,7 @@ from contextlib import closing, contextmanager
 import json
 from pathlib import Path
 import sqlite3
+
 from .catalog_contract import ApprovalReceipt, CatalogRecord, RevisionPin
 from .catalog_domain import CatalogDomainRepository
 
@@ -26,11 +27,20 @@ _MIGRATION_1 = (
         approver TEXT NOT NULL,
         approved_at TEXT NOT NULL
     )""",
+    # SQLite REPLACE may implicitly delete rows without invoking DELETE triggers.
+    """CREATE TRIGGER catalog_revisions_no_replace BEFORE INSERT ON catalog_revisions
+       WHEN EXISTS (SELECT 1 FROM catalog_revisions WHERE revision_id=NEW.revision_id
+           OR (lab_id=NEW.lab_id AND kind=NEW.kind AND record_id=NEW.record_id AND revision=NEW.revision))
+       BEGIN SELECT RAISE(ABORT, 'immutable catalog record'); END""",
+    """CREATE TRIGGER catalog_approvals_no_replace BEFORE INSERT ON catalog_approvals
+       WHEN EXISTS (SELECT 1 FROM catalog_approvals WHERE revision_id=NEW.revision_id)
+       BEGIN SELECT RAISE(ABORT, 'immutable catalog record'); END""",
 )
 
 _SELECT = """SELECT r.*, a.approver, a.approved_at
              FROM catalog_revisions r LEFT JOIN catalog_approvals a ON a.revision_id=r.revision_id
-             WHERE r.lab_id=? AND r.kind=? AND r.record_id=?"""
+             WHERE r.lab_id=? AND r.kind=?"""
+_STREAM = _SELECT + " AND r.record_id=?"
 
 
 def _record(row):
@@ -49,13 +59,13 @@ class _SQLiteTransaction:
 
     def read(self, revision):
         if revision is None:
-            row = self.db.execute(_SELECT + " ORDER BY r.revision DESC LIMIT 1", self.params).fetchone()
+            row = self.db.execute(_STREAM + " ORDER BY r.revision DESC LIMIT 1", self.params).fetchone()
         else:
-            row = self.db.execute(_SELECT + " AND r.revision=?", (*self.params, revision)).fetchone()
+            row = self.db.execute(_STREAM + " AND r.revision=?", (*self.params, revision)).fetchone()
         return _record(row) if row else None
 
     def history(self):
-        return tuple(_record(row) for row in self.db.execute(_SELECT + " ORDER BY r.revision", self.params))
+        return tuple(_record(row) for row in self.db.execute(_STREAM + " ORDER BY r.revision", self.params))
 
     def has_source(self, revision_id):
         return self.db.execute("""SELECT 1 FROM catalog_revisions
@@ -98,6 +108,11 @@ class SQLiteCatalogRepository(CatalogDomainRepository):
         db.row_factory = sqlite3.Row
         db.execute("PRAGMA foreign_keys = ON")
         return db
+
+    def _read_by_id(self, kind, lab_id, revision_id):
+        with closing(self._connect()) as db:
+            row = db.execute(_SELECT + " AND r.revision_id=?", (lab_id, kind, revision_id)).fetchone()
+        return _record(row) if row else None
 
     @contextmanager
     def _transaction(self, kind, lab_id, record_id, *, write):
