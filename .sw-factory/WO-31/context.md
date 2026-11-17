@@ -37,4 +37,4 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/wo-31-scientific-artifacts
-- Pull Request URL:
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/23
