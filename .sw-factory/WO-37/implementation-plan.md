@@ -21,3 +21,7 @@ Callers supply a trusted principal and exact lab/project/order scope on every ca
 ## Testing
 
 Run the repository contract through unittest with a temporary SQLite file and fresh connections. Verify canonical digests, idempotency, pin changes, terminal history, human attribution, scope denial and atomic claims. Check migration rollback/coexistence and run the existing Python suite where supported. Inspect a persisted order through a separately opened repository.
+
+## Coordinator review follow-up
+
+Rebuild the record table under SQLite schema version 2 using WITHOUT ROWID. Verify both fresh and upgraded files reject explicit hidden-rowid replacement. Exercise rollback after a populated version-1 history has been copied, then retry and compare the original records and their digests.

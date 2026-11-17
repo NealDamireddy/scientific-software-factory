@@ -1,4 +1,4 @@
-"""SQLite storage for the runtime work-order domain, schema version 1."""
+"""SQLite storage for the runtime work-order domain, schema version 2."""
 from contextlib import closing
 import json
 from pathlib import Path
@@ -10,14 +10,14 @@ from .runtime_work_order import RevisionConflict, RuntimeRecord, Scope
 from .runtime_work_order_domain import RuntimeWorkOrders
 
 
-_MIGRATION_1 = (
+_RECORD_SCHEMA = (
     """CREATE TABLE runtime_work_order_records (
         lab_id TEXT NOT NULL, project_id TEXT NOT NULL, work_order_id TEXT NOT NULL,
         version INTEGER NOT NULL CHECK (version > 0), request_key TEXT NOT NULL,
         record TEXT NOT NULL, sha256 TEXT NOT NULL,
         PRIMARY KEY (lab_id, project_id, work_order_id, version),
         UNIQUE (lab_id, project_id, work_order_id, request_key)
-    )""",
+    ) WITHOUT ROWID""",
     # REPLACE deletes the conflicting row without firing its delete trigger on
     # default connections. Reject both unique collisions before SQLite can do so.
     """CREATE TRIGGER runtime_work_order_no_replace BEFORE INSERT ON runtime_work_order_records
@@ -47,12 +47,25 @@ class _SQLiteRecordStore:
             db.execute("""CREATE TABLE IF NOT EXISTS runtime_work_order_schema (
                 version INTEGER PRIMARY KEY CHECK (version > 0))""")
             version = db.execute("SELECT MAX(version) FROM runtime_work_order_schema").fetchone()[0]
-            if version is None:
-                for statement in _MIGRATION_1:
-                    db.execute(statement)
-                db.execute("INSERT INTO runtime_work_order_schema VALUES (1)")
-            elif version != 1:
+            if version == 2:
+                return
+            if version not in (None, 1):
                 raise ValueError(f"Unsupported runtime work-order schema version {version}")
+            if version == 1:
+                # Preserve the original table name used by any shared views. DDL
+                # and copies commit together with the domain version marker.
+                db.execute("""CREATE TEMP TABLE runtime_work_order_v1 AS
+                    SELECT lab_id, project_id, work_order_id, version, request_key, record, sha256
+                    FROM runtime_work_order_records""")
+                db.execute("DROP TABLE runtime_work_order_records")
+            for statement in _RECORD_SCHEMA:
+                db.execute(statement)
+            if version == 1:
+                db.execute("""INSERT INTO runtime_work_order_records
+                    (lab_id, project_id, work_order_id, version, request_key, record, sha256)
+                    SELECT lab_id, project_id, work_order_id, version, request_key, record, sha256
+                    FROM temp.runtime_work_order_v1""")
+            db.execute("INSERT INTO runtime_work_order_schema VALUES (2)")
 
     def read(self, scope: Scope) -> list[RuntimeRecord]:
         with closing(sqlite3.connect(self.path)) as db:

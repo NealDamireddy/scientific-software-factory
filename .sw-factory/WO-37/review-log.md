@@ -20,3 +20,7 @@ The follow-up adds a before-insert collision trigger and tests replacements usin
 - Manual repository check. Initialized context and runtime repositories on one file. A separate Python interpreter reopened the order, recorded confirmed worker interruption, followed the original context pin and reopened the existing context repository. Its history was draft, assigned, interrupted.
 - Verification. Scoped unittest discovery passed four tests. Compilation and git diff --check passed. The change exposes a Python repository and has no UI.
 - Full suite. python3 -m unittest discover -s tests passed all 269 tests in 146.051 seconds with macOS Seatbelt and loopback access enabled. The first run under the outer sandbox could not launch Seatbelt or bind the instrument server. Final scoped tests passed after the replacement guard landed.
+
+## Round 3 at 74ba549
+
+**CHANGES_REQUESTED.** Coordinator storage review identified a third uniqueness collision on the implicit SQLite rowid. An independent default connection with recursive triggers disabled replaced the first row under unrelated lab, project, order, version and key values. Reading the original stream then returned an empty history.
