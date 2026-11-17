@@ -24,3 +24,11 @@ The follow-up adds a before-insert collision trigger and tests replacements usin
 ## Round 3 at 74ba549
 
 **CHANGES_REQUESTED.** Coordinator storage review identified a third uniqueness collision on the implicit SQLite rowid. An independent default connection with recursive triggers disabled replaced the first row under unrelated lab, project, order, version and key values. Reading the original stream then returned an empty history.
+
+## Round 4 at 3fb3228
+
+**APPROVED.** The independent delegate verified that schema version 2 rejects cross-scope replacement through rowid, _rowid_ and oid. On a populated two-lab version-1 database, an injected failure preserved the old schema and records. Four concurrent opens then completed the upgrade with byte-identical history. Review found no outstanding issues.
+
+- All six scoped tests passed, including hidden-rowid collisions, migration rollback, idempotent replay and appending after upgrade.
+- A separate smoke check used the actual DDL from commit 74ba549. Two concurrent opens preserved the original record and its shared view. PRAGMA integrity_check returned ok.
+- The full regression suite passed all 271 tests in 145.735 seconds with macOS Seatbelt and loopback access. Python compilation and git diff --check passed.
