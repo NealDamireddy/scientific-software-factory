@@ -10,7 +10,8 @@ Command payloads (required keys unless indicated):
 
 * revise: objective, scope (strings), dependencies, requirements, blueprints
   (lists of pins), specification (pin), acceptance_criteria, permitted_outputs
-  (string lists), context (the service-filtered JSON snapshot). A pin is
+  (string lists), optional output_limits (positive integer
+  max_file_bytes and max_total_bytes), context (the service-filtered JSON snapshot). A pin is
   {"id": str, "sha256": 64 lowercase hex digits}. Output state is draft.
   predecessor identifies the previous revision, or None.
 * review: task_version, kind (readiness, implementation_alignment,
@@ -25,9 +26,12 @@ Command payloads (required keys unless indicated):
   for readiness), rationale, evidence. Human-only receipt for these pins.
 * claim: task_version, route (configured/external), predecessor (null for
   first assignment or the latest terminal coding attempt start version).
-  The principal is the coding identity. The initial state is pending.
-* coding_state: attempt (claim version), state (running/completed/failed/
-  interrupted), evidence. Only the claiming identity reports its state.
+  The principal is the coding identity. The initial state is assigned.
+* coding_state: attempt (claim version), state (running/failed/completion_claim),
+  evidence. A completion claim preserves the active state.
+* submission_validated: attempt, candidate_sha256, evidence. Only the trusted
+  candidate service receives this action. Records submitted after validation.
+* supersede: attempt, evidence. A trusted coordinator retires an active claim.
 * interrupt: attempt (claim or review start version), evidence. Trusted
   recovery services call this for each confirmed uncertain live attempt at
   startup, using the observed stream version. Never infer completion.
@@ -66,7 +70,7 @@ __all__ = ["ACTIONS", "Principal", "Scope", "RuntimeRecord", "RuntimeRecordStore
 
 ACTIONS = {name: f"runtime.{name}" for name in (
     "history", "revise", "review", "review_state", "finding", "resolve",
-    "accept", "claim", "coding_state", "interrupt",
+    "accept", "claim", "coding_state", "submission_validated", "supersede", "interrupt",
 )}
 
 
