@@ -222,7 +222,7 @@ class PostgresRunStore(Database):
             if job["job_id"] != jid or state not in ("running", "completed", "cancelled", "interrupted"):
                 raise ValueError("Unrecognized remote acquisition identity or status")
             start, end = job["started_at"], job["finished_at"]
-            _check_times(job, started=not jid.startswith("series:"))
+            _check_times(job, started=state == "completed" or not jid.startswith("series:"))
             elapsed = seconds(end, start) if start and end else None
             reading_count = job["reading_count"]
             if type(reading_count) is not int or reading_count < 0:

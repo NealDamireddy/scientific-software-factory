@@ -318,8 +318,9 @@ class HostedContracts(TestCase):
         self.ready(rid)
         self.ready(follower)
         backend = Instrument(self.store.claim(), "series:original")
-        for start, end in ((AT, ""), (None, "malformed"), (END, AT)):
-            backend.poll = lambda jid: dict(job_id=jid, status="cancelled", started_at=start,
+        for state, start, end in (("cancelled", AT, ""), ("cancelled", None, "malformed"),
+                                  ("cancelled", END, AT), ("completed", None, END)):
+            backend.poll = lambda jid: dict(job_id=jid, status=state, started_at=start,
                                              finished_at=end, reading_count=0)
             self.assertEqual(self.store.reconcile(rid, backend)["acquisition"], "uncertain")
             self.assertIsNone(self.store.claim())
