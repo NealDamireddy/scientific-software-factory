@@ -35,6 +35,13 @@ class SQLiteRuntimeWorkOrderTests(unittest.TestCase):
         for sql in ("UPDATE runtime_work_order_records SET record = '{}'", "DELETE FROM runtime_work_order_records"):
             with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"), db:
                 db.execute(sql)
+        original = db.execute("SELECT * FROM runtime_work_order_records").fetchone()
+        for version, key in ((1, "changed-key"), (2, "a")):
+            replacement = (*original[:3], version, key, *original[5:])
+            with self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"), db:
+                db.execute("INSERT OR REPLACE INTO runtime_work_order_records VALUES (?, ?, ?, ?, ?, ?, ?)",
+                           replacement)
+        self.assertEqual(db.execute("SELECT * FROM runtime_work_order_records").fetchall(), [original])
         with db:
             db.execute("INSERT INTO runtime_work_order_schema VALUES (2)")
         with self.assertRaisesRegex(ValueError, "Unsupported"):

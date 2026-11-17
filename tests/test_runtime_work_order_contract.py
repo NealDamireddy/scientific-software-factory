@@ -173,6 +173,7 @@ def _access_and_replay(make_repository):
     impostor = FixturePrincipal("other", ["revise"])
     with CHECK.assertRaises(RevisionConflict):
         apply(impostor, s.scope, "revise", task, expected_version=0, key=key)
+    s.reject(ValueError, s.human, "revise", **{**task, "context": {"invalid": object()}})
     for field in ("actor_id", "lab_id", "project_id", "state"):
         s.reject(ValueError, s.human, "revise", **{**task, field: "injected"})
     with CHECK.assertRaises(RevisionConflict):

@@ -18,6 +18,14 @@ _MIGRATION_1 = (
         PRIMARY KEY (lab_id, project_id, work_order_id, version),
         UNIQUE (lab_id, project_id, work_order_id, request_key)
     )""",
+    # REPLACE deletes the conflicting row without firing its delete trigger on
+    # default connections. Reject both unique collisions before SQLite can do so.
+    """CREATE TRIGGER runtime_work_order_no_replace BEFORE INSERT ON runtime_work_order_records
+       WHEN EXISTS (SELECT 1 FROM runtime_work_order_records
+                    WHERE lab_id = NEW.lab_id AND project_id = NEW.project_id
+                      AND work_order_id = NEW.work_order_id
+                      AND (version = NEW.version OR request_key = NEW.request_key))
+       BEGIN SELECT RAISE(ABORT, 'runtime work-order history is immutable'); END""",
     """CREATE TRIGGER runtime_work_order_no_update BEFORE UPDATE ON runtime_work_order_records
        BEGIN SELECT RAISE(ABORT, 'runtime work-order history is immutable'); END""",
     """CREATE TRIGGER runtime_work_order_no_delete BEFORE DELETE ON runtime_work_order_records

@@ -279,14 +279,17 @@ class RuntimeWorkOrders:
 
     def apply(self, principal: Principal, scope: Scope, command: str, payload: dict,
               *, expected_version: int, key: str) -> RuntimeRecord:
-        if command not in ACTIONS or command == "history":
+        if not isinstance(command, str) or command not in ACTIONS or command == "history":
             raise ValueError("Unknown runtime work-order command")
         _authority(principal, scope, command)
         _integer(expected_version, "expected_version", 0)
         _text(key, "key")
         if not isinstance(payload, dict):
             raise ValueError("payload must be a JSON object")
-        encoded = canonical_json(payload)
+        try:
+            encoded = canonical_json(payload)
+        except (TypeError, OverflowError) as exc:
+            raise ValueError("payload must be JSON serializable") from exc
         history = self._store.read(scope)
         prior = _retry(history, principal, command, encoded, key)
         if prior:
