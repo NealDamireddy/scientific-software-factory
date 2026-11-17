@@ -1,67 +1,7 @@
-<!--lint disable strong-marker-->
-
-# Review Log: WO-28
-
-**Work Order:** WO-28 — Persist instrument catalog revisions and integration evidence
-**Initialized At (UTC):** 2026-11-17T00:07:57Z
-
-This file records review and verification rounds. Append new rounds; do not overwrite prior rounds.
-
----
+# WO-28 review log
 
 ## Round 1
 
-### Requirements Alignment
+Reviewed d59d8e6..d9e6924 with separate read-only delegates for the public contract and SQLite adapter. All 15 catalog tests passed. The domain delegate approved lab-scoped authorization, immutable pins, separate action grants and the curation boundary. The storage delegate reproduced a blocking SQLite data-safety issue. An explicit hidden rowid in INSERT OR REPLACE could evict a revision without colliding with its declared keys.
 
-**Blocking:**
-
-**Advisory:**
-
-### Blueprint Alignment
-
-**Blocking:**
-
-**Advisory:**
-
-### Architecture And Conventions
-
-**Blocking:**
-
-**Advisory:**
-
-### Tests And Build
-
-**Commands run:**
-
-**Blocking:**
-
-**Advisory:**
-
-### User-Facing Verification
-
-**Skipped:** _yes/no_ - _reason if yes_
-
-**Evidence:**
-
-**Blocking:**
-
-**Advisory:**
-
-### Security, Privacy, And Data Safety
-
-**Skipped:** _yes/no_ - _reason if yes_
-
-**Blocking:**
-
-**Advisory:**
-
-### Round 1 Verdict
-
-- Total blocking:
-- Total advisory:
-- Files reviewed:
-- **Verdict:** _APPROVED or CHANGES_REQUESTED_
-
----
-
-<!-- Subsequent rounds: copy the structure above and increment the round number. -->
+**Verdict** CHANGES_REQUESTED.

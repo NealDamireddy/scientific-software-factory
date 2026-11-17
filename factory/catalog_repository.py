@@ -21,12 +21,12 @@ _MIGRATION_1 = (
         payload TEXT NOT NULL,
         UNIQUE (lab_id, kind, record_id, revision),
         CHECK ((revision = 1) = (predecessor_id IS NULL))
-    )""",
+    ) WITHOUT ROWID""",
     """CREATE TABLE catalog_approvals (
         revision_id TEXT PRIMARY KEY NOT NULL REFERENCES catalog_revisions(revision_id),
         approver TEXT NOT NULL,
         approved_at TEXT NOT NULL
-    )""",
+    ) WITHOUT ROWID""",
     # SQLite REPLACE may implicitly delete rows without invoking DELETE triggers.
     """CREATE TRIGGER catalog_revisions_no_replace BEFORE INSERT ON catalog_revisions
        WHEN EXISTS (SELECT 1 FROM catalog_revisions WHERE revision_id=NEW.revision_id

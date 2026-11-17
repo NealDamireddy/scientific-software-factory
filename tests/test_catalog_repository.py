@@ -63,5 +63,16 @@ class SQLiteCatalogTests(CatalogRepositoryContract, unittest.TestCase):
                             f"INSERT OR REPLACE INTO {table} SELECT * FROM {table}"):
                     with self.subTest(sql=sql), self.assertRaisesRegex(sqlite3.IntegrityError, "immutable"):
                         db.execute(sql)
+            # An explicit hidden rowid could evict a record even if every declared key is new.
+            for sql in (
+                """INSERT OR REPLACE INTO catalog_revisions
+                   (rowid, revision_id, kind, lab_id, record_id, revision, sha256, author, created_at, payload)
+                   SELECT rowid, 'new-id', kind, lab_id, 'new-record', 1, sha256, author, created_at, payload
+                   FROM catalog_revisions WHERE kind='source'""",
+                """INSERT OR REPLACE INTO catalog_approvals (rowid, revision_id, approver, approved_at)
+                   SELECT rowid, 'new-id', approver, approved_at FROM catalog_approvals""",
+            ):
+                with self.subTest(sql=sql), self.assertRaisesRegex(sqlite3.OperationalError, "rowid"):
+                    db.execute(sql)
         record = self.open_repository().get("catalog", LAB, draft.pin.record_id, principal=self.curator)
         self.assertEqual((record.pin, record.approval), (draft.pin, receipt))
