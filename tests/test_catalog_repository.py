@@ -1,0 +1,55 @@
+import sqlite3
+import tempfile
+import unittest
+from contextlib import closing
+from pathlib import Path
+
+from factory.catalog_repository import SQLiteCatalogRepository
+from factory.context_repository import SQLiteContextRepository
+from tests.fixtures.catalog_examples import LAB, Caller, catalog
+from tests.test_catalog_contract import CatalogRepositoryContract
+
+
+class SQLiteCatalogTests(CatalogRepositoryContract, unittest.TestCase):
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.path = Path(directory.name) / "shared.sqlite"
+        super().setUp()
+
+    def open_repository(self):
+        return SQLiteCatalogRepository(self.path)
+
+    def test_migrations_compose_in_either_order(self):
+        for context_first in (True, False):
+            path = self.path.with_name(f"shared-{context_first}.sqlite")
+            if context_first:
+                SQLiteContextRepository(path)
+            repo = SQLiteCatalogRepository(path)
+            with closing(sqlite3.connect(path)) as db:
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], int(context_first))
+                tables = {row[0] for row in db.execute("SELECT name FROM sqlite_schema WHERE type='table'")}
+                self.assertEqual({t for t in tables if t.startswith("catalog_")},
+                                 {"catalog_schema_version", "catalog_revisions", "catalog_approvals"})
+            SQLiteContextRepository(path)
+            draft = repo.save("catalog", LAB, "draft", {**catalog("unused"), "claims": []},
+                              expected_revision=0, principal=Caller())
+            self.assertEqual(SQLiteCatalogRepository(path).get("catalog", LAB, "draft", principal=Caller()), draft)
+            with closing(sqlite3.connect(path)) as db:
+                self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 1)
+
+    def test_unknown_version_fails_closed(self):
+        with closing(sqlite3.connect(self.path)) as db, db:
+            db.execute("UPDATE catalog_schema_version SET version=2")
+        with self.assertRaisesRegex(ValueError, "version"):
+            self.open_repository()
+
+    def test_ddl_collision_rolls_back_migration(self):
+        path = self.path.with_name("collision.sqlite")
+        with closing(sqlite3.connect(path)) as db, db:
+            db.execute("CREATE TABLE catalog_approvals (unrelated TEXT)")
+        with self.assertRaises(sqlite3.OperationalError):
+            SQLiteCatalogRepository(path)
+        with closing(sqlite3.connect(path)) as db:
+            self.assertEqual(db.execute("SELECT name FROM sqlite_schema WHERE type='table'").fetchall(),
+                             [("catalog_approvals",)])
