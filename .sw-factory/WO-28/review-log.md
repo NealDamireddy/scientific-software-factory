@@ -24,3 +24,7 @@ The curation service validates scientific eligibility before submitting a receip
 Final verification on 7227792 used the locked Python 3.13 environment. The command `python -m unittest discover -s tests -v` passed all 280 tests in 85.030 seconds, including the 15 catalog tests. The change passed `git diff --check`.
 
 **Verdict** APPROVED.
+
+## Published PR review
+
+The coordinator reproduced the reported receipt-write issue in PR #22. A human with approval permission could create a receipt for a revision whose stored evidence gaps were still open. The shared transaction now checks those recorded gaps before inserting a new receipt and returns the gaps to the authorized approver. Scientific assessment of evidence remains with the curation service. A new shared contract test checks refusal, readback of the original draft after reopening, and approval of a corrected successor. The test failed before the change and all 16 SQLite catalog tests passed afterward.

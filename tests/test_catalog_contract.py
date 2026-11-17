@@ -178,6 +178,24 @@ class CatalogRepositoryContract:
         draft = self.repo.save("catalog", LAB, "draft", payload, expected_revision=0, principal=self.curator)
         self.assertEqual((draft.state, draft.payload), ("draft", payload))
 
+    def test_recorded_evidence_gaps_block_new_approval(self):
+        manual, first = self.new_catalog()
+        gaps = ["source revision unconfirmed", "operation untested"]
+        unresolved = self.repo.save("catalog", LAB, "uvvis", {**first.payload, "unresolved_gaps": gaps},
+                                    expected_revision=first.pin.revision, principal=self.curator)
+        with self.assertRaises(ValueError) as refused:
+            self.repo.approve(unresolved.pin, principal=self.curator)
+        for gap in gaps:
+            self.assertIn(gap, str(refused.exception))
+        reopened = self.open_repository()
+        self.assertEqual(reopened.get_by_id("catalog", LAB, unresolved.pin.revision_id,
+                                            principal=self.curator), unresolved)
+        corrected = reopened.save("catalog", LAB, "uvvis", catalog(manual.pin.revision_id),
+                                  expected_revision=unresolved.pin.revision, principal=self.curator)
+        self.assertEqual(reopened.approve(corrected.pin, principal=self.curator).pin, corrected.pin)
+        self.assertIsNone(reopened.get_by_id("catalog", LAB, unresolved.pin.revision_id,
+                                             principal=self.curator).approval)
+
     def test_pin_and_revision_mismatches(self):
         manual, draft = self.new_catalog()
         for key, value in (("revision", 2), ("revision_id", manual.pin.revision_id), ("sha256", "a" * 64)):
