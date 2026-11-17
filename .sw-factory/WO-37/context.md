@@ -1,7 +1,7 @@
 # Work Order Entity Index: WO-37
 
 **Initialized At (UTC):** 2026-11-17T00:09:13Z
-**Current Status:** in_progress
+**Current Status:** in_review
 
 ## Work Order
 
