@@ -27,4 +27,4 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/wo-28-instrument-catalog
-- Pull Request URL: Pending publication authorization
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/22
