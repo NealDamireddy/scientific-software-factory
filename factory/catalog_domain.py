@@ -111,6 +111,9 @@ class CatalogDomainRepository(ABC):
                 if current.approval.approver != principal.actor_id:
                     raise RevisionConflict("An approval receipt already exists for this revision")
                 return current.approval
+            gaps = current.payload["unresolved_gaps"]
+            if gaps:
+                raise ValueError(f"Unresolved evidence gaps: {gaps}")
             receipt = ApprovalReceipt(pin, principal.actor_id, datetime.now(timezone.utc).isoformat())
             tx.add_receipt(receipt)
         return receipt

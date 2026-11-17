@@ -84,6 +84,7 @@ class CatalogRepository(Protocol):
     def approve(self, pin: RevisionPin, *, principal: Principal) -> ApprovalReceipt:
         """Approve exact current catalog pin after curation validation.
 
+        Recorded unresolved gaps block a new receipt and are identified in the error.
         A human approver retry on the same head returns their original receipt.
         A different approver cannot replace the original decision.
         """
