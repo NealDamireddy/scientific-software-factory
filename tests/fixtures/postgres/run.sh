@@ -12,4 +12,14 @@ trap cleanup EXIT
 initdb -D "$cluster/data" --username=evolve --auth=trust --encoding=UTF8 --no-locale >/dev/null
 pg_ctl -D "$cluster/data" -l "$cluster/server.log" -o "-h '' -k '$cluster'" -w start >/dev/null
 export EVOLVE_TEST_POSTGRES_DSN="host=$cluster dbname=postgres user=evolve"
-"${PYTHON:-python3}" -m unittest discover -s tests -p 'test_postgres*.py' -v
+"${PYTHON:-python3}" - <<'PYTHON'
+import unittest
+
+suite = unittest.defaultTestLoader.discover("tests", pattern="test_postgres*.py")
+result = unittest.TextTestRunner(verbosity=2).run(suite)
+if not result.wasSuccessful() or result.skipped or result.testsRun < 37:
+    raise SystemExit(
+        f"PostgreSQL contracts require at least 37 tests and zero skips. "
+        f"Ran {result.testsRun}, skipped {len(result.skipped)}."
+    )
+PYTHON
