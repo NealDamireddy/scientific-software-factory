@@ -13,6 +13,7 @@ from factory.context import ROOT, digest, read_json
 from factory.context_repository import RevisionConflict, SQLiteContextRepository
 from factory.experiment_store import RunStore
 from factory.release_repository import ReleaseRepository
+from tests.test_context_repository import RepositoryContract
 
 BASE_DSN = os.environ.get("EVOLVE_TEST_POSTGRES_DSN")
 AT = "2026-01-01T00:00:01+00:00"
@@ -33,6 +34,17 @@ def isolated_database():
             yield make_conninfo(BASE_DSN, options=f"-c search_path={name}")
         finally:
             db.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(schema))
+
+
+@skipUnless(BASE_DSN, "use tests/fixtures/postgres/run.sh")
+class HostedContextContract(RepositoryContract, TestCase):
+    def setUp(self):
+        self.dsn = self.enterContext(isolated_database())
+        super().setUp()
+
+    def open_repository(self):
+        from factory.postgres import PostgresContextRepository
+        return PostgresContextRepository(self.dsn)
 
 
 class Instrument:
@@ -279,3 +291,100 @@ class HostedContracts(TestCase):
         result = reopened.reconcile(next_id, backend)
         self.assertEqual((result["job_id"], result["acquisition"]), (backend.job_id, "completed"))
         self.assertEqual(backend.dispatches.count(("next", result["dispatch_key"])), 1)
+
+    def test_planner_discovers_scoped_release_history_after_reopen(self):
+        from factory.release_planner import ReleasePlanner
+        def planner():
+            reopened = type(self.release)(self.dsn)
+            return ReleasePlanner(None, reopened, self.local)
+        key = dict(lab_id="l", project_id="p", experiment_type="concentration")
+        self.assertEqual(planner()._verified_ids(key), [])
+        def publish(lab, project, revision):
+            return self.release._publish_verified(
+                dict(context={"lab": {"lab_id": lab}, "project": {"project_id": project}},
+                     experiment_type="concentration", revision=revision, artifacts={}), {})
+        old = publish("l", "p", 1)
+        new = publish("l", "p", 2)
+        publish("l", "other", 1)
+        publish("other", "p", 1)
+        self.assertEqual(planner()._verified_ids(key), [new, old])
+        publish("l", "p", 1)
+        self.assertEqual(self.release.verified_ids("l", "p"), [new, old])
+        self.assertEqual(planner()._verified_ids(key), [old, new])
+
+    def test_invalid_termination_holds_lease_until_valid_terminal_time(self):
+        rid = self.store.submit("a", "s", "i", AT)
+        follower = self.store.submit("b", "s2", "i", AT)
+        self.ready(rid)
+        self.ready(follower)
+        backend = Instrument(self.store.claim(), "series:original")
+        for start, end in ((AT, ""), (None, "malformed"), (END, AT)):
+            backend.poll = lambda jid: dict(job_id=jid, status="cancelled", started_at=start,
+                                             finished_at=end, reading_count=0)
+            self.assertEqual(self.store.reconcile(rid, backend)["acquisition"], "uncertain")
+            self.assertIsNone(self.store.claim())
+        backend.poll = lambda jid: dict(job_id=jid, status="cancelled", started_at=None,
+                                         finished_at=END, reading_count=0)
+        self.assertEqual(self.store.reconcile(rid, backend)["acquisition"], "cancelled")
+        self.assertEqual(self.store.claim()["run_id"], follower)
+
+    def test_concurrent_reconcilers_preserve_observation_order(self):
+        from threading import Event
+        rid = self.store.submit("a", "s", "i", AT)
+        self.ready(rid)
+        backend = Instrument(self.store.claim())
+        first_poll, proceed = Event(), Event()
+        def delayed_poll(jid):
+            first_poll.set()
+            if not proceed.wait(5):
+                raise TimeoutError()
+            return dict(job_id=jid, status="running", started_at=AT, finished_at=None, reading_count=1)
+        other = Instrument(backend.run)
+        backend.poll = delayed_poll
+        with ThreadPoolExecutor(2) as pool:
+            older = pool.submit(self.store.reconcile, rid, backend)
+            self.assertTrue(first_poll.wait(5))
+            try:
+                # The same per-run session lock fences competing observers during I/O.
+                self.assertIsNone(self.store.lock("reconcile:" + rid))
+                newer = pool.submit(self.store.reconcile, rid, other)
+            finally:
+                proceed.set()
+            self.assertEqual(older.result()["reading_count"], 1)
+            self.assertEqual(newer.result()["reading_count"], 3)
+        self.assertEqual(self.store.get(rid)["reading_count"], 3)
+
+    def test_abrupt_worker_exit_after_remote_acceptance_preserves_original_identity(self):
+        import subprocess
+        import sys
+        from textwrap import dedent
+        rid = self.store.submit("a", "s", "i", AT)
+        follower = self.store.submit("b", "s2", "i", AT)
+        self.ready(rid)
+        self.ready(follower)
+        receipt = self.local.parent / "remote-receipt"
+        worker = dedent("""
+            import os, sys
+            from pathlib import Path
+            from factory.postgres import PostgresRunStore
+            class Remote:
+                def acquire(self, spec, key):
+                    Path(sys.argv[1]).write_text(key)
+                    os._exit(73)
+            PostgresRunStore(os.environ["WORKER_DSN"]).dispatch_next(Remote())
+        """)
+        result = subprocess.run([sys.executable, "-c", worker, str(receipt)],
+                                env=os.environ | {"WORKER_DSN": self.dsn}, timeout=15)
+        self.assertEqual(result.returncode, 73)
+        restarted = type(self.store)(self.dsn)
+        run = restarted.get(rid)
+        self.assertEqual(run["acquisition"], "dispatching")
+        self.assertIsNone(run["job_id"])
+        self.assertEqual(receipt.read_text(), run["dispatch_key"])
+        backend = Instrument(run, "original-job")
+        self.assertIsNone(restarted.dispatch_next(backend))
+        backend.status = "completed"
+        self.assertEqual(restarted.reconcile(rid, backend)["job_id"], "original-job")
+        self.assertEqual(backend.lookups, [("s", receipt.read_text())])
+        self.assertEqual(backend.dispatches, [])
+        self.assertEqual(restarted.claim()["run_id"], follower)

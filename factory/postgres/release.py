@@ -8,10 +8,8 @@ from ..release_repository import canonical
 from .db import Database
 
 
-def _put(db, table, sha, content):
+def _verify_existing(db, table, sha, content):
     table = sql.Identifier(table)
-    db.execute(sql.SQL("INSERT INTO {} VALUES (%s,%s) ON CONFLICT DO NOTHING").format(table),
-               (sha, content))
     row = db.execute(sql.SQL("SELECT content FROM {} WHERE digest=%s").format(table), (sha,)).fetchone()
     if row["content"] != content:
         raise ValueError("Stored release content digest mismatch")
@@ -30,12 +28,25 @@ class PostgresReleaseRepository(Database):
                 sha = manifest["artifacts"][name]
                 if digest(files[name]) != sha:
                     raise ValueError(f"{name} digest mismatch")
-                _put(db, "scientific_blobs", sha, files[name])
-            _put(db, "scientific_manifests", release_id, content)
+                inserted = db.execute("INSERT INTO scientific_blobs VALUES (%s,%s) ON CONFLICT DO NOTHING",
+                                      (sha, files[name]))
+                if not inserted.rowcount:
+                    _verify_existing(db, "scientific_blobs", sha, files[name])
+            scope = (context["lab"]["lab_id"], context["project"]["project_id"])
+            inserted = db.execute("""INSERT INTO scientific_manifests (digest,content,lab,project)
+                VALUES (%s,%s,%s,%s) ON CONFLICT DO NOTHING""", (release_id, content, *scope))
+            if not inserted.rowcount:
+                _verify_existing(db, "scientific_manifests", release_id, content)
             db.execute("""INSERT INTO scientific_active VALUES (%s,%s,%s,%s)
                 ON CONFLICT(lab,project,experiment) DO UPDATE SET digest=excluded.digest""",
-                (context["lab"]["lab_id"], context["project"]["project_id"], manifest["experiment_type"], release_id))
+                (*scope, manifest["experiment_type"], release_id))
         return release_id
+
+    def verified_ids(self, lab_id, project_id):
+        with self.transaction() as db:
+            rows = db.execute("""SELECT digest FROM scientific_manifests
+                WHERE lab=%s AND project=%s ORDER BY seq DESC""", (lab_id, project_id))
+            return [row["digest"] for row in rows]
 
     def active(self, lab_id, project_id, experiment_type):
         with self.transaction() as db:

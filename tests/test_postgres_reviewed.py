@@ -38,3 +38,16 @@ class HostedReviewedContracts(TestCase):
         from tests.test_runtime_work_order_contract import run_runtime_work_order_contract
         with isolated_database() as dsn:
             run_runtime_work_order_contract(lambda: PostgresRuntimeWorkOrderRepository(dsn))
+
+    @skipUnless(find_spec("factory.runtime_work_order_domain"), "requires WO-37's runtime domain")
+    def test_runtime_rejects_corrupt_retained_record(self):
+        from factory.postgres.runtime import PostgresRuntimeRecordStore
+        from factory.runtime_work_order import Scope
+        with isolated_database() as dsn:
+            store = PostgresRuntimeRecordStore(dsn)
+            scope = Scope("l", "p", "task")
+            with store.transaction() as db:
+                db.execute("""INSERT INTO runtime_records (lab_id,project_id,work_order_id,version,key,body,sha256)
+                    VALUES ('l','p','task',1,'key','{}','incorrect')""")
+            with self.assertRaisesRegex(ValueError, "digest mismatch"):
+                store.read(scope)

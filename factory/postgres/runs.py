@@ -4,7 +4,7 @@ Only the worker receiving a new claim may dispatch its key. After an ambiguous
 response or crash, reconcile performs lookup/poll/cancel using that same key or
 job ID. An unconfirmed job keeps its instrument lease, including after cancel.
 """
-from contextlib import contextmanager
+from contextlib import closing, contextmanager
 from typing import Protocol
 from uuid import uuid4
 
@@ -12,6 +12,7 @@ import psycopg
 from psycopg.types.json import Json
 
 from ..experiment_scheduler import seconds
+from ..scheduled_acquisition import _check_times
 from ..uvvis_contract import InstrumentError, canonical
 from .db import Database
 
@@ -204,7 +205,11 @@ class PostgresRunStore(Database):
             self._write(db, run)
 
     def reconcile(self, rid, backend: AcquisitionObserver):
-        """Observe the original remote job. Backend implements lookup, poll and cancel."""
+        """Serialize remote observations per run without holding a journal row during I/O."""
+        with closing(self.lock("reconcile:" + rid, blocking=True)):
+            return self._observe(rid, backend)
+
+    def _observe(self, rid, backend):
         run = self.get(rid)
         if run["acquisition"] not in ("dispatching", "running", "uncertain"):
             return run
@@ -217,10 +222,11 @@ class PostgresRunStore(Database):
             if job["job_id"] != jid or state not in ("running", "completed", "cancelled", "interrupted"):
                 raise ValueError("Unrecognized remote acquisition identity or status")
             start, end = job["started_at"], job["finished_at"]
-            if (state == "running") != (end is None):
-                raise ValueError("Inconsistent remote termination timestamp")
+            _check_times(job, started=not jid.startswith("series:"))
             elapsed = seconds(end, start) if start and end else None
             reading_count = job["reading_count"]
+            if type(reading_count) is not int or reading_count < 0:
+                raise ValueError("Invalid remote reading count")
         except Exception as exc:
             with self.transaction() as db:
                 current = self.read(db, rid)

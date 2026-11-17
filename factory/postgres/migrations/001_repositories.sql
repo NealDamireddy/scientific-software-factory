@@ -23,7 +23,11 @@ CREATE TRIGGER immutable_context BEFORE UPDATE OR DELETE ON context_revisions
 CREATE TABLE instrument_owners (instrument_id text PRIMARY KEY, lab_id text NOT NULL);
 
 CREATE TABLE scientific_blobs (digest text PRIMARY KEY, content bytea NOT NULL);
-CREATE TABLE scientific_manifests (digest text PRIMARY KEY, content bytea NOT NULL);
+CREATE TABLE scientific_manifests (
+    digest text PRIMARY KEY, content bytea NOT NULL, lab text NOT NULL, project text NOT NULL,
+    seq bigint GENERATED ALWAYS AS IDENTITY
+);
+CREATE INDEX scientific_release_history ON scientific_manifests(lab, project, seq DESC);
 CREATE TRIGGER immutable_blob BEFORE UPDATE OR DELETE ON scientific_blobs
     FOR EACH ROW EXECUTE FUNCTION evolve_immutable();
 CREATE TRIGGER immutable_manifest BEFORE UPDATE OR DELETE ON scientific_manifests

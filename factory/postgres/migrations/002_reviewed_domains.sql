@@ -39,7 +39,7 @@ CREATE TABLE sci_artifact_reconciliation (
 
 CREATE TABLE runtime_records (
     lab_id text NOT NULL, project_id text NOT NULL, work_order_id text NOT NULL,
-    version bigint NOT NULL CHECK (version>0), key text NOT NULL, body text NOT NULL,
+    version bigint NOT NULL CHECK (version>0), key text NOT NULL, body text NOT NULL, sha256 text NOT NULL,
     PRIMARY KEY (lab_id,project_id,work_order_id,version), UNIQUE (lab_id,project_id,work_order_id,key)
 );
 

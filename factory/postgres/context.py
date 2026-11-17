@@ -38,7 +38,7 @@ class PostgresContextRepository(Database):
         with self.transaction() as db:
             row = _lookup(db, kind, lab_id, project_id, revision)
             if row is None:
-                raise KeyError((kind, lab_id, project_id, revision))
+                raise KeyError(f"No {kind} revision for lab {lab_id!r}, project {project_id!r}, revision {revision}")
             return _revision(row)
 
     def save_lab(self, payload, *, expected_revision):
@@ -59,7 +59,7 @@ class PostgresContextRepository(Database):
             previous = _lookup(db, kind, lab_id, project_id)
             current = previous["revision"] if previous else 0
             if current != expected_revision:
-                raise RevisionConflict(f"{kind} expected_revision={expected_revision}, current={current}")
+                raise RevisionConflict(f"{kind} expected_revision={expected_revision}, current={current}; reload and retry")
             lab_revision = lab_sha256 = None
             if kind == "lab":
                 self._claim_instruments(db, lab_id, payload["instruments"])
@@ -82,12 +82,14 @@ class PostgresContextRepository(Database):
         seen = set()
         for item in sorted(instruments, key=lambda i: i["instrument_id"]):
             key = item["instrument_id"]
-            if key in seen or item["lab_id"] != lab_id:
-                raise ValueError(f"instruments: duplicate or foreign instrument_id {key!r}")
+            if key in seen:
+                raise ValueError(f"instruments: duplicate instrument_id {key!r}")
+            if item["lab_id"] != lab_id:
+                raise ValueError(f"instruments: select an instrument owned by lab {lab_id!r}")
             seen.add(key)
             if self._profiles.get(item["profile_id"]) != item["profile_sha256"]:
                 raise ValueError(f"instruments[{key}]: use a registered profile_id and its canonical profile_sha256")
             db.execute("INSERT INTO instrument_owners VALUES (%s,%s) ON CONFLICT DO NOTHING", (key, lab_id))
             owner = db.execute("SELECT lab_id FROM instrument_owners WHERE instrument_id=%s", (key,)).fetchone()
             if owner["lab_id"] != lab_id:
-                raise ValueError(f"instruments: {key!r} belongs to another lab")
+                raise ValueError(f"instruments: {key!r} belongs to another lab; select an instrument owned by {lab_id!r}")

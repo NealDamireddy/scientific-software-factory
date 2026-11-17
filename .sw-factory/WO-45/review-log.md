@@ -1,67 +1,7 @@
-<!--lint disable strong-marker-->
+# WO-45 review
 
-# Review Log: WO-45
+## Round 1 · 313b7d1 · CHANGES_REQUESTED
 
-**Work Order:** WO-45 — Implement Postgres repositories and transactional hosted job claims
-**Initialized At (UTC):** 2026-11-17T00:08:03Z
+Two independent delegates reviewed the branch from its merge base d59d8e6. The acquisition review found that malformed terminal times could release a lease and overlapping observations could overwrite newer progress. The repository review found that ReleasePlanner requires scoped historical release enumeration to avoid its local SQLite fallback. No additional blockers were reported in the domain ports, migrations or disposable test harness.
 
-This file records review and verification rounds. Append new rounds; do not overwrite prior rounds.
-
----
-
-## Round 1
-
-### Requirements Alignment
-
-**Blocking:**
-
-**Advisory:**
-
-### Blueprint Alignment
-
-**Blocking:**
-
-**Advisory:**
-
-### Architecture And Conventions
-
-**Blocking:**
-
-**Advisory:**
-
-### Tests And Build
-
-**Commands run:**
-
-**Blocking:**
-
-**Advisory:**
-
-### User-Facing Verification
-
-**Skipped:** _yes/no_ - _reason if yes_
-
-**Evidence:**
-
-**Blocking:**
-
-**Advisory:**
-
-### Security, Privacy, And Data Safety
-
-**Skipped:** _yes/no_ - _reason if yes_
-
-**Blocking:**
-
-**Advisory:**
-
-### Round 1 Verdict
-
-- Total blocking:
-- Total advisory:
-- Files reviewed:
-- **Verdict:** _APPROVED or CHANGES_REQUESTED_
-
----
-
-<!-- Subsequent rounds: copy the structure above and increment the round number. -->
+The fixes validate remote UTC timestamps, serialize observation and persistence per run, and index immutable releases by scope and insertion order. Regression tests exercise each case through the hosted repository or real planner.
