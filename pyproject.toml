@@ -6,3 +6,6 @@ dependencies = ["jsonschema==4.26.0"]
 
 [tool.uv]
 package = false
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]==3.3.9"]
