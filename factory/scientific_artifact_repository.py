@@ -40,14 +40,7 @@ _MIGRATION = (
 )
 
 
-def _migrate(db):
-    db.execute("BEGIN IMMEDIATE")
-    db.execute("CREATE TABLE IF NOT EXISTS sci_artifact_migration (version INTEGER PRIMARY KEY)")
-    versions = db.execute("SELECT version FROM sci_artifact_migration ORDER BY version").fetchall()
-    if versions:
-        if [row[0] for row in versions] != [1]:
-            raise ValueError("Unsupported scientific artifact schema version")
-        return
+def _create_records(db):
     for sql in _MIGRATION:
         db.execute(sql)
     for table in ("revision", "reference", "decision", "reconciliation"):
@@ -55,7 +48,59 @@ def _migrate(db):
             db.execute(f"""CREATE TRIGGER sci_artifact_{table}_{operation}
                 BEFORE {operation} ON sci_artifact_{table}
                 BEGIN SELECT RAISE(ABORT, 'immutable scientific record'); END""")
-    db.execute("INSERT INTO sci_artifact_migration VALUES (1)")
+
+
+def _guard_replacements(db):
+    # REPLACE can delete a conflicting row without running DELETE triggers.
+    # Every table has a rowid, including the two with composite primary keys.
+    # With an implicit id the BEFORE trigger can see a negative placeholder.
+    # Track actual nonpositive ids separately, including v1 rows, so such a
+    # placeholder cannot be mistaken for an explicit replacement. In a normal
+    # repository all generated ids are positive and this table stays empty.
+    db.execute("""CREATE TABLE sci_artifact_nonpositive_ids (
+        table_name TEXT NOT NULL, record_id INTEGER NOT NULL CHECK(record_id <= 0),
+        PRIMARY KEY(table_name, record_id)) WITHOUT ROWID""")
+    for operation in ("UPDATE", "DELETE"):
+        db.execute(f"""CREATE TRIGGER sci_artifact_nonpositive_ids_{operation}
+            BEFORE {operation} ON sci_artifact_nonpositive_ids
+            BEGIN SELECT RAISE(ABORT, 'immutable scientific record'); END""")
+
+    for table, additional_key in (
+        ("revision", ("lab_id", "project_id", "kind", "artifact_id", "revision")),
+        ("reference", ("owner_id", "position")),
+        ("decision", ()),
+        ("reconciliation", ("owner_id", "position")),
+    ):
+        name = f"sci_artifact_{table}"
+        collision = "rowid=NEW.rowid AND NEW.rowid > 0"
+        if additional_key:
+            collision += " OR (" + " AND ".join(f"{col}=NEW.{col}" for col in additional_key) + ")"
+        db.execute(f"""CREATE TRIGGER {name}_no_replace BEFORE INSERT ON {name}
+            WHEN EXISTS (SELECT 1 FROM {name} WHERE {collision})
+            BEGIN SELECT RAISE(ABORT, 'immutable scientific record'); END""")
+        db.execute(f"""INSERT INTO sci_artifact_nonpositive_ids
+            SELECT ?, rowid FROM {name} WHERE rowid <= 0""", (table,))
+        db.execute(f"""CREATE TRIGGER {name}_nonpositive_rowid AFTER INSERT ON {name}
+            WHEN NEW.rowid <= 0 BEGIN
+                SELECT RAISE(ABORT, 'immutable scientific record')
+                    FROM sci_artifact_nonpositive_ids WHERE table_name='{table}' AND record_id=NEW.rowid;
+                INSERT INTO sci_artifact_nonpositive_ids VALUES ('{table}', NEW.rowid);
+            END""")
+
+
+_MIGRATIONS = (_create_records, _guard_replacements)
+
+
+def _migrate(db):
+    db.execute("BEGIN IMMEDIATE")
+    db.execute("CREATE TABLE IF NOT EXISTS sci_artifact_migration (version INTEGER PRIMARY KEY)")
+    versions = [row[0] for row in db.execute("SELECT version FROM sci_artifact_migration ORDER BY version")]
+    expected = list(range(1, len(_MIGRATIONS) + 1))
+    if versions != expected[:len(versions)]:
+        raise ValueError("Unsupported scientific artifact schema version")
+    for version in expected[len(versions):]:
+        _MIGRATIONS[version - 1](db)
+        db.execute("INSERT INTO sci_artifact_migration VALUES (?)", (version,))
 
 
 def _text(value):
@@ -105,7 +150,7 @@ def _revision(db, row):
     payload = json.loads(row["payload"])
     if artifact_digest(payload, references) != row["sha256"]:
         raise ValueError("Stored scientific artifact digest mismatch")
-    predecessor = _pin(_by_id(db, row["predecessor_id"])) if row["predecessor_id"] else None
+    predecessor = _pin(_by_id(db, row["predecessor_id"])) if row["predecessor_id"] is not None else None
     decision = db.execute("""SELECT decision FROM sci_artifact_decision
         WHERE specification_id=? ORDER BY id DESC LIMIT 1""", (row["id"],)).fetchone()
     return ArtifactRevision(_pin(row), predecessor, row["author_id"], payload, references,
