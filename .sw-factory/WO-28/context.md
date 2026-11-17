@@ -3,7 +3,7 @@
 # Work Order Entity Index: WO-28
 
 **Initialized At (UTC):** 2026-11-17T00:07:57Z
-**Current Status:** in_progress
+**Current Status:** in_review
 
 ## Work Order
 
@@ -27,4 +27,4 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/wo-28-instrument-catalog
-- Pull Request URL:
+- Pull Request URL: Pending publication authorization
