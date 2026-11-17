@@ -3,7 +3,7 @@
 # Work Order Entity Index: WO-45
 
 **Initialized At (UTC):** 2026-11-17T00:08:03Z
-**Current Status:** in_progress
+**Current Status:** in_review
 
 ## Work Order
 
@@ -38,4 +38,4 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/wo-45-postgres-repositories
-- Pull Request URL:
+- Pull request pending the coordinator’s publication authorization.
