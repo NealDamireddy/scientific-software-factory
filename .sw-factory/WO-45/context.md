@@ -38,4 +38,4 @@ Blueprints reached through `@…` mentions and links while reading linked bluepr
 ## Delivery
 
 - Branch: codex/wo-45-postgres-repositories
-- Pull request pending the coordinator’s publication authorization.
+- Pull Request URL: https://github.com/NealDamireddy/scientific-software-factory/pull/25

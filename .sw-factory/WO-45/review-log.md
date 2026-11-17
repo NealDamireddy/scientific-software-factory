@@ -19,5 +19,5 @@ The acquisition reviewer approved the completed-series fix and the full acquisit
 * AC-RUN-001.7 — a worker process exits abruptly after the fake instrument accepts its original key. The restarted worker retrieves the job and confirms its outcome before releasing the instrument. Concurrent observations, cancellation and malformed terminal data have regression coverage.
 * WO-28, WO-31 and WO-37 — the 36-case composed PostgreSQL run passed with zero skips, including the actual owner suites. Owner revisions and reproduction commands are in the plan. Immutable runtime records verify their canonical SHA-256 on read.
 * Independent SQL inspection after claim, cancellation and repository reopen showed the first run dispatching with its lease and the second queued without a lease.
-* uv lock --check --offline and git diff --check passed. Publication is held at the coordinator's direction.
+* uv lock --check --offline and git diff --check passed. The coordinator published the verified branch after the user approved publication.
 * Full isolated-branch regression with disposable PostgreSQL 16.2 and the loopback scientific simulator: python -m unittest discover -s tests -v ran 291 tests in 88.725s. 287 passed and four sibling-domain tests skipped. The composed run above exercised those domains.
