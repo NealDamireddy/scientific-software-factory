@@ -49,9 +49,15 @@ when you deliberately need a different port or a separate rehearsal store.
 
 **[Five-minute rehearsal and troubleshooting](docs/DEMO-RUNBOOK.md)**
 
+## Online instrument demo
+
+From this directory, run `npm run build` and `python3 -m scripts.serve_assay_demo` in the project Python environment. Open http://127.0.0.1:8776/b12/demo/. Click **Insert experiment specs**, then **Generate analysis app**. The presenter passes the specification to the local authenticated Codex CLI and checks the generated Python against five calibration cases. Click **Inspect generated files** to see the recipe and analysis. **Run on simulator** takes three fresh readings and executes the verified app in the local sandbox. **Show paper comparison** reveals its estimate from a published absorbance using the same calibration. **Download run evidence** includes the specification, generated files, receipts and results. Generated apps remain available until the presenter server stops.
+
+The hosted `/b12/demo/` generates a Python application from the inserted protocol, verifies five calibration cases, and runs it in the browser. The build receipt identifies the hosted generator, including whether Vercel AI Gateway supplied the calibration expression.
+
 ## Researcher workspace
 
-Open `/workspace/` for the UV–Vis researcher interface. **Fixture demo** keeps revisions and saved runs in the current browser tab. The fixture controls can return access or service failures. End session clears demo changes. The EPR workbench at `/` and the B12 archive at `/b12/` retain their recorded workflows.
+Open `/` or `/workspace/` to select a lab project. Build application opens the specification editor. Refine data filters recorded measurements by sample and result status. **Fixture demo** keeps revisions and saved runs in the current browser tab. The fixture controls can return access or service failures. End session clears demo changes. The EPR workbench at `/epr/` and the B12 archive at `/b12/` retain their recorded workflows.
 
 The preset specifications and approvals come from the WO-8 service. Its calibration fixture supplies the complete synthetic frozen fit. Their digests and corresponding records are in [the producer fixture](fixtures/workspace/producer-records.json). Regenerate it with `python -m tests.test_workspace_golden --write` in the project Python environment. Specifications created or edited in a browser tab have fixture-local records and approvals.
 

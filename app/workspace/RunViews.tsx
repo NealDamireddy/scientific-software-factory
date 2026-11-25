@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Timeline } from "./Timeline";
+import { verifiedResult } from "./api";
 import type { Run, Snapshot, WorkspaceClient } from "./api";
 
 function RecordedTime({ value }: { value: string | null }) {
@@ -143,19 +144,15 @@ function ScientificResult({ run }: { run: Run }) {
       </p>
     );
   }
-  if (
-    run.analysis !== "completed" ||
-    !run.release_id ||
-    !run.source_revision ||
-    !run.result
-  ) {
+  const result = verifiedResult(run);
+  if (!result) {
     return (
       <p className="run-notice">
         A verified scientific result is unavailable for this run.
       </p>
     );
   }
-  const { calibration_id, unit, results } = run.result;
+  const { calibration_id, unit, results } = result;
   const timeCourse = run.experiment_type === "time_course";
   return (
     <>
@@ -278,8 +275,7 @@ function RunDetails({
     }
   }
 
-  const result = run.acquisition === "completed" && run.analysis === "completed" &&
-    run.release_id && run.source_revision ? run.result : null;
+  const result = verifiedResult(run);
   const rows = result?.results ?? [];
   const single = run.experiment_type === "concentration" && rows.length === 1;
   const reasons = [...new Set(rows.flatMap(row => row.review_reason ? [row.review_reason] : []))];

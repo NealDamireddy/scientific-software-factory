@@ -9,7 +9,7 @@ async function chooseRun(page, runId) {
 test("recorded concentration and time-course fixtures retain measurements and review findings", async ({
   page,
 }) => {
-  await page.goto("/workspace/");
+  await page.goto("/workspace/?project=visible-assay");
   let details = await chooseRun(page, "fixture-concentration");
   const concentrationRow = details.getByRole("row", { name: /vial-q17/ });
   await expect(
@@ -64,7 +64,7 @@ test("recorded concentration and time-course fixtures retain measurements and re
 test("pending preparation leaves recipe state intact and incomplete evidence has no result", async ({
   page,
 }) => {
-  await page.goto("/workspace/");
+  await page.goto("/workspace/?project=visible-assay");
   const pending = await chooseRun(page, "fixture-pending");
   await expect(pending).toContainText("17 s · pending at last update");
   await expect(
@@ -238,7 +238,7 @@ test("saved and replayed results preserve withheld values, independent states an
 
 test("timeline uses recorded endpoints and keeps the result in the desktop viewport", async ({ page }) => {
   await page.setViewportSize({width:1280,height:800});
-  await page.goto("/workspace/");
+  await page.goto("/workspace/?project=visible-assay");
   const timeline = page.getByRole("region", {name:"Factory timeline"});
   for (const line of ["0–25 s","8–19 s","25–27 s","overlapped for 11 s","Data waited 6 s for software"]) {
     await expect(timeline).toContainText(line);
@@ -266,11 +266,11 @@ test("timeline uses recorded endpoints and keeps the result in the desktop viewp
 
 test("capture the workspace views at the same desktop viewport", async ({page}, info) => {
   await page.setViewportSize({width:1280,height:800});
-  await page.goto("/workspace/");
+  await page.goto("/workspace/?project=visible-assay");
   await expect(page.getByRole("region",{name:"Run details"})).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
   await info.attach("runs-desktop",{body:await page.screenshot(),contentType:"image/png"});
-  for (const [tab, file] of [["Specifications","specification-editor"],["Lab & project","context-editor"]]) {
+  for (const [tab, file] of [["Build application","specification-editor"],["Lab & project","context-editor"]]) {
     await page.getByRole("navigation",{name:"Workspace views"}).getByRole("button",{name:tab}).click();
     await info.attach(file,{body:await page.screenshot({fullPage:true}),contentType:"image/png"});
   }

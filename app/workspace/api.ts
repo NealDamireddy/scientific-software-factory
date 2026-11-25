@@ -120,6 +120,11 @@ export type Run = {
   result: { calibration_id: string; unit: string; results: ResultRow[] } | null;
   scientific_review: string;
 };
+export function verifiedResult(run: Run) {
+  return run.acquisition === "completed" && run.analysis === "completed" &&
+    run.release_id && run.source_revision ? run.result : null;
+}
+
 export type Snapshot = {
   project_id: string;
   recorded_at: string;

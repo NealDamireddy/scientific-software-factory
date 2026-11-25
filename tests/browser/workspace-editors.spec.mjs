@@ -7,12 +7,12 @@ async function openTab(page, tab) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/workspace/");
+  await page.goto("/workspace/?project=visible-assay");
 });
 
 for (const concentration of ["0.125", "0.000001", "0.0000001"]) {
   test(`downloaded session specification at ${concentration} verifies with the Python producer`, async ({ page }) => {
-    await openTab(page, "Specifications");
+    await openTab(page, "Build application");
     const editor = page.getByRole("region", { name: "Experiment specification" });
     await editor.getByLabel("Saved specification", { exact: true }).selectOption({
       label: "spec-concentration · revision 1 · approved",
@@ -113,7 +113,7 @@ test("context saves retain immutable lab and project revisions, ownership errors
 test("concentration draft requires explicit science, exact approval and a new approval after editing", async ({
   page,
 }) => {
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", { name: "Experiment specification" });
   const wavelength = editor.getByLabel("Wavelength (nm)", { exact: true });
   const samples = editor.getByLabel("Sample IDs (one per line)");
@@ -135,7 +135,7 @@ test("concentration draft requires explicit science, exact approval and a new ap
   await expect(samples).toHaveValue("specimen-A");
   const incompleteDigest = await selection.inputValue();
   await page.reload();
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   await selection.selectOption(incompleteDigest);
   await expect(wavelength).toHaveAttribute("aria-invalid", "true");
   await expect(samples).toHaveValue("specimen-A");
@@ -147,7 +147,7 @@ test("concentration draft requires explicit science, exact approval and a new ap
   await save.click();
   await expect(page.getByRole("main").getByRole("alert")).toContainText(/unavailable/i);
   await openTab(page, "Runs");
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   await expect(samples).toHaveValue("specimen-A");
   await expect(wavelength).toHaveValue("650");
   await page.getByLabel("Response to next requests").selectOption("");
@@ -187,7 +187,7 @@ test("concentration draft requires explicit science, exact approval and a new ap
   const run = (await editor.getByRole("status").textContent()).match(/fixture-[a-f0-9-]+/)[0];
   await page.reload();
   await expect(page.locator(`button[data-run-id="${run}"]`)).toBeVisible();
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   await selection.selectOption(newDigest);
   await expect(samples).toHaveValue("specimen-B");
   await expect(editor.getByText("Approved digest").locator("+ dd")).toHaveText(newDigest);
@@ -196,7 +196,7 @@ test("concentration draft requires explicit science, exact approval and a new ap
 test("time course requires the selected calibration, interval and point count before approval", async ({
   page,
 }) => {
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", { name: "Experiment specification" });
   await editor.getByLabel("Experiment type").selectOption("time_course");
   await editor.getByRole("button", { name: "Use project protocol" }).click();
@@ -221,7 +221,7 @@ test("time course requires the selected calibration, interval and point count be
   const saved = editor.getByLabel("Saved specification", {exact: true});
   const digest = await saved.inputValue();
   await page.reload();
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   await saved.selectOption(digest);
   await expect(interval).toHaveValue("3601");
   await expect(points).toHaveValue("1");
@@ -289,7 +289,7 @@ test("live specification handoff surfaces an unsupported type and preserves the 
     });
   });
   await page.goto("/workspace/?mode=live&project=" + id);
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", { name: "Experiment specification" });
   await editor.getByLabel("Experiment type").selectOption("time_course");
   await editor.getByRole("button", { name: "Use project protocol" }).click();
@@ -316,7 +316,7 @@ test("live specification handoff surfaces an unsupported type and preserves the 
 });
 
 test("fixture rejects sample collisions, incomplete standards and unsupported protocol units", async ({page}) => {
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", {name:"Experiment specification"});
   const save = editor.getByRole("button", {name:"Save draft"});
   const samples = editor.getByLabel("Sample IDs (one per line)");
@@ -341,7 +341,7 @@ test("fixture rejects sample collisions, incomplete standards and unsupported pr
   await project.getByLabel("Concentration unit", {exact:true}).fill("mol/L");
   await project.getByRole("button", {name:"Save project revision"}).click();
   await expect(project.getByRole("status")).toContainText("Saved project revision 2");
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   await editor.getByLabel("Saved specification", {exact:true}).selectOption({ label: "New specification" });
   await editor.getByLabel("Specification project revision").selectOption("2");
   await editor.getByRole("button", {name:"Use project protocol"}).click();
@@ -351,7 +351,7 @@ test("fixture rejects sample collisions, incomplete standards and unsupported pr
 });
 
 test("protected specification fields follow the pinned protocol and experiment type", async ({page}) => {
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", {name:"Experiment specification"});
   await editor.getByText("Output schema keys").click();
   const outputs = editor.locator("details").filter({has:page.getByText("Output schema keys", {exact:true})}).locator("code");
@@ -366,7 +366,7 @@ test("protected specification fields follow the pinned protocol and experiment t
   await project.getByLabel("Validation criteria (one per line)").fill("Revised protocol threshold");
   await project.getByRole("button", {name:"Save project revision"}).click();
   await expect(project.getByRole("status")).toContainText("Saved project revision 2");
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   await expect(criteria).toContainText(/positive calibration slope/);
   await editor.getByLabel("Specification project revision").selectOption("2");
   await expect(criteria).toContainText("Revised protocol threshold");
@@ -383,7 +383,7 @@ test("saved edits retain historical context and new specifications can choose ei
   await project.getByRole("button", { name: "Save project revision" }).click();
   await expect(project.getByRole("status")).toHaveText("Saved project revision 2.");
 
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", { name: "Experiment specification" });
   const saved = editor.getByLabel("Saved specification", { exact: true });
   const revision = editor.getByLabel("Specification project revision");
@@ -459,7 +459,7 @@ test("duplicate instrument shows the correction at the edited ID and preserves a
 });
 
 test("a concentration edit preserves the selected optional frozen calibration", async ({page}) => {
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", {name:"Experiment specification"});
   const calibration = editor.getByLabel("Frozen calibration (optional)");
   const save = editor.getByRole("button", {name:"Save draft"});

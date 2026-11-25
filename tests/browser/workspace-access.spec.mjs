@@ -20,7 +20,7 @@ for (const [fault, message] of [
     test(`${fault} ${trigger} clears project records and drafts`, async ({
       page,
     }) => {
-      await page.goto("/workspace/");
+      await page.goto("/workspace/?project=visible-assay");
       await expect(
         page.getByRole("region", { name: "Run details" }),
       ).toContainText("job-101");
@@ -40,7 +40,7 @@ test("a failed poll freezes server timing and a successful poll clears stale sta
   page,
 }) => {
   await page.clock.install();
-  await page.goto("/workspace/");
+  await page.goto("/workspace/?project=visible-assay");
   await page.getByRole("button", { name: /Concentration · Analysis pending/ }).click();
   const details = page.getByRole("region", { name: "Run details" });
   await expect(details).toContainText("17 s · pending");
@@ -62,7 +62,7 @@ test("a failed poll freezes server timing and a successful poll clears stale sta
 test("project switches discard private drafts, session end clears demo revisions", async ({
   page,
 }) => {
-  await page.goto("/workspace/");
+  await page.goto("/workspace/?project=visible-assay");
   await page.getByRole("button", { name: "Lab & project" }).click();
   await page.getByLabel("Lab name", { exact: true }).fill("Edited demo lab");
   await page.getByRole("button", { name: "Save lab revision" }).click();
@@ -72,11 +72,12 @@ test("project switches discard private drafts, session end clears demo revisions
   await page
     .getByLabel("Lab name", { exact: true })
     .fill("Unsaved private draft");
-  await page.getByLabel("Project", {exact:true}).selectOption("foreign-project");
+  await page.getByText("Demo controls", {exact:true}).click();
+  await page.getByRole("combobox", {name:"Project", exact:true}).selectOption("foreign-project");
   await expect(page.getByRole("main").getByRole("alert")).toContainText(
     "Access denied",
   );
-  await page.getByLabel("Project", {exact:true}).selectOption("empty-assay");
+  await page.getByRole("combobox", {name:"Project", exact:true}).selectOption("empty-assay");
   await expect(
     page.getByRole("heading", { name: "Create your first experiment" }),
   ).toBeVisible();
@@ -84,7 +85,7 @@ test("project switches discard private drafts, session end clears demo revisions
   await expect(
     page.getByLabel("Sample IDs (one per line)", { exact: true }),
   ).toHaveValue("");
-  await page.getByLabel("Project", {exact:true}).selectOption("visible-assay");
+  await page.getByRole("combobox", {name:"Project", exact:true}).selectOption("visible-assay");
   await page.getByRole("button", { name: "Lab & project" }).click();
   await expect(page.getByLabel("Lab name", { exact: true })).toHaveValue(
     "Edited demo lab",
@@ -164,7 +165,7 @@ test("the workspace and both saved archives remain navigable", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("link", { name: "Researcher workspace" }).click();
+  await expect(page.getByRole("heading", { name:"Lab projects" })).toBeVisible();
   await page.getByRole("link", { name: "B12 archive" }).click();
   await expect(
     page.getByRole("heading", { name: "Vitamin B12 assay" }),
@@ -184,7 +185,7 @@ test("live evidence is fetched through the scoped API and denied evidence never 
   page,
 }) => {
   const id = "evidence-check";
-  await page.goto("/workspace/");
+  await page.goto("/workspace/?project=visible-assay");
   await page.getByText("Run details and exact timestamps").click();
   await expect(page.getByText("job-101", { exact: true })).toBeVisible();
   const snapshot = await page.evaluate(
@@ -249,6 +250,24 @@ test("workspace identifies the source commit and isolates live access in preview
   } else {
     await expect(commit).toHaveCount(0);
   }
+  await page.getByRole("link", { name: /Visible absorbance assay/ }).click();
   await expect(page.getByRole("heading", { name: "Experiment runs" })).toBeVisible();
   expect(requests).toEqual([]);
+});
+
+test("a researcher selects a project, refines its measurements, and opens another project", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("navigation", { name: "Workspace views" })).toHaveCount(0);
+  await page.getByRole("link", { name: /Visible absorbance assay/ }).click();
+  await page.getByRole("button", { name: "Refine data" }).click();
+  await page.getByLabel("Result status").selectOption("withheld");
+  await expect(page.getByRole("cell", { name: "Withheld", exact: true }).first()).toBeVisible();
+  await page.getByLabel("Sample ID", {exact: true}).fill("unknown-sample");
+  await expect(page.getByText("No measurements match these filters.")).toBeVisible();
+  await page.getByRole("button", { name: "Build application" }).click();
+  await expect(page.getByRole("heading", { name: "Experiment specification" })).toBeVisible();
+  await page.getByRole("link", { name: "Lab projects" }).click();
+  await page.getByRole("link", { name: /Assay development/ }).click();
+  await page.getByRole("button", { name: "Refine data" }).click();
+  await expect(page.getByText("Measurements will appear here when a run has recorded results.")).toBeVisible();
 });
