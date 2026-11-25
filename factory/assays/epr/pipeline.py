@@ -66,8 +66,39 @@ def reference_suite(source, project, metadata, quality=False):
     return results
 
 
+# Checks appended after preflight; every other check (except requirement checks) is preflight.
+_RUN_CHECKS = {"execution", "runtime", "reference", "physical instrument", "provenance"}
+
+
+def run_status(report):
+    """Recompute a run's status from its recorded checks and tests, as `run` assigns it."""
+    checks = report["checks"]
+    preflight = [c for c in checks if c["name"] not in _RUN_CHECKS and c["category"] != "requirement"]
+    if any(c["status"] != "pass" for c in preflight):
+        return "blocked"
+    states = {}
+    for c in checks:
+        if c["name"] in _RUN_CHECKS:
+            states.setdefault(c["name"], set()).add(c["status"])
+    tests = report["tests"]
+    if (states.get("execution") != {"pass"} or states.get("reference") != {"pass"} or "runtime" in states
+            or not tests or not all(t["pass"] for t in tests)):
+        return "failed"
+    if any(c["status"] != "pass" for c in checks if c["category"] == "requirement"):
+        return "review"
+    return "verified"
+
+
+def factory_revision(root=ROOT/"factory"):
+    """Digest of every factory module, path-qualified so moved or renamed files change it."""
+    return digest(b"".join(p.relative_to(root).as_posix().encode() + b"\0" + digest(p.read_bytes()).encode() + b"\n"
+                           for p in sorted(root.rglob("*.py"))))
+
+
 def verify_files(folder):
     report = read_json(folder/"report.json")
+    if report["status"] != run_status(report):
+        raise ValueError(f"Recorded status {report['status']!r} differs from its checks ({run_status(report)!r})")
     required = {"input.csv","context.json","metadata.json","work-order.json","uv.lock"}
     if report["status"] in ("verified", "review"):
         required |= {"analysis.py","output.json","generation.json","agent-prompt.txt"}
@@ -110,7 +141,7 @@ def run(order, store, mode="replay", previous=None):
                                  "jsonschema":importlib.metadata.version("jsonschema"),"application_dependencies":"Python standard library"},
                   "checks":checks,"tests":results,"human_review":list(dict.fromkeys([*order["review"],*ctx["standards"]["human"]])),
                   "status":"blocked" if invalid else "verified","source_revision":None,"parent_source_revision":None,
-                  "factory_sha256":digest(b"".join(p.name.encode()+p.read_bytes() for p in sorted((ROOT/"factory").glob("*.py"))))}
+                  "factory_sha256":factory_revision()}
         try:
             if not invalid:
                 base = None
@@ -126,6 +157,10 @@ def run(order, store, mode="replay", previous=None):
                     baseline = previous or ROOT/"generated"/project["id"]
                     for name in ("analysis.py","agent-prompt.txt","generation.json"):
                         shutil.copyfile(baseline/name,folder/name)
+                    pinned = project.get("replay_source_revision")
+                    if not previous and digest(source.read_bytes()) != pinned:
+                        raise ValueError(f"Replay baseline generated/{project['id']}/analysis.py differs from the "
+                                         f"registered replay_source_revision {pinned}")
                 else:
                     raise ValueError("Unknown execution mode")
                 report["source_revision"] = digest(source.read_bytes())
@@ -140,6 +175,10 @@ def run(order, store, mode="replay", previous=None):
                 if not passed: report["status"] = "failed"
         except (OSError, ValueError, RuntimeError, subprocess.SubprocessError) as exc:
             checks.append(check("runtime","fail",str(exc),"software"))
+            report["status"] = "failed"
+        except Exception as exc:
+            # Keep the attempt: an unexpected worker or factory error still yields a failed run.
+            checks.append(check("runtime","fail",f"{type(exc).__name__}: {exc}","software"))
             report["status"] = "failed"
         if not any(c["name"]=="reference" for c in checks):
             checks.append(check("reference","untested","Generation or execution did not reach the numerical suite.","numerical"))

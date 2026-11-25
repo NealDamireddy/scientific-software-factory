@@ -268,7 +268,7 @@ function renderDetail(task) {
   }
   renderFollowup(task);renderChecks(task.checks);
   for(const key of ['worker','context']){show(key+'Group',task[key]!=null);write(key,task[key]);}
-  show('sourceGroup',Boolean(task.revision));
+  show('sourceGroup',Boolean(task.revision)&&task.status==='verified');
   if(el('sourceGroup').open&&!el('sourceGroup').hidden)loadSource();
 }
 function select(task,isFresh) {

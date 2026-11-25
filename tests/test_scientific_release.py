@@ -212,6 +212,23 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(digest(sentinel.read_bytes()), original)
         self.assertTrue(any(not c["passed"] and c["category"] == "numerical" for c in result["checks"]))
 
+    def test_publish_rejects_caller_digests_and_file_sets_that_differ(self):
+        manifest, files = self.repository.load(self.promote(handoff("concentration")))
+        fresh = ReleaseRepository(self.folder / "fresh.sqlite")
+        wrong = {**files, "analysis.py": files["analysis.py"] + b"\n# not the verified bytes\n"}
+        missing = {k: v for k, v in files.items() if k != "views.json"}
+        extra = {**files, "notes.txt": b"unlisted"}
+        for name, candidate, reason in (("wrong bytes", wrong, "analysis.py digest mismatch"),
+                                        ("missing file", missing, "names differ"),
+                                        ("extra file", extra, "names differ")):
+            with self.subTest(name), self.assertRaisesRegex(ValueError, reason):
+                fresh._publish_verified(manifest, candidate)
+        with sqlite3.connect(fresh.path) as db:
+            for table in ("scientific_blobs", "scientific_manifests", "scientific_active"):
+                self.assertEqual(db.execute(f"SELECT count(*) FROM {table}").fetchone()[0], 0, table)
+        fresh._publish_verified(manifest, files)
+        self.assertEqual(fresh.load(fresh.active("demo-lab", "visible-assay", "concentration")), (manifest, files))
+
     def test_atomic_rollback_and_corrupt_artifact_rejection(self):
         data = handoff("concentration")
         release = self.promote(data)

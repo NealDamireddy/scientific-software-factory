@@ -22,5 +22,6 @@
   "reference": "derivative-extrema",
   "human": "Confirm an isolated, well-resolved line and inspect baseline and field calibration.",
   "lab": "northfield",
-  "reference_input_sha256": "235ea7dfb5ddd5270cf37e38b5e8671155b733710995cf31393e4e56a7f2e2fb"
+  "reference_input_sha256": "235ea7dfb5ddd5270cf37e38b5e8671155b733710995cf31393e4e56a7f2e2fb",
+  "replay_source_revision": "9295aa9407a1c8d24843d28ebf7c0910c9d83d4553abe86e554afe4edafa2b0e"
 }

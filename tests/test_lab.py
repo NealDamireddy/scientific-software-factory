@@ -26,7 +26,8 @@ class TaskTests(unittest.TestCase):
         self.assertEqual(record["status"], "failed")
         self.assertIn("worker unavailable", record["error"])
         self.assertEqual(self.lab.history(), [record])
-        self.assertFalse(self.lab.source(task["id"])["files"])
+        with self.assertRaisesRegex(ValueError, "verified release"):
+            self.lab.source(task["id"])
 
     def test_rejects_blank_and_traversal(self):
         with self.assertRaises(ValueError):

@@ -46,7 +46,7 @@ jobs:
       - name: Verify retained EPR evidence
         run: |
           for report in public/evidence/*/*/report.json; do
-            uv run --frozen python -m factory.assays.epr verify "$(dirname "$report")"
+            uv run --frozen python -m factory.assays.epr verify --any-status "$(dirname "$report")"
           done
 
   postgres:

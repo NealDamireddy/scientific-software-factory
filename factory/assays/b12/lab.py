@@ -18,7 +18,7 @@ import uuid
 
 from factory.assays.b12 import b12_build, b12_reuse
 from factory.assays.b12.b12_attempts import Attempt, now, record_direct_analysis
-from factory.assays.b12.b12_verification import UNBOUND_VERIFICATION, verification_receipt
+from factory.assays.b12.b12_verification import verification_receipt
 from factory.assays.b12.archive import validate_archive
 from factory.context import ROOT, read_json
 from factory.assays.b12.optics import PROFILE, RECIPE, validate_preparation, acquire, calibration_digest, fit_calibration, validate_recipe, verify_candidate
@@ -271,9 +271,11 @@ class Lab:
         if source is None:
             # A prepared request has already resolved its verified direct parent.
             # It can revise that parent if the prepared capability is unavailable.
-            if not prepared and any(reasons != [UNBOUND_VERIFICATION] for reasons in rejections.values()):
-                raise ValueError("No compatible verified release: " + "; ".join(
-                    f"{origin}: {', '.join(reasons)}" for origin, reasons in rejections.items()))
+            # Incompatible or unbound releases are simply not candidates; only damaged
+            # or inconsistent evidence stops fresh generation.
+            if not prepared and rejections.integrity:
+                raise ValueError("Verified release failed integrity checks: " + "; ".join(
+                    f"{origin}: {', '.join(rejections[origin])}" for origin in sorted(rejections.integrity)))
             return None
         # Persist precisely the bytes inspected during selection. Each run has its own
         # immutable copy for the existing acquisition, evidence and replay interfaces.
@@ -541,11 +543,15 @@ class Lab:
                         ([] if child["result"]["status"] == "ok" else ["Follow-up outside calibration."])}
 
     def source(self, task_id):
-        if self.task(task_id).get("archived"):
-            return deepcopy(self.archive["sources"][task_id])
-        folder = self.path(task_id)
-        files = {n: (folder/n).read_text() for n in b12_build.FILES if (folder/n).is_file()}
         task = self.task(task_id)
+        if task.get("archived"):
+            return deepcopy(self.archive["sources"][task_id])
+        # Only released source is exposed: never a queued, failed or unverified candidate,
+        # and only while the stored bytes still match the verified revision.
+        folder = self.path(task_id)
+        if task.get("status") != "verified" or b12_build.revision(folder) != task.get("revision"):
+            raise ValueError("Source is available only for a verified release")
+        files = {n: (folder/n).read_text() for n in b12_build.FILES if (folder/n).is_file()}
         diff = []
         if task.get("parent_id"):
             parent = self.path(task["parent_id"])

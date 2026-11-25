@@ -23,6 +23,7 @@
   "human": "Assess model suitability, normalization, saturation and the comparability of integrated intensities across temperatures.",
   "lab": "northfield",
   "reference_input_sha256": "179042afdd8631be329e989a15399e66b5e6e0f3253b38b597c6d022f45cc28d",
+  "replay_source_revision": "c5a3d868c9461c723cd2ce7508770615dc1d13823f0b195e06b770bde282a871",
   "extensions": {
     "fit-quality": "Also return r_squared, the unweighted coefficient of determination computed as 1 - RSS/TSS for nonconstant intensities. Document constant-intensity handling."
   }
