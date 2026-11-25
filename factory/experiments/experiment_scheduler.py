@@ -75,7 +75,10 @@ class ExperimentOrchestrator:
             stop = ready or run["cancel_requested_at"]
             pending = stop is None
             wait = seconds(stop or self._now(), end)
-            if not ready and not run["cancel_requested_at"]:
+            if run["software"] == "failed":
+                pending = False
+                wait = seconds(run["software_finished_at"] or self._now(), end)
+            elif not ready and not run["cancel_requested_at"]:
                 blockers.append("Waiting for a compatible verified release")
         return dict(run, blockers=blockers, software_wait_s=wait, software_wait_pending=pending)
 
@@ -102,7 +105,7 @@ class ExperimentOrchestrator:
         run = self.store.get(rid)
         if (run["cancel_requested_at"] or run["acquisition"] in {"cancelled", "interrupted", "failed"}):
             self._retire_abandoned_work(run)
-        if (run["analysis"] in {"completed", "failed"} or
+        if (run["analysis"] in {"completed", "failed", "blocked"} or
                 run["acquisition"] in {"cancelled", "interrupted", "failed"}):
             return
         if not run["cancel_requested_at"]:
@@ -118,7 +121,19 @@ class ExperimentOrchestrator:
         if run["acquisition"] == "completed" and not run["cancel_requested_at"]:
             if run["measurements"] is None:
                 self._read_measurements(run)
-            self._schedule(rid, "analysis")
+            if run["software"] == "failed":
+                self._block_analysis(rid)
+            else:
+                self._schedule(rid, "analysis")
+
+    def _block_analysis(self, rid):
+        # A failed preparation never becomes "ready", so analysis would wait forever.
+        # Retire the run explicitly once the instrument work is done; a new
+        # submission (or a future retry action) starts a fresh preparation.
+        with self.store.edit(rid) as current:
+            if current["software"] == "failed" and current["analysis"] == "pending":
+                current["analysis"] = "blocked"
+                current["analysis_error"] = "Software preparation failed; no verified release to analyze with"
 
     def _retire_abandoned_work(self, run):
         for lane in ("software", "analysis"):
@@ -157,8 +172,13 @@ class ExperimentOrchestrator:
         with self.store.transaction() as db:
             run = self.store.read(db, rid)
             instrument = run["instrument_id"]
+            # FIFO among runs that are ready to acquire. A blocked run (unapproved spec,
+            # missing calibration) keeps its place but must not starve later runs.
             head = db.execute("""SELECT run_id FROM experiment_runs WHERE instrument=?
-                AND json_extract(body,'$.acquisition')='queued' ORDER BY seq LIMIT 1""", (instrument,)).fetchone()
+                AND json_extract(body,'$.acquisition')='queued'
+                AND json_extract(body,'$.dependency') IS NULL
+                AND json_extract(body,'$.cancel_requested_at') IS NULL
+                ORDER BY seq LIMIT 1""", (instrument,)).fetchone()
             if head != (rid,) or run["cancel_requested_at"] or run["dependency"]:
                 return
             lease = db.execute("INSERT OR IGNORE INTO scheduling_leases VALUES (?,?)", (instrument, rid))

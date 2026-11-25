@@ -63,7 +63,7 @@ class RunStore:
             return [r[0] for r in db.execute("""SELECT run_id FROM experiment_runs
                 WHERE json_extract(body,'$.software')='running' OR json_extract(body,'$.analysis')='running'
                    OR (json_extract(body,'$.acquisition') NOT IN ('cancelled','failed','interrupted')
-                       AND json_extract(body,'$.analysis') NOT IN ('completed','failed','cancelled'))
+                       AND json_extract(body,'$.analysis') NOT IN ('completed','failed','cancelled','blocked'))
                    OR json_extract(body,'$.acquisition') IN ('running','uncertain','dispatching')
                 ORDER BY seq""")]
 
