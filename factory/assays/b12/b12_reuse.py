@@ -4,7 +4,7 @@ from pathlib import Path
 import re
 
 from factory.assays.b12 import b12_build
-from factory.assays.b12.b12_verification import validate_receipt, verification_receipt
+from factory.assays.b12.b12_verification import UNBOUND_VERIFICATION, validate_receipt, verification_receipt
 from factory.context import read_json
 from factory.assays.b12.optics import PROFILE, RECIPE, matches_expected, validate_recipe, verification_cases
 from factory.software.release_planner import compatibility_reasons
@@ -101,6 +101,22 @@ class _NotAnOriginal(ValueError):
     """Pending, failed, archived and reused tasks are outside the source catalog."""
 
 
+class IncompatibleRelease(ValueError):
+    """An intact release pinned to another profile or contract: not a candidate, not damage."""
+
+
+class Rejections(dict):
+    """Rejected task IDs mapped to reasons; ``integrity`` names the damaged or inconsistent ones.
+
+    Incompatible releases and historical runs without revision-bound verification
+    are recorded for display but do not count as integrity failures.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.integrity = set()
+
+
 def _load_task(folder):
     path = folder / "task.json"
     if folder.is_symlink() or path.is_symlink():
@@ -178,7 +194,7 @@ def _candidate(folder, task, requested):
         raise ValueError("Missing original release timestamp")
     if task.get("context") != PROFILE:
         reasons = compatibility_reasons(task.get("context") or {}, PROFILE)
-        raise ValueError(", ".join(reasons) or "Incompatible B12 context")
+        raise IncompatibleRelease(", ".join(reasons) or "Incompatible B12 context")
 
     files = _read_artifacts(folder, task)
     prepared = bool(task.get("parent_id"))
@@ -194,13 +210,13 @@ def _candidate(folder, task, requested):
     if contract["capabilities"] != original["capabilities"]:
         declared.append("Incompatible declared B12 capabilities")
     if declared:
-        raise ValueError(", ".join(declared))
+        raise IncompatibleRelease(", ".join(declared))
 
     verification = validate_receipt(task, files, contract)
     lineage = _validate_parent(folder, task) if prepared else {}
     reasons = compatibility_reasons(contract, requested)
     if reasons:
-        raise ValueError(", ".join(reasons))
+        raise IncompatibleRelease(", ".join(reasons))
     return {
         **lineage, "verification": verification, "parent_verification": task.get("parent_verification"),
         "created": task["created"], "id": task["id"], "revision": task["revision"], "files": files,
@@ -213,11 +229,11 @@ def _candidate(folder, task, requested):
 def select_release(store, prepared):
     """Prefer the latest original with the requested capability, then a superset.
 
-    Return a checked byte snapshot and a mapping from rejected task IDs to reasons.
-    Never scan the bundled previous run or follow a reused run's source pointers.
+    Return a checked byte snapshot and a ``Rejections`` mapping from rejected task IDs
+    to reasons. Never scan the bundled previous run or follow a reused run's source pointers.
     """
     requested_capabilities = release_contract(prepared)["capabilities"]
-    rejections = {}
+    rejections = Rejections()
     chosen = None
     best = None
     for path in Path(store).glob("*/task.json"):
@@ -230,6 +246,10 @@ def select_release(store, prepared):
                 chosen, best = candidate, priority
         except _NotAnOriginal:
             continue
+        except IncompatibleRelease as error:
+            rejections[folder.name] = [str(error)]
         except ValueError as error:
             rejections[folder.name] = [str(error)]
+            if str(error) != UNBOUND_VERIFICATION:
+                rejections.integrity.add(folder.name)
     return chosen, rejections

@@ -30,6 +30,13 @@ class ReleaseRepository:
         content = canonical(manifest)
         release_id = digest(content)
         context = manifest["context"]
+        # Same checks as the PostgreSQL repository: never store a blob under a digest
+        # it does not have, or a manifest whose artifacts differ from the files given.
+        if files.keys() != manifest["artifacts"].keys():
+            raise ValueError("Release artifact names differ from manifest")
+        for name, data in files.items():
+            if digest(data) != manifest["artifacts"][name]:
+                raise ValueError(f"{name} digest mismatch")
         with closing(sqlite3.connect(self.path)) as db, db:
             for name, data in files.items():
                 sha = manifest["artifacts"][name]

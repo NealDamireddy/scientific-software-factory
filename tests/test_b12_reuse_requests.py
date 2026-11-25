@@ -379,6 +379,35 @@ print(json.dumps(result))
                 save(folder / "acquisition.json", self.bundle["initial"])
             dispatch.assert_not_called()
 
+    def test_incompatible_old_release_is_skipped_and_fresh_source_is_generated(self):
+        old = self.seed_live("direct")
+        folder = self.lab.path(old["id"])
+        # An intact release pinned to a previous instrument profile is not damage.
+        save(folder / "task.json", {**old, "context": {**old["context"], "instrument_profile": "osms-sim@0"}})
+        files = self.bundle["sources"][old["id"]]["files"]
+        response = {"source": files["analysis.py"], "recipe": json.loads(files["recipe.json"]),
+                    "views": json.loads(files["views.json"])}
+        with patch("factory.assays.b12.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})) as worker:
+            new = self.wait_for_task(self.lab.submit("B12")["id"])
+        self.assertEqual(new["status"], "verified", new.get("error"))
+        self.assertEqual(new["mode"], "fresh generation")
+        self.assertIn("Incompatible", new["reuse_rejections"][old["id"]][0])
+        worker.assert_called_once()
+
+    def test_source_is_served_only_for_an_intact_verified_release(self):
+        task = self.seed_live("direct")
+        folder = self.lab.path(task["id"])
+        self.assertEqual(self.lab.source(task["id"])["files"]["analysis.py"],
+                         self.bundle["sources"][task["id"]]["files"]["analysis.py"])
+        for status in ("queued", "generating", "verifying", "failed"):
+            save(folder / "task.json", {**task, "status": status})
+            with self.subTest(status=status), self.assertRaisesRegex(ValueError, "verified release"):
+                self.lab.source(task["id"])
+        save(folder / "task.json", task)
+        (folder / "analysis.py").write_text("# changed after verification")
+        with self.assertRaisesRegex(ValueError, "verified release"):
+            self.lab.source(task["id"])
+
     def test_tampered_direct_source_rejects_request_with_inspectable_reason(self):
         original = self.seed_live("direct")
         (self.lab.path(original["id"]) / "analysis.py").write_text("# changed")
