@@ -7,18 +7,18 @@ async function openTab(page, tab) {
 }
 
 test.beforeEach(async ({ page }) => {
-  await page.goto("/workspace/");
+  await page.goto("/workspace/?project=visible-assay");
 });
 
 for (const concentration of ["0.125", "0.000001", "0.0000001"]) {
   test(`downloaded session specification at ${concentration} verifies with the Python producer`, async ({ page }) => {
-    await openTab(page, "Specifications");
+    await openTab(page, "Build application");
     const editor = page.getByRole("region", { name: "Experiment specification" });
     await editor.getByLabel("Saved specification", { exact: true }).selectOption({
       label: "spec-concentration · revision 1 · approved",
     });
-    await editor.getByLabel("Standard 1 concentration", { exact: true }).fill(concentration);
-    await editor.getByRole("button", { name: "Save draft revision" }).click();
+    await editor.getByLabel("Standard 1 concentration (mg/L)", { exact: true }).fill(concentration);
+    await editor.getByRole("button", { name: "Save draft" }).click();
     await expect(editor.getByRole("status")).toHaveText("Saved unapproved draft revision 2.");
     await editor.getByLabel("Confirm scientific fields for this revision").check();
     await editor.getByRole("button", { name: "Approve revision" }).click();
@@ -26,7 +26,7 @@ for (const concentration of ["0.125", "0.000001", "0.0000001"]) {
     await expect(editor.getByRole("status")).toContainText("Submitted run fixture-");
     const runId = (await editor.getByRole("status").innerText()).match(/fixture-[a-f0-9-]+/)[0];
     await openTab(page, "Runs");
-    await page.getByRole("button", { name: new RegExp(runId) }).click();
+    await page.locator(`button[data-run-id="${runId}"]`).click();
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("region", { name: "Run details" }).getByRole("button", { name: "Download evidence" }).click();
     const path = await (await downloadPromise).path();
@@ -63,6 +63,7 @@ test("context saves retain immutable lab and project revisions, ownership errors
   await name.fill("Photometry Lab");
   await lab.getByRole("button", { name: "Save lab revision" }).click();
   await expect(lab.getByRole("status")).toHaveText("Saved lab revision 2.");
+  await lab.getByText("Lab revisions and instrument profiles").click();
   await lab.getByLabel("Lab revision").selectOption("1");
   await expect(name).toHaveValue(oldName);
   await name.fill("Concurrent lab edit");
@@ -86,6 +87,7 @@ test("context saves retain immutable lab and project revisions, ownership errors
   }
   const instrument = project.getByLabel("Project instrument ID");
   const registered = await instrument.inputValue();
+  await project.getByText("Project revisions, instrument and protocol").click();
   await instrument.fill("outside-lab");
   await project.getByRole("button", { name: "Save project revision" }).click();
   await expect(instrument).toHaveAttribute("aria-invalid", "true");
@@ -101,6 +103,7 @@ test("context saves retain immutable lab and project revisions, ownership errors
   await expect(name).toHaveValue("Photometry Lab");
   await expect(project.getByLabel("Project revision")).toHaveValue("2");
   await expect(project.getByLabel("Scientific objective")).toHaveValue("Review the concentration series.");
+  await project.getByText("Project revisions, instrument and protocol").click();
   await project.getByLabel("Project revision").selectOption("1");
   await expect(project.getByLabel("Scientific objective")).not.toHaveValue(
     "Review the concentration series.",
@@ -110,11 +113,11 @@ test("context saves retain immutable lab and project revisions, ownership errors
 test("concentration draft requires explicit science, exact approval and a new approval after editing", async ({
   page,
 }) => {
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", { name: "Experiment specification" });
   const wavelength = editor.getByLabel("Wavelength (nm)", { exact: true });
   const samples = editor.getByLabel("Sample IDs (one per line)");
-  const save = editor.getByRole("button", { name: "Save draft revision" });
+  const save = editor.getByRole("button", { name: "Save draft" });
   const approve = editor.getByRole("button", { name: "Approve revision" });
   const submit = editor.getByRole("button", { name: "Submit experiment" });
   const selection = editor.getByLabel("Saved specification", { exact: true });
@@ -132,19 +135,19 @@ test("concentration draft requires explicit science, exact approval and a new ap
   await expect(samples).toHaveValue("specimen-A");
   const incompleteDigest = await selection.inputValue();
   await page.reload();
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   await selection.selectOption(incompleteDigest);
   await expect(wavelength).toHaveAttribute("aria-invalid", "true");
   await expect(samples).toHaveValue("specimen-A");
   await expect(approve).toBeDisabled();
   await expect(submit).toBeDisabled();
-  await page.getByText("Fixture controls", { exact: true }).click();
+  await page.getByText("Demo controls", { exact: true }).click();
   await page.getByLabel("Response to next requests").selectOption("unavailable");
   await wavelength.fill("650");
   await save.click();
   await expect(page.getByRole("main").getByRole("alert")).toContainText(/unavailable/i);
   await openTab(page, "Runs");
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   await expect(samples).toHaveValue("specimen-A");
   await expect(wavelength).toHaveValue("650");
   await page.getByLabel("Response to next requests").selectOption("");
@@ -183,8 +186,8 @@ test("concentration draft requires explicit science, exact approval and a new ap
   await expect(editor.getByRole("status")).toContainText("Submitted run fixture-");
   const run = (await editor.getByRole("status").textContent()).match(/fixture-[a-f0-9-]+/)[0];
   await page.reload();
-  await expect(page.getByRole("button", { name: new RegExp(run) })).toBeVisible();
-  await openTab(page, "Specifications");
+  await expect(page.locator(`button[data-run-id="${run}"]`)).toBeVisible();
+  await openTab(page, "Build application");
   await selection.selectOption(newDigest);
   await expect(samples).toHaveValue("specimen-B");
   await expect(editor.getByText("Approved digest").locator("+ dd")).toHaveText(newDigest);
@@ -193,7 +196,7 @@ test("concentration draft requires explicit science, exact approval and a new ap
 test("time course requires the selected calibration, interval and point count before approval", async ({
   page,
 }) => {
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", { name: "Experiment specification" });
   await editor.getByLabel("Experiment type").selectOption("time_course");
   await editor.getByRole("button", { name: "Use project protocol" }).click();
@@ -203,7 +206,7 @@ test("time course requires the selected calibration, interval and point count be
   await expect(interval).toHaveValue("");
   await expect(points).toHaveValue("");
   await interval.fill("8");
-  await editor.getByRole("button", { name: "Save draft revision" }).click();
+  await editor.getByRole("button", { name: "Save draft" }).click();
   await expect(editor.getByLabel("Frozen calibration")).toHaveAttribute("aria-invalid", "true");
   await expect(interval).toHaveValue("8");
   await expect(points).toHaveValue("");
@@ -213,12 +216,12 @@ test("time course requires the selected calibration, interval and point count be
   await points.fill("1");
   expect(await interval.evaluate((el) => el.validity.rangeOverflow)).toBe(true);
   expect(await points.evaluate((el) => el.validity.rangeUnderflow)).toBe(true);
-  await editor.getByRole("button", { name: "Save draft revision" }).click();
+  await editor.getByRole("button", { name: "Save draft" }).click();
   await expect(editor.getByRole("status")).toHaveText("Saved unapproved draft revision 2.");
   const saved = editor.getByLabel("Saved specification", {exact: true});
   const digest = await saved.inputValue();
   await page.reload();
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   await saved.selectOption(digest);
   await expect(interval).toHaveValue("3601");
   await expect(points).toHaveValue("1");
@@ -227,7 +230,7 @@ test("time course requires the selected calibration, interval and point count be
   await expect(editor.getByRole("button", { name: "Approve revision" })).toBeDisabled();
   await interval.fill("1");
   await points.fill("100");
-  await editor.getByRole("button", { name: "Save draft revision" }).click();
+  await editor.getByRole("button", { name: "Save draft" }).click();
   await expect(editor.getByRole("status")).toContainText("Saved unapproved draft revision 3.");
   const confirm = editor.getByLabel(/Confirm scientific fields for this revision/);
   await expect(confirm).toHaveAccessibleName(/interval 1 s and 100 points/);
@@ -286,12 +289,12 @@ test("live specification handoff surfaces an unsupported type and preserves the 
     });
   });
   await page.goto("/workspace/?mode=live&project=" + id);
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", { name: "Experiment specification" });
   await editor.getByLabel("Experiment type").selectOption("time_course");
   await editor.getByRole("button", { name: "Use project protocol" }).click();
   await editor.getByLabel("Sample IDs (one per line)").fill("retained-vial");
-  await editor.getByRole("button", { name: "Save draft revision" }).click();
+  await editor.getByRole("button", { name: "Save draft" }).click();
   await expect(editor.getByLabel("Experiment type")).toHaveAccessibleDescription(
     /no supported verification contract/,
   );
@@ -313,9 +316,9 @@ test("live specification handoff surfaces an unsupported type and preserves the 
 });
 
 test("fixture rejects sample collisions, incomplete standards and unsupported protocol units", async ({page}) => {
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", {name:"Experiment specification"});
-  const save = editor.getByRole("button", {name:"Save draft revision"});
+  const save = editor.getByRole("button", {name:"Save draft"});
   const samples = editor.getByLabel("Sample IDs (one per line)");
   const issues = editor.getByRole("region", {name:"Unresolved scientific fields"});
   await editor.getByRole("button", {name:"Use project protocol"}).click();
@@ -334,10 +337,11 @@ test("fixture rejects sample collisions, incomplete standards and unsupported pr
   await editor.getByRole("button", {name:"Remove standard 4"}).click();
   await openTab(page, "Lab & project");
   const project = page.getByRole("form", {name:"Project context"});
+  await project.getByText("Project revisions, instrument and protocol").click();
   await project.getByLabel("Concentration unit", {exact:true}).fill("mol/L");
   await project.getByRole("button", {name:"Save project revision"}).click();
   await expect(project.getByRole("status")).toContainText("Saved project revision 2");
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   await editor.getByLabel("Saved specification", {exact:true}).selectOption({ label: "New specification" });
   await editor.getByLabel("Specification project revision").selectOption("2");
   await editor.getByRole("button", {name:"Use project protocol"}).click();
@@ -347,26 +351,25 @@ test("fixture rejects sample collisions, incomplete standards and unsupported pr
 });
 
 test("protected specification fields follow the pinned protocol and experiment type", async ({page}) => {
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", {name:"Experiment specification"});
-  const outputs = editor.getByLabel("Expected outputs (one per line)");
-  const criteria = editor.getByLabel("Specification validation criteria (one per line)");
-  const units = editor.getByLabel("Result concentration unit");
-  for (const control of [outputs, criteria, units]) await expect(control).not.toBeEditable();
-  await expect(criteria).toHaveValue(/positive calibration slope/);
-  await expect(units).toHaveValue("mg/L");
-  await expect(outputs).not.toHaveValue(/timestamp/);
+  await editor.getByText("Output schema keys").click();
+  const outputs = editor.locator("details").filter({has:page.getByText("Output schema keys", {exact:true})}).locator("code");
+  const criteria = editor.getByText("Inherited validation criteria").locator("+ ul");
+  await expect(criteria).toContainText("positive calibration slope");
+  await expect(editor.getByText(/Protocol units ·/)).toContainText("mg/L");
+  await expect(outputs).not.toContainText("timestamp");
   await editor.getByLabel("Experiment type").selectOption("time_course");
-  await expect(outputs).toHaveValue(/timestamp$/);
+  await expect(outputs).toContainText("timestamp");
   await openTab(page, "Lab & project");
   const project = page.getByRole("form", {name:"Project context"});
   await project.getByLabel("Validation criteria (one per line)").fill("Revised protocol threshold");
   await project.getByRole("button", {name:"Save project revision"}).click();
   await expect(project.getByRole("status")).toContainText("Saved project revision 2");
-  await openTab(page, "Specifications");
-  await expect(criteria).toHaveValue(/positive calibration slope/);
+  await openTab(page, "Build application");
+  await expect(criteria).toContainText(/positive calibration slope/);
   await editor.getByLabel("Specification project revision").selectOption("2");
-  await expect(criteria).toHaveValue("Revised protocol threshold");
+  await expect(criteria).toContainText("Revised protocol threshold");
 });
 
 test("saved edits retain historical context and new specifications can choose either revision", async ({ page }) => {
@@ -380,15 +383,16 @@ test("saved edits retain historical context and new specifications can choose ei
   await project.getByRole("button", { name: "Save project revision" }).click();
   await expect(project.getByRole("status")).toHaveText("Saved project revision 2.");
 
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", { name: "Experiment specification" });
   const saved = editor.getByLabel("Saved specification", { exact: true });
   const revision = editor.getByLabel("Specification project revision");
   const pinned = (label) => editor.getByText(label, { exact: true }).locator("+ dd");
-  const save = editor.getByRole("button", { name: "Save draft revision" });
+  const save = editor.getByRole("button", { name: "Save draft" });
   const submit = editor.getByRole("button", { name: "Submit experiment" });
   await saved.selectOption({ label: "spec-concentration · revision 1 · approved" });
   const original = await saved.inputValue();
+  await editor.getByText("Revision and approval details").click();
   const oldLab = await pinned("Pinned lab").innerText();
   const oldProject = await pinned("Pinned project").innerText();
   const projectDigest = await pinned("Pinned project").locator("code").innerText();
@@ -432,6 +436,7 @@ test("duplicate instrument shows the correction at the edited ID and preserves a
   await openTab(page, "Lab & project");
   const lab = page.getByRole("form", {name: "Lab context"});
   await lab.getByLabel("Lab name").fill("Lab with secondary instrument");
+  await lab.getByText("Lab revisions and instrument profiles").click();
   await lab.getByRole("button", {name: "Add instrument"}).click();
   const first = lab.getByRole("group", {name: "Instrument 1"});
   const second = lab.getByRole("group", {name: "Instrument 2"});
@@ -454,10 +459,10 @@ test("duplicate instrument shows the correction at the edited ID and preserves a
 });
 
 test("a concentration edit preserves the selected optional frozen calibration", async ({page}) => {
-  await openTab(page, "Specifications");
+  await openTab(page, "Build application");
   const editor = page.getByRole("region", {name:"Experiment specification"});
   const calibration = editor.getByLabel("Frozen calibration (optional)");
-  const save = editor.getByRole("button", {name:"Save draft revision"});
+  const save = editor.getByRole("button", {name:"Save draft"});
   await editor.getByRole("button", {name:"Use project protocol"}).click();
   await editor.getByLabel("Wavelength (nm)").fill("650");
   await calibration.selectOption({index:1});

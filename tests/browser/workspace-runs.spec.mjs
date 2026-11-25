@@ -1,14 +1,15 @@
 import { expect, test } from "playwright/test";
 
 async function chooseRun(page, runId) {
-  await page.getByRole("button", { name: new RegExp(runId) }).click();
+  await page.locator(`button[data-run-id="${runId}"]`).click();
+  await page.getByText("Run details and exact timestamps").click();
   return page.getByRole("region", { name: "Run details" });
 }
 
 test("recorded concentration and time-course fixtures retain measurements and review findings", async ({
   page,
 }) => {
-  await page.goto("/workspace/");
+  await page.goto("/workspace/?project=visible-assay");
   let details = await chooseRun(page, "fixture-concentration");
   const concentrationRow = details.getByRole("row", { name: /vial-q17/ });
   await expect(
@@ -21,7 +22,7 @@ test("recorded concentration and time-course fixtures retain measurements and re
     details.getByRole("columnheader", { name: "Concentration (mg/L)" }),
   ).toBeVisible();
   for (const identity of [
-    "Simulated acquisition",
+    "Simulated instrument",
     "job-101",
     "uvvis-concentration-v1",
     "6c0483ae",
@@ -63,7 +64,7 @@ test("recorded concentration and time-course fixtures retain measurements and re
 test("pending preparation leaves recipe state intact and incomplete evidence has no result", async ({
   page,
 }) => {
-  await page.goto("/workspace/");
+  await page.goto("/workspace/?project=visible-assay");
   const pending = await chooseRun(page, "fixture-pending");
   await expect(pending).toContainText("17 s · pending at last update");
   await expect(
@@ -232,5 +233,45 @@ test("saved and replayed results preserve withheld values, independent states an
         .filter({ hasText: "Software-induced wait" })
         .locator(".."),
     ).toContainText("Not recorded");
+  }
+});
+
+test("timeline uses recorded endpoints and keeps the result in the desktop viewport", async ({ page }) => {
+  await page.setViewportSize({width:1280,height:800});
+  await page.goto("/workspace/?project=visible-assay");
+  const timeline = page.getByRole("region", {name:"Factory timeline"});
+  for (const line of ["0–25 s","8–19 s","25–27 s","overlapped for 11 s","Data waited 6 s for software"]) {
+    await expect(timeline).toContainText(line);
+  }
+  const track = timeline.locator(".track").nth(1);
+  const bounds = await track.locator("i").boundingBox();
+  const axis = await track.boundingBox();
+  expect((bounds.x-axis.x)/axis.width).toBeCloseTo(8/27,2);
+  expect(bounds.width/axis.width).toBeCloseTo(11/27,2);
+  for (const text of ["uvvis-concentration-v1","4.8 mg/L","Replicate SD 0.12 mg/L","Recorded demo run · Simulated instrument"]) {
+    await expect(page.getByText(text,{exact:true}).first()).toBeInViewport();
+  }
+  const pending = page.getByRole("button",{name:/Concentration · Analysis pending/});
+  await pending.focus();
+  await page.keyboard.press("Enter");
+  await expect(timeline.locator(".track .software")).toHaveCount(0);
+  await expect(timeline).toContainText("pending · Timing unavailable");
+  await expect(timeline).not.toContainText("Data waited");
+  await page.setViewportSize({width:375,height:812});
+  await page.getByRole("button",{name:/Acquisition interrupted/}).click();
+  await expect(timeline).toContainText("blocked · Timing unavailable");
+  await expect(timeline).not.toContainText("Data waited");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+});
+
+test("capture the workspace views at the same desktop viewport", async ({page}, info) => {
+  await page.setViewportSize({width:1280,height:800});
+  await page.goto("/workspace/?project=visible-assay");
+  await expect(page.getByRole("region",{name:"Run details"})).toBeVisible();
+  await page.evaluate(() => document.fonts.ready);
+  await info.attach("runs-desktop",{body:await page.screenshot(),contentType:"image/png"});
+  for (const [tab, file] of [["Build application","specification-editor"],["Lab & project","context-editor"]]) {
+    await page.getByRole("navigation",{name:"Workspace views"}).getByRole("button",{name:tab}).click();
+    await info.attach(file,{body:await page.screenshot({fullPage:true}),contentType:"image/png"});
   }
 });

@@ -1,1 +1,14 @@
-{"framework":null,"buildCommand":"npm run build","outputDirectory":"out"}
+{
+  "framework": null,
+  "buildCommand": "npm run build",
+  "outputDirectory": "out",
+  "functions": {
+    "api/instrument.py": {
+      "includeFiles": "public/b12/completed.json"
+    },
+    "api/presenter/generate.py": {
+      "includeFiles": "public/b12/completed.json",
+      "maxDuration": 30
+    }
+  }
+}

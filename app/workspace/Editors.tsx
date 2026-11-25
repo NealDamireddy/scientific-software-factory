@@ -17,6 +17,7 @@ import type {
 } from "./api";
 
 type Props = {
+  editProject: () => void;
   section: "context" | "specification";
   client: WorkspaceClient;
   projectId: string;
@@ -140,7 +141,7 @@ function RevisionSelect<T>({
       {!selected && <option value="">New context</option>}
       {records.map((row) => (
         <option key={row.revision} value={row.revision}>
-          Revision {row.revision} · {row.sha256.slice(0, 12)}
+          Revision {row.revision}
         </option>
       ))}
     </Select>
@@ -200,6 +201,24 @@ function LabEditor({ snapshot, client, projectId, operate, errors }: Props) {
       }}
     >
       <h2>Lab context</h2>
+        <Field label="Lab name" value={form.name} onChange={(name) => update({ name })} error={errors.name} />
+      <div className="field-grid">
+        <Field
+          label="Approved libraries (one per line)"
+          value={form.approved_libraries}
+          multiline
+          onChange={(approved_libraries) => update({ approved_libraries })}
+          error={errors.approved_libraries}
+        />
+        <Field
+          label="Operating restrictions (one per line)"
+          value={form.operating_restrictions}
+          multiline
+          onChange={(operating_restrictions) => update({ operating_restrictions })}
+          error={errors.operating_restrictions}
+        />
+      </div>
+      <details className="technical"><summary>Lab revisions and instrument profiles</summary>
       <RevisionSelect
         label="Lab revision"
         records={snapshot.labs}
@@ -217,7 +236,6 @@ function LabEditor({ snapshot, client, projectId, operate, errors }: Props) {
           onChange={(lab_id) => update({ lab_id })}
           error={errors.lab_id}
         />
-        <Field label="Lab name" value={form.name} onChange={(name) => update({ name })} error={errors.name} />
       </div>
       {form.instruments.map((item, index) => (
         <fieldset key={index}>
@@ -249,22 +267,7 @@ function LabEditor({ snapshot, client, projectId, operate, errors }: Props) {
       >
         Add instrument
       </button>
-      <div className="field-grid">
-        <Field
-          label="Approved libraries (one per line)"
-          value={form.approved_libraries}
-          multiline
-          onChange={(approved_libraries) => update({ approved_libraries })}
-          error={errors.approved_libraries}
-        />
-        <Field
-          label="Operating restrictions (one per line)"
-          value={form.operating_restrictions}
-          multiline
-          onChange={(operating_restrictions) => update({ operating_restrictions })}
-          error={errors.operating_restrictions}
-        />
-      </div>
+      </details>
       <div className="actions">
         <button>Save lab revision</button>
         <span role="status">{message}</span>
@@ -322,6 +325,26 @@ function ProjectEditor({ snapshot, client, projectId, operate, errors }: Props) 
       }}
     >
       <h2>Project context</h2>
+        <Field
+          label="Scientific objective" multiline
+          value={form.scientific_objective}
+          onChange={(scientific_objective) => update({ scientific_objective })}
+          error={errors.scientific_objective}
+        />
+        <Field
+          label="Analysis method" multiline
+          value={form.analysis_method}
+          onChange={(analysis_method) => update({ analysis_method })}
+          error={errors.analysis_method}
+        />
+        <Field
+          label="Validation criteria (one per line)"
+          multiline
+          value={form.validation_criteria}
+          onChange={(validation_criteria) => update({ validation_criteria })}
+          error={errors.validation_criteria}
+        />
+      <details className="technical"><summary>Project revisions, instrument and protocol</summary>
       <RevisionSelect
         label="Project revision"
         records={snapshot.projects}
@@ -347,12 +370,6 @@ function ProjectEditor({ snapshot, client, projectId, operate, errors }: Props) 
           error={errors.instrument_id}
         />
         <Field
-          label="Scientific objective"
-          value={form.scientific_objective}
-          onChange={(scientific_objective) => update({ scientific_objective })}
-          error={errors.scientific_objective}
-        />
-        <Field
           label="Protocol ID"
           value={form.protocol_id}
           onChange={(protocol_id) => update({ protocol_id })}
@@ -376,20 +393,7 @@ function ProjectEditor({ snapshot, client, projectId, operate, errors }: Props) 
             error={errors["units." + unit]}
           />
         ))}
-        <Field
-          label="Analysis method"
-          value={form.analysis_method}
-          onChange={(analysis_method) => update({ analysis_method })}
-          error={errors.analysis_method}
-        />
-        <Field
-          label="Validation criteria (one per line)"
-          multiline
-          value={form.validation_criteria}
-          onChange={(validation_criteria) => update({ validation_criteria })}
-          error={errors.validation_criteria}
-        />
-      </div>
+      </div></details>
       <div className="actions">
         <button>Save project revision</button>
         <span role="status">{message}</span>
@@ -425,7 +429,7 @@ function confirmFields(spec: Specification) {
   return fields.sort();
 }
 
-function SpecificationEditor({ snapshot, client, projectId, operate, errors }: Props) {
+function SpecificationEditor({ editProject, snapshot, client, projectId, operate, errors }: Props) {
   const [form, set] = useState(() => specForm(latest(snapshot.projects)));
   const [dirty, setDirty] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
@@ -543,7 +547,9 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
   const reviewErrors = { ...unresolved, ...errors };
   return (
     <section className="workspace-card" aria-label="Experiment specification">
-      <h2>Experiment specification</h2>
+      <h1>Experiment specification</h1>
+      <p className="objective">{project?.payload.scientific_objective}</p>
+      <p>{course ? "Produce a calibrated concentration series over time with replicate SD and review findings." : "Produce calibrated concentrations with replicate SD and review findings for each sample."}</p>
       <Select
         label="Saved specification"
         value={record?.sha256 ?? ""}
@@ -598,29 +604,8 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
             )}
           </Select>
         </div>
-        {project && (
-          <dl>
-            <dt>Project digest</dt>
-            <dd>
-              <code>{project.sha256}</code>
-            </dd>
-            <dt>Lab revision</dt>
-            <dd>
-              {project.lab_id} · {project.lab_revision} · <code>{project.lab_sha256}</code>
-            </dd>
-            <dt>Instrument profile</dt>
-            <dd>
-              {instrument?.instrument_id} · {instrument?.profile_id} ·{" "}
-              <code>{instrument?.profile_sha256}</code>
-            </dd>
-            <dt>Protocol</dt>
-            <dd>
-              {project.payload.protocol_id} · revision {project.payload.protocol_revision}
-            </dd>
-            <dt>Analysis method</dt>
-            <dd>{project.payload.analysis_method}</dd>
-          </dl>
-        )}
+        <h3>What will you measure?</h3>
+        <p>{course ? "Approval requires samples, wavelength, a frozen calibration, interval and point count." : "Confirm samples, wavelength and calibration before approval."}</p>
         <button type="button" disabled={!project} onClick={applyProtocol}>
           Use project protocol
         </button>
@@ -632,88 +617,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
             onChange={(sample_ids) => update({ sample_ids })}
             error={reviewErrors.sample_ids}
           />
-          <Field
-            label="Expected outputs (one per line)"
-            multiline
-            value={outputs.join("\n")}
-            readOnly
-            error={reviewErrors.outputs}
-          />
-          <Field
-            label="Specification validation criteria (one per line)"
-            multiline
-            value={criteria.join("\n")}
-            readOnly
-            error={reviewErrors.validation_criteria}
-          />
-          {(["concentration", "wavelength", "path_length"] as const).map((key, i) => (
-            <Field
-              key={key}
-              label={
-                ["Result concentration unit", "Measurement wavelength unit", "Cuvette path length unit"][i]
-              }
-              value={units?.[key] ?? ""}
-              readOnly
-              error={reviewErrors["units." + key]}
-            />
-          ))}
         </div>
-        <p>To change protocol units or validation criteria, save a project revision and start a new specification from it.</p>
-        <Select
-          label={course ? "Frozen calibration" : "Frozen calibration (optional)"}
-          value={form.calibration}
-          onChange={(calibration) => update({ calibration })}
-          error={reviewErrors.calibration}
-        >
-          <option value="">{course ? "Select a calibration" : "No saved calibration"}</option>
-          {snapshot.calibrations.map((c) => (
-            <option key={c.sha256} value={c.sha256}>
-              {c.id} · {c.unit} · {c.settings.wavelength_nm} nm · {c.sha256}
-            </option>
-          ))}
-        </Select>
-        {!course && (
-          <fieldset>
-            <legend>Calibration standards</legend>
-            {form.standards.map((s, index) => (
-              <div className="field-grid" key={index}>
-                <Field
-                  label={`Standard ${index + 1} sample ID`}
-                  value={s.sample_id}
-                  onChange={(sample_id) =>
-                    update({
-                      standards: form.standards.map((row, i) => (i === index ? { ...row, sample_id } : row)),
-                    })
-                  }
-                />
-                <Field
-                  label={`Standard ${index + 1} concentration`}
-                  type="number"
-                  step="any"
-                  value={s.level}
-                  onChange={(level) =>
-                    update({
-                      standards: form.standards.map((row, i) => (i === index ? { ...row, level } : row)),
-                    })
-                  }
-                />
-                <button
-                  type="button"
-                  onClick={() => update({ standards: form.standards.filter((_, i) => i !== index) })}
-                >
-                  Remove standard {index + 1}
-                </button>
-              </div>
-            ))}
-            {reviewErrors.standards && <p>{reviewErrors.standards}</p>}
-            <button
-              type="button"
-              onClick={() => update({ standards: [...form.standards, { sample_id: "", level: "" }] })}
-            >
-              Add standard
-            </button>
-          </fieldset>
-        )}
         <fieldset>
           <legend>Measurement settings</legend>
           <div className="field-grid">
@@ -768,8 +672,97 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
             )}
           </div>
         </fieldset>
+        <Select
+          label={course ? "Frozen calibration" : "Frozen calibration (optional)"}
+          value={form.calibration}
+          onChange={(calibration) => update({ calibration })}
+          error={reviewErrors.calibration}
+        >
+          <option value="">{course ? "Select a calibration" : "No saved calibration"}</option>
+          {snapshot.calibrations.map((c) => (
+            <option key={c.sha256} value={c.sha256}>
+              {c.id} · {c.unit} · {c.settings.wavelength_nm} nm
+            </option>
+          ))}
+        </Select>
+        {!course && (
+          <fieldset>
+            <legend>Calibration standards</legend>
+            {form.standards.map((s, index) => (
+              <div className="field-grid" key={index}>
+                <Field
+                  label={`Standard ${index + 1} sample ID`}
+                  value={s.sample_id}
+                  onChange={(sample_id) =>
+                    update({
+                      standards: form.standards.map((row, i) => (i === index ? { ...row, sample_id } : row)),
+                    })
+                  }
+                />
+                <Field
+                  label={`Standard ${index + 1} concentration (${units?.concentration || "unit unspecified"})`}
+                  type="number"
+                  step="any"
+                  value={s.level}
+                  onChange={(level) =>
+                    update({
+                      standards: form.standards.map((row, i) => (i === index ? { ...row, level } : row)),
+                    })
+                  }
+                />
+                <button
+                  type="button"
+                  onClick={() => update({ standards: form.standards.filter((_, i) => i !== index) })}
+                >
+                  Remove standard {index + 1}
+                </button>
+              </div>
+            ))}
+            {reviewErrors.standards && <p className="field-error">{reviewErrors.standards}</p>}
+            <button
+              type="button"
+              onClick={() => update({ standards: [...form.standards, { sample_id: "", level: "" }] })}
+            >
+              Add standard
+            </button>
+          </fieldset>
+        )}
+        <h3>What should the app produce?</h3>
+        <p>{outputs.map(key => ({ calibration_id: "Calibration reference", sample_id: "Sample ID", concentration_mg_l: "Concentration", replicate_sd_mg_l: "Replicate SD", review_reason: "Review reason", timestamp: "Measurement time" }[key] ?? key)).join(" · ")}</p>
+        <details className="technical"><summary>Output schema keys</summary><code>{outputs.join(", ")}</code></details>
+        {reviewErrors.outputs && <p className="field-error">{reviewErrors.outputs}</p>}
+        <h3>When should it flag a result?</h3>
+        <p>Inherited validation criteria</p>
+        <ul>{criteria.map((criterion,i) => <li key={i}>{criterion}</li>)}</ul>
+        {reviewErrors.validation_criteria && <p className="field-error">{reviewErrors.validation_criteria}</p>}
+        <p>Protocol units · {[units?.concentration, units?.wavelength, units?.path_length].filter(Boolean).join(" · ") || "Unspecified"}</p>
+        {Object.entries(reviewErrors).filter(([key]) => key.startsWith("units.")).map(([key, reason]) => <p key={key} className="field-error">{key.slice(6)} · {reason}</p>)}
+        <button type="button" onClick={editProject}>Edit project protocol</button>
+        {project && (
+          <details className="technical"><summary>Inherited protocol and revision details</summary><dl>
+            <dt>Project digest</dt>
+            <dd>
+              <code>{project.sha256}</code>
+            </dd>
+            <dt>Lab revision</dt>
+            <dd>
+              {project.lab_id} · {project.lab_revision} · <code>{project.lab_sha256}</code>
+            </dd>
+            <dt>Instrument profile</dt>
+            <dd>
+              {instrument?.instrument_id} · {instrument?.profile_id} ·{" "}
+              <code>{instrument?.profile_sha256}</code>
+            </dd>
+            <dt>Protocol</dt>
+            <dd>
+              {project.payload.protocol_id} · revision {project.payload.protocol_revision}
+            </dd>
+            <dt>Analysis method</dt>
+            <dd>{project.payload.analysis_method}</dd>
+          </dl></details>
+        )}
         <div className="actions">
-          <button>Save draft revision</button>
+          <button>Save draft</button>
         </div>
       </form>
       {record && (
@@ -781,7 +774,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
                 ? "Approved specification"
                 : "Draft awaiting approval"}
           </h3>
-          <dl>
+          <details className="technical"><summary>Revision and approval details</summary><dl>
             <dt>Saved specification</dt>
             <dd>
               {record.specification_id} · revision {record.revision} · <code>{record.sha256}</code>
@@ -807,7 +800,7 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
                 </dd>
               </>
             )}
-          </dl>
+          </dl></details>
           {Object.keys(unresolved).length > 0 && <div aria-label="Unresolved scientific fields" role="region">
             <h4>Resolve before approval</h4>
             <ul>{Object.entries(unresolved).map(([field, reason]) => <li key={field}>{field} · {reason}</li>)}</ul>
@@ -841,12 +834,22 @@ function SpecificationEditor({ snapshot, client, projectId, operate, errors }: P
   );
 }
 
+function FactValue({label,value}: {label:string; value?:string}) {
+  return <div><dt>{label}</dt><dd>{value || "Unspecified"}</dd></div>;
+}
+
 export default function Editors(props: Props) {
   return (
     <>
       <div hidden={props.section !== "context"}>
-        <LabEditor {...props} />
+        <section className="context-lead"><h1>Lab &amp; project</h1>
+          <p>{latest(props.snapshot.projects)?.payload.scientific_objective}</p>
+          <dl><FactValue label="Instrument" value={latest(props.snapshot.projects)?.payload.instrument_id}/>
+          <FactValue label="Analysis method" value={latest(props.snapshot.projects)?.payload.analysis_method}/>
+          <FactValue label="Operating restrictions" value={latest(props.snapshot.labs)?.payload.operating_restrictions.join(" · ")}/></dl>
+        </section>
         <ProjectEditor {...props} />
+        <LabEditor {...props} />
       </div>
       <div hidden={props.section !== "specification"}>
         <SpecificationEditor {...props} />

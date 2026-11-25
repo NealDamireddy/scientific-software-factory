@@ -72,13 +72,14 @@ export default function B12Archive() {
   const context = followup.context;
   return <div className="b12">
     <style>{style}</style>
-    <header><div className="wrap"><strong>EVOLVE</strong><a href="/"><ArrowLeft size={15}/> EPR workbench</a></div></header>
+    <header><div className="wrap"><strong>EVOLVE</strong><a href="/epr/"><ArrowLeft size={15}/> EPR workbench</a></div></header>
     <main className="wrap">
       <div className="tags"><span className="badge">Previous completed run</span><span className="eyebrow">Simulated instrument · 550 nm</span></div>
       <h1>Vitamin B12 assay</h1>
       <p className="lede">A mystery vial exceeded the direct assay’s calibration range. The PI approved a dilution, and a local coding worker added prepared-sample support to the assay.</p>
       <div className="actions">
-        <a className="primary" download href="/b12/completed.json"><Download size={16}/> Download run evidence</a>
+        <a className="primary" href="/b12/demo/">Run online instrument demo</a>
+        <a download href="/b12/completed.json"><Download size={16}/> Download run evidence</a>
         <a href="http://127.0.0.1:8765/" target="_blank" rel="noreferrer">Open local presenter <ArrowUpRight size={15}/></a>
       </div>
       <p className="note">Fresh generation runs on the presenter laptop with <code>python -m factory.lab</code>.</p>

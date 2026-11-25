@@ -7,3 +7,5 @@ for (const file of ["pyodide.mjs", "pyodide.asm.mjs", "pyodide.asm.wasm", "pyodi
 }
 const licenseInfo = await readFile("docs/NOTICE.md", "utf8");
 await writeFile("public/runtime/NOTICE.txt", licenseInfo);
+await copyFile("factory/optics.py", "public/runtime/optics.py");
+await copyFile("LICENSE", "public/runtime/instrument-license.txt");
