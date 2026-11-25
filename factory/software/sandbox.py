@@ -96,7 +96,7 @@ def _kill(proc):
 
 
 def reject_constant(value):
-    raise ValueError(f"Application output contains non-finite number {value}")
+    raise ValueError(f"Application output is not JSON compliant: non-finite number {value}")
 
 
 def execute(source, data, metadata=None):
