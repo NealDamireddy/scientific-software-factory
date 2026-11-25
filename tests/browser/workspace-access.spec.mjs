@@ -1,5 +1,24 @@
 import { test, expect } from "playwright/test";
 
+test("Lab projects opens both workspaces and the interactive B12 assay", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("link", { name: /^Visible absorbance assay/ }).click();
+  await expect(page.getByRole("region", { name: "Run details" })).toContainText("job-101");
+  await page.getByRole("link", { name: "Lab projects", exact: true }).click();
+
+  await page.getByRole("link", { name: /^Assay development/ }).click();
+  await page.getByRole("button", { name: "New specification" }).click();
+  await expect(page.getByRole("region", { name: "Experiment specification" })).toBeVisible();
+  await page.getByRole("link", { name: "Lab projects", exact: true }).click();
+
+  await page.getByRole("link", { name: /^Vitamin B12 assay/ }).click();
+  await page.getByRole("button", { name: "Insert experiment specs" }).click();
+  const spec = JSON.parse(await page.getByLabel("Application specification").inputValue());
+  expect(spec.sample).toBe("Vial A");
+  expect(spec.wavelength_nm).toBe(550);
+  await expect(page.getByRole("button", { name: "Generate analysis app" })).toBeEnabled();
+});
+
 async function response(page, value) {
   const select = page.getByLabel("Response to next requests");
   if (!(await select.isVisible()))

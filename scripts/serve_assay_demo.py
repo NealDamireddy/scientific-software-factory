@@ -111,5 +111,5 @@ if __name__ == "__main__":
         raise SystemExit("Run npm run build first.")
     with TemporaryDirectory() as store, ThreadingHTTPServer(("127.0.0.1", 8776), partial(DemoHandler, directory=export)) as server:
         server.builds = Path(store)
-        print("Open http://127.0.0.1:8776/b12/demo/", flush=True)
+        print("Lab projects: http://127.0.0.1:8776/", flush=True)
         server.serve_forever()
