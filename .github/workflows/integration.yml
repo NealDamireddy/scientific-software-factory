@@ -82,9 +82,18 @@ jobs:
       - name: Install the Python producer for digest verification
         run: uv sync --locked --python 3.13
       - run: npm ci
+      # The browser suite mocks the live workspace service on the test server's own origin.
       - run: npm run build
+        env:
+          NEXT_PUBLIC_WORKSPACE_API_URL: http://127.0.0.1:4187
       - run: npx --no-install playwright install --with-deps chromium
       - run: uv run --frozen npm test
+        env:
+          NEXT_PUBLIC_WORKSPACE_API_URL: http://127.0.0.1:4187
+      - name: Verify live workspace is unavailable without a service URL
+        run: |
+          npm run build
+          npm test -- workbench-evidence.spec.ts -g "live workspace is offered only"
       - name: Verify isolated preview and deployment source
         env:
           VERCEL_ENV: preview

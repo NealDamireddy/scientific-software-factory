@@ -1,18 +1,21 @@
 import {loadPyodide} from "/runtime/pyodide.mjs";
+import {checkManifest,checkSourceRevision,metricsPass,sha256Hex} from "/replay-checks.mjs";
 
-async function verifiedFile(folder, name, manifest) {
+async function verifiedFile(folder, name, manifest, sourceRevision) {
   const response = await fetch(folder + "/" + name);
   if (!response.ok) throw Error("Unable to read " + name);
   const bytes = await response.arrayBuffer();
-  const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), n=>n.toString(16).padStart(2,"0")).join("");
-  if (digest !== manifest[name].sha256) throw Error(name + " failed its integrity check");
+  const digest = await sha256Hex(bytes);
+  checkManifest(name, digest, manifest);
+  if (name === "analysis.py") checkSourceRevision(digest, sourceRevision);
   return new TextDecoder().decode(bytes);
 }
 
 self.onmessage = async ({data}) => {
   try {
-    const {folder,manifest,reference} = data;
-    const [source,raw,metadata] = await Promise.all(["analysis.py","input.csv","metadata.json"].map(name=>verifiedFile(folder,name,manifest)));
+    const {folder,manifest,reference,sourceRevision} = data;
+    if (!reference?.metrics?.length) throw Error("The reference case has no metrics to compare, so replay cannot pass");
+    const [source,raw,metadata] = await Promise.all(["analysis.py","input.csv","metadata.json"].map(name=>verifiedFile(folder,name,manifest,sourceRevision)));
     const python = await loadPyodide({indexURL:"/runtime/"});
     python.globals.set("app_source",source);
     python.globals.set("csv_data",raw);
@@ -30,12 +33,8 @@ with contextlib.redirect_stdout(output):
             raise ValueError("Application exited with " + str(ex.code) + " " + output.getvalue())
 output.getvalue()
 `);
-    const output = JSON.parse(response);
-    const passed = reference.metrics.every(({field,expected,tolerance})=>{
-      const actual = output[field];
-      const within = (a,b)=>typeof a === "number" && Number.isFinite(a) && Math.abs(a-b)<=tolerance;
-      return Array.isArray(expected) ? Array.isArray(actual) && actual.length===expected.length && expected.every((n,i)=>within(actual[i],n)) : within(actual,expected);
-    });
-    self.postMessage({passed,output,python:python.runPython("sys.version.split()[0]")});
+    let output;
+    try { output = JSON.parse(response); } catch { throw Error("analysis.py did not print valid JSON (NaN and Infinity are not allowed)"); }
+    self.postMessage({passed:metricsPass(reference,output),output,python:python.runPython("sys.version.split()[0]")});
   } catch (error) {self.postMessage({error:String(error.message || error)});}
 };
