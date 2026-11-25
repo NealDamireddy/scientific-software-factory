@@ -27,7 +27,7 @@ export default function ProjectDirectory() {
       ))}
     </div>
     <a className="instrument-project" href="/b12/demo/"><FlaskConical size={25}/>
-      <span><strong>Vitamin B12 assay</strong><small>Run a generated application on the online 550 nm instrument simulator.</small></span>
+      <span><strong>Vitamin B12 assay</strong><small>Generate an analysis app from the experiment specs and run it on the simulated 550 nm spectrophotometer.</small></span>
       <span className="project-open">Open demo <ArrowRight size={16}/></span>
     </a>
   </>;
@@ -36,8 +36,8 @@ export default function ProjectDirectory() {
 export function Archives() {
   return <section className="archive-directory"><h2><BookOpen size={18}/> Lab archives</h2>
     <div>{[
-      { name: "EPR archive", detail: "Spectra, work orders and replay", url: "/epr/", icon: Radio },
-      { name: "B12 archive", detail: "Vitamin B12 assay and run evidence", url: "/b12/", icon: FlaskConical },
+      { name: "EPR archive", detail: "First prototype: spectra, work orders and replay", url: "/epr/", icon: Radio },
+      { name: "B12 archive", detail: "Recorded B12 dilution run and its evidence", url: "/b12/", icon: FlaskConical },
     ].map(({name,detail,url,icon:Icon}) => <a key={url} href={url}><Icon size={21}/><span><strong>{name}</strong><small>{detail}</small></span><ArrowRight size={16}/></a>)}</div>
   </section>;
 }
