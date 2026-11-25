@@ -2,7 +2,7 @@
 
 import { useId, useRef, useState, type ChangeEvent, type ReactNode } from "react";
 
-import { contractOutputs } from "./api";
+import { approvalMatches, contractOutputs } from "./api";
 import type {
   FieldErrors,
   Instrument,
@@ -532,7 +532,7 @@ function SpecificationEditor({ editProject, snapshot, client, projectId, operate
     }
   }
   async function submit() {
-    if (!record?.approval || dirty || submitted) return;
+    if (!record || !approvalMatches(record) || dirty || submitted) return;
     submission.current ||= crypto.randomUUID();
     const key = submission.current;
     setMessage("");
@@ -542,7 +542,8 @@ function SpecificationEditor({ editProject, snapshot, client, projectId, operate
       setMessage("Submitted run " + result.run_id + ".");
     }
   }
-  const approved = !!record?.approval && !dirty;
+  const approved = approvalMatches(record) && !dirty;
+  const staleApproval = !!record?.approval && !approvalMatches(record);
   const unresolved = !dirty ? record?.unresolved_fields ?? {} : {};
   const reviewErrors = { ...unresolved, ...errors };
   return (
@@ -772,7 +773,9 @@ function SpecificationEditor({ editProject, snapshot, client, projectId, operate
               ? "Unsaved changes · approval required"
               : approved
                 ? "Approved specification"
-                : "Draft awaiting approval"}
+                : staleApproval
+                  ? "Approval does not match this revision"
+                  : "Draft awaiting approval"}
           </h3>
           <details className="technical"><summary>Revision and approval details</summary><dl>
             <dt>Saved specification</dt>
@@ -805,7 +808,7 @@ function SpecificationEditor({ editProject, snapshot, client, projectId, operate
             <h4>Resolve before approval</h4>
             <ul>{Object.entries(unresolved).map(([field, reason]) => <li key={field}>{field} · {reason}</li>)}</ul>
           </div>}
-          {!record.approval && (
+          {!approvalMatches(record) && (
             <label className="confirm-fields">
               <input
                 type="checkbox"
@@ -818,7 +821,7 @@ function SpecificationEditor({ editProject, snapshot, client, projectId, operate
             </label>
           )}
           <div className="actions">
-            {!record.approval && (
+            {!approvalMatches(record) && (
               <button type="button" disabled={dirty || !confirmed} onClick={approve}>
                 Approve revision
               </button>

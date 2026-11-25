@@ -120,9 +120,19 @@ export type Run = {
   result: { calibration_id: string; unit: string; results: ResultRow[] } | null;
   scientific_review: string;
 };
+// Mirrors the factory's gates: a result is shown only for a run whose
+// software is ready, whose recipe is verified, that has no open blockers, and
+// that is pinned to a release and source revision.
 export function verifiedResult(run: Run) {
   return run.acquisition === "completed" && run.analysis === "completed" &&
+    run.software === "ready" && run.recipe === "verified" &&
+    Array.isArray(run.blockers) && run.blockers.length === 0 &&
     run.release_id && run.source_revision ? run.result : null;
+}
+
+// An approval counts only when it pins this exact specification revision.
+export function approvalMatches(spec: Pick<Specification, "sha256" | "approval"> | null | undefined) {
+  return !!spec?.approval && spec.approval.specification_sha256 === spec.sha256;
 }
 
 export type Snapshot = {

@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
+import {replayScope} from "../public/replay-checks.mjs";
 import {X,Play,Download,Check,ShieldCheck,Terminal,ArrowRight,AlertCircle,LoaderCircle} from "lucide-react";
 export function Dialog({title,close,children,large=false}) {
   const ref=useRef();
@@ -14,7 +15,7 @@ export function RunConsole({run,close}) {
   const [state,setState]=useState("ready"),[result,setResult]=useState(null);
   const worker=useRef(null),timer=useRef(null);
   useEffect(()=>()=>{worker.current?.terminate();clearTimeout(timer.current)},[]);
-  const project=run.context.project,registry=run.context.instrument.capabilities,expected=Object.values(project.units)[0];
+  const recorded=run.report.environment?.python,project=run.context.project,registry=run.context.instrument.capabilities,expected=Object.values(project.units)[0];
   const reset=()=>{setResult(null);setState("ready")};
   const busy=state==="running", custom=objective.trim()!==project.description;
   const getOrder=()=>({...run.order,id:"LOCAL-"+project.id,origin:"local",upstream_id:undefined,objective:objective.trim(),
@@ -32,7 +33,7 @@ export function RunConsole({run,close}) {
     worker.current.onmessage=e=>finish(e.data);
     worker.current.onerror=e=>finish({error:e.message||"Python worker could not start."});
     timer.current=setTimeout(()=>finish({error:"Browser replay exceeded its 60-second limit."}),60000);
-    worker.current.postMessage({folder:run.folder,manifest:run.report.artifacts,reference:run.report.tests[0]});
+    worker.current.postMessage({folder:run.folder,manifest:run.report.artifacts,reference:run.report.tests[0],sourceRevision:run.report.source_revision});
   };
   return <Dialog title="Work order console" close={close}><div className="modalBody">
     <div className="metaLine"><span className="tag"><Terminal size={13}/> Factory runtime</span><span>{project.name}</span></div>
@@ -43,7 +44,7 @@ export function RunConsole({run,close}) {
     <p className="subtle">Replay executes the archived Python on the registered input in your browser. Download a changed order to generate new source with local Codex.</p>
     {state==="running"&&<div className="notice"><LoaderCircle className="spin" size={16}/> Loading Python and checking artifact hashes…</div>}
     {(state==="failed"||state==="blocked")&&<div role="status" className="notice bad"><AlertCircle size={18}/><div><b>{state==="blocked"?"Preflight blocked":"Replay failed"}</b><p>{result?.error||"Output exceeded reference tolerance."}</p></div></div>}
-    {state==="done"&&<div role="status" className="notice good"><ShieldCheck size={20}/><div><b>Browser replay passed</b><p>Python {result.python} executed the archived source. All primary reference values matched.</p><code>{project.id==="curie"?"C = "+result.output.coefficient_au_K.toFixed(3)+" a.u. K":"ΔBpp = "+result.output.linewidth_mT.toFixed(3)+" mT"}</code></div></div>}
+    {state==="done"&&<div role="status" className="notice good"><ShieldCheck size={20}/><div><b>Browser replay passed</b><p>Python {result.python} executed the archived source after its SHA-256 matched the verified source revision. {replayScope(1,run.report.tests.length)} Every value in that case matched within tolerance.</p>{recorded&&result.python!==recorded&&<p>The factory ran Python {recorded}; this browser ran Python {result.python}.</p>}<code>{project.id==="curie"?"C = "+result.output.coefficient_au_K.toFixed(3)+" a.u. K":"ΔBpp = "+result.output.linewidth_mT.toFixed(3)+" mT"}</code></div></div>}
     {state==="handoff"&&<div role="status" className="notice"><Terminal size={18}/><div><b>Ready for local generation</b><p>Download this order and run it from the repository. Custom objectives require independent review.</p><code>python -m factory.assays.epr run work-order.json --mode generate</code></div></div>}
     <div className="modalActions"><button className="btn" disabled={busy||!objective.trim()} onClick={download}><Download size={15}/>Order JSON</button><button className="btn primary" disabled={busy} onClick={go}><Play size={14}/>{custom?"Check work order":"Run preflight & replay"}</button></div></div></Dialog>
 }

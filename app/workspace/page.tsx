@@ -25,6 +25,14 @@ type Scope = { mode: Mode; projectId: string };
 type Tab = "runs" | "context" | "specification" | "refine";
 type Fault = "unauthenticated" | "expired" | "forbidden" | "unavailable";
 const preview = process.env.NEXT_PUBLIC_FIXTURE_PREVIEW === "1";
+// The live workspace needs a service. Until one is configured for this build,
+// the option is disabled instead of calling an endpoint that nothing serves.
+const liveApiUrl = (process.env.NEXT_PUBLIC_WORKSPACE_API_URL || "").trim();
+const liveUnavailable = preview
+  ? "Live access is unavailable in this preview."
+  : !liveApiUrl
+    ? "Live workspace is not available yet: no workspace service is configured for this site. Use demo data instead."
+    : "";
 const tabs = [
   ["specification", "Build application", Blocks],
   ["refine", "Refine data", SlidersHorizontal],
@@ -272,9 +280,9 @@ export default function Workspace() {
   const mode = scope?.mode;
   const client = useMemo(
     () =>
-      mode !== "live" || preview
+      mode !== "live" || liveUnavailable
         ? createFixtureClient({ fault: () => faultRef.current || undefined })
-        : createLiveClient(process.env.NEXT_PUBLIC_WORKSPACE_API_URL || ""),
+        : createLiveClient(liveApiUrl),
     [mode, ended],
   );
 
@@ -328,16 +336,16 @@ export default function Workspace() {
                 <div><h1>{scope.projectId ? (mode === "fixture" ? projectName(scope.projectId) : scope.projectId) : "Lab projects"}</h1>
                   <p>{scope.projectId ? (mode === "fixture" ? "Demo workspace · Changes apply only to this demo session." : "Authenticated workspace") : "Choose a project to build an application or work with its data."}</p></div>
                 <label className="data-source">Data source<select value={scope.mode} onChange={e => open({mode:e.target.value as Mode, projectId:""})}>
-                  <option value="fixture">Demo data</option><option value="live" disabled={preview}>Live workspace</option>
+                  <option value="fixture">Demo data</option><option value="live" disabled={!!liveUnavailable}>Live workspace{liveUnavailable ? " (not available)" : ""}</option>
                 </select></label>
               </div>
               {scope.mode === "fixture" && !scope.projectId && <><ProjectDirectory/><Archives/></>}
-              {scope.mode === "live" && (preview ? <p>Live access is unavailable in this preview.</p> :
+              {scope.mode === "live" && (liveUnavailable ? <p role="status">{liveUnavailable}</p> :
                 <form className="live-project" onSubmit={e => {e.preventDefault(); if(projectInput.trim()) open({mode:"live",projectId:projectInput.trim()});}}>
                   <label>Project ID<input required value={projectInput} onChange={e => setProjectInput(e.target.value)}/></label>
                   <button>Open project</button>
                 </form>)}
-              {scope.projectId && !(preview && mode === "live") && (
+              {scope.projectId && !(liveUnavailable && mode === "live") && (
                 <ProjectWorkspace
                   key={scope.mode + "/" + scope.projectId}
                   client={client}
