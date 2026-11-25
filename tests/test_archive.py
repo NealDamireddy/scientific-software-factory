@@ -8,9 +8,9 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from factory.archive import validate_archive
+from factory.assays.b12.archive import validate_archive
 from factory.context import ROOT, read_json
-from factory.lab import Handler, Lab, ThreadingHTTPServer
+from factory.assays.b12.lab import Handler, Lab, ThreadingHTTPServer
 
 
 class ArchiveTests(unittest.TestCase):
@@ -72,10 +72,10 @@ class ArchiveTests(unittest.TestCase):
             self.assertEqual(read_json(store / identifier / "task.json"), {"status": "generating"})
 
     def test_replay_reexecutes_without_changing_retained_evidence(self):
-        with patch("factory.replay_bundle.replay_package") as replay:
+        with patch("factory.assays.b12.replay_bundle.replay_package") as replay:
             self.assertTrue(self.lab.replay(self.child)["replay"]["parent_matches"])
             replay.assert_called_once_with(self.bundle)
-        with patch("factory.replay_bundle.replay_package", side_effect=RuntimeError("sandbox blocked")):
+        with patch("factory.assays.b12.replay_bundle.replay_package", side_effect=RuntimeError("sandbox blocked")):
             with self.assertRaisesRegex(RuntimeError, "sandbox blocked"):
                 self.lab.replay(self.child)
         self.assertEqual(self.lab.evidence(self.child), self.bundle)
@@ -101,7 +101,7 @@ class ArchiveTests(unittest.TestCase):
             self.assertFalse(store.exists())
 
     def test_live_store_is_preserved_and_archived_run_is_still_available(self):
-        with patch("factory.b12_build.invoke_worker", side_effect=RuntimeError("test worker unavailable")):
+        with patch("factory.assays.b12.b12_build.invoke_worker", side_effect=RuntimeError("test worker unavailable")):
             live = Lab(Path(self.temp.name) / "live", archive=self.bundle)
             self.addCleanup(live.close)
             submitted = live.submit("Measure B12 at 550 nm")

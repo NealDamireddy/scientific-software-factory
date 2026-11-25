@@ -4,9 +4,9 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from factory import b12_build
-from factory.b12_reuse import release_contract, select_release
-from factory.b12_verification import UNBOUND_VERIFICATION, validate_receipt, verification_receipt
+from factory.assays.b12 import b12_build
+from factory.assays.b12.b12_reuse import release_contract, select_release
+from factory.assays.b12.b12_verification import UNBOUND_VERIFICATION, validate_receipt, verification_receipt
 from factory.context import ROOT, read_json
 
 

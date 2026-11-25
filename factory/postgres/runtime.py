@@ -1,9 +1,9 @@
 """PostgreSQL CAS append port for WO-37's shared runtime command semantics."""
 import json
 
-from ..context import digest
-from ..context_repository import RevisionConflict, canonical_json
-from ..runtime_work_order_domain import RuntimeWorkOrders
+from factory.context import digest
+from factory.lab_context.context_repository import RevisionConflict, canonical_json
+from factory.software.runtime_work_order_domain import RuntimeWorkOrders
 from .db import Database
 
 

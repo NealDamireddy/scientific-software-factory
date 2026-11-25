@@ -6,8 +6,8 @@ from pathlib import Path
 import secrets
 from uuid import uuid4
 
-from factory.hosted_assay import compile_assay
-from factory.optics import acquire, assess, calibration_digest, validate_preparation
+from factory.assays.b12.hosted_assay import compile_assay
+from factory.assays.b12.optics import acquire, assess, calibration_digest, validate_preparation
 
 ROOT = Path(__file__).resolve().parents[1]
 BUNDLE = json.loads((ROOT / "public/b12/completed.json").read_text())

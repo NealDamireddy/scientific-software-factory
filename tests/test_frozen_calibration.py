@@ -6,10 +6,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from factory.release_repository import ReleaseRepository
-from factory.scientific_analysis import analyze_release
-from factory.scientific_contract import cases, compare
-from factory.scientific_release import verify_release
+from factory.software.release_repository import ReleaseRepository
+from factory.software.scientific_analysis import analyze_release
+from factory.software.scientific_contract import cases, compare
+from factory.software.scientific_release import verify_release
 from tests.test_scientific_release import handoff
 
 
@@ -38,7 +38,7 @@ class FrozenCalibrationTests(unittest.TestCase):
                         self.assertEqual(actual, invalid)
                     restored["calibration"][field] = clean["calibration"][field]
                     self.assertEqual(restored, clean)
-                    with patch("factory.scientific_analysis.execute") as candidate:
+                    with patch("factory.software.scientific_analysis.execute") as candidate:
                         result = analyze_release(self.repo, self.release, payload)
                         candidate.assert_not_called()
                     compare(result, expected)
@@ -58,7 +58,7 @@ class FrozenCalibrationTests(unittest.TestCase):
                 payload, expected = self.probes[name]
                 compare(analyze_release(self.repo, self.release, payload), expected)
         conflicting, _ = self.probes["supplied standards cannot replace frozen fit"]
-        with patch("factory.scientific_analysis.execute") as candidate:
+        with patch("factory.software.scientific_analysis.execute") as candidate:
             with self.assertRaisesRegex(ValueError, "empty standards"):
                 analyze_release(self.repo, self.release, conflicting)
             candidate.assert_not_called()

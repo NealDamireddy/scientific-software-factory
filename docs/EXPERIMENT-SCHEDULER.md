@@ -7,11 +7,11 @@ The concrete local backend binds one application to one virtual instrument. It n
 ```python
 from contextlib import closing
 from threading import Event, Thread
-from factory.approved_acquisition import ApprovedAcquisition
-from factory.experiment_adapters import LocalExperimentBackend
-from factory.experiment_scheduler import ExperimentOrchestrator
-from factory.release_planner import ReleasePlanner
-from factory.scientific_release import verify_release
+from factory.experiments.approved_acquisition import ApprovedAcquisition
+from factory.experiments.experiment_adapters import LocalExperimentBackend
+from factory.experiments.experiment_scheduler import ExperimentOrchestrator
+from factory.software.release_planner import ReleasePlanner
+from factory.software.scientific_release import verify_release
 
 # specs: ExperimentSpecificationService; releases: ReleaseRepository
 # instrument: WO-7 VirtualInstrumentAdapter pinned to the saved lab profile

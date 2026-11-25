@@ -9,10 +9,10 @@ import unittest
 from unittest.mock import patch
 from urllib.request import urlopen
 
-from factory import demo
-from factory.archive import validate_archive
+from factory.assays.b12 import demo
+from factory.assays.b12.archive import validate_archive
 from factory.context import ROOT, read_json
-from factory.lab import Handler, Lab, ThreadingHTTPServer
+from factory.assays.b12.lab import Handler, Lab, ThreadingHTTPServer
 
 
 HISTORICAL_RUN = ROOT / "public/b12/completed.json"
@@ -35,7 +35,7 @@ def assert_archive_rejected(test, package, diagnostic):
         path.write_text(json.dumps(package))
         with patch.object(demo, "check_sandbox", side_effect=RuntimeError("replay unavailable")), \
                 patch.object(demo, "check_port", return_value="available"), \
-                patch("factory.replay_bundle.replay_package") as replay:
+                patch("factory.assays.b12.replay_bundle.replay_package") as replay:
             checks, archive = demo.readiness(0, path, archive_only=True)
         test.assertIsNone(archive)
         failures = [detail for status, name, detail in checks
@@ -412,7 +412,7 @@ class ArchiveConsistencyTests(unittest.TestCase):
     def test_replay_disagreement_on_working_sandbox_blocks_archive_only_startup(self):
         with patch.object(demo, "check_sandbox", return_value="working isolation"), \
                 patch.object(demo, "check_port", return_value="available"), \
-                patch("factory.replay_bundle.replay_package",
+                patch("factory.assays.b12.replay_bundle.replay_package",
                       side_effect=ValueError("rerun differs from the saved result")) as replay:
             checks, archive = demo.readiness(0, HISTORICAL_RUN, archive_only=True)
         self.assertIn(("FAIL", "Archive replay", "rerun differs from the saved result"), checks)
@@ -530,7 +530,7 @@ class ArchiveConsistencyTests(unittest.TestCase):
     def assert_inspectable(self, path):
         self.assertEqual(validate_archive(self.bundle), self.bundle)
         with patch.object(demo, "check_sandbox", side_effect=RuntimeError("replay unavailable")), \
-                patch("factory.replay_bundle.replay_package") as replay:
+                patch("factory.assays.b12.replay_bundle.replay_package") as replay:
             checks, archive = demo.readiness(0, path, archive_only=True)
         self.assertFalse([detail for status, _, detail in checks if status == "FAIL"], checks)
         self.assertIn(("WARN", "Offline sandbox", "replay unavailable"), checks)

@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from factory import demo
+from factory.assays.b12 import demo
 
 
 class DemoTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class DemoTests(unittest.TestCase):
     def test_full_readiness_reexecutes_saved_analyses(self):
         with patch.object(demo, "check_sandbox", return_value="working isolation"), \
                 patch.object(demo, "check_worker", return_value="worker ready"), \
-                patch("factory.replay_bundle.replay_package") as replay:
+                patch("factory.assays.b12.replay_bundle.replay_package") as replay:
             checks, bundle = demo.readiness(0, demo.ROOT / "public/b12/completed.json")
         self.assertFalse(any(status == "FAIL" for status, _, _ in checks))
         replay.assert_called_once_with(bundle)
@@ -64,19 +64,19 @@ class DemoTests(unittest.TestCase):
 
     def test_check_never_serves_or_invokes_model(self):
         with patch.object(demo, "readiness", return_value=([("PASS", "Test", "ready")], {})), \
-                patch("factory.lab.serve") as serve, patch("sys.stdout", new_callable=io.StringIO):
+                patch("factory.assays.b12.lab.serve") as serve, patch("sys.stdout", new_callable=io.StringIO):
             self.assertEqual(demo.main(["--check"]), 0)
         serve.assert_not_called()
 
     def test_failed_readiness_never_starts_server(self):
         with patch.object(demo, "readiness", return_value=([("FAIL", "Test", "missing")], None)), \
-                patch("factory.lab.serve") as serve, patch("sys.stdout", new_callable=io.StringIO):
+                patch("factory.assays.b12.lab.serve") as serve, patch("sys.stdout", new_callable=io.StringIO):
             self.assertEqual(demo.main([]), 1)
         serve.assert_not_called()
 
     def test_archive_only_startup_disables_generation(self):
         with patch.object(demo, "readiness", return_value=([("WARN", "Sandbox", "missing")], {"saved": True})), \
-                patch("factory.lab.serve") as serve, patch("sys.stdout", new_callable=io.StringIO):
+                patch("factory.assays.b12.lab.serve") as serve, patch("sys.stdout", new_callable=io.StringIO):
             self.assertEqual(demo.main(["--archive-only", "--port", "8766"]), 0)
         self.assertFalse(serve.call_args.kwargs["allow_generation"])
         self.assertEqual(serve.call_args.kwargs["archive"], {"saved": True})
@@ -90,12 +90,12 @@ class DemoTests(unittest.TestCase):
             self.assertNotIn("sensitive", str(error.exception))
 
     def test_sandbox_probe_rejects_permissive_execution(self):
-        with patch("factory.sandbox.execute", return_value=({"mean": 2, "denied_read": False,
+        with patch("factory.software.sandbox.execute", return_value=({"mean": 2, "denied_read": False,
                 "denied_write": True, "denied_network": True}, "fake sandbox")):
             with self.assertRaisesRegex(RuntimeError, "did not deny"):
                 demo.check_sandbox()
 
     def test_sandbox_probe_checks_exact_positive_and_negative_results(self):
-        with patch("factory.sandbox.execute", return_value=({"mean": 2, "denied_read": True,
+        with patch("factory.software.sandbox.execute", return_value=({"mean": 2, "denied_read": True,
                 "denied_write": True, "denied_network": True}, "test fixture")):
             self.assertIn("probes denied", demo.check_sandbox())

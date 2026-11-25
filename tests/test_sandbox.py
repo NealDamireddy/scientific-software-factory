@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from factory.sandbox import execute
+from factory.software.sandbox import execute
 
 class SandboxTests(unittest.TestCase):
     def test_allowed_science_and_denied_access(self):

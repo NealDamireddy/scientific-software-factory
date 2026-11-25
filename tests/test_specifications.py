@@ -7,8 +7,8 @@ from tempfile import TemporaryDirectory
 import unittest
 
 from factory.context import digest
-from factory.context_repository import RevisionConflict, SQLiteContextRepository, canonical_json
-from factory.specifications import ExperimentSpecificationService
+from factory.lab_context.context_repository import RevisionConflict, SQLiteContextRepository, canonical_json
+from factory.lab_context.specifications import ExperimentSpecificationService
 from tests.test_context_repository import load_demo
 
 

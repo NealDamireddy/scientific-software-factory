@@ -7,9 +7,9 @@ import threading
 import unittest
 from unittest.mock import patch
 
-from factory import scientific_artifact_repository as storage
-from factory.context_repository import RevisionConflict, SQLiteContextRepository
-from factory.scientific_artifact_repository import SQLiteScientificArtifactRepository
+from factory.knowledge import scientific_artifact_repository as storage
+from factory.lab_context.context_repository import RevisionConflict, SQLiteContextRepository
+from factory.knowledge.scientific_artifact_repository import SQLiteScientificArtifactRepository
 from tests.fixtures.scientific_artifact_contract import FixturePrincipal, check_repository
 
 

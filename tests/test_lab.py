@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 from tests.b12_release_fixtures import verified_task
 
-from factory import b12_build
-from factory.lab import Lab
+from factory.assays.b12 import b12_build
+from factory.assays.b12.lab import Lab
 
 
 class TaskTests(unittest.TestCase):
@@ -19,7 +19,7 @@ class TaskTests(unittest.TestCase):
         self.addCleanup(self.lab.close)
 
     def test_failed_worker_preserves_failure_and_history(self):
-        with patch("factory.b12_build.invoke_worker", side_effect=RuntimeError("worker unavailable")):
+        with patch("factory.assays.b12.b12_build.invoke_worker", side_effect=RuntimeError("worker unavailable")):
             task = self.lab.submit("Measure B12 with the registered instrument")
             self.lab.pool.shutdown()
         record = self.lab.task(task["id"])
@@ -41,13 +41,13 @@ class TaskTests(unittest.TestCase):
         for recipe, metrics in [(dict(b12_build.RECIPE, wavelength_nm=600), b12_build.METRICS),
                                 (b12_build.RECIPE, ["sample_id"])]:
             candidate = {"source":"print('{}')", "recipe":recipe, "views":{"title":"Assay", "metrics":metrics}}
-            with patch("factory.b12_build.invoke_worker", return_value=(candidate, {})), self.assertRaises(ValueError):
+            with patch("factory.assays.b12.b12_build.invoke_worker", return_value=(candidate, {})), self.assertRaises(ValueError):
                 b12_build.build("B12", self.store)
             self.assertFalse((self.store/"analysis.py").exists())
 
     def test_approval_reuses_child_and_retry_preserves_preparation(self):
         from factory.context import ROOT, read_json
-        from factory.lab import save
+        from factory.assays.b12.lab import save
         bundle = read_json(ROOT / "public/b12/completed.json")
         parent_id = bundle["direct"]["id"]
         parent = self.store/parent_id
@@ -75,7 +75,7 @@ class TaskTests(unittest.TestCase):
             retry.assert_called_once()
 
     def test_rerun_and_label_require_the_correct_stage(self):
-        from factory.lab import save
+        from factory.assays.b12.lab import save
         uid = "c" * 32
         folder = self.store/uid
         folder.mkdir()

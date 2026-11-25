@@ -10,9 +10,9 @@ from unittest import TestCase, skipUnless
 from uuid import uuid4
 
 from factory.context import ROOT, digest, read_json
-from factory.context_repository import RevisionConflict, SQLiteContextRepository
-from factory.experiment_store import RunStore
-from factory.release_repository import ReleaseRepository
+from factory.lab_context.context_repository import RevisionConflict, SQLiteContextRepository
+from factory.experiments.experiment_store import RunStore
+from factory.software.release_repository import ReleaseRepository
 from tests.test_context_repository import RepositoryContract
 
 BASE_DSN = os.environ.get("EVOLVE_TEST_POSTGRES_DSN")
@@ -273,7 +273,7 @@ class HostedContracts(TestCase):
         self.assertEqual(self.context.get("lab", lab.lab_id), lab)
 
     def test_dispatch_rejections_and_lost_response_never_retry_uncertain_job(self):
-        from factory.uvvis_contract import InstrumentError
+        from factory.instruments.uvvis_contract import InstrumentError
         rid = self.store.submit("a", "s", "i", AT)
         self.ready(rid)
         backend = Instrument(self.store.get(rid))
@@ -293,7 +293,7 @@ class HostedContracts(TestCase):
         self.assertEqual(backend.dispatches.count(("next", result["dispatch_key"])), 1)
 
     def test_planner_discovers_scoped_release_history_after_reopen(self):
-        from factory.release_planner import ReleasePlanner
+        from factory.software.release_planner import ReleasePlanner
         def planner():
             reopened = type(self.release)(self.dsn)
             return ReleasePlanner(None, reopened, self.local)

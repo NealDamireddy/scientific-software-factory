@@ -2,9 +2,9 @@
 from contextlib import contextmanager
 import json
 
-from ..catalog_contract import ApprovalReceipt, CatalogRecord, RevisionPin
-from ..catalog_domain import CatalogDomainRepository
-from ..context_repository import canonical_json
+from factory.knowledge.catalog_contract import ApprovalReceipt, CatalogRecord, RevisionPin
+from factory.knowledge.catalog_domain import CatalogDomainRepository
+from factory.lab_context.context_repository import canonical_json
 from .db import Database
 
 

@@ -4,10 +4,10 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from factory.release_repository import ReleaseRepository
-from factory.scientific_analysis import analyze_release
-from factory.scientific_contract import cases
-from factory.scientific_release import verify_release
+from factory.software.release_repository import ReleaseRepository
+from factory.software.scientific_analysis import analyze_release
+from factory.software.scientific_contract import cases
+from factory.software.scientific_release import verify_release
 from tests.test_scientific_release import handoff, resign
 
 

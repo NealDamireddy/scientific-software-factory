@@ -5,3 +5,33 @@ The hackathon contributors created the registry, mock instrument, fixtures, orch
 The MIT license applies to the original hackathon contributions. External packages retain their own licenses. Python standard library is supplied by CPython (PSF license). jsonschema uses MIT. NumPy and SciPy are unnecessary for this narrowly scoped demonstration. Next.js, React and React DOM use MIT. Instrument Sans uses SIL Open Font License 1.1, packaged through Fontsource. Lucide uses ISC and the Feather-derived icons preserve their MIT attribution. Pyodide loader uses MPL-2.0 and includes CPython, Emscripten and other upstream runtime components under their respective terms. The frontend copies the unmodified pinned distribution at build time. See package-lock.json and uv.lock for the complete dependency graph and package integrity data. Runtime source and licensing are available in the [Pyodide distribution](https://github.com/pyodide/pyodide) and [CPython source](https://github.com/python/cpython).
 
 8090 and Codex are external development services. Vercel hosts the exported web interface. Bruker's Xenon CW EPR primer supplies scientific background and is linked from the instrument registry. No vendor manual, binary parser, driver or firmware is redistributed. All sample data are analytic synthetic fixtures.
+
+## Third-party software, services and data
+
+| Tool or material | Use in EVOLVE | License or governing terms |
+| --- | --- | --- |
+| 8090 Software Factory and MCP | Requirements, blueprints and engineering work orders used to build EVOLVE | Sponsor-provided service under the Hackathon Participant Agreement, §11. [Event rules](https://evolve-8090.devpost.com/rules) |
+| 8090 Software Factory plugin | Work-order skill and templates in `.agents/skills/software-factory/` | MIT. Copyright (c) 2026 8090 Solutions Inc. [Upstream license](https://github.com/8090-inc/software-factory-plugin/blob/main/LICENSE) |
+| OpenAI Codex CLI and hosted model | Development assistance and generation of candidate apps. The EPR generation records identify `gpt-6.1-sol`. | CLI under [Apache-2.0](https://github.com/openai/codex/blob/main/LICENSE). Model access under the applicable [OpenAI terms](https://openai.com/policies/). |
+| CPython and uv | Local scientific runtime and reproducible environment | Python Software Foundation License and bundled notices. uv is available under MIT or Apache-2.0. |
+| jsonschema, jsonschema-specifications, attrs, referencing, rpds-py | Validate lab records and work orders | MIT. The conditional typing-extensions dependency uses the Python Software Foundation License. |
+| macOS Seatbelt or Linux bubblewrap | Isolate generated Python during verification and replay | Seatbelt is supplied under the macOS software license. bubblewrap uses [LGPL-2.0-or-later](https://github.com/containers/bubblewrap/blob/main/bubblewrap.c). |
+| Node.js, npm CLI, Next.js, React and React DOM | Build and serve the evidence workbench | Node.js, Next.js, React and React DOM use MIT with applicable bundled notices. npm CLI uses Artistic-2.0. |
+| Pyodide | Replay archived Python in the browser | MPL-2.0. Bundled CPython, Emscripten and other components retain their upstream licenses. [Pyodide distribution](https://github.com/pyodide/pyodide) |
+| Lucide React and Instrument Sans via Fontsource | Interface icons and typeface | Lucide uses ISC with MIT notices for Feather-derived icons. Instrument Sans uses SIL Open Font License 1.1. |
+| TypeScript, @types/node and @types/react | Type-check the researcher workspace | TypeScript uses Apache-2.0. Both type definition packages use MIT. |
+| Playwright and Chromium | Browser tests | Playwright uses Apache-2.0. Chromium uses a BSD-style license with additional component notices. |
+| GitHub, GitHub CLI and GitHub Actions | Source hosting, review and automated tests | GitHub CLI, actions/checkout, actions/setup-node and astral-sh/setup-uv use MIT. Hosted services follow the [GitHub terms](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service). |
+| Vercel and Vercel CLI | Web hosting and deployment | CLI under [Apache-2.0](https://github.com/vercel/vercel/blob/main/packages/cli/package.json). Hosting under [Vercel’s terms](https://vercel.com/legal/terms). |
+
+The Python and JavaScript lockfiles identify the resolved package versions and transitive dependencies. [uv.lock](../uv.lock) · [package-lock.json](../package-lock.json)
+
+**Scientific sources.** The external B12 benchmark transcribes six mean absorbances and their concentration labels from the commercial-instrument column of Table 1 in Laganovska et al., *Portable low-cost open-source wireless spectrophotometer for fast and reliable measurements* (2020). The simulated readings are generated separately. The B12 design notes cite the absorption coefficient from Ahmad et al., and the EPR instrument record credits Bruker’s *Xenon* primer for linewidth background. [Laganovska et al.](https://pmc.ncbi.nlm.nih.gov/articles/PMC9041175/) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) · [B12 design references](history/B12-DEMO-PLAN.md) · [EPR instrument record](../registry/instrument.json)
+
+## Event use and credentials
+
+The local demo uses simulated instruments and needs no 8090 credentials. At the event, use only designated EVOLVE areas and the equipment, systems and networks provided for the event. For fresh generation, authenticate Codex locally. Keep API keys, credentials and access tokens out of source files, evidence exports, screenshots and presentations. Local `.env*` files are excluded by [.gitignore](../.gitignore).
+
+## Project license
+
+Copyright (c) 2026 Scientific Software Factory contributors. The team licenses its hackathon contributions under the [MIT License](../LICENSE). Third-party software, services and data retain the licenses and terms listed above.

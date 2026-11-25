@@ -10,8 +10,8 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from unittest import TestCase
 
-from factory.context_repository import RevisionConflict
-from factory.scientific_artifact import (
+from factory.lab_context.context_repository import RevisionConflict
+from factory.knowledge.scientific_artifact import (
     DECIDE, READ, WRITE, Principal, ReconciliationMarker, ScientificArtifactRepository, artifact_digest,
 )
 

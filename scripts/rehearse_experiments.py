@@ -6,17 +6,17 @@ from pathlib import Path
 from threading import Thread
 import time
 from factory.context import ROOT, read_json
-from factory.context_repository import SQLiteContextRepository
-from factory.experiment_adapters import LocalExperimentBackend
-from factory.experiment_scheduler import ExperimentOrchestrator
-from factory.approved_acquisition import ApprovedAcquisition
-from factory.release_planner import ReleasePlanner
-from factory.release_repository import ReleaseRepository
-from factory.scientific_release import verify_release
-from factory.specifications import ExperimentSpecificationService
-from factory.uvvis_adapter import VirtualInstrumentAdapter
-from factory.uvvis_http import make_server
-from factory.uvvis_service import VirtualUvVisService
+from factory.lab_context.context_repository import SQLiteContextRepository
+from factory.experiments.experiment_adapters import LocalExperimentBackend
+from factory.experiments.experiment_scheduler import ExperimentOrchestrator
+from factory.experiments.approved_acquisition import ApprovedAcquisition
+from factory.software.release_planner import ReleasePlanner
+from factory.software.release_repository import ReleaseRepository
+from factory.software.scientific_release import verify_release
+from factory.lab_context.specifications import ExperimentSpecificationService
+from factory.instruments.uvvis_adapter import VirtualInstrumentAdapter
+from factory.instruments.uvvis_http import make_server
+from factory.instruments.uvvis_service import VirtualUvVisService
 
 def finish(scheduler, specs, spec, root):
     kind = spec["experiment_type"]

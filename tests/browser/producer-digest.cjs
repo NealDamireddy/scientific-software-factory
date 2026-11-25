@@ -4,7 +4,7 @@ const { execFileSync } = require("node:child_process");
 function producerDigest(json, ...keys) {
   const script = `import json, sys
 from factory.context import digest
-from factory.context_repository import canonical_json
+from factory.lab_context.context_repository import canonical_json
 payload = json.load(sys.stdin.buffer)
 for key in sys.argv[1:]:
     payload = payload[key]

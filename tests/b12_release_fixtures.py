@@ -1,9 +1,9 @@
 """Install current-format test records using the known, reviewed B12 fixture bytes."""
 from copy import deepcopy
 
-from factory.b12_build import content_revision
-from factory.b12_reuse import release_contract
-from factory.b12_verification import verification_receipt
+from factory.assays.b12.b12_build import content_revision
+from factory.assays.b12.b12_reuse import release_contract
+from factory.assays.b12.b12_verification import verification_receipt
 
 
 def verified_task(bundle, kind):

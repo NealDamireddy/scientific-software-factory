@@ -7,10 +7,10 @@ from types import SimpleNamespace
 import unittest
 
 from factory.context import digest
-from factory.experiment_scheduler import ExperimentOrchestrator
-from factory.uvvis_contract import canonical
-from factory.scheduled_acquisition import ScheduledAcquisition
-from factory.uvvis_adapter import InstrumentUnavailable
+from factory.experiments.experiment_scheduler import ExperimentOrchestrator
+from factory.instruments.uvvis_contract import canonical
+from factory.experiments.scheduled_acquisition import ScheduledAcquisition
+from factory.instruments.uvvis_adapter import InstrumentUnavailable
 
 
 class PointInstrument:

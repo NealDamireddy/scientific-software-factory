@@ -5,8 +5,8 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from factory import b12_build
-from factory.b12_reuse import read_release, release_contract, select_release, validate_parent_checks
+from factory.assays.b12 import b12_build
+from factory.assays.b12.b12_reuse import read_release, release_contract, select_release, validate_parent_checks
 from factory.context import ROOT, read_json
 from tests.b12_release_fixtures import verified_task
 

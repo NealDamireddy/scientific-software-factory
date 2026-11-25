@@ -14,10 +14,10 @@ import time
 import unittest
 from unittest.mock import patch
 
-from factory.uvvis_adapter import InstrumentUnavailable, VirtualInstrumentAdapter
-from factory.uvvis_contract import InstrumentError, profile_sha256
-from factory.uvvis_http import make_server
-from factory.uvvis_service import VirtualUvVisService
+from factory.instruments.uvvis_adapter import InstrumentUnavailable, VirtualInstrumentAdapter
+from factory.instruments.uvvis_contract import InstrumentError, profile_sha256
+from factory.instruments.uvvis_http import make_server
+from factory.instruments.uvvis_service import VirtualUvVisService
 
 
 # In-memory profile loader for independent development. Production reads WO-6's registry.
@@ -231,7 +231,7 @@ class VirtualUvVisTests(unittest.TestCase):
     def test_same_instrument_excludes_second_process_with_different_store(self):
         samples = Path(self.temp.name) / "samples.json"
         samples.write_text(json.dumps(SAMPLES))
-        args = [sys.executable, "-m", "factory.uvvis_http", "--store", str(self.store),
+        args = [sys.executable, "-m", "factory.instruments.uvvis_http", "--store", str(self.store),
                 "--samples", str(samples), "--port", "0", "--duration", "60"]
         with subprocess.Popen(args, stdout=subprocess.PIPE, text=True) as owner:
             try:

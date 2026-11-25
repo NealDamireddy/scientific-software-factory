@@ -5,10 +5,10 @@ import unittest
 from unittest.mock import Mock
 
 from factory.context import digest
-from factory.context_repository import canonical_json
-from factory.runtime_work_order import Scope
-from factory.runtime_work_order_domain import RuntimeWorkOrders
-from factory.runtime_work_order_sqlite import SQLiteRuntimeWorkOrderRepository
+from factory.lab_context.context_repository import canonical_json
+from factory.software.runtime_work_order import Scope
+from factory.software.runtime_work_order_domain import RuntimeWorkOrders
+from factory.software.runtime_work_order_sqlite import SQLiteRuntimeWorkOrderRepository
 from tests.test_runtime_work_order_contract import FixturePrincipal, run_runtime_work_order_contract, task_fixture
 
 

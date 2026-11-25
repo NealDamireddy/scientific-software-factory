@@ -4,7 +4,7 @@ import statistics
 import tempfile
 import unittest
 
-from factory import benchmark
+from factory.assays.b12 import benchmark
 from factory.context import ROOT, read_json
 
 

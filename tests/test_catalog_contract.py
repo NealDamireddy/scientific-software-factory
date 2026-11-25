@@ -8,9 +8,9 @@ from dataclasses import replace
 from datetime import date, datetime
 from threading import Barrier
 
-from factory.catalog_contract import APPROVE, PROPOSE, READ, RECORD_EVIDENCE
+from factory.knowledge.catalog_contract import APPROVE, PROPOSE, READ, RECORD_EVIDENCE
 from factory.context import digest
-from factory.context_repository import RevisionConflict, canonical_json
+from factory.lab_context.context_repository import RevisionConflict, canonical_json
 from tests.fixtures.catalog_examples import LAB, Caller, catalog, evidence, source
 
 

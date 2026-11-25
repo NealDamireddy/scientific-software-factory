@@ -10,10 +10,10 @@ from urllib.request import Request, urlopen
 
 from tests.b12_release_fixtures import verified_task
 
-from factory import b12_build
+from factory.assays.b12 import b12_build
 from factory.context import ROOT, read_json
-from factory.b12_verification import verification_receipt
-from factory.lab import Handler, Lab, ThreadingHTTPServer, save
+from factory.assays.b12.b12_verification import verification_receipt
+from factory.assays.b12.lab import Handler, Lab, ThreadingHTTPServer, save
 
 
 class RequestReuseTests(unittest.TestCase):
@@ -103,7 +103,7 @@ class RequestReuseTests(unittest.TestCase):
             return self.collect_requested_sample(task_id)
 
         with self.presenter() as request, patch.object(self.lab, "collect", side_effect=collect), \
-                patch("factory.b12_build.invoke_worker", side_effect=AssertionError("unexpected generation")) as worker:
+                patch("factory.assays.b12.b12_build.invoke_worker", side_effect=AssertionError("unexpected generation")) as worker:
             vial = "Assay lot C"
             queued = request("/api/tasks", {"brief": "Measure B12 at 550 nm", "sample_id": vial})
             direct = self.wait_for_task(queued["id"])
@@ -169,7 +169,7 @@ class RequestReuseTests(unittest.TestCase):
         response = {"source": files["analysis.py"], "recipe": json.loads(files["recipe.json"]),
                     "views": json.loads(files["views.json"])}
         with patch.object(self.lab, "collect", side_effect=self.collect_requested_sample) as collect, \
-                patch("factory.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})) as worker:
+                patch("factory.assays.b12.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})) as worker:
             new = self.wait_for_task(self.lab.submit("First B12 request", sample_id="Lot-1")["id"])
             self.assertEqual(new["status"], "verified", new.get("error"))
             self.assertEqual(new["mode"], "fresh generation")
@@ -186,7 +186,7 @@ class RequestReuseTests(unittest.TestCase):
         files = self.bundle["sources"][known["id"]]["files"]
         response = {"source": files["analysis.py"], "recipe": json.loads(files["recipe.json"]),
                     "views": json.loads(files["views.json"])}
-        with patch("factory.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})) as worker:
+        with patch("factory.assays.b12.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})) as worker:
             direct = self.wait_for_task(self.lab.submit("B12")["id"])
             self.assert_reused(direct, original)
             generated = self.wait_for_task(self.lab.approve(direct["id"], factor=2)["id"])
@@ -207,7 +207,7 @@ class RequestReuseTests(unittest.TestCase):
         files = self.bundle["sources"][old["id"]]["files"]
         response = {"source": files["analysis.py"], "recipe": json.loads(files["recipe.json"]),
                     "views": json.loads(files["views.json"])}
-        with patch("factory.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})) as worker:
+        with patch("factory.assays.b12.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})) as worker:
             new = self.wait_for_task(self.lab.submit("B12")["id"])
             self.assertEqual(new["status"], "verified", new.get("error"))
             self.assertIn("lacks revision-bound verification", new["reuse_rejections"][old["id"]][0])
@@ -221,12 +221,12 @@ class RequestReuseTests(unittest.TestCase):
         files = self.bundle["sources"][old["id"]]["files"]
         response = {"source": files["analysis.py"] + "\n# independently generated direct release",
                     "recipe": json.loads(files["recipe.json"]), "views": json.loads(files["views.json"])}
-        with patch("factory.b12_build.invoke_worker", return_value=(response, {"method": "new direct worker"})):
+        with patch("factory.assays.b12.b12_build.invoke_worker", return_value=(response, {"method": "new direct worker"})):
             current = self.wait_for_task(self.lab.submit("B12")["id"])
         self.assertEqual(current["status"], "verified", current.get("error"))
         original = self.seed_live("direct")
         prepared = self.seed_live("followup")
-        with patch("factory.b12_build.invoke_worker") as worker:
+        with patch("factory.assays.b12.b12_build.invoke_worker") as worker:
             child = self.wait_for_task(self.lab.approve(current["id"], factor=4)["id"])
             self.assert_reused(child, prepared)
             worker.assert_not_called()
@@ -255,7 +255,7 @@ print(json.dumps(result))
         files = self.bundle["sources"][self.bundle["direct"]["id"]]["files"]
         response = {"source": source, "recipe": json.loads(files["recipe.json"]),
                     "views": json.loads(files["views.json"])}
-        with patch("factory.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})):
+        with patch("factory.assays.b12.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})):
             task = self.wait_for_task(self.lab.submit("Measure B12 at 550 nm")["id"])
         acquisition = read_json(self.lab.path(task["id"]) / "acquisition.json")
         self.assertTrue(acquisition["finding"]["above_range"])
@@ -286,8 +286,8 @@ print(json.dumps(result))
                             "concentration_mg_l": None}, "fixture"
 
                 with patch.object(self.lab, "collect", side_effect=collect), \
-                        patch("factory.lab.execute", side_effect=execute), \
-                        patch("factory.b12_build.invoke_worker", side_effect=AssertionError("unexpected generation")) as worker:
+                        patch("factory.assays.b12.lab.execute", side_effect=execute), \
+                        patch("factory.assays.b12.b12_build.invoke_worker", side_effect=AssertionError("unexpected generation")) as worker:
                     direct = self.lab.submit("B12", sample_id="Requested")
                     record = self.wait_for_task(direct["id"])
                     self.assertEqual(record["status"], "failed")
@@ -315,7 +315,7 @@ print(json.dumps(result))
         candidate = {"source": files["analysis.py"] + "\n# replacement revision",
                      "recipe": json.loads(files["recipe.json"]), "views": json.loads(files["views.json"])}
         receipt = {"method": "fixture", "cli": "fixture", "model": "replacement"}
-        with patch("factory.b12_build.invoke_worker", return_value=(candidate, receipt)) as worker:
+        with patch("factory.assays.b12.b12_build.invoke_worker", return_value=(candidate, receipt)) as worker:
             self.lab.retry(child_id)
             recovered = self.wait_for_task(child_id)
         worker.assert_called_once()
@@ -333,7 +333,7 @@ print(json.dumps(result))
         source = self.seed_live("direct")
         folder = self.lab.path(source["id"])
         original = {name: (folder / name).read_bytes() for name in (*b12_build.FILES, "task.json")}
-        with patch("factory.b12_build.invoke_worker", side_effect=RuntimeError("injected worker failure")) as worker:
+        with patch("factory.assays.b12.b12_build.invoke_worker", side_effect=RuntimeError("injected worker failure")) as worker:
             approved = self.lab.approve(source["id"], factor=4)
             failed = self.wait_for_task(approved["id"])
         worker.assert_called_once()
@@ -382,7 +382,7 @@ print(json.dumps(result))
     def test_tampered_direct_source_rejects_request_with_inspectable_reason(self):
         original = self.seed_live("direct")
         (self.lab.path(original["id"]) / "analysis.py").write_text("# changed")
-        with patch("factory.b12_build.invoke_worker") as worker:
+        with patch("factory.assays.b12.b12_build.invoke_worker") as worker:
             record = self.wait_for_task(self.lab.submit("B12", sample_id="Lot-X")["id"])
         self.assertEqual(record["status"], "failed")
         self.assertIn("digest mismatch", record["reuse_rejections"][original["id"]][0])
@@ -394,7 +394,7 @@ print(json.dumps(result))
         for case in report:
             if case["name"] in ("prepared-2x", "prepared-4x"):
                 case["actual"] = {"error": "execution unavailable"}
-        with patch("factory.lab.verify_candidate", return_value=report), patch("factory.b12_build.invoke_worker") as worker:
+        with patch("factory.assays.b12.lab.verify_candidate", return_value=report), patch("factory.assays.b12.b12_build.invoke_worker") as worker:
             failed = self.wait_for_task(self.lab.approve(direct["id"], factor=4)["id"])
         self.assertEqual(failed["status"], "failed")
         self.assertEqual(failed["parent_checks"], report)
@@ -413,7 +413,7 @@ print(json.dumps(result))
         self.addCleanup(archive_only.close)
         live = Lab(self.store / "empty", archive=self.bundle)
         self.addCleanup(live.close)
-        with patch("factory.b12_build.invoke_worker", side_effect=RuntimeError("no live release")) as worker:
+        with patch("factory.assays.b12.b12_build.invoke_worker", side_effect=RuntimeError("no live release")) as worker:
             with self.assertRaisesRegex(ValueError, "Archive-only"):
                 archive_only.submit("B12", sample_id="other")
             with self.assertRaisesRegex(ValueError, "read-only"):

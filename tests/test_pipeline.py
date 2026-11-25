@@ -2,8 +2,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from factory.context import ROOT, read_json, resolve
-from factory.pipeline import run, verify_files, evaluate
-from factory.upstream import from_export
+from factory.assays.epr.pipeline import run, verify_files, evaluate
+from factory.assays.epr.upstream import from_export
 
 class PipelineTests(unittest.TestCase):
     def setUp(self):

@@ -12,8 +12,8 @@ from threading import Barrier
 from unittest import TestCase
 
 from factory.context import digest
-from factory.context_repository import canonical_json
-from factory.runtime_work_order import ACTIONS, RevisionConflict, Scope
+from factory.lab_context.context_repository import canonical_json
+from factory.software.runtime_work_order import ACTIONS, RevisionConflict, Scope
 
 CHECK = TestCase()
 CANDIDATE = "d" * 64
