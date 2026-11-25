@@ -6,7 +6,8 @@ import re
 from factory.assays.b12 import b12_build
 from factory.assays.b12.b12_verification import validate_receipt, verification_receipt
 from factory.context import read_json
-from factory.assays.b12.optics import PROFILE, RECIPE, matches_expected, validate_recipe, verification_cases
+from factory.assays.b12.optics import (PROFILE, RECIPE, VALID_PREPARED_CASES, matches_expected, validate_recipe,
+                                       verification_cases)
 from factory.software.release_planner import compatibility_reasons
 
 
@@ -69,7 +70,7 @@ def validate_parent_checks(report):
     results = _checked_results(report, prepared=True)
     for check in report:
         name = check["name"]
-        if name in ("prepared-2x", "prepared-4x"):
+        if name in VALID_PREPARED_CASES:
             expected = check["expected"]
             decline = {"sample_id": expected["sample_id"], "calibration_id": expected["calibration_id"],
                        "status": "review", "concentration_mg_l": None}

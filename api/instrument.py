@@ -6,7 +6,7 @@ from pathlib import Path
 import secrets
 from uuid import uuid4
 
-from factory.assays.b12.hosted_assay import compile_assay
+from factory.assays.b12.hosted_assay import check_against_reference, compile_assay, evaluate, reference_result
 from factory.assays.b12.optics import acquire, assess, calibration_digest, validate_preparation
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -25,7 +25,11 @@ def measure(request):
         if (request.get("revision") != compiled["revision"] or request.get("files") != compiled["files"]
                 or request.get("vial") != "A"):
             raise ValueError("Generate the application before running it.")
-        return read_vial(compiled["revision"], compiled["files"], "A", "vial-A", str(uuid4()))
+        receipt = read_vial(compiled["revision"], compiled["files"], "A", "vial-A", str(uuid4()))
+        # The compiled expression is restricted arithmetic; run it here as well and
+        # refuse to hand out a run whose app disagrees with the host's calculation.
+        check_against_reference(evaluate(compiled, receipt["analysis_input"]), receipt["reference"])
+        return receipt
     release = next((BUNDLE[key] for key in ("direct", "followup")
                     if BUNDLE[key]["revision"] == request.get("revision")), None)
     if release is None:
@@ -52,11 +56,13 @@ def read_vial(revision, files, vial, sample_id, run_id, preparation=None, factor
     raw = acquire(recipe, VIALS[vial] / factor, secrets.randbits(64), sample_id=sample_id)
     readings = assess(raw, CALIBRATION)
     calibration = {k: CALIBRATION[k] for k in ("id", "slope", "intercept", "low", "high")}
+    analysis_input = {"sample_id": sample_id, "preparation": preparation,
+                      "absorbances": readings["absorbances"], "calibration": calibration}
     return {"run_id": run_id, "instrument": "osms-sim@1", "revision": revision,
             "source_sha256": sha256(files["analysis.py"].encode()).hexdigest(),
-            "recipe": recipe, "raw": raw,
-            "analysis_input": {"sample_id": sample_id, "preparation": preparation,
-                               "absorbances": readings["absorbances"], "calibration": calibration}}
+            "recipe": recipe, "raw": raw, "analysis_input": analysis_input,
+            # The page must not show an app result that disagrees with this.
+            "reference": reference_result(analysis_input)}
 
 
 class handler(BaseHTTPRequestHandler):

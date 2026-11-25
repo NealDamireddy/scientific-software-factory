@@ -2,8 +2,29 @@
 import ast
 import hashlib
 import json
-import math
 from statistics import mean
+
+from factory.assays.b12.optics import matches_expected, validate_preparation, verification_cases
+
+
+def _calculation(spec, expression):
+    return f"""def analyze(data):
+    calibration = data["calibration"]
+    readings = data["absorbances"]
+    valid = (data["preparation"] is None and len(readings) == {spec["readings"]}
+             and all(calibration["low"] <= reading <= calibration["high"] for reading in readings))
+    signal = mean(readings)
+    slope, intercept = calibration["slope"], calibration["intercept"]
+    return {{"status": "ok" if valid else "review", "sample_id": data["sample_id"],
+            "calibration_id": calibration["id"], "concentration_mg_l": ({expression}) if valid else None}}
+"""
+
+
+def evaluate(compiled, analysis_input):
+    """Run a compiled release's restricted arithmetic on the trusted host."""
+    namespace = {"mean": mean}
+    exec(_calculation(compiled["spec"], compiled["expression"]), namespace)
+    return namespace["analyze"](analysis_input)
 
 
 def compile_assay(spec, expression, calibration):
@@ -25,27 +46,18 @@ def compile_assay(spec, expression, calibration):
         if isinstance(node, ast.Name) and node.id not in ("signal", "slope", "intercept"):
             raise ValueError("Invalid calibration variable.")
     expression = ast.unparse(tree)
-    calculation = f"""def analyze(data):
-    calibration = data["calibration"]
-    readings = data["absorbances"]
-    valid = (data["preparation"] is None and len(readings) == {spec["readings"]}
-             and all(calibration["low"] <= reading <= calibration["high"] for reading in readings))
-    signal = mean(readings)
-    slope, intercept = calibration["slope"], calibration["intercept"]
-    return {{"status": "ok" if valid else "review", "sample_id": data["sample_id"],
-            "calibration_id": calibration["id"], "concentration_mg_l": ({expression}) if valid else None}}
-"""
+    calculation = _calculation(spec, expression)
     namespace = {"mean": mean}
     exec(calculation, namespace)
     checks = []
-    for label, readings, expected_value in [
-        ("mean and intercept", [.1, .11, .21], 12), ("inclusive limits", [.05, .26, .2], 15),
-        ("above range", [.3]*3, None), ("below range", [.02]*3, None),
-        ("one outside", [.15, .17, .27], None)]:
-        result = namespace["analyze"]({"calibration": {"id": "test", "low": .05, "high": .26, "intercept": .02, "slope": .01},
-                                      "absorbances": readings, "sample_id": "test", "preparation": None})
-        value = result["concentration_mg_l"]
-        if (expected_value is None and value is not None) or (expected_value is not None and not math.isclose(value, expected_value)):
+    # The optical-checks@2 direct cases use several calibrations with unrelated
+    # slope and intercept, so an expression that only fits one calibration fails.
+    for label, sample, expected in verification_cases(prepared=False):
+        try:
+            result = namespace["analyze"](sample)
+        except ArithmeticError:
+            result = {}
+        if not matches_expected(result, expected):
             raise ValueError("Generated calculation failed the calibration checks.")
         checks.append(label)
     files = {"analysis.py": "import json, sys\nfrom statistics import mean\n\n" + calculation + "\njson.dump(analyze(json.load(sys.stdin)), sys.stdout)\n",
@@ -53,3 +65,27 @@ def compile_assay(spec, expression, calibration):
              "views.json": json.dumps({"title": title}, indent=2)}
     revision = hashlib.sha256(json.dumps(files, sort_keys=True).encode()).hexdigest()
     return {"revision": revision, "files": files, "checks": checks, "spec": spec, "expression": expression}
+
+
+def reference_result(analysis_input):
+    """Compute the expected B12 result on the trusted host, independent of the app."""
+    cal = analysis_input["calibration"]
+    readings = analysis_input["absorbances"]
+    preparation = analysis_input["preparation"]
+    result = {"sample_id": analysis_input["sample_id"], "calibration_id": cal["id"],
+              "status": "review", "concentration_mg_l": None}
+    if len(readings) != 3 or not all(cal["low"] <= reading <= cal["high"] for reading in readings):
+        return result
+    diluted = (mean(readings) - cal["intercept"]) / cal["slope"]
+    if preparation is None:
+        return {**result, "status": "ok", "concentration_mg_l": diluted}
+    factor = validate_preparation(analysis_input["sample_id"], preparation)
+    return {**result, "status": "ok", "concentration_mg_l": diluted * factor, "diluted_mg_l": diluted,
+            "factor": factor, "parent_id": preparation["parent_id"], "preparation_id": preparation["id"]}
+
+
+def check_against_reference(output, reference):
+    """Refuse an application output that disagrees with the host's own calculation."""
+    if not isinstance(output, dict) or not matches_expected(output, reference):
+        raise ValueError("The application result disagrees with the instrument's own calculation.")
+    return output

@@ -271,7 +271,10 @@ class Lab:
         if source is None:
             # A prepared request has already resolved its verified direct parent.
             # It can revise that parent if the prepared capability is unavailable.
-            if not prepared and any(reasons != [UNBOUND_VERIFICATION] for reasons in rejections.values()):
+            # Releases verified under an earlier verification profile are superseded,
+            # not broken: generate afresh under the current suite.
+            superseded = ([UNBOUND_VERIFICATION], ["Incompatible verification_profile"])
+            if not prepared and any(reasons not in superseded for reasons in rejections.values()):
                 raise ValueError("No compatible verified release: " + "; ".join(
                     f"{origin}: {', '.join(reasons)}" for origin, reasons in rejections.items()))
             return None

@@ -8,14 +8,14 @@ from factory.assays.b12 import b12_build
 from factory.assays.b12.b12_verification import validate_receipt
 from factory.assays.b12.archive_measurements import record, require, text_field, validate_calibration, validate_measurements
 from factory.assays.b12.archive_timing import validate_timing
-from factory.assays.b12.archive_verification import validate_verification
-from factory.assays.b12.optics import PROFILE, calibration_digest, validate_recipe
+from factory.assays.b12.archive_verification import suite_for, validate_verification
+from factory.assays.b12.optics import calibration_digest, validate_recipe
 
 
 def _task_source(task, source):
     require(isinstance(task["id"], str) and re.fullmatch(r"[0-9a-f]{32}", task["id"]), "invalid task id")
     require(task["status"] == "verified", "status must be verified")
-    require(task["context"] == PROFILE, "context differs from the pinned B12 profile")
+    suite_for(task["context"])
     files = source["files"]
     require(set(files) == set(b12_build.FILES), "source.files must contain all three release artifacts")
     for name, content in files.items():

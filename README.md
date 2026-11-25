@@ -92,7 +92,12 @@ npx playwright install chromium && uv run --frozen npm test
 
 Scientific tests need a host where the runner can apply its own sandbox. Missing isolation is a failure, never permission to run generated code without it. Benchmarks need a new output directory each time.
 
-The retained B12 evaluation scores four held-out simulated vials, with a mean absolute error of about 0.0055 mg/L. That figure only checks the software under ideal simulated optics. The comparison with six published commercial-instrument means is about 4.72 mg/L, which mostly measures the calibration transfer between instruments. See the [retained evaluation](public/b12/evaluation/report.json).
+The retained B12 evaluation reports two figures, and neither is an accuracy result:
+
+- **Software regression check: 0.0055 mg/L.** This is the mean absolute error on four simulated vials. The simulator and the analysis share one ideal linear model, and the only error source is detector noise, so the figure shows the code computes what the model says. It does not measure accuracy, and the panel has no diluted or out-of-range vials.
+- **Calibration transfer to published data.** The frozen simulator calibration applied to six published commercial-instrument means ([Laganovska et al. 2020](https://doi.org/10.1016/j.ohx.2020.e00108)) gives a mean absolute error of 3.5 mg/L on the four rows the released app reported. The other two rows (20 and 24 ppm) are above the calibrated range, so the app withheld them; scored with a benchmark-only linear extrapolation they miss by 7.1 mg/L. For comparison, calibrating those six points against themselves with leave-one-out gives 1.0 ppm. Most of the error is therefore the simulated calibration not transferring to that instrument (about a 20% slope difference), not the method.
+
+See the [retained evaluation](public/b12/evaluation/report.json).
 
 ## How EVOLVE is developed
 

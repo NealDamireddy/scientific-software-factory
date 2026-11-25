@@ -81,10 +81,55 @@ print(json.dumps({'status': 'ok' if valid else 'review', 'sample_id': s['sample_
             self.assertTrue(prepared['direct-mean-and-intercept'])
             self.assertFalse(prepared['prepared-2x'])
             self.assertFalse(prepared['prepared-4x'])
+            self.assertFalse(prepared['prepared-2x-steep'])
             source.write_text(candidate.replace("mean(a)", "a[0]"))
             results = {check['name']: check['pass'] for check in optics.verify_candidate(source)}
             self.assertFalse(results['direct-mean-and-intercept'])
             self.assertTrue(results['above-calibration'])
+
+    def test_suite_rejects_formulas_that_only_fit_one_calibration(self):
+        # optical-checks@1 used one calibration whose intercept was twice its
+        # slope, so (signal - intercept) / (intercept - slope) passed every case.
+        candidate = """import json, sys
+from statistics import mean
+s = json.load(sys.stdin)
+c = s['calibration']
+a = s['absorbances']
+valid = s['preparation'] is None and all(c['low'] <= reading <= c['high'] for reading in a)
+print(json.dumps({'status': 'ok' if valid else 'review', 'sample_id': s['sample_id'],
+                  'calibration_id': c['id'], 'concentration_mg_l': (FORMULA) if valid else None}))
+"""
+        right = "(mean(a) - c['intercept']) / c['slope']"
+        wrong = {
+            "intercept-minus-slope": "(mean(a) - c['intercept']) / (c['intercept'] - c['slope'])",
+            "doubled-slope-as-intercept": "(mean(a) - 2 * c['slope']) / c['slope']",
+            "hard-coded-reference-fit": "(mean(a) - 0.02) / 0.01",
+            "intercept-added": "(mean(a) + c['intercept']) / c['slope']",
+        }
+        with tempfile.TemporaryDirectory() as temp:
+            source = Path(temp) / 'analysis.py'
+            source.write_text(candidate.replace("FORMULA", right))
+            self.assertTrue(all(check['pass'] for check in optics.verify_candidate(source)))
+            reference = [case for case in optics.verification_cases()
+                         if case[1]["calibration"]["id"] == optics.REFERENCE_CALIBRATION["id"]]
+            for name, formula in wrong.items():
+                with self.subTest(formula=name):
+                    source.write_text(candidate.replace("FORMULA", formula))
+                    results = optics.verify_candidate(source)
+                    self.assertFalse(all(check['pass'] for check in results))
+                    if name != "intercept-added":
+                        # The regression: on the @1 reference calibration alone this formula passes.
+                        legacy = [optics._check_case(source, *case)["pass"] for case in reference]
+                        self.assertTrue(all(legacy))
+
+    def test_suite_calibrations_have_unrelated_slope_and_intercept(self):
+        calibrations = {case[1]["calibration"]["id"]: case[1]["calibration"]
+                        for case in optics.verification_cases(prepared=True)}
+        ratios = {cal["intercept"] / cal["slope"] for cal in calibrations.values()}
+        self.assertGreaterEqual(len(calibrations), 3)
+        self.assertEqual(len(ratios), len(calibrations))
+        self.assertTrue(any(cal["intercept"] < 0 for cal in calibrations.values()))
+        self.assertEqual(optics.PROFILE["verification_profile"], "optical-checks@2")
 
     def test_preparation_record_and_actual_factor(self):
         prep = {"id": "P-1", "parent_id": "U-1", "sample_ml": 0.25, "final_ml": 1, "unit": "mL"}
