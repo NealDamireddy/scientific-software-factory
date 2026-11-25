@@ -1,0 +1,11 @@
+{
+  "objective": "Estimate concentration from a frozen calibration",
+  "scope": "Analyze the supplied absorbance readings",
+  "dependencies": [],
+  "requirements": [{"id": "req-1-r2", "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}],
+  "blueprints": [{"id": "bp-1-r3", "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}],
+  "specification": {"id": "spec-r4", "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"},
+  "acceptance_criteria": ["Report concentration in mg/L"],
+  "permitted_outputs": ["analysis.py"],
+  "context": {"instrument": "uvvis-1", "allowed_operations": ["measure"], "scientific_decisions": ["decision-1"]}
+}

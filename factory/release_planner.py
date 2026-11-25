@@ -11,6 +11,7 @@ from jsonschema import Draft202012Validator
 from .agent import invoke_worker
 from .b12_build import content_revision, object_schema
 from .context import digest
+from .scientific_contract import VERIFIER
 from .uvvis_contract import canonical, load_profile
 
 INPUT_SCHEMA = "uvvis-analysis-input@1"
@@ -23,7 +24,8 @@ CONTRACTS = {
         "slope. Use the closed range of standard mean absorbances."
     ),
     "time_course": (
-        "Use only the frozen calibration fields slope, intercept, low and high. Require finite values, slope > 0 and low < high. The standards array is empty for time_course; never fit or require standards for this type. "
+        "Use only the frozen calibration fields slope, intercept, low and high. Require finite values, "
+        "slope > 0 and low < high. Ignore any supplied standards for time_course. Never refit them. "
         "Return one result per supplied group with timestamp copied verbatim from its first record, even on review (null if missing). "
         "Do not infer a rate constant."
     ),
@@ -67,8 +69,8 @@ def _compatibility(spec, recipe):
     }
 
 
-def _incompatibilities(manifest, requested):
-    previous = manifest["context"].get("compatibility_key", {})
+def compatibility_reasons(previous, requested):
+    """Compare pinned release fields; an existing capability superset may be reused."""
     reasons = []
     for name, expected in requested.items():
         if name == "capabilities":
@@ -77,9 +79,16 @@ def _incompatibilities(manifest, requested):
                 reasons.append("Missing capabilities: " + ", ".join(sorted(missing)))
         elif previous.get(name) != expected:
             reasons.append(f"Incompatible {name}")
+    return reasons
+
+
+def _incompatibilities(manifest, requested):
+    reasons = compatibility_reasons(manifest["context"].get("compatibility_key", {}), requested)
     for name in ("experiment_type", "verification_contract", "input_schema", "output_schema"):
         if manifest.get(name) != requested[name] and f"Incompatible {name}" not in reasons:
             reasons.append(f"Incompatible {name}")
+    if requested["experiment_type"] == "time_course" and manifest.get("verifier_revision") != VERIFIER:
+        reasons.append("Incompatible verifier_revision")
     return reasons
 
 
@@ -115,8 +124,8 @@ def _prompt(context, spec, recipe, parent):
         " Apply the closed calibration limits to every unknown replicate individually. "
         "For a valid group report (mean absorbance - intercept)/slope and sample SD of absorbance "
         "/ slope (null SD for one reading). Always copy calibration.id to calibration_id. Always return "
-        "exactly one row per group in input order, even on error. Invalid calibration or a bad standard "
-        "withholds all groups; a bad unknown replicate withholds only its group. Handle nonfinite inputs "
+        "exactly one row per group in input order, even on error. Invalid calibration withholds all groups, "
+        "as does a bad standard in a concentration experiment. A bad unknown replicate withholds only its group. Handle nonfinite inputs "
         "locally without rejecting the whole JSON document. A withheld row has null estimate and SD and a "
         "nonempty review_reason. Output exactly {calibration_id, results}; rows contain exactly sample_id, "
         "concentration_mg_l, replicate_sd_mg_l and review_reason (null on success), plus timestamp only "
@@ -227,7 +236,11 @@ class ReleasePlanner:
             if (prior["context"]["specification_sha256"] != spec_digest
                     or prior["state"] not in {"failed", "verification_failed", "interrupted"}):
                 raise ValueError("Retry requires a failed attempt for this approval")
-        task_id = _sha([spec_digest, retry_of])
+        identity = [spec_digest, retry_of]
+        if spec["experiment_type"] == "time_course":
+            # Replanning the very same approval must also evaluate the current check suite.
+            identity.append(VERIFIER)
+        task_id = _sha(identity)
         try:
             return self.get(task_id)
         except KeyError:

@@ -1,5 +1,6 @@
 """Approval-to-worker contract and source-selection tests with a separate verifier fixture."""
 from copy import deepcopy
+from functools import partial
 import json
 import multiprocessing
 import os
@@ -10,6 +11,7 @@ import unittest
 from factory.b12_build import content_revision
 from factory.context import digest
 from factory.release_planner import INPUT_SCHEMA, OUTPUT_SCHEMA, ReleasePlanner
+from factory.scientific_contract import VERIFIER
 from factory.uvvis_contract import canonical, load_profile, profile_sha256
 
 
@@ -47,7 +49,7 @@ class VerifiedRepository:
         return deepcopy(self.records[release])
 
 
-def verify(repository, *, experiment_type, context, profile, compiled_recipe, candidate, files):
+def verify(repository, *, verifier_revision=VERIFIER, experiment_type, context, profile, compiled_recipe, candidate, files):
     # Mirror the WO-9 handoff, including exact byte digests and parent-independent promotion.
     assert profile_sha256(profile) == context["instrument"]["profile_sha256"]
     assert digest(canonical(compiled_recipe).encode()) == context["compiled_recipe_sha256"]
@@ -60,7 +62,7 @@ def verify(repository, *, experiment_type, context, profile, compiled_recipe, ca
         return {"release_id": None, "checks": [{"passed": False, "detail": "wrong recipe"}]}
     manifest = dict(checks=[{"passed": True}], context=context, source_revision=candidate["source_revision"], experiment_type=experiment_type,
                     verification_contract=candidate["verification_contract"], input_schema=INPUT_SCHEMA,
-                    output_schema=OUTPUT_SCHEMA)
+                    output_schema=OUTPUT_SCHEMA, verifier_revision=verifier_revision)
     release = digest(canonical(manifest).encode())
     repository.records[release] = manifest, files
     repository.current[context["lab"]["lab_id"], context["project"]["project_id"], experiment_type] = release
@@ -160,6 +162,34 @@ class PlannerTests(unittest.TestCase):
         fresh_planner = ReleasePlanner(self.approvals, self.releases, self.path.with_name("other-tasks.sqlite"))
         old_recipe = fresh_planner.plan(self.approvals.add(dict(self.spec, sample_ids=["new"])))
         self.assertEqual(old_recipe["release_id"], base["release_id"])
+
+    def test_older_verifier_disqualifies_only_time_course_until_reverified(self):
+        legacy = self.open(verifier=partial(verify, verifier_revision="scientific-release@5"))
+        first = legacy.plan(self.pin)
+        legacy.run(first["id"])
+        old_concentration = legacy.verify(first["id"])["release_id"]
+        concentration = self.planner.plan(self.approvals.add(dict(self.spec, sample_ids=["fresh"])))
+        self.assertEqual((concentration["state"], concentration["release_id"]), ("reused", old_concentration))
+
+        course = dict(self.spec, experiment_type="time_course", verification_contract="time_course@1",
+                      outputs=[*self.spec["outputs"], "timestamp"])
+        pin = self.approvals.add(course)
+        task = legacy.plan(pin)
+        self.assertNotEqual(task["id"], digest(canonical([pin, None]).encode()))
+        legacy.run(task["id"])
+        old_course = legacy.verify(task["id"])["release_id"]
+        historical, _ = self.releases.load(old_course)
+        next_pin = self.approvals.add(dict(course, sample_ids=["next-timepoint"]))
+        next_task = self.planner.plan(next_pin)
+        self.assertEqual((next_task["state"], next_task["parent_release_id"]), ("pending", old_course))
+        self.assertIn("Incompatible verifier_revision", next_task["rejections"][old_course])
+        self.assertEqual(self.releases.active("lab", "p", "time_course"), old_course)
+        self.planner.run(next_task["id"])
+        updated = self.planner.verify(next_task["id"])["release_id"]
+        self.assertNotEqual(updated, old_course)
+        self.assertEqual(self.releases.load(old_course)[0], historical)
+        another = self.planner.plan(self.approvals.add(dict(course, sample_ids=["after-reverification"])))
+        self.assertEqual((another["state"], another["release_id"]), ("reused", updated))
 
     def test_unsupported_and_unapproved_do_not_reach_worker(self):
         with self.assertRaises(KeyError):

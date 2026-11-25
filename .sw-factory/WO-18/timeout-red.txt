@@ -1,0 +1,113 @@
+test_held_open_request_releases_server_and_both_leases (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_held_open_request_releases_server_and_both_leases) ... 127.0.0.1 - - [14/Nov/2026 13:08:38] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:38] "POST /v1/blanks HTTP/1.1" 201 -
+FAIL
+127.0.0.1 - - [14/Nov/2026 13:08:42] "POST /v1/acquisitions HTTP/1.1" 202 -
+test_pins_checked_at_cancel_and_legacy_bodyless_cancel (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_pins_checked_at_cancel_and_legacy_bodyless_cancel) ... 127.0.0.1 - - [14/Nov/2026 13:08:42] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:42] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:08:42] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:42] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:08:42] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:42] "GET /v1/acquisitions/d3abaac1ec0a48cfba9903cf75f0d2df HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:42] "POST /v1/acquisitions/d3abaac1ec0a48cfba9903cf75f0d2df/cancel HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:42] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:42] "GET /v1/acquisitions/d3abaac1ec0a48cfba9903cf75f0d2df HTTP/1.1" 200 -
+
+  test_pins_checked_at_cancel_and_legacy_bodyless_cancel (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_pins_checked_at_cancel_and_legacy_bodyless_cancel) (field='instrument_id') ... FAIL
+127.0.0.1 - - [14/Nov/2026 13:08:42] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:42] "GET /v1/acquisitions/d3abaac1ec0a48cfba9903cf75f0d2df HTTP/1.1" 200 -
+  test_pins_checked_at_cancel_and_legacy_bodyless_cancel (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_pins_checked_at_cancel_and_legacy_bodyless_cancel) (field='profile_id') ... FAIL
+127.0.0.1 - - [14/Nov/2026 13:08:42] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:42] "GET /v1/acquisitions/d3abaac1ec0a48cfba9903cf75f0d2df HTTP/1.1" 200 -
+  test_pins_checked_at_cancel_and_legacy_bodyless_cancel (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_pins_checked_at_cancel_and_legacy_bodyless_cancel) (field='profile_sha256') ... FAIL
+127.0.0.1 - - [14/Nov/2026 13:08:42] "POST /v1/acquisitions/d3abaac1ec0a48cfba9903cf75f0d2df/cancel HTTP/1.1" 200 -
+test_trickle_cannot_extend_body_deadline (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_trickle_cannot_extend_body_deadline) ... 127.0.0.1 - - [14/Nov/2026 13:08:42] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:42] "POST /v1/blanks HTTP/1.1" 201 -
+ERROR
+127.0.0.1 - - [14/Nov/2026 13:08:45] "POST /v1/acquisitions HTTP/1.1" 202 -
+test_valid_json_prefix_followed_by_premature_eof_is_rejected (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_valid_json_prefix_followed_by_premature_eof_is_rejected) ... 127.0.0.1 - - [14/Nov/2026 13:08:45] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:08:45] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:08:45] "POST /v1/acquisitions HTTP/1.1" 202 -
+FAIL
+
+======================================================================
+ERROR: test_trickle_cannot_extend_body_deadline (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_trickle_cannot_extend_body_deadline)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_http_timeout.py", line 94, in test_trickle_cannot_extend_body_deadline
+    self.assert_error(client, 408)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_http_timeout.py", line 57, in assert_error
+    response.begin()
+    ~~~~~~~~~~~~~~^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/http/client.py", line 343, in begin
+    version, status, reason = self._read_status()
+                              ~~~~~~~~~~~~~~~~~^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/http/client.py", line 304, in _read_status
+    line = str(self.fp.readline(_MAXLINE + 1), "iso-8859-1")
+               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/socket.py", line 729, in readinto
+    return self._sock.recv_into(b)
+           ~~~~~~~~~~~~~~~~~~~~^^^
+TimeoutError: timed out
+
+======================================================================
+FAIL: test_held_open_request_releases_server_and_both_leases (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_held_open_request_releases_server_and_both_leases)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_http_timeout.py", line 74, in test_held_open_request_releases_server_and_both_leases
+    self.assertFalse(self.thread.is_alive(), "server_close is still waiting for the body reader")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: True is not false : server_close is still waiting for the body reader
+
+======================================================================
+FAIL: test_pins_checked_at_cancel_and_legacy_bodyless_cancel (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_pins_checked_at_cancel_and_legacy_bodyless_cancel) (field='instrument_id')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_http_timeout.py", line 119, in test_pins_checked_at_cancel_and_legacy_bodyless_cancel
+    self.assertEqual(self.api.poll(job_id)["status"], "running")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'cancelled' != 'running'
+- cancelled
++ running
+
+
+======================================================================
+FAIL: test_pins_checked_at_cancel_and_legacy_bodyless_cancel (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_pins_checked_at_cancel_and_legacy_bodyless_cancel) (field='profile_id')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_http_timeout.py", line 112, in test_pins_checked_at_cancel_and_legacy_bodyless_cancel
+    self.assertEqual(self.api.poll(job_id)["status"], "running")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'cancelled' != 'running'
+- cancelled
++ running
+
+
+======================================================================
+FAIL: test_pins_checked_at_cancel_and_legacy_bodyless_cancel (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_pins_checked_at_cancel_and_legacy_bodyless_cancel) (field='profile_sha256')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_http_timeout.py", line 112, in test_pins_checked_at_cancel_and_legacy_bodyless_cancel
+    self.assertEqual(self.api.poll(job_id)["status"], "running")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'cancelled' != 'running'
+- cancelled
++ running
+
+
+======================================================================
+FAIL: test_valid_json_prefix_followed_by_premature_eof_is_rejected (tests.test_uvvis_http_timeout.InstrumentHttpBoundaryTests.test_valid_json_prefix_followed_by_premature_eof_is_rejected)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_http_timeout.py", line 103, in test_valid_json_prefix_followed_by_premature_eof_is_rejected
+    self.assert_error(client, 400)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/c668/8090 Hackathon/tests/test_uvvis_http_timeout.py", line 58, in assert_error
+    self.assertEqual(response.status, status)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 202 != 400
+
+----------------------------------------------------------------------
+Ran 4 tests in 7.095s
+
+FAILED (failures=5, errors=1)

@@ -1,0 +1,9 @@
+Retained result excerpts. Full local output is in runs/WO-18/full-suite.log.
+
+ERROR: test_persisted_instance_matches_live_profile_and_readings (test_uvvis_profile_handoff.InstrumentProfileHandoffTests.test_persisted_instance_matches_live_profile_and_readings)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR: test_uncertain_success_retains_lease_and_recovers_one_remote_job (test_uvvis_scheduler_identity.SchedulerIdentityTests.test_uncertain_success_retains_lease_and_recovers_one_remote_job)
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+Ran 150 tests in 83.254s
+
+FAILED (errors=2)

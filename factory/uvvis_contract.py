@@ -43,6 +43,11 @@ def profile_sha256(profile):
     return digest(canonical(profile).encode("utf-8"))
 
 
+def pin_sha256(pin):
+    """Identity precondition for v1 job routes, including the instrument instance."""
+    return digest(canonical(pin).encode("utf-8"))
+
+
 def validate(shape, payload):
     error = next(_VALIDATORS[shape].iter_errors(payload), None)
     if error:

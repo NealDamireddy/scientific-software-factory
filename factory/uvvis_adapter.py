@@ -5,12 +5,27 @@ import math
 from urllib.parse import urlsplit
 
 from .uvvis_contract import (
-    InstrumentError, canonical, profile_sha256, validate, validate_job_id, validate_key, validate_pins, validate_settings,
+    InstrumentError, canonical, pin_sha256, profile_sha256, validate, validate_job_id, validate_key,
+    validate_pins, validate_settings,
 )
+
+
+_MAX_RESPONSE_BYTES = 8 * 1024 * 1024
 
 
 class InstrumentUnavailable(ConnectionError):
     """Live service unavailable. A keyed submission can be reconciled by retrying."""
+
+
+def _match_response(response, expected):
+    """A conflicting success is ambiguous even when its shape is valid."""
+    for field, value in expected.items():
+        if response[field] != value:
+            raise InstrumentUnavailable(f"simulator response {field} does not match the request")
+
+
+def _immutable_job_fields(job):
+    return {field: value for field, value in job.items() if field not in ("status", "finished_at", "reading_count")}
 
 
 class VirtualInstrumentAdapter:
@@ -40,7 +55,12 @@ class VirtualInstrumentAdapter:
                 response = conn.getresponse()
                 if response.status >= 500:
                     raise InstrumentUnavailable(f"instrument returned HTTP {response.status}")
-                result = json.loads(response.read(8 * 1024 * 1024 + 1))
+                expected_length = response.length
+                raw = response.read(_MAX_RESPONSE_BYTES + 1)
+                if (len(raw) > _MAX_RESPONSE_BYTES or
+                        (expected_length is not None and len(raw) != expected_length)):
+                    raise InstrumentUnavailable("invalid simulator response length")
+                result = json.loads(raw)
                 if response.status >= 300:
                     raise InstrumentError(result["field"], result["reason"], response.status)
                 # A malformed success response can follow an accepted POST. It is
@@ -50,7 +70,10 @@ class VirtualInstrumentAdapter:
                 except InstrumentError as error:
                     raise InstrumentUnavailable("invalid simulator response") from error
                 return result
-            except InstrumentError:
+            except InstrumentError as error:
+                if attempt and key is not None:
+                    # A rejection on retry says nothing about the first POST.
+                    raise InstrumentUnavailable("unable to reconcile the keyed submission") from error
                 raise
             except (OSError, http.client.HTTPException) as error:
                 if not retry or attempt == 1:
@@ -77,21 +100,70 @@ class VirtualInstrumentAdapter:
 
     def blank(self, settings):
         request = self._checked("blank_request", settings)
-        return self._request("POST", "/v1/blanks", "blank", payload=request)
+        blank = self._request("POST", "/v1/blanks", "blank", payload=request)
+        _match_response(blank, self.pin)
+        return blank
 
     def submit(self, settings, sample_ids, blank_id, key):
         validate_key(key)
         request = self._checked("acquisition_request", settings, sample_ids=sample_ids, blank_id=blank_id)
-        return self._request("POST", "/v1/acquisitions", "job", payload=request, key=key, retry=True)
+        job = self._request("POST", "/v1/acquisitions", "job", payload=request, key=key, retry=True)
+        _match_response(job, request)
+        try:
+            validate_job_id(job["job_id"])
+        except InstrumentError as error:
+            raise InstrumentUnavailable("invalid simulator response job_id") from error
+        return job
 
-    def poll(self, job_id):
-        validate_job_id(job_id)
-        return self._request("GET", f"/v1/acquisitions/{job_id}", "job", retry=True)
+    def _job_path(self, job_id, suffix=""):
+        return f"/v1/acquisitions/{job_id}{suffix}?pin_sha256={pin_sha256(self.pin)}"
 
-    def cancel(self, job_id):
+    def poll(self, job_id, *, expected_request=None):
         validate_job_id(job_id)
-        return self._request("POST", f"/v1/acquisitions/{job_id}/cancel", "job", retry=True)
+        profile = self.capabilities()["profile"]
+        job = self._request("GET", self._job_path(job_id), "job", retry=True)
+        _match_response(job, {**self.pin, "job_id": job_id})
+        try:
+            validate_settings(job["settings"], profile)
+            if expected_request is not None:
+                validate("acquisition_request", expected_request)
+                _match_response(job, expected_request)
+        except InstrumentError as error:
+            raise InstrumentUnavailable(f"cannot validate simulator job: {error}") from error
+        return job
 
-    def measurements(self, job_id):
-        validate_job_id(job_id)
-        return self._request("GET", f"/v1/acquisitions/{job_id}/measurements", "measurements", retry=True)
+    def cancel(self, job_id, *, expected_request=None):
+        previous = self.poll(job_id, expected_request=expected_request)
+        job = self._request("POST", self._job_path(job_id, "/cancel"), "job", payload=self.pin, retry=True)
+        _match_response(job, _immutable_job_fields(previous))
+        return job
+
+    def measurements(self, job_id, *, expected_request=None):
+        # A partial v1 measurement envelope can be empty and contains no pins.
+        job = self.poll(job_id, expected_request=expected_request)
+        result = self._request("GET", self._job_path(job_id, "/measurements"), "measurements", retry=True)
+        _match_response(result, {"job_id": job_id})
+        if result["complete"] and job["status"] == "running":
+            # A job can finish between the two reads. Confirm on the guarded job route.
+            confirmed = self.poll(job_id, expected_request=expected_request)
+            _match_response(confirmed, _immutable_job_fields(job))
+            job = confirmed
+        if result["complete"] != (job["status"] == "completed"):
+            raise InstrumentUnavailable("measurement completeness contradicts the simulator job status")
+        expected = {**self.pin, "job_id": job_id, "blank_id": job["blank_id"],
+                    "wavelength_nm": job["settings"]["wavelength_nm"],
+                    "path_length_mm": job["settings"]["path_length_mm"]}
+        samples = set(job["sample_ids"])
+        replicates = job["settings"]["replicates"]
+        seen = set()
+        for record in result["records"]:
+            _match_response(record, expected)
+            sample, replicate = record["sample_id"], record["replicate"]
+            if sample not in samples:
+                raise InstrumentUnavailable("simulator response sample_id does not belong to the job")
+            if replicate > replicates or (sample, replicate) in seen:
+                raise InstrumentUnavailable("simulator response has an unexpected replicate")
+            seen.add((sample, replicate))
+        if result["complete"] and len(seen) != len(samples) * replicates:
+            raise InstrumentUnavailable("complete simulator response is missing replicates")
+        return result

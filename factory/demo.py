@@ -104,7 +104,7 @@ def readiness(port, archive_path, *, archive_only=False):
     if dependencies:
         try:
             bundle = check_archive(archive_path)
-            checks.append(("PASS", "Previous run", "Original IDs, source revisions and frozen calibration verified; no code executed"))
+            checks.append(("PASS", "Previous run", "Retained source, calibration, measurement results, approval, preparation and verification checks agree. No code executed."))
         except (OSError, ValueError, ImportError) as error:
             checks.append(("FAIL", "Previous run", str(error)))
     else:
@@ -116,7 +116,8 @@ def readiness(port, archive_path, *, archive_only=False):
             from .replay_bundle import replay_package
             replay_package(bundle)
             return "Both archived analyses re-executed and match their retained results"
-        run("Archive replay", replay, required=not archive_only)
+        if not run("Archive replay", replay):
+            bundle = None
     else:
         checks.append(("WARN" if archive_only else "FAIL", "Archive replay", "Not executed; requires validated archive and working offline sandbox"))
     if not archive_only:

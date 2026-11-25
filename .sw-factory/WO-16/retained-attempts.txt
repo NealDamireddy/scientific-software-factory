@@ -1,0 +1,38 @@
+saturated opening=1 HTTP=200 error=None acquired=1
+  task GET: 200
+  task: {'status': 'verified', 'acquisition_attempt_id': '605b3d1d374841a686f2fd63311631d6', 'measurement': None, 'result': None, 'error': None, 'score': None}
+  attempt: 605b3d1d374841a686f2fd63311631d6 rejected {'field': 'raw', 'reason': 'Saturated detector'} samples= [65535, 39488, 39489] calibration= c2821b055967b3bf67a858b5e90488d12c755b257898881f568d7cf09da102d2
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+saturated opening=2 HTTP=200 error=None acquired=1
+  task GET: 200
+  task: {'status': 'verified', 'acquisition_attempt_id': '605b3d1d374841a686f2fd63311631d6', 'measurement': None, 'result': None, 'error': None, 'score': None}
+  attempt: 605b3d1d374841a686f2fd63311631d6 rejected {'field': 'raw', 'reason': 'Saturated detector'} samples= [65535, 39488, 39489] calibration= c2821b055967b3bf67a858b5e90488d12c755b257898881f568d7cf09da102d2
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+bad_blank opening=1 HTTP=200 error=None acquired=1
+  task GET: 200
+  task: {'status': 'verified', 'acquisition_attempt_id': '02dd0488007045ce9a7bceb585d57164', 'measurement': None, 'result': None, 'error': None, 'score': None}
+  attempt: 02dd0488007045ce9a7bceb585d57164 rejected {'field': 'raw', 'reason': 'Invalid blank: reference must exceed the dark reading'} samples= [39496, 39487, 39483] calibration= c2821b055967b3bf67a858b5e90488d12c755b257898881f568d7cf09da102d2
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+bad_blank opening=2 HTTP=200 error=None acquired=1
+  task GET: 200
+  task: {'status': 'verified', 'acquisition_attempt_id': '02dd0488007045ce9a7bceb585d57164', 'measurement': None, 'result': None, 'error': None, 'score': None}
+  attempt: 02dd0488007045ce9a7bceb585d57164 rejected {'field': 'raw', 'reason': 'Invalid blank: reference must exceed the dark reading'} samples= [39496, 39487, 39483] calibration= c2821b055967b3bf67a858b5e90488d12c755b257898881f568d7cf09da102d2
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+candidate opening=1 HTTP=200 error=None acquired=1
+  task GET: 200
+  task: {'status': 'verified', 'acquisition_attempt_id': '12b8d5c2f297475184a7bc5a8524a9f0', 'measurement': None, 'result': None, 'error': None, 'score': None}
+  attempt: 12b8d5c2f297475184a7bc5a8524a9f0 rejected {'field': 'analysis', 'reason': 'fixture candidate failed'} samples= [39494, 39480, 39491] calibration= c2821b055967b3bf67a858b5e90488d12c755b257898881f568d7cf09da102d2
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+candidate opening=2 HTTP=200 error=None acquired=1
+  task GET: 200
+  task: {'status': 'verified', 'acquisition_attempt_id': '12b8d5c2f297475184a7bc5a8524a9f0', 'measurement': None, 'result': None, 'error': None, 'score': None}
+  attempt: 12b8d5c2f297475184a7bc5a8524a9f0 rejected {'field': 'analysis', 'reason': 'fixture candidate failed'} samples= [39494, 39480, 39491] calibration= c2821b055967b3bf67a858b5e90488d12c755b257898881f568d7cf09da102d2
+  child files: ['analysis.py', 'recipe.json', 'task.json', 'views.json']
+  reveal: 400 {'error': 'Save an in-range follow-up estimate before revealing its label'}
+direct requested sample: Renamed-01 recorded: Renamed-01
+direct fault: Saturated detector files: ['acquisition.json', 'private.json', 'task.json']

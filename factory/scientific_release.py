@@ -10,12 +10,11 @@ from .b12_build import FILES, content_revision
 from .context import digest
 from .release_repository import canonical
 from .sandbox import execute
-from .scientific_contract import TOLERANCE, case_plan, compare
+from .scientific_contract import TOLERANCE, VERIFIER, case_plan, compare
 from .uvvis_contract import validate_settings
 
 
 TYPES = ("concentration", "time_course")
-VERIFIER = "scientific-release@5"
 ERRORS = (ValueError, TypeError, KeyError, RuntimeError, OSError, ArithmeticError, RecursionError, SyntaxError)
 
 

@@ -1,0 +1,512 @@
+test_archive_is_not_changed_by_clients_or_mutations (test_archive.ArchiveTests.test_archive_is_not_changed_by_clients_or_mutations) ... ok
+test_archive_only_ignores_live_store_even_when_running_or_ids_overlap (test_archive.ArchiveTests.test_archive_only_ignores_live_store_even_when_running_or_ids_overlap) ... ok
+test_archive_only_never_invokes_worker (test_archive.ArchiveTests.test_archive_only_never_invokes_worker) ... ok
+test_bad_archive_is_rejected_before_creating_store (test_archive.ArchiveTests.test_bad_archive_is_rejected_before_creating_store) ... ok
+test_empty_store_has_original_read_only_run (test_archive.ArchiveTests.test_empty_store_has_original_read_only_run) ... ok
+test_http_archive_routes_and_private_path_denial (test_archive.ArchiveTests.test_http_archive_routes_and_private_path_denial) ... 127.0.0.1 - - [14/Nov/2026 13:17:51] "GET /api/tasks HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:51] "GET /api/tasks/7b92c13361464fdea79aa5cffcab0f7d HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:51] "GET /api/tasks/7b92c13361464fdea79aa5cffcab0f7d/source HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:51] "GET /api/tasks/7b92c13361464fdea79aa5cffcab0f7d/evidence HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:51] "GET /api/tasks/a921d6aadbcd41beb3b442a65182988f/private.json HTTP/1.1" 404 -
+/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/tempfile.py:538: ResourceWarning: Implicitly cleaning up <HTTPError 404: 'Not Found'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+127.0.0.1 - - [14/Nov/2026 13:17:51] "GET /public/b12/completed.json HTTP/1.1" 404 -
+127.0.0.1 - - [14/Nov/2026 13:17:51] "GET /../private.json HTTP/1.1" 404 -
+127.0.0.1 - - [14/Nov/2026 13:17:51] "GET /api/tasks HTTP/1.1" 403 -
+/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/tempfile.py:538: ResourceWarning: Implicitly cleaning up <HTTPError 403: 'Forbidden'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+127.0.0.1 - - [14/Nov/2026 13:17:51] "POST /api/tasks HTTP/1.1" 400 -
+/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/tempfile.py:538: ResourceWarning: Implicitly cleaning up <HTTPError 400: 'Bad Request'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_live_store_is_preserved_and_archived_run_is_still_available (test_archive.ArchiveTests.test_live_store_is_preserved_and_archived_run_is_still_available) ... ok
+test_missing_package_fields_fail_as_validation_errors (test_archive.ArchiveTests.test_missing_package_fields_fail_as_validation_errors) ... ok
+test_replay_reexecutes_without_changing_retained_evidence (test_archive.ArchiveTests.test_replay_reexecutes_without_changing_retained_evidence) ... ok
+test_approval_and_volume_validation (test_b12_reuse_requests.RequestReuseTests.test_approval_and_volume_validation) ... ok
+test_archive_is_never_selected_as_live_source (test_b12_reuse_requests.RequestReuseTests.test_archive_is_never_selected_as_live_source) ... ok
+test_fresh_then_reused_direct_requests_share_the_collection_contract (test_b12_reuse_requests.RequestReuseTests.test_fresh_then_reused_direct_requests_share_the_collection_contract) ... ok
+test_http_renamed_sample_and_independent_preparations_reuse_original_releases (test_b12_reuse_requests.RequestReuseTests.test_http_renamed_sample_and_independent_preparations_reuse_original_releases) ... 127.0.0.1 - - [14/Nov/2026 13:17:52] "POST /api/tasks HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:52] "POST /api/tasks/479bf92a6ca74e01ad618b3ee5f06037/approve HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:52] "POST /api/tasks/f160ebba58784f7bb293e722457e8dbb/prepare HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:52] "POST /api/tasks/f160ebba58784f7bb293e722457e8dbb/rerun HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:52] "GET /api/tasks/f160ebba58784f7bb293e722457e8dbb/evidence HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:52] "POST /api/tasks/479bf92a6ca74e01ad618b3ee5f06037/approve HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:52] "POST /api/tasks/479bf92a6ca74e01ad618b3ee5f06037/approve HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:52] "POST /api/tasks/fbeade9445244d7f96eec73348fe5eea/prepare HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:52] "POST /api/tasks/fbeade9445244d7f96eec73348fe5eea/rerun HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:52] "GET /api/tasks/fbeade9445244d7f96eec73348fe5eea/evidence HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:52] "POST /api/tasks/479bf92a6ca74e01ad618b3ee5f06037/approve HTTP/1.1" 202 -
+ok
+test_mismatched_acquisition_or_result_identity_fails_closed (test_b12_reuse_requests.RequestReuseTests.test_mismatched_acquisition_or_result_identity_fails_closed) ... ok
+test_missing_prepared_capability_requests_worker_and_preserves_direct_source (test_b12_reuse_requests.RequestReuseTests.test_missing_prepared_capability_requests_worker_and_preserves_direct_source) ... ok
+test_only_compatible_direct_evidence_can_authorize_prepared_source (test_b12_reuse_requests.RequestReuseTests.test_only_compatible_direct_evidence_can_authorize_prepared_source) ... ok
+test_rerun_dispatch_forwards_only_explicit_retry (test_b12_reuse_requests.RequestReuseTests.test_rerun_dispatch_forwards_only_explicit_retry) ... 127.0.0.1 - - [14/Nov/2026 13:17:53] "POST /api/tasks/example/rerun HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:53] "POST /api/tasks/example/rerun HTTP/1.1" 200 -
+ok
+test_tampered_direct_source_rejects_request_with_inspectable_reason (test_b12_reuse_requests.RequestReuseTests.test_tampered_direct_source_rejects_request_with_inspectable_reason) ... ok
+test_unavailable_parent_verification_does_not_dispatch_revision (test_b12_reuse_requests.RequestReuseTests.test_unavailable_parent_verification_does_not_dispatch_revision) ... ok
+test_historical_originals_prefer_matching_capability (test_b12_reuse_selection.ReleaseSelectionTests.test_historical_originals_prefer_matching_capability) ... ok
+test_ignores_read_only_and_reused_runs (test_b12_reuse_selection.ReleaseSelectionTests.test_ignores_read_only_and_reused_runs) ... ok
+test_parent_failure_must_be_a_safe_decline_for_both_valid_preparations (test_b12_reuse_selection.ReleaseSelectionTests.test_parent_failure_must_be_a_safe_decline_for_both_valid_preparations) ... ok
+test_parent_verifier_must_show_direct_pass_and_missing_preparation (test_b12_reuse_selection.ReleaseSelectionTests.test_parent_verifier_must_show_direct_pass_and_missing_preparation) ... ok
+test_passing_receipt_cannot_substitute_checks_or_outputs (test_b12_reuse_selection.ReleaseSelectionTests.test_passing_receipt_cannot_substitute_checks_or_outputs) ... ok
+test_rejects_changed_artifacts_even_when_status_verified (test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_changed_artifacts_even_when_status_verified) ... ok
+test_rejects_incompatible_contracts_and_receipts (test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_incompatible_contracts_and_receipts) ... ok
+test_rejects_incompatible_recipe_even_with_matching_revision (test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_incompatible_recipe_even_with_matching_revision) ... ok
+test_rejects_task_folder_identity_mismatch_without_following_it (test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_task_folder_identity_mismatch_without_following_it) ... ok
+test_archived_estimator_and_real_external_rows (test_benchmark.BenchmarkTests.test_archived_estimator_and_real_external_rows) ... ok
+test_withheld_or_unmatched_predictions_are_never_scored_as_success (test_benchmark.BenchmarkTests.test_withheld_or_unmatched_predictions_are_never_scored_as_success) ... ok
+test_invalid_units_and_missing_metadata (test_context.ContextTests.test_invalid_units_and_missing_metadata) ... ok
+test_reject_foreign_project_and_traversal (test_context.ContextTests.test_reject_foreign_project_and_traversal) ... ok
+test_reject_invalid_grid (test_context.ContextTests.test_reject_invalid_grid) ... ok
+test_shared_lab_isolated_projects (test_context.ContextTests.test_shared_lab_isolated_projects) ... ok
+test_three_capability_states (test_context.ContextTests.test_three_capability_states) ... ok
+test_retry_after_accepted_job_and_draft_or_adapter_rejection (test_context_acquisition_integration.AcquisitionBoundaryTests.test_retry_after_accepted_job_and_draft_or_adapter_rejection) ... 127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/acquisitions/8464eafe953a41eb8b72fc40d5397197 HTTP/1.1" 200 -
+ok
+test_timepoint_submits_the_reference_pinned_by_frozen_calibration (test_context_acquisition_integration.AcquisitionBoundaryTests.test_timepoint_submits_the_reference_pinned_by_frozen_calibration) ... 127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/acquisitions HTTP/1.1" 422 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/acquisitions HTTP/1.1" 422 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/acquisitions/414bdd83b0954f05b89773cf0efebcbc HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/acquisitions/414bdd83b0954f05b89773cf0efebcbc/measurements HTTP/1.1" 200 -
+ok
+unittest.case.FunctionTestCase (test_saved_project_context_drives_fresh_acquisition) ... 127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/acquisitions/38fb7ac50cf1415297cf7a3deac5994d HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/acquisitions/38fb7ac50cf1415297cf7a3deac5994d HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/acquisitions/38fb7ac50cf1415297cf7a3deac5994d HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/acquisitions/38fb7ac50cf1415297cf7a3deac5994d/measurements HTTP/1.1" 200 -
+ok
+test_frozen_public_projection (test_context_repository.PublicProfileTests.test_frozen_public_projection) ... ok
+test_competing_connections_cannot_lose_updates (test_context_repository.SQLiteRepositoryTests.test_competing_connections_cannot_lose_updates) ... ok
+test_migrations_and_immutable_history (test_context_repository.SQLiteRepositoryTests.test_migrations_and_immutable_history) ... ok
+test_payload_digest_is_independent_of_json_key_order (test_context_repository.SQLiteRepositoryTests.test_payload_digest_is_independent_of_json_key_order) ... ok
+test_project_sharing_and_scope (test_context_repository.SQLiteRepositoryTests.test_project_sharing_and_scope) ... ok
+test_reject_mismatched_profile_and_ownership (test_context_repository.SQLiteRepositoryTests.test_reject_mismatched_profile_and_ownership) ... ok
+test_reopen_pinned_project_and_lab_after_edits (test_context_repository.SQLiteRepositoryTests.test_reopen_pinned_project_and_lab_after_edits) ... ok
+test_required_fields_invalid_values_and_extra_fields (test_context_repository.SQLiteRepositoryTests.test_required_fields_invalid_values_and_extra_fields) ... ok
+test_stale_writes_fail_without_overwriting (test_context_repository.SQLiteRepositoryTests.test_stale_writes_fail_without_overwriting) ... ok
+test_archive_only_is_available_without_sandbox_or_worker (test_demo.DemoTests.test_archive_only_is_available_without_sandbox_or_worker) ... ok
+test_archive_only_startup_disables_generation (test_demo.DemoTests.test_archive_only_startup_disables_generation) ... ok
+test_check_never_serves_or_invokes_model (test_demo.DemoTests.test_check_never_serves_or_invokes_model) ... ok
+test_failed_readiness_never_starts_server (test_demo.DemoTests.test_failed_readiness_never_starts_server) ... ok
+test_fresh_mode_requires_sandbox_and_worker (test_demo.DemoTests.test_fresh_mode_requires_sandbox_and_worker) ... /Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/json/decoder.py:361: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x109173970>
+  obj, end = self.scan_once(s, idx)
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_full_readiness_reexecutes_saved_analyses (test_demo.DemoTests.test_full_readiness_reexecutes_saved_analyses) ... ok
+test_port_available_immediately_after_presenter_connection_closes (test_demo.DemoTests.test_port_available_immediately_after_presenter_connection_closes) ... ok
+test_port_conflict_is_reported (test_demo.DemoTests.test_port_conflict_is_reported) ... ok
+test_sandbox_probe_checks_exact_positive_and_negative_results (test_demo.DemoTests.test_sandbox_probe_checks_exact_positive_and_negative_results) ... ok
+test_sandbox_probe_rejects_permissive_execution (test_demo.DemoTests.test_sandbox_probe_rejects_permissive_execution) ... ok
+test_tampered_archive_blocks_even_view_only_startup (test_demo.DemoTests.test_tampered_archive_blocks_even_view_only_startup) ... ok
+test_worker_check_reports_missing_login_without_auth_output (test_demo.DemoTests.test_worker_check_reports_missing_login_without_auth_output) ... ok
+test_concentration_then_two_point_time_course (test_experiment_composition.CompositionTests.test_concentration_then_two_point_time_course) ... 127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/acquisitions/b01999fee1164a4ba6e58fb687be197d HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:54] "GET /v1/acquisitions/b01999fee1164a4ba6e58fb687be197d/measurements HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:57] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:57] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:57] "GET /v1/acquisitions/a705471d367541a4a218900902c300f6 HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:58] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:58] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:58] "GET /v1/acquisitions/b1fe950c2c3544588ca83597970b79cf HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:58] "GET /v1/acquisitions/a705471d367541a4a218900902c300f6/measurements HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:58] "GET /v1/acquisitions/b1fe950c2c3544588ca83597970b79cf/measurements HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:59] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:59] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:59] "GET /v1/acquisitions/c7240100734b4a1ea7e8d2bd8844902c HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:59] "GET /v1/acquisitions/c7240100734b4a1ea7e8d2bd8844902c HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:59] "GET /v1/acquisitions/c7240100734b4a1ea7e8d2bd8844902c/measurements HTTP/1.1" 200 -
+ok
+test_only_valid_known_standards_can_publish_a_fit (test_experiment_composition.CompositionTests.test_only_valid_known_standards_can_publish_a_fit) ... 127.0.0.1 - - [14/Nov/2026 13:17:59] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:59] "POST /v1/blanks HTTP/1.1" 201 -
+127.0.0.1 - - [14/Nov/2026 13:17:59] "GET /v1/capabilities HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:59] "POST /v1/acquisitions HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:17:59] "GET /v1/acquisitions/8b77720c7dd245359d3cd0992d13e3ef HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:59] "GET /v1/acquisitions/8b77720c7dd245359d3cd0992d13e3ef HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:17:59] "GET /v1/acquisitions/8b77720c7dd245359d3cd0992d13e3ef/measurements HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:18:01] "GET /v1/acquisitions/8b77720c7dd245359d3cd0992d13e3ef/measurements HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:18:01] "GET /v1/acquisitions/8b77720c7dd245359d3cd0992d13e3ef/measurements HTTP/1.1" 200 -
+ok
+test_join_inflight_claim_and_recover_a_crashed_verifier (test_experiment_composition.PreparationContentionTests.test_join_inflight_claim_and_recover_a_crashed_verifier) ... ok
+test_missing_verifier_fails_the_attempt (test_experiment_composition.PreparationContentionTests.test_missing_verifier_fails_the_attempt) ... ok
+test_cancel_after_lost_response_never_resubmits_to_discover_identity (test_experiment_scheduler.SchedulerTests.test_cancel_after_lost_response_never_resubmits_to_discover_identity) ... ok
+test_cancel_after_process_death_closes_orphaned_build_attempt (test_experiment_scheduler.SchedulerTests.test_cancel_after_process_death_closes_orphaned_build_attempt) ... ok
+test_cancel_concurrent_with_definitive_busy_rejection_unblocks_fifo (test_experiment_scheduler.SchedulerTests.test_cancel_concurrent_with_definitive_busy_rejection_unblocks_fifo) ... ok
+test_cancellation_waits_for_remote_confirmation_and_excludes_partial_analysis (test_experiment_scheduler.SchedulerTests.test_cancellation_waits_for_remote_confirmation_and_excludes_partial_analysis) ... ok
+test_cancelling_queued_run_never_dispatches_its_acquisition (test_experiment_scheduler.SchedulerTests.test_cancelling_queued_run_never_dispatches_its_acquisition) ... ok
+test_confirmed_termination_releases_lease_before_measurements_can_be_downloaded (test_experiment_scheduler.SchedulerTests.test_confirmed_termination_releases_lease_before_measurements_can_be_downloaded) ... ok
+test_dead_preparation_worker_records_interruption_and_starts_new_attempt (test_experiment_scheduler.SchedulerTests.test_dead_preparation_worker_records_interruption_and_starts_new_attempt) ... ok
+test_dependency_blockers_persist_and_calibration_allows_software_to_prepare (test_experiment_scheduler.SchedulerTests.test_dependency_blockers_persist_and_calibration_allows_software_to_prepare) ... ok
+test_fifo_parallel_preparation_and_reuse_instrument_during_analysis (test_experiment_scheduler.SchedulerTests.test_fifo_parallel_preparation_and_reuse_instrument_during_analysis) ... ok
+test_incompatible_release_does_not_start_analysis_on_complete_readings (test_experiment_scheduler.SchedulerTests.test_incompatible_release_does_not_start_analysis_on_complete_readings) ... ok
+test_mixed_job_readings_do_not_start_analysis (test_experiment_scheduler.SchedulerTests.test_mixed_job_readings_do_not_start_analysis) ... ok
+test_non_json_analysis_outcome_records_failed_attempt_once (test_experiment_scheduler.SchedulerTests.test_non_json_analysis_outcome_records_failed_attempt_once) ... ok
+test_pending_wait_begins_at_remote_finish_and_stops_at_software_readiness (test_experiment_scheduler.SchedulerTests.test_pending_wait_begins_at_remote_finish_and_stops_at_software_readiness) ... ok
+test_process_exit_during_post_cannot_turn_reconciliation_error_into_release (test_experiment_scheduler.SchedulerTests.test_process_exit_during_post_cannot_turn_reconciliation_error_into_release) ... ok
+test_restart_with_lost_submit_recovers_original_job_and_unknown_poll_holds_lease (test_experiment_scheduler.SchedulerTests.test_restart_with_lost_submit_recovers_original_job_and_unknown_poll_holds_lease) ... ok
+test_two_workers_contend_and_submission_keys_survive_restart (test_experiment_scheduler.SchedulerTests.test_two_workers_contend_and_submission_keys_survive_restart) ... ok
+test_candidate_cannot_read_label_or_mutate_trusted_files (test_followup.FollowupTests.test_candidate_cannot_read_label_or_mutate_trusted_files) ... ok
+test_digests_and_approval_rechecked (test_followup.FollowupTests.test_digests_and_approval_rechecked) ... ok
+test_rerun_outside_scale (test_followup.FollowupTests.test_rerun_outside_scale) ... ok
+test_triplicate_followup_and_replay (test_followup.FollowupTests.test_triplicate_followup_and_replay) ... ok
+test_approval_reuses_child_and_retry_preserves_preparation (test_lab.TaskTests.test_approval_reuses_child_and_retry_preserves_preparation) ... ok
+test_failed_worker_preserves_failure_and_history (test_lab.TaskTests.test_failed_worker_preserves_failure_and_history) ... ok
+test_rejects_bad_worker_recipe_and_view_before_writing (test_lab.TaskTests.test_rejects_bad_worker_recipe_and_view_before_writing) ... ok
+test_rejects_blank_and_traversal (test_lab.TaskTests.test_rejects_blank_and_traversal) ... ok
+test_rerun_and_label_require_the_correct_stage (test_lab.TaskTests.test_rerun_and_label_require_the_correct_stage) ... ok
+test_acquisition_metadata_and_seeded_counts (test_optics.OpticalTests.test_acquisition_metadata_and_seeded_counts) ... ok
+test_calibration_and_held_out_vials (test_optics.OpticalTests.test_calibration_and_held_out_vials) ... ok
+test_independent_checks_in_offline_sandbox (test_optics.OpticalTests.test_independent_checks_in_offline_sandbox) ... ok
+test_preparation_record_and_actual_factor (test_optics.OpticalTests.test_preparation_record_and_actual_factor) ... ok
+test_quality_checks (test_optics.OpticalTests.test_quality_checks) ... ok
+test_recipe_is_checked_again_at_acquisition (test_optics.OpticalTests.test_recipe_is_checked_again_at_acquisition) ... ok
+test_8090_export (test_pipeline.PipelineTests.test_8090_export) ... ok
+test_invalid_order_blocks_generation (test_pipeline.PipelineTests.test_invalid_order_blocks_generation) ... ok
+test_scope_of_previous_revision (test_pipeline.PipelineTests.test_scope_of_previous_revision) ... ok
+test_success_and_tamper (test_pipeline.PipelineTests.test_success_and_tamper) ... ok
+test_unknown_and_unsupported_block (test_pipeline.PipelineTests.test_unknown_and_unsupported_block) ... ok
+test_unmapped_acceptance_and_bad_reference (test_pipeline.PipelineTests.test_unmapped_acceptance_and_bad_reference) ... ok
+test_bad_worker_receipt_ends_attempt (test_release_planner.PlannerTests.test_bad_worker_receipt_ends_attempt) ... ok
+test_candidate_retained_without_verifier_or_on_rejection (test_release_planner.PlannerTests.test_candidate_retained_without_verifier_or_on_rejection) ... ok
+test_filtered_generation_retention_and_verified_sample_only_reuse (test_release_planner.PlannerTests.test_filtered_generation_retention_and_verified_sample_only_reuse) ... ok
+test_interrupted_verification_reconciles_exact_published_release (test_release_planner.PlannerTests.test_interrupted_verification_reconciles_exact_published_release) ... ok
+test_terminated_worker_is_interrupted_and_requires_a_new_attempt (test_release_planner.PlannerTests.test_terminated_worker_is_interrupted_and_requires_a_new_attempt) ... ok
+test_time_course_revision_and_incompatible_settings_leave_old_release (test_release_planner.PlannerTests.test_time_course_revision_and_incompatible_settings_leave_old_release) ... ok
+test_unsupported_and_unapproved_do_not_reach_worker (test_release_planner.PlannerTests.test_unsupported_and_unapproved_do_not_reach_worker) ... ok
+test_worker_failure_and_explicit_retry_with_no_archive_substitution (test_release_planner.PlannerTests.test_worker_failure_and_explicit_retry_with_no_archive_substitution) ... ok
+test_committed_record_replays (test_replay_bundle.SavedRunTests.test_committed_record_replays) ... ok
+test_tampered_source_is_rejected (test_replay_bundle.SavedRunTests.test_tampered_source_is_rejected) ... ok
+test_allowed_science_and_denied_access (test_sandbox.SandboxTests.test_allowed_science_and_denied_access) ... ok
+test_cancel_between_points_and_mismatched_calibration (test_scheduled_acquisition.ScheduledAcquisitionTests.test_cancel_between_points_and_mismatched_calibration) ... ok
+test_cancellation_reconciles_lost_remote_identity_without_submitting (test_scheduled_acquisition.ScheduledAcquisitionTests.test_cancellation_reconciles_lost_remote_identity_without_submitting) ... ok
+test_durable_schedule_uses_actual_starts_original_job_ids_and_point_order (test_scheduled_acquisition.ScheduledAcquisitionTests.test_durable_schedule_uses_actual_starts_original_job_ids_and_point_order) ... ok
+test_interrupted_first_point_releases_lease_only_after_valid_remote_timing (test_scheduled_acquisition.ScheduledAcquisitionTests.test_interrupted_first_point_releases_lease_only_after_valid_remote_timing) ... ok
+test_invalid_intermediate_time_never_authorizes_the_next_point (test_scheduled_acquisition.ScheduledAcquisitionTests.test_invalid_intermediate_time_never_authorizes_the_next_point) ... ok
+test_legacy_terminal_repolls_known_identity_until_timestamps_are_correct (test_scheduled_acquisition.ScheduledAcquisitionTests.test_legacy_terminal_repolls_known_identity_until_timestamps_are_correct) ... ok
+test_response_lost_on_first_point_reuses_only_its_original_key (test_scheduled_acquisition.ScheduledAcquisitionTests.test_response_lost_on_first_point_reuses_only_its_original_key) ... ok
+test_candidate_accepting_positive_infinity_cannot_replace_release (test_scientific_mutations.MutationTests.test_candidate_accepting_positive_infinity_cannot_replace_release) ... ok
+test_sandboxed_mutants_preserve_verified_release (test_scientific_mutations.MutationTests.test_sandboxed_mutants_preserve_verified_release) ... ok
+test_verified_analysis_withholds_negative_dark_corrected_signals (test_scientific_mutations.MutationTests.test_verified_analysis_withholds_negative_dark_corrected_signals) ... ok
+test_atomic_rollback_and_corrupt_artifact_rejection (test_scientific_release.ReleaseTests.test_atomic_rollback_and_corrupt_artifact_rejection) ... ok
+test_bad_metadata_and_malformed_artifacts_fail_closed (test_scientific_release.ReleaseTests.test_bad_metadata_and_malformed_artifacts_fail_closed) ... ok
+test_blocked_checks_match_verified_manifest_without_running_candidate (test_scientific_release.ReleaseTests.test_blocked_checks_match_verified_manifest_without_running_candidate) ... /Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/unittest/mock.py:2191: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x10954d120>
+  if getattr(self, "_mock_methods", None) is not None:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/unittest/mock.py:2191: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x10954df30>
+  if getattr(self, "_mock_methods", None) is not None:
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_failed_checks_preserve_previous_manifest_and_files (test_scientific_release.ReleaseTests.test_failed_checks_preserve_previous_manifest_and_files) ... ok
+test_new_release_keeps_old_revision_retrievable (test_scientific_release.ReleaseTests.test_new_release_keeps_old_revision_retrievable) ... ok
+test_public_projection_excludes_private_fields (test_scientific_release.ReleaseTests.test_public_projection_excludes_private_fields) ... ok
+test_publish_and_reopen_both_contracts (test_scientific_release.ReleaseTests.test_publish_and_reopen_both_contracts) ... ok
+test_sandboxed_candidate_cannot_change_trusted_files (test_scientific_release.ReleaseTests.test_sandboxed_candidate_cannot_change_trusted_files) ... ok
+test_wo7_integral_json_settings (test_scientific_release.ReleaseTests.test_wo7_integral_json_settings) ... ok
+test_calibration_must_resolve_to_exact_frozen_record (test_specifications.SpecificationTests.test_calibration_must_resolve_to_exact_frozen_record) ... ok
+test_changing_experiment_type_drops_only_inherited_incompatible_fields (test_specifications.SpecificationTests.test_changing_experiment_type_drops_only_inherited_incompatible_fields) ... ok
+test_draft_defaults_and_explicit_confirmation (test_specifications.SpecificationTests.test_draft_defaults_and_explicit_confirmation) ... ok
+test_explicit_incompatible_fields_remain_visible_and_prevent_approval (test_specifications.SpecificationTests.test_explicit_incompatible_fields_remain_visible_and_prevent_approval) ... ok
+test_instrument_id_length_at_approval_and_compilation (test_specifications.SpecificationTests.test_instrument_id_length_at_approval_and_compilation) ... ok
+test_invalid_samples_capabilities_and_unsupported_types (test_specifications.SpecificationTests.test_invalid_samples_capabilities_and_unsupported_types) ... ok
+test_lists_all_incompatible_and_missing_settings_together (test_specifications.SpecificationTests.test_lists_all_incompatible_and_missing_settings_together) ... ok
+test_persisted_approval_and_revision_identity (test_specifications.SpecificationTests.test_persisted_approval_and_revision_identity) ... ok
+test_stale_concurrent_edits_and_protected_pins (test_specifications.SpecificationTests.test_stale_concurrent_edits_and_protected_pins) ... ok
+test_time_course_requires_confirmed_schedule_and_compatible_calibration (test_specifications.SpecificationTests.test_time_course_requires_confirmed_schedule_and_compatible_calibration) ... ok
+test_all_channels_and_retain_invalid_counts (test_uvvis_api.VirtualUvVisTests.test_all_channels_and_retain_invalid_counts) ... ERROR
+test_concurrent_starts_cancel_and_reopen (test_uvvis_api.VirtualUvVisTests.test_concurrent_starts_cancel_and_reopen) ... ERROR
+test_contract_and_fresh_measurements (test_uvvis_api.VirtualUvVisTests.test_contract_and_fresh_measurements) ... ERROR
+test_equivalent_replicate_counts_reuse_one_job_across_restart (test_uvvis_api.VirtualUvVisTests.test_equivalent_replicate_counts_reuse_one_job_across_restart) ... ERROR
+test_lost_response_retries_only_keyed_write (test_uvvis_api.VirtualUvVisTests.test_lost_response_retries_only_keyed_write) ... ERROR
+test_malformed_acceptance_reconciles_by_key (test_uvvis_api.VirtualUvVisTests.test_malformed_acceptance_reconciles_by_key) ... ERROR
+test_reconcile_crash_snapshot_and_idempotent_retry (test_uvvis_api.VirtualUvVisTests.test_reconcile_crash_snapshot_and_idempotent_retry) ... ERROR
+test_same_instrument_excludes_second_process_with_different_store (test_uvvis_api.VirtualUvVisTests.test_same_instrument_excludes_second_process_with_different_store) ... Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 69, in _claim_instrument
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_http.py", line 92, in <module>
+    main()
+    ~~~~^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_http.py", line 80, in main
+    service = VirtualUvVisService(args.store, read_json(args.samples), noise_sd_counts=args.noise, duration_s=args.duration)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 99, in __init__
+    _claim_instrument(instrument_id, resources)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 71, in _claim_instrument
+    raise BlockingIOError(f"Instrument {instrument_id!r} is already in use") from error
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+ERROR
+test_validates_both_sides_and_reference_before_reading (test_uvvis_api.VirtualUvVisTests.test_validates_both_sides_and_reference_before_reading) ... ERROR
+test_persisted_instance_matches_live_profile_and_readings (test_uvvis_profile_handoff.InstrumentProfileHandoffTests.test_persisted_instance_matches_live_profile_and_readings) ... ERROR
+test_export_matches_producer_records_and_digest_inputs (test_workspace_golden.WorkspaceGoldenTests.test_export_matches_producer_records_and_digest_inputs) ... ok
+
+======================================================================
+ERROR: test_all_channels_and_retain_invalid_counts (test_uvvis_api.VirtualUvVisTests.test_all_channels_and_retain_invalid_counts)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 69, in _claim_instrument
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 145, in test_all_channels_and_retain_invalid_counts
+    with instrument(self.store, duration_s=0, noise_sd_counts=0) as (service, api):
+         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 35, in instrument
+    service = VirtualUvVisService(store, SAMPLES, profile=PROFILE, **options)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 99, in __init__
+    _claim_instrument(instrument_id, resources)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 71, in _claim_instrument
+    raise BlockingIOError(f"Instrument {instrument_id!r} is already in use") from error
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+
+======================================================================
+ERROR: test_concurrent_starts_cancel_and_reopen (test_uvvis_api.VirtualUvVisTests.test_concurrent_starts_cancel_and_reopen)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 69, in _claim_instrument
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 203, in test_concurrent_starts_cancel_and_reopen
+    with instrument(self.store, monotonic=clock.now, wait=clock.wait) as (_, api):
+         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 35, in instrument
+    service = VirtualUvVisService(store, SAMPLES, profile=PROFILE, **options)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 99, in __init__
+    _claim_instrument(instrument_id, resources)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 71, in _claim_instrument
+    raise BlockingIOError(f"Instrument {instrument_id!r} is already in use") from error
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+
+======================================================================
+ERROR: test_contract_and_fresh_measurements (test_uvvis_api.VirtualUvVisTests.test_contract_and_fresh_measurements)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 69, in _claim_instrument
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 109, in test_contract_and_fresh_measurements
+    with instrument(self.store, duration_s=0.5, noise_sd_counts=0, monotonic=clock.now, wait=clock.wait) as (_, api):
+         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 35, in instrument
+    service = VirtualUvVisService(store, SAMPLES, profile=PROFILE, **options)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 99, in __init__
+    _claim_instrument(instrument_id, resources)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 71, in _claim_instrument
+    raise BlockingIOError(f"Instrument {instrument_id!r} is already in use") from error
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+
+======================================================================
+ERROR: test_equivalent_replicate_counts_reuse_one_job_across_restart (test_uvvis_api.VirtualUvVisTests.test_equivalent_replicate_counts_reuse_one_job_across_restart)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 69, in _claim_instrument
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 261, in test_equivalent_replicate_counts_reuse_one_job_across_restart
+    with instrument(self.store, duration_s=0) as (_, api):
+         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 35, in instrument
+    service = VirtualUvVisService(store, SAMPLES, profile=PROFILE, **options)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 99, in __init__
+    _claim_instrument(instrument_id, resources)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 71, in _claim_instrument
+    raise BlockingIOError(f"Instrument {instrument_id!r} is already in use") from error
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+
+======================================================================
+ERROR: test_lost_response_retries_only_keyed_write (test_uvvis_api.VirtualUvVisTests.test_lost_response_retries_only_keyed_write)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 69, in _claim_instrument
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 303, in test_lost_response_retries_only_keyed_write
+    with instrument(self.store, duration_s=0) as (service, api):
+         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 35, in instrument
+    service = VirtualUvVisService(store, SAMPLES, profile=PROFILE, **options)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 99, in __init__
+    _claim_instrument(instrument_id, resources)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 71, in _claim_instrument
+    raise BlockingIOError(f"Instrument {instrument_id!r} is already in use") from error
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+
+======================================================================
+ERROR: test_malformed_acceptance_reconciles_by_key (test_uvvis_api.VirtualUvVisTests.test_malformed_acceptance_reconciles_by_key)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 69, in _claim_instrument
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 90, in test_malformed_acceptance_reconciles_by_key
+    with instrument(self.store, duration_s=0) as (service, api):
+         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 35, in instrument
+    service = VirtualUvVisService(store, SAMPLES, profile=PROFILE, **options)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 99, in __init__
+    _claim_instrument(instrument_id, resources)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 71, in _claim_instrument
+    raise BlockingIOError(f"Instrument {instrument_id!r} is already in use") from error
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+
+======================================================================
+ERROR: test_reconcile_crash_snapshot_and_idempotent_retry (test_uvvis_api.VirtualUvVisTests.test_reconcile_crash_snapshot_and_idempotent_retry)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 69, in _claim_instrument
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 288, in test_reconcile_crash_snapshot_and_idempotent_retry
+    with instrument(self.store, monotonic=clock.now, wait=clock.wait) as (service, api):
+         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 35, in instrument
+    service = VirtualUvVisService(store, SAMPLES, profile=PROFILE, **options)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 99, in __init__
+    _claim_instrument(instrument_id, resources)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 71, in _claim_instrument
+    raise BlockingIOError(f"Instrument {instrument_id!r} is already in use") from error
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+
+======================================================================
+ERROR: test_same_instrument_excludes_second_process_with_different_store (test_uvvis_api.VirtualUvVisTests.test_same_instrument_excludes_second_process_with_different_store)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 241, in test_same_instrument_excludes_second_process_with_different_store
+    api = VirtualInstrumentAdapter(url, PIN["instrument_id"], PIN["profile_id"], SHA)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_adapter.py", line 21, in __init__
+    raise ValueError("A loopback HTTP service origin is required")
+ValueError: A loopback HTTP service origin is required
+
+======================================================================
+ERROR: test_validates_both_sides_and_reference_before_reading (test_uvvis_api.VirtualUvVisTests.test_validates_both_sides_and_reference_before_reading)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 69, in _claim_instrument
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 162, in test_validates_both_sides_and_reference_before_reading
+    with instrument(self.store, duration_s=0) as (service, api):
+         ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/contextlib.py", line 141, in __enter__
+    return next(self.gen)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_api.py", line 35, in instrument
+    service = VirtualUvVisService(store, SAMPLES, profile=PROFILE, **options)
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 99, in __init__
+    _claim_instrument(instrument_id, resources)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 71, in _claim_instrument
+    raise BlockingIOError(f"Instrument {instrument_id!r} is already in use") from error
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+
+======================================================================
+ERROR: test_persisted_instance_matches_live_profile_and_readings (test_uvvis_profile_handoff.InstrumentProfileHandoffTests.test_persisted_instance_matches_live_profile_and_readings)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 69, in _claim_instrument
+    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+BlockingIOError: [Errno 35] Resource temporarily unavailable
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/tests/test_uvvis_profile_handoff.py", line 39, in test_persisted_instance_matches_live_profile_and_readings
+    service = self.enterContext(closing(VirtualUvVisService(
+                                        ~~~~~~~~~~~~~~~~~~~^
+        root / "jobs", {unknown: {"concentration_mg_l": 8}}, duration_s=0)))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 99, in __init__
+    _claim_instrument(instrument_id, resources)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/nealdamireddy/.codex/worktrees/8930/8090 Hackathon/factory/uvvis_service.py", line 71, in _claim_instrument
+    raise BlockingIOError(f"Instrument {instrument_id!r} is already in use") from error
+BlockingIOError: Instrument 'uvvis-demo-01' is already in use
+
+----------------------------------------------------------------------
+Ran 151 tests in 78.737s
+
+FAILED (errors=10)

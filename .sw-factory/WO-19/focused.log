@@ -1,0 +1,84 @@
+test_approval_and_volume_validation (tests.test_b12_reuse_requests.RequestReuseTests.test_approval_and_volume_validation) ... ok
+test_archive_is_never_selected_as_live_source (tests.test_b12_reuse_requests.RequestReuseTests.test_archive_is_never_selected_as_live_source) ... ok
+test_fresh_then_reused_direct_requests_share_the_collection_contract (tests.test_b12_reuse_requests.RequestReuseTests.test_fresh_then_reused_direct_requests_share_the_collection_contract) ... ok
+test_http_renamed_sample_and_independent_preparations_reuse_original_releases (tests.test_b12_reuse_requests.RequestReuseTests.test_http_renamed_sample_and_independent_preparations_reuse_original_releases) ... 127.0.0.1 - - [14/Nov/2026 13:14:56] "POST /api/tasks HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:14:56] "POST /api/tasks/4cf81d1db7d544ed929c9278cc18d819/approve HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:14:56] "POST /api/tasks/8d92da69266a40c1a1ab3f6e6c324993/prepare HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:14:56] "POST /api/tasks/8d92da69266a40c1a1ab3f6e6c324993/rerun HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:14:56] "GET /api/tasks/8d92da69266a40c1a1ab3f6e6c324993/evidence HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:14:56] "POST /api/tasks/4cf81d1db7d544ed929c9278cc18d819/approve HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:14:56] "POST /api/tasks/4cf81d1db7d544ed929c9278cc18d819/approve HTTP/1.1" 202 -
+127.0.0.1 - - [14/Nov/2026 13:14:56] "POST /api/tasks/36554cf3f0ac4925938ea8dae1e651ef/prepare HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:14:56] "POST /api/tasks/36554cf3f0ac4925938ea8dae1e651ef/rerun HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:14:56] "GET /api/tasks/36554cf3f0ac4925938ea8dae1e651ef/evidence HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:14:56] "POST /api/tasks/4cf81d1db7d544ed929c9278cc18d819/approve HTTP/1.1" 202 -
+ok
+test_mismatched_acquisition_or_result_identity_fails_closed (tests.test_b12_reuse_requests.RequestReuseTests.test_mismatched_acquisition_or_result_identity_fails_closed) ... ok
+test_missing_prepared_capability_requests_worker_and_preserves_direct_source (tests.test_b12_reuse_requests.RequestReuseTests.test_missing_prepared_capability_requests_worker_and_preserves_direct_source) ... ok
+test_only_compatible_direct_evidence_can_authorize_prepared_source (tests.test_b12_reuse_requests.RequestReuseTests.test_only_compatible_direct_evidence_can_authorize_prepared_source) ... ok
+test_rerun_dispatch_forwards_only_explicit_retry (tests.test_b12_reuse_requests.RequestReuseTests.test_rerun_dispatch_forwards_only_explicit_retry) ... 127.0.0.1 - - [14/Nov/2026 13:14:57] "POST /api/tasks/example/rerun HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:14:57] "POST /api/tasks/example/rerun HTTP/1.1" 200 -
+ok
+test_tampered_direct_source_rejects_request_with_inspectable_reason (tests.test_b12_reuse_requests.RequestReuseTests.test_tampered_direct_source_rejects_request_with_inspectable_reason) ... ok
+test_unavailable_parent_verification_does_not_dispatch_revision (tests.test_b12_reuse_requests.RequestReuseTests.test_unavailable_parent_verification_does_not_dispatch_revision) ... ok
+test_historical_originals_prefer_matching_capability (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_historical_originals_prefer_matching_capability) ... ok
+test_ignores_read_only_and_reused_runs (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_ignores_read_only_and_reused_runs) ... ok
+test_parent_failure_must_be_a_safe_decline_for_both_valid_preparations (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_parent_failure_must_be_a_safe_decline_for_both_valid_preparations) ... ok
+test_parent_verifier_must_show_direct_pass_and_missing_preparation (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_parent_verifier_must_show_direct_pass_and_missing_preparation) ... ok
+test_passing_receipt_cannot_substitute_checks_or_outputs (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_passing_receipt_cannot_substitute_checks_or_outputs) ... ok
+test_rejects_changed_artifacts_even_when_status_verified (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_changed_artifacts_even_when_status_verified) ... ok
+test_rejects_incompatible_contracts_and_receipts (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_incompatible_contracts_and_receipts) ... ok
+test_rejects_incompatible_recipe_even_with_matching_revision (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_incompatible_recipe_even_with_matching_revision) ... ok
+test_rejects_task_folder_identity_mismatch_without_following_it (tests.test_b12_reuse_selection.ReleaseSelectionTests.test_rejects_task_folder_identity_mismatch_without_following_it) ... ok
+test_approval_reuses_child_and_retry_preserves_preparation (tests.test_lab.TaskTests.test_approval_reuses_child_and_retry_preserves_preparation) ... ok
+test_failed_worker_preserves_failure_and_history (tests.test_lab.TaskTests.test_failed_worker_preserves_failure_and_history) ... ok
+test_rejects_bad_worker_recipe_and_view_before_writing (tests.test_lab.TaskTests.test_rejects_bad_worker_recipe_and_view_before_writing) ... ok
+test_rejects_blank_and_traversal (tests.test_lab.TaskTests.test_rejects_blank_and_traversal) ... ok
+test_rerun_and_label_require_the_correct_stage (tests.test_lab.TaskTests.test_rerun_and_label_require_the_correct_stage) ... ok
+test_candidate_cannot_read_label_or_mutate_trusted_files (tests.test_followup.FollowupTests.test_candidate_cannot_read_label_or_mutate_trusted_files) ... ok
+test_digests_and_approval_rechecked (tests.test_followup.FollowupTests.test_digests_and_approval_rechecked) ... ok
+test_rerun_outside_scale (tests.test_followup.FollowupTests.test_rerun_outside_scale) ... ok
+test_triplicate_followup_and_replay (tests.test_followup.FollowupTests.test_triplicate_followup_and_replay) ... ok
+test_acquisition_metadata_and_seeded_counts (tests.test_optics.OpticalTests.test_acquisition_metadata_and_seeded_counts) ... ok
+test_calibration_and_held_out_vials (tests.test_optics.OpticalTests.test_calibration_and_held_out_vials) ... ok
+test_independent_checks_in_offline_sandbox (tests.test_optics.OpticalTests.test_independent_checks_in_offline_sandbox) ... ok
+test_preparation_record_and_actual_factor (tests.test_optics.OpticalTests.test_preparation_record_and_actual_factor) ... ok
+test_quality_checks (tests.test_optics.OpticalTests.test_quality_checks) ... ok
+test_recipe_is_checked_again_at_acquisition (tests.test_optics.OpticalTests.test_recipe_is_checked_again_at_acquisition) ... ok
+test_bad_worker_receipt_ends_attempt (tests.test_release_planner.PlannerTests.test_bad_worker_receipt_ends_attempt) ... ok
+test_candidate_retained_without_verifier_or_on_rejection (tests.test_release_planner.PlannerTests.test_candidate_retained_without_verifier_or_on_rejection) ... ok
+test_filtered_generation_retention_and_verified_sample_only_reuse (tests.test_release_planner.PlannerTests.test_filtered_generation_retention_and_verified_sample_only_reuse) ... ok
+test_interrupted_verification_reconciles_exact_published_release (tests.test_release_planner.PlannerTests.test_interrupted_verification_reconciles_exact_published_release) ... ok
+test_terminated_worker_is_interrupted_and_requires_a_new_attempt (tests.test_release_planner.PlannerTests.test_terminated_worker_is_interrupted_and_requires_a_new_attempt) ... ok
+test_time_course_revision_and_incompatible_settings_leave_old_release (tests.test_release_planner.PlannerTests.test_time_course_revision_and_incompatible_settings_leave_old_release) ... ok
+test_unsupported_and_unapproved_do_not_reach_worker (tests.test_release_planner.PlannerTests.test_unsupported_and_unapproved_do_not_reach_worker) ... ok
+test_worker_failure_and_explicit_retry_with_no_archive_substitution (tests.test_release_planner.PlannerTests.test_worker_failure_and_explicit_retry_with_no_archive_substitution) ... ok
+test_archive_is_not_changed_by_clients_or_mutations (tests.test_archive.ArchiveTests.test_archive_is_not_changed_by_clients_or_mutations) ... ok
+test_archive_only_ignores_live_store_even_when_running_or_ids_overlap (tests.test_archive.ArchiveTests.test_archive_only_ignores_live_store_even_when_running_or_ids_overlap) ... ok
+test_archive_only_never_invokes_worker (tests.test_archive.ArchiveTests.test_archive_only_never_invokes_worker) ... ok
+test_bad_archive_is_rejected_before_creating_store (tests.test_archive.ArchiveTests.test_bad_archive_is_rejected_before_creating_store) ... ok
+test_empty_store_has_original_read_only_run (tests.test_archive.ArchiveTests.test_empty_store_has_original_read_only_run) ... ok
+test_http_archive_routes_and_private_path_denial (tests.test_archive.ArchiveTests.test_http_archive_routes_and_private_path_denial) ... 127.0.0.1 - - [14/Nov/2026 13:14:59] "GET /api/tasks HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:14:59] "GET /api/tasks/7b92c13361464fdea79aa5cffcab0f7d HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:14:59] "GET /api/tasks/7b92c13361464fdea79aa5cffcab0f7d/source HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:14:59] "GET /api/tasks/7b92c13361464fdea79aa5cffcab0f7d/evidence HTTP/1.1" 200 -
+127.0.0.1 - - [14/Nov/2026 13:14:59] "GET /api/tasks/a921d6aadbcd41beb3b442a65182988f/private.json HTTP/1.1" 404 -
+/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/tempfile.py:538: ResourceWarning: Implicitly cleaning up <HTTPError 404: 'Not Found'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+127.0.0.1 - - [14/Nov/2026 13:14:59] "GET /public/b12/completed.json HTTP/1.1" 404 -
+127.0.0.1 - - [14/Nov/2026 13:14:59] "GET /../private.json HTTP/1.1" 404 -
+127.0.0.1 - - [14/Nov/2026 13:14:59] "GET /api/tasks HTTP/1.1" 403 -
+/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/tempfile.py:538: ResourceWarning: Implicitly cleaning up <HTTPError 403: 'Forbidden'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+127.0.0.1 - - [14/Nov/2026 13:14:59] "POST /api/tasks HTTP/1.1" 400 -
+/Users/nealdamireddy/.local/share/uv/python/cpython-3.14.9-macos-aarch64-none/lib/python3.14/tempfile.py:538: ResourceWarning: Implicitly cleaning up <HTTPError 400: 'Bad Request'>
+  _warnings.warn(self.warn_message, ResourceWarning)
+ok
+test_live_store_is_preserved_and_archived_run_is_still_available (tests.test_archive.ArchiveTests.test_live_store_is_preserved_and_archived_run_is_still_available) ... ok
+test_missing_package_fields_fail_as_validation_errors (tests.test_archive.ArchiveTests.test_missing_package_fields_fail_as_validation_errors) ... ok
+test_replay_reexecutes_without_changing_retained_evidence (tests.test_archive.ArchiveTests.test_replay_reexecutes_without_changing_retained_evidence) ... ok
+
+----------------------------------------------------------------------
+Ran 51 tests in 4.361s
+
+OK
