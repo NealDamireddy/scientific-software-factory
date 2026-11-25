@@ -6,12 +6,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from factory.approved_acquisition import ApprovedAcquisition
-from factory.context_repository import SQLiteContextRepository
-from factory.experiment_adapters import LocalExperimentBackend
-from factory.experiment_scheduler import ExperimentOrchestrator
-from factory.specifications import ExperimentSpecificationService
-from factory.uvvis_service import VirtualUvVisService
+from factory.experiments.approved_acquisition import ApprovedAcquisition
+from factory.lab_context.context_repository import SQLiteContextRepository
+from factory.experiments.experiment_adapters import LocalExperimentBackend
+from factory.experiments.experiment_scheduler import ExperimentOrchestrator
+from factory.lab_context.specifications import ExperimentSpecificationService
+from factory.instruments.uvvis_service import VirtualUvVisService
 from tests.test_context_acquisition_integration import live_instrument
 from tests.test_context_repository import load_demo
 from tests.test_uvvis_api import until

@@ -10,12 +10,12 @@ import unittest
 from unittest.mock import Mock, patch
 
 from factory.context import digest
-from factory.context_repository import SQLiteContextRepository
-from factory.uvvis_contract import canonical
-from factory.experiment_adapters import LocalExperimentBackend
-from factory.experiment_scheduler import ExperimentOrchestrator
-from factory.uvvis_adapter import InstrumentUnavailable
-from factory.uvvis_service import VirtualUvVisService
+from factory.lab_context.context_repository import SQLiteContextRepository
+from factory.instruments.uvvis_contract import canonical
+from factory.experiments.experiment_adapters import LocalExperimentBackend
+from factory.experiments.experiment_scheduler import ExperimentOrchestrator
+from factory.instruments.uvvis_adapter import InstrumentUnavailable
+from factory.instruments.uvvis_service import VirtualUvVisService
 
 
 class PreparationContentionTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class PreparationContentionTests(unittest.TestCase):
         planner.run.side_effect = [task("pending"), task("candidate_ready"), task("candidate_ready", "second")]
         planner.verify.side_effect = [task("candidate_ready"), task("released", "second", "digest")]
         planner.get.side_effect = [task("pending"), task("interrupted")]
-        with patch("factory.experiment_adapters.time.sleep"):
+        with patch("factory.experiments.experiment_adapters.time.sleep"):
             self.assertEqual(backend.prepare("approved"), "digest")
         planner.plan.assert_called_with("approved", retry_of="first")
         planner.releases.load.assert_called_once_with("digest")
@@ -44,11 +44,11 @@ class PreparationContentionTests(unittest.TestCase):
 
 class CompositionTests(unittest.TestCase):
     def setUp(self):
-        from factory.approved_acquisition import ApprovedAcquisition
-        from factory.release_planner import ReleasePlanner
-        from factory.release_repository import ReleaseRepository
-        from factory.scientific_release import verify_release
-        from factory.specifications import ExperimentSpecificationService
+        from factory.experiments.approved_acquisition import ApprovedAcquisition
+        from factory.software.release_planner import ReleasePlanner
+        from factory.software.release_repository import ReleaseRepository
+        from factory.software.scientific_release import verify_release
+        from factory.lab_context.specifications import ExperimentSpecificationService
         from tests.test_context_acquisition_integration import live_instrument
         from tests.test_context_repository import load_demo
 

@@ -4,7 +4,7 @@ import tempfile
 from pathlib import Path
 import unittest
 
-from factory import optics
+from factory.assays.b12 import optics
 
 
 class OpticalTests(unittest.TestCase):

@@ -6,8 +6,8 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
-from factory.uvvis_adapter import InstrumentUnavailable, VirtualInstrumentAdapter
-from factory.uvvis_http import InstrumentHandler
+from factory.instruments.uvvis_adapter import InstrumentUnavailable, VirtualInstrumentAdapter
+from factory.instruments.uvvis_http import InstrumentHandler
 from tests.test_uvvis_api import SETTINGS, instrument, until
 
 

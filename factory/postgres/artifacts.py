@@ -1,7 +1,7 @@
 """PostgreSQL transaction port for WO-31's shared scientific artifact queries."""
 from contextlib import contextmanager
 
-from ..scientific_artifact_repository import SQLScientificArtifactRepository
+from factory.knowledge.scientific_artifact_repository import SQLScientificArtifactRepository
 from .db import Database
 
 

@@ -9,7 +9,7 @@ import unittest
 from jsonschema import Draft202012Validator
 
 from factory.context import ROOT, read_json
-from factory.context_repository import RevisionConflict, SQLiteContextRepository
+from factory.lab_context.context_repository import RevisionConflict, SQLiteContextRepository
 
 
 def load_demo(repository):

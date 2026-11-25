@@ -8,9 +8,9 @@ The audited base is `505c66b`, which includes WO-6 and WO-7 through PR #5. Land 
 
 | Order | PR and audited head | Handoff to check |
 | --- | --- | --- |
-| 1 | WO-8, #6, `4e783ab`, plus repair #9 at `e5f5cf4` | Immutable WO-6 context and profile pins → approved specification digest → compiled WO-7 recipe and fresh blank/job. Changes the shared settings validator in `factory/uvvis_contract.py`. The live worker must receive the exact reading fields and use frozen calibration for time courses. #9 corrects the contract that caused the first live candidates to be withheld. |
+| 1 | WO-8, #6, `4e783ab`, plus repair #9 at `e5f5cf4` | Immutable WO-6 context and profile pins → approved specification digest → compiled WO-7 recipe and fresh blank/job. Changes the shared settings validator in `factory/instruments/uvvis_contract.py`. The live worker must receive the exact reading fields and use frozen calibration for time courses. #9 corrects the contract that caused the first live candidates to be withheld. |
 | 2 | WO-9, #4, `deca34e` | Planner candidate bytes, receipt, recipe digest and context → independent concentration/time-course verifier → immutable release manifest and scoped active pointer. Check a rejected candidate preserves the previous release. |
-| 3 | WO-10, #7, `87f7b30` | Scheduler consumes the WO-8 approval, planner and acquisition services and the WO-9 verifier and release repository. Check FIFO leases, retry identity, blank reuse, timepoint job IDs, calibration identity and analysis with the verified release. Changes `factory/uvvis_adapter.py` and its API tests. |
+| 3 | WO-10, #7, `87f7b30` | Scheduler consumes the WO-8 approval, planner and acquisition services and the WO-9 verifier and release repository. Check FIFO leases, retry identity, blank reuse, timepoint job IDs, calibration identity and analysis with the verified release. Changes `factory/instruments/uvvis_adapter.py` and its API tests. |
 
 ## Before each merge
 

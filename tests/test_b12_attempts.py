@@ -9,12 +9,12 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from factory import b12_build, optics
-from factory.b12_attempts import record_direct_analysis
-from factory.archive import validate_archive
+from factory.assays.b12 import b12_build, optics
+from factory.assays.b12.b12_attempts import record_direct_analysis
+from factory.assays.b12.archive import validate_archive
 from factory.context import ROOT, read_json
-from factory.lab import Handler, Lab, ThreadingHTTPServer, save
-from factory.sandbox import execute
+from factory.assays.b12.lab import Handler, Lab, ThreadingHTTPServer, save
+from factory.software.sandbox import execute
 from tests.b12_retry_contract import check_retry_successors
 
 
@@ -87,7 +87,7 @@ class B12AttemptTests(B12AttemptFixture):
         for fields, sample in [({}, "U-01"), ({"sample_id": "Cobalt-09"}, "Cobalt-09")]:
             with self.subTest(sample=sample):
                 run = self.pending_direct(**fields)
-                with patch("factory.lab.acquire", wraps=optics.acquire) as instrument:
+                with patch("factory.assays.b12.lab.acquire", wraps=optics.acquire) as instrument:
                     acquisition = self.lab.collect(run)
                     self.assertEqual(acquisition["input"]["sample_id"], sample)
                     self.assertTrue(acquisition["finding"]["above_range"])
@@ -156,7 +156,7 @@ class B12AttemptTests(B12AttemptFixture):
         run = self.pending_direct(sample_id="Opaque-22")
         raw = optics.acquire(optics.RECIPE, 35, 122, sample_id="Opaque-22")
         raw[1]["sample_counts"] = optics.ADC_MAX
-        with patch("factory.lab.acquire", return_value=raw) as instrument:
+        with patch("factory.assays.b12.lab.acquire", return_value=raw) as instrument:
             for _ in range(2):
                 with self.assertRaisesRegex(ValueError, "[Ss]aturat"):
                     self.lab.collect(run)
@@ -173,14 +173,14 @@ class B12AttemptTests(B12AttemptFixture):
 
     def assert_followup_rejection(self, raw, reason, *, candidate_error=False):
         self.open_api()
-        execute = self.enterContext(patch("factory.followup.execute"))
+        execute = self.enterContext(patch("factory.assays.b12.followup.execute"))
         def read_instrument(*args, **kwargs):
             stored, = read_json(self.store / self.child / "task.json")["acquisition_attempts"]
             self.assertTrue(stored["id"])
             self.assertEqual(stored["sample_id"], kwargs["sample_id"])
             return raw
 
-        instrument = self.enterContext(patch("factory.followup.acquire", side_effect=read_instrument))
+        instrument = self.enterContext(patch("factory.assays.b12.followup.acquire", side_effect=read_instrument))
 
         def fail_candidate(*args, **kwargs):
             stored, = read_json(self.store / self.child / "task.json")["acquisition_attempts"]
@@ -243,7 +243,7 @@ class B12AttemptTests(B12AttemptFixture):
         class PowerLoss(BaseException):
             pass
 
-        with patch("factory.followup.acquire", side_effect=PowerLoss) as instrument:
+        with patch("factory.assays.b12.followup.acquire", side_effect=PowerLoss) as instrument:
             with self.assertRaises(PowerLoss):
                 self.lab.rerun(self.child)
             before, = read_json(self.store / self.child / "task.json")["acquisition_attempts"]
@@ -261,10 +261,10 @@ class B12AttemptTests(B12AttemptFixture):
     def test_explicit_retry_is_distinct_and_repeatable(self):
         raw = self.readings()
         raw[0]["sample_counts"] = optics.ADC_MAX
-        with patch("factory.followup.acquire", return_value=raw):
+        with patch("factory.assays.b12.followup.acquire", return_value=raw):
             first, = self.lab.rerun(self.child)["acquisition_attempts"]
         self.reopen()
-        with patch("factory.followup.acquire", wraps=optics.acquire) as instrument:
+        with patch("factory.assays.b12.followup.acquire", wraps=optics.acquire) as instrument:
             second = self.lab.rerun(self.child, retry_of=first["id"])
             old, new = second["acquisition_attempts"]
             self.assertEqual(old, first)
@@ -279,14 +279,14 @@ class B12AttemptTests(B12AttemptFixture):
     def test_earlier_retry_key_selects_its_original_rejected_successor(self):
         raw = self.readings()
         raw[0]["sample_counts"] = optics.ADC_MAX
-        with patch("factory.followup.acquire", return_value=raw) as instrument:
+        with patch("factory.assays.b12.followup.acquire", return_value=raw) as instrument:
             first = self.lab.rerun(self.child)["acquisition_attempt_id"]
             second = self.lab.rerun(self.child, retry_of=first)["acquisition_attempt_id"]
             self.assertEqual(instrument.call_count, 2)
         last = self.lab.rerun(self.child, retry_of=second)
         self.lab.reveal(self.child)
         self.reopen()
-        with patch("factory.followup.acquire") as instrument:
+        with patch("factory.assays.b12.followup.acquire") as instrument:
             previous = self.lab.rerun(self.child, retry_of=first)
             instrument.assert_not_called()
         self.assertEqual(previous["acquisition_attempt_id"], second)
@@ -314,7 +314,7 @@ class B12AttemptTests(B12AttemptFixture):
             self.assertEqual(status, 200, task)
             return task
 
-        with patch("factory.followup.acquire", side_effect=instrument):
+        with patch("factory.assays.b12.followup.acquire", side_effect=instrument):
             initial = child_request("/rerun", {})
             first, = initial["acquisition_attempts"]
             self.assertEqual(initial["acquisition_attempt_id"], first["id"])
@@ -351,7 +351,7 @@ class B12AttemptTests(B12AttemptFixture):
     def assert_bad_preparation(self, change, reason):
         prep = {**self.bundle["followup"]["preparation"], **change}
         self.lab.update(self.child, preparation=prep)
-        with patch("factory.followup.acquire") as instrument:
+        with patch("factory.assays.b12.followup.acquire") as instrument:
             failed = self.lab.rerun(self.child)
             attempt, = failed["acquisition_attempts"]
             self.assertEqual(attempt["preparation"], prep)
@@ -375,7 +375,7 @@ class B12AttemptTests(B12AttemptFixture):
 
     def test_prerequisites_and_verified_source_checked_before_reading(self):
         record = self.bundle["followup"]
-        with patch("factory.followup.acquire") as instrument:
+        with patch("factory.assays.b12.followup.acquire") as instrument:
             for field, value in [("status", "verifying"), ("preparation", None), ("approval", None)]:
                 with self.subTest(field=field):
                     self.lab.update(self.child, **{field: value})
@@ -393,6 +393,6 @@ class B12AttemptTests(B12AttemptFixture):
 
     def test_legacy_completed_measurement_is_returned_without_new_readings(self):
         save(self.store / self.child / "task.json", self.bundle["followup"])
-        with patch("factory.followup.acquire") as instrument:
+        with patch("factory.assays.b12.followup.acquire") as instrument:
             self.assertEqual(self.lab.rerun(self.child), self.bundle["followup"])
             instrument.assert_not_called()

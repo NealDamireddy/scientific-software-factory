@@ -1,6 +1,6 @@
 import unittest
 from factory.context import ROOT, read_json
-from factory.replay_bundle import replay_package
+from factory.assays.b12.replay_bundle import replay_package
 
 
 class SavedRunTests(unittest.TestCase):

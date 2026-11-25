@@ -2,9 +2,9 @@
 import json
 from unittest.mock import patch
 
-from factory import b12_build, optics
+from factory.assays.b12 import b12_build, optics
 from factory.context import read_json
-from factory.lab import Lab
+from factory.assays.b12.lab import Lab
 from tests.test_b12_attempts import B12AttemptFixture
 
 
@@ -36,8 +36,8 @@ class CalibrationCheckpointTests(B12AttemptFixture):
             observed.append({"concentration_mg_l": concentration, "raw": raw})
             return raw
 
-        with patch("factory.optics.acquire", side_effect=instrument_read) as standards, \
-                patch("factory.lab.acquire") as vial:
+        with patch("factory.assays.b12.optics.acquire", side_effect=instrument_read) as standards, \
+                patch("factory.assays.b12.lab.acquire") as vial:
             with self.assertRaisesRegex(ValueError, f"(?i){fault}"):
                 self.lab.collect(run)
             status, body = self.request(task_id=run)
@@ -83,9 +83,9 @@ class CalibrationCheckpointTests(B12AttemptFixture):
             observed.extend(raw)
             return raw
 
-        with patch("factory.b12_build.invoke_worker", return_value=(candidate, {"method": "fixture"})) as worker, \
-                patch("factory.optics.acquire", side_effect=saturate_standard) as standards, \
-                patch("factory.lab.acquire") as vial:
+        with patch("factory.assays.b12.b12_build.invoke_worker", return_value=(candidate, {"method": "fixture"})) as worker, \
+                patch("factory.assays.b12.optics.acquire", side_effect=saturate_standard) as standards, \
+                patch("factory.assays.b12.lab.acquire") as vial:
             status, ticket = self.request("POST", task_id="", body={"brief": "Measure B12 at 550 nm"})
             self.assertEqual(status, 202, ticket)
             self.assertEqual(self.request(task_id=ticket["id"])[0], 200)
@@ -120,10 +120,10 @@ class CalibrationCheckpointTests(B12AttemptFixture):
             captured.append(raw)
             return raw
 
-        with patch("factory.optics.acquire", side_effect=capture) as baseline:
+        with patch("factory.assays.b12.optics.acquire", side_effect=capture) as baseline:
             original = optics.fit_calibration(optics.RECIPE, seed)
         checkpoints = []
-        with patch("factory.optics.acquire", side_effect=captured) as replay:
+        with patch("factory.assays.b12.optics.acquire", side_effect=captured) as replay:
             journaled = optics.fit_calibration(
                 optics.RECIPE, seed, checkpoint_standard=lambda concentration, raw:
                 checkpoints.append((concentration, raw)))
@@ -146,7 +146,7 @@ class CalibrationCheckpointTests(B12AttemptFixture):
                 self.assertEqual(evidence["raw"][record["replicate"] - 1], record)
             return absorbance(record)
 
-        with patch("factory.optics.absorbance", side_effect=check_saved_then_assess):
+        with patch("factory.assays.b12.optics.absorbance", side_effect=check_saved_then_assess):
             acquired = self.lab.collect(run)
         frozen = acquired["calibration"]
         self.assertEqual(frozen["id"], optics.calibration_digest(frozen))
@@ -160,7 +160,7 @@ class CalibrationCheckpointTests(B12AttemptFixture):
         attempt, = task["acquisition_attempts"]
         self.assertEqual(attempt["calibration_standards"], expected)
         self.assertEqual(attempt["calibration_id"], frozen["id"])
-        with patch("factory.optics.acquire") as standards, patch("factory.lab.acquire") as vial:
+        with patch("factory.assays.b12.optics.acquire") as standards, patch("factory.assays.b12.lab.acquire") as vial:
             self.assertEqual(self.lab.collect(run), acquired)
             standards.assert_not_called()
             vial.assert_not_called()
@@ -183,7 +183,7 @@ class AnalysisCheckpointTests(B12AttemptFixture):
 
     def check_rejected_candidate(self, reason):
         self.open_api()
-        with patch("factory.followup.acquire", wraps=optics.acquire) as instrument:
+        with patch("factory.assays.b12.followup.acquire", wraps=optics.acquire) as instrument:
             status, first = self.request("POST", "/rerun")
             self.assertEqual(status, 200, first)
             saved, = read_json(self.store / self.child / "task.json")["acquisition_attempts"]
@@ -221,8 +221,8 @@ class AnalysisCheckpointTests(B12AttemptFixture):
             pass
 
         self.open_api()
-        with patch("factory.followup.acquire", wraps=optics.acquire) as instrument:
-            with patch("factory.followup.execute", side_effect=ProcessStopped), self.assertRaises(ProcessStopped):
+        with patch("factory.assays.b12.followup.acquire", wraps=optics.acquire) as instrument:
+            with patch("factory.assays.b12.followup.execute", side_effect=ProcessStopped), self.assertRaises(ProcessStopped):
                 self.lab.rerun(self.child)
             snapshot = read_json(self.store / self.child / "task.json")
             checkpoint, = snapshot["acquisition_attempts"]

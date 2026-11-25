@@ -23,13 +23,13 @@ jobs:
       - name: Verify shared B12 acquisition, retry, archive and replay
         run: uv run --frozen python .sw-factory/WO-16/check_combined.py
       - name: Check saved context against fresh acquisition
-        if: hashFiles('factory/specifications.py') != ''
+        if: hashFiles('factory/lab_context/specifications.py') != ''
         run: uv run --frozen python -c 'from tests.test_context_acquisition_integration import test_saved_project_context_drives_fresh_acquisition as check; check()'
       - name: Verify the approved planner-to-publisher handoff for both experiments
-        if: hashFiles('factory/scientific_release.py') != ''
+        if: hashFiles('factory/software/scientific_release.py') != ''
         run: uv run --frozen python scripts/check_wo8_wo9_handoff.py HEAD HEAD
       - name: Require scheduler composition when the scheduler ships
-        if: hashFiles('factory/experiment_scheduler.py') != ''
+        if: hashFiles('factory/experiments/experiment_scheduler.py') != ''
         run: |
           uv run --frozen python - <<'PY'
           import unittest
@@ -41,12 +41,12 @@ jobs:
           PY
       - name: Replay archived B12 releases and score the retained assay
         run: |
-          uv run --frozen python -m factory.replay_bundle public/b12/completed.json
-          uv run --frozen python -m factory.benchmark public/b12/completed.json --out "$RUNNER_TEMP/b12-scored"
+          uv run --frozen python -m factory.assays.b12.replay_bundle public/b12/completed.json
+          uv run --frozen python -m factory.assays.b12.benchmark public/b12/completed.json --out "$RUNNER_TEMP/b12-scored"
       - name: Verify retained EPR evidence
         run: |
           for report in public/evidence/*/*/report.json; do
-            uv run --frozen python -m factory verify "$(dirname "$report")"
+            uv run --frozen python -m factory.assays.epr verify "$(dirname "$report")"
           done
 
   postgres:

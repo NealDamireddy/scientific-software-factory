@@ -1,5 +1,5 @@
 """Independent fixture inputs shared by local and hosted catalog adapter tests."""
-from factory.catalog_contract import APPROVE, PROPOSE, READ, RECORD_EVIDENCE
+from factory.knowledge.catalog_contract import APPROVE, PROPOSE, READ, RECORD_EVIDENCE
 
 LAB = "spectroscopy"
 ACTIONS = (READ, PROPOSE, RECORD_EVIDENCE, APPROVE)

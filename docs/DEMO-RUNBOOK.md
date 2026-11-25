@@ -10,14 +10,14 @@
 
    ```sh
    uv sync --frozen
-   uv run --frozen python -m factory.demo --check
+   uv run --frozen python -m factory.assays.b12.demo --check
    uv run --frozen python -m unittest discover -s tests -v
    ```
 
    Require all live readiness checks and tests to pass on the presenter laptop.
    The readiness check executes harmless sandbox probes and replays the saved
    analyses. It checks CLI login, **not** the model connection or a new build.
-4. Start `uv run --frozen python -m factory.demo` and open the URL printed by it.
+4. Start `uv run --frozen python -m factory.assays.b12.demo` and open the URL printed by it.
    Leave the terminal running. A second server cannot use the same store/port.
 5. In a clean browser session, rehearse the full request-to-reveal sequence below.
    Record elapsed time and the **new** direct/follow-up task IDs and revisions.
@@ -29,7 +29,7 @@
 To keep a rehearsal separate without destroying retained evidence:
 
 ```sh
-uv run --frozen python -m factory.demo --store runs/b12-rehearsal-02
+uv run --frozen python -m factory.assays.b12.demo --store runs/b12-rehearsal-02
 ```
 
 A new store still shows the bundled read-only archive; it does not preload live
@@ -65,7 +65,7 @@ is a real finding: retain it and use the labeled archive, not a forced estimate.
 - If Codex cannot start at all, stop the server with Ctrl+C and run:
 
   ```sh
-  uv run --frozen python -m factory.demo --archive-only
+  uv run --frozen python -m factory.assays.b12.demo --archive-only
   ```
 
   This mode is read-only for the previous run and rejects fresh-generation
@@ -104,5 +104,5 @@ reproduced both results from disk. Task IDs and revisions are in the
 [WO-4 review log](../.sw-factory/WO-4/review-log.md).
 
 For a fallback tab alongside a running live presenter, start
-`uv run --frozen python -m factory.demo --archive-only --port 8768`.
+`uv run --frozen python -m factory.assays.b12.demo --archive-only --port 8768`.
 The tab reads the bundled run without opening the live task store.

@@ -10,10 +10,10 @@ import unittest
 from unittest.mock import patch
 from uuid import uuid4
 
-from factory.uvvis_adapter import VirtualInstrumentAdapter
-from factory.uvvis_contract import pin_sha256
-from factory.uvvis_http import InstrumentHandler, make_server
-from factory.uvvis_service import VirtualUvVisService
+from factory.instruments.uvvis_adapter import VirtualInstrumentAdapter
+from factory.instruments.uvvis_contract import pin_sha256
+from factory.instruments.uvvis_http import InstrumentHandler, make_server
+from factory.instruments.uvvis_service import VirtualUvVisService
 from tests.test_uvvis_api import SAMPLES, SETTINGS
 
 

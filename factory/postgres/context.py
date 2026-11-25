@@ -4,8 +4,8 @@ from uuid import uuid4
 
 from jsonschema import Draft202012Validator
 
-from ..context import digest
-from ..context_repository import (
+from factory.context import digest
+from factory.lab_context.context_repository import (
     ContextRevision, RevisionConflict, _CONTEXT_SCHEMA, _registered_profiles, _validate, canonical_json,
 )
 from .db import Database

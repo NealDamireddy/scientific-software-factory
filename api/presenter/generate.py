@@ -4,7 +4,7 @@ import os
 from urllib.request import Request, urlopen
 
 from api.instrument import CALIBRATION, handler as InstrumentHandler
-from factory.hosted_assay import compile_assay
+from factory.assays.b12.hosted_assay import compile_assay
 
 
 class handler(InstrumentHandler):

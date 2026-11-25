@@ -3,10 +3,10 @@ import json
 import tempfile
 import unittest
 
-from factory import b12_build, optics
-from factory.followup import replay_acquisition, run_followup
-from factory.lab import save
-from factory.sandbox import execute
+from factory.assays.b12 import b12_build, optics
+from factory.assays.b12.followup import replay_acquisition, run_followup
+from factory.assays.b12.lab import save
+from factory.software.sandbox import execute
 
 
 # An offline fixture with an independently written estimator for the trusted runner.

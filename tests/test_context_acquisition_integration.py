@@ -10,13 +10,13 @@ import threading
 import unittest
 from unittest.mock import patch
 
-from factory.approved_acquisition import ApprovedAcquisition
-from factory.context_repository import SQLiteContextRepository
-from factory.specifications import ExperimentSpecificationService
-from factory.uvvis_adapter import InstrumentUnavailable, VirtualInstrumentAdapter
-from factory.uvvis_contract import InstrumentError
-from factory.uvvis_http import make_server
-from factory.uvvis_service import VirtualUvVisService
+from factory.experiments.approved_acquisition import ApprovedAcquisition
+from factory.lab_context.context_repository import SQLiteContextRepository
+from factory.lab_context.specifications import ExperimentSpecificationService
+from factory.instruments.uvvis_adapter import InstrumentUnavailable, VirtualInstrumentAdapter
+from factory.instruments.uvvis_contract import InstrumentError
+from factory.instruments.uvvis_http import make_server
+from factory.instruments.uvvis_service import VirtualUvVisService
 from tests.test_context_repository import load_demo
 from tests.test_specifications import save_calibration_fixture
 from tests.test_uvvis_api import SAMPLES, until

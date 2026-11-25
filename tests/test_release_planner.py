@@ -8,11 +8,11 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from factory.b12_build import content_revision
+from factory.assays.b12.b12_build import content_revision
 from factory.context import digest
-from factory.release_planner import INPUT_SCHEMA, OUTPUT_SCHEMA, ReleasePlanner
-from factory.scientific_contract import VERIFIER
-from factory.uvvis_contract import canonical, load_profile, profile_sha256
+from factory.software.release_planner import INPUT_SCHEMA, OUTPUT_SCHEMA, ReleasePlanner
+from factory.software.scientific_contract import VERIFIER
+from factory.instruments.uvvis_contract import canonical, load_profile, profile_sha256
 
 
 class Approvals:

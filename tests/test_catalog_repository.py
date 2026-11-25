@@ -4,8 +4,8 @@ import unittest
 from contextlib import closing
 from pathlib import Path
 
-from factory.catalog_repository import SQLiteCatalogRepository
-from factory.context_repository import SQLiteContextRepository
+from factory.knowledge.catalog_repository import SQLiteCatalogRepository
+from factory.lab_context.context_repository import SQLiteContextRepository
 from tests.fixtures.catalog_examples import LAB, Caller, catalog
 from tests.test_catalog_contract import CatalogRepositoryContract
 

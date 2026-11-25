@@ -14,16 +14,16 @@ from urllib.error import HTTPError
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-missing = [name for name in ("factory/b12_attempts.py", "factory/archive_measurements.py",
-                             "factory/b12_reuse.py", "tests/test_b12_reuse_requests.py")
+missing = [name for name in ("factory/assays/b12/b12_attempts.py", "factory/assays/b12/archive_measurements.py",
+                             "factory/assays/b12/b12_reuse.py", "tests/test_b12_reuse_requests.py")
            if not (ROOT / name).is_file()]
 if missing:
     sys.exit("Combined acceptance unavailable in this checkout. Missing " + ", ".join(missing))
 
-from factory import b12_build, optics
-from factory.archive import validate_archive
+from factory.assays.b12 import b12_build, optics
+from factory.assays.b12.archive import validate_archive
 from factory.context import read_json
-from factory.lab import Lab
+from factory.assays.b12.lab import Lab
 from tests import test_b12_reuse_requests as reuse
 from tests.b12_retry_contract import check_retry_successors
 
@@ -139,7 +139,7 @@ class CombinedAcceptance(unittest.TestCase):
             return raw
 
         with patch.object(b12_build, "invoke_worker", side_effect=AssertionError("unexpected coding worker")) as worker, \
-                patch("factory.followup.acquire", side_effect=instrument):
+                patch("factory.assays.b12.followup.acquire", side_effect=instrument):
             with fixture.presenter() as request:
                 direct = self.submit(request, vial)
                 fixture.assert_reused(direct, source)

@@ -7,9 +7,9 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-from factory.uvvis_adapter import InstrumentUnavailable, VirtualInstrumentAdapter
-from factory.uvvis_contract import InstrumentError
-from factory.uvvis_http import InstrumentHandler
+from factory.instruments.uvvis_adapter import InstrumentUnavailable, VirtualInstrumentAdapter
+from factory.instruments.uvvis_contract import InstrumentError
+from factory.instruments.uvvis_http import InstrumentHandler
 from tests.test_uvvis_api import Clock, PIN, SETTINGS, instrument, raw, until
 
 

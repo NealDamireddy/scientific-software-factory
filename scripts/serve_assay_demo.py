@@ -9,9 +9,9 @@ from threading import Lock
 from uuid import uuid4
 
 from api.instrument import CALIBRATION, handler as InstrumentHandler, read_vial
-from factory import b12_build
-from factory.optics import RECIPE, verify_candidate
-from factory.sandbox import execute
+from factory.assays.b12 import b12_build
+from factory.assays.b12.optics import RECIPE, verify_candidate
+from factory.software.sandbox import execute
 
 ROOT = Path(__file__).resolve().parents[1]
 PAPER = json.loads((ROOT / "data/b12-evaluation.json").read_text())["published"]

@@ -82,7 +82,7 @@ export default function B12Archive() {
         <a download href="/b12/completed.json"><Download size={16}/> Download run evidence</a>
         <a href="http://127.0.0.1:8765/" target="_blank" rel="noreferrer">Open local presenter <ArrowUpRight size={15}/></a>
       </div>
-      <p className="note">Fresh generation runs on the presenter laptop with <code>python -m factory.lab</code>.</p>
+      <p className="note">Fresh generation runs on the presenter laptop with <code>python -m factory.assays.b12.lab</code>.</p>
       <section className="card result" aria-labelledby="result-heading">
         <div><p className="eyebrow">Original vial · {result.parent_id || preparation.parent_id}</p>
           <h2 id="result-heading">{result.status === "ok" ? <>{number(result.concentration_mg_l)} <small>mg/L</small></> : "Measurement requires review"}</h2>

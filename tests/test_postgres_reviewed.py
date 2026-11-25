@@ -5,7 +5,7 @@ from unittest import TestCase, skipUnless
 from tests.test_postgres_repositories import BASE_DSN, isolated_database
 
 
-if find_spec("factory.catalog_domain"):
+if find_spec("factory.knowledge.catalog_domain"):
     from tests.test_catalog_contract import CatalogRepositoryContract
 
     @skipUnless(BASE_DSN, "use tests/fixtures/postgres/run.sh")
@@ -25,24 +25,24 @@ else:
 
 @skipUnless(BASE_DSN, "use tests/fixtures/postgres/run.sh")
 class HostedReviewedContracts(TestCase):
-    @skipUnless(find_spec("factory.scientific_artifact_repository"), "requires WO-31's artifact domain")
+    @skipUnless(find_spec("factory.knowledge.scientific_artifact_repository"), "requires WO-31's artifact domain")
     def test_scientific_artifact_contract(self):
         from factory.postgres.artifacts import PostgresScientificArtifactRepository
         from tests.fixtures.scientific_artifact_contract import check_repository
         with isolated_database() as dsn:
             check_repository(self, lambda principal: PostgresScientificArtifactRepository(dsn, principal))
 
-    @skipUnless(find_spec("factory.runtime_work_order_domain"), "requires WO-37's runtime domain")
+    @skipUnless(find_spec("factory.software.runtime_work_order_domain"), "requires WO-37's runtime domain")
     def test_runtime_contract(self):
         from factory.postgres.runtime import PostgresRuntimeWorkOrderRepository
         from tests.test_runtime_work_order_contract import run_runtime_work_order_contract
         with isolated_database() as dsn:
             run_runtime_work_order_contract(lambda: PostgresRuntimeWorkOrderRepository(dsn))
 
-    @skipUnless(find_spec("factory.runtime_work_order_domain"), "requires WO-37's runtime domain")
+    @skipUnless(find_spec("factory.software.runtime_work_order_domain"), "requires WO-37's runtime domain")
     def test_runtime_rejects_corrupt_retained_record(self):
         from factory.postgres.runtime import PostgresRuntimeRecordStore
-        from factory.runtime_work_order import Scope
+        from factory.software.runtime_work_order import Scope
         with isolated_database() as dsn:
             store = PostgresRuntimeRecordStore(dsn)
             scope = Scope("l", "p", "task")

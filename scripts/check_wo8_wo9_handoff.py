@@ -21,8 +21,8 @@ def git(repo, *args):
 
 
 def exercise(root, db_path, kind, specs, releases, lab, project):
-    from factory.release_planner import ReleasePlanner
-    from factory.scientific_release import verify_release
+    from factory.software.release_planner import ReleasePlanner
+    from factory.software.scientific_release import verify_release
     from tests.test_specifications import save_calibration_fixture
 
     spec = specs.start(lab.lab_id, project.project_id, experiment_type=kind)
@@ -99,10 +99,10 @@ def main():
         tree = git(root, "merge-tree", "--write-tree", commits["wo8"], commits["wo9"])
         git(root, "read-tree", "--reset", "-u", tree)
         sys.path.insert(0, str(root))
-        from factory.context_repository import SQLiteContextRepository
-        from factory.release_repository import ReleaseRepository
-        from factory.scientific_release import VERIFIER
-        from factory.specifications import ExperimentSpecificationService
+        from factory.lab_context.context_repository import SQLiteContextRepository
+        from factory.software.release_repository import ReleaseRepository
+        from factory.software.scientific_release import VERIFIER
+        from factory.lab_context.specifications import ExperimentSpecificationService
         from tests.test_context_repository import load_demo
 
         db = Path(temp) / "application.sqlite"

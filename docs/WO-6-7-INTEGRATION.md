@@ -33,8 +33,8 @@ Run from the repository root on a host with a working scientific sandbox and loo
 ```sh
 uv run --frozen python -m unittest discover -s tests -v
 uv run --frozen python -m unittest tests.test_uvvis_profile_handoff
-uv run --frozen python -m factory.replay_bundle public/b12/completed.json
-uv run --frozen python -m factory.benchmark public/b12/completed.json --out runs/integration-b12-evaluation
+uv run --frozen python -m factory.assays.b12.replay_bundle public/b12/completed.json
+uv run --frozen python -m factory.assays.b12.benchmark public/b12/completed.json --out runs/integration-b12-evaluation
 ```
 
 ## Outstanding review and downstream dependency

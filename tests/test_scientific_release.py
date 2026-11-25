@@ -6,12 +6,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from factory.b12_build import content_revision
+from factory.assays.b12.b12_build import content_revision
 from factory.context import ROOT, digest
-from factory.release_repository import ReleaseRepository, canonical
-from factory.scientific_analysis import analyze_release, public_input
-from factory.scientific_contract import cases, compare
-from factory.scientific_release import check_context, metrics, verify_release
+from factory.software.release_repository import ReleaseRepository, canonical
+from factory.software.scientific_analysis import analyze_release, public_input
+from factory.software.scientific_contract import cases, compare
+from factory.software.scientific_release import check_context, metrics, verify_release
 
 
 def handoff(kind):
@@ -163,8 +163,8 @@ class ReleaseTests(unittest.TestCase):
                 with self.subTest(kind=kind, failure=failure):
                     data = handoff(kind)
                     mutate(data)
-                    with patch("factory.scientific_release.execute") as execute, patch(
-                        "factory.scientific_release.isolation_probe", side_effect=RuntimeError("unavailable")
+                    with patch("factory.software.scientific_release.execute") as execute, patch(
+                        "factory.software.scientific_release.isolation_probe", side_effect=RuntimeError("unavailable")
                     ) as probe:
                         report = self.verify(data)
                         execute.assert_not_called()

@@ -6,10 +6,10 @@ import threading
 import unittest
 
 from factory.context import ROOT, read_json
-from factory.context_repository import SQLiteContextRepository
-from factory.uvvis_adapter import VirtualInstrumentAdapter
-from factory.uvvis_http import make_server
-from factory.uvvis_service import VirtualUvVisService
+from factory.lab_context.context_repository import SQLiteContextRepository
+from factory.instruments.uvvis_adapter import VirtualInstrumentAdapter
+from factory.instruments.uvvis_http import make_server
+from factory.instruments.uvvis_service import VirtualUvVisService
 from tests.test_context_repository import load_demo
 from tests.test_uvvis_api import until
 

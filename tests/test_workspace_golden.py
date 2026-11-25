@@ -11,8 +11,8 @@ import unittest
 from unittest.mock import patch
 
 from factory.context import digest
-from factory.context_repository import SQLiteContextRepository, canonical_json
-from factory.specifications import ExperimentSpecificationService
+from factory.lab_context.context_repository import SQLiteContextRepository, canonical_json
+from factory.lab_context.specifications import ExperimentSpecificationService
 from tests.test_context_repository import load_demo
 from tests.test_specifications import save_calibration_fixture
 
@@ -25,12 +25,12 @@ def generate(folder):
     repo = SQLiteContextRepository(path)
     # Control only public fixture identity and observation time. Producer services
     # still own serialization, pin resolution, validation, approval and digests.
-    with patch("factory.context_repository.uuid4", side_effect=[
+    with patch("factory.lab_context.context_repository.uuid4", side_effect=[
         "dc84e448-5541-4e4d-a3cb-3c942f1058fa", "56c2a294-a9bb-4223-a58d-aa3add5e29f3",
     ]):
         lab, project = load_demo(repo)
     service = ExperimentSpecificationService(repo, path)
-    with patch("factory.specifications.uuid4", side_effect=["spec-concentration", "spec-time-course"]):
+    with patch("factory.lab_context.specifications.uuid4", side_effect=["spec-concentration", "spec-time-course"]):
         concentration = service.start(lab.lab_id, project.project_id)
         initial_course = service.start(lab.lab_id, project.project_id, experiment_type="time_course")
     # WO-8's own persisted fit fixture exercises the same on-disk calibration
@@ -40,7 +40,7 @@ def generate(folder):
     records = []
     for spec, hour, minute in [(concentration, 8, 59), (course, 9, 4)]:
         when = datetime(2026, 11, 12, hour, minute, 45, tzinfo=timezone.utc)
-        with patch("factory.specifications.datetime") as clock:
+        with patch("factory.lab_context.specifications.datetime") as clock:
             clock.now.return_value = when
             service.approve(spec["sha256"], actor="Fixture researcher", confirmed_fields=service.confirmation_fields(spec))
         persisted, approval = service.approved(spec["sha256"])

@@ -3,8 +3,8 @@ import json
 
 from psycopg import sql
 
-from ..context import digest
-from ..release_repository import canonical
+from factory.context import digest
+from factory.software.release_repository import canonical
 from .db import Database
 
 

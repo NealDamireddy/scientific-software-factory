@@ -8,12 +8,12 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock
 
-from factory.context_repository import SQLiteContextRepository
-from factory.release_planner import ReleasePlanner
-from factory.release_repository import ReleaseRepository
-from factory.scientific_contract import VERIFIER
-from factory.scientific_release import verify_release
-from factory.specifications import ExperimentSpecificationService
+from factory.lab_context.context_repository import SQLiteContextRepository
+from factory.software.release_planner import ReleasePlanner
+from factory.software.release_repository import ReleaseRepository
+from factory.software.scientific_contract import VERIFIER
+from factory.software.scientific_release import verify_release
+from factory.lab_context.specifications import ExperimentSpecificationService
 
 
 class FrozenCalibrationUpgradeTests(unittest.TestCase):

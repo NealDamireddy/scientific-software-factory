@@ -33,7 +33,7 @@ The local B12 card requires an authenticated Codex CLI with model connectivity a
 From this repository's root on the presenter laptop:
 
 ```sh
-uv run --frozen python -m factory.demo
+uv run --frozen python -m factory.assays.b12.demo
 ```
 
 Open **http://127.0.0.1:8765/**. The launcher checks the Python environment,
@@ -50,13 +50,13 @@ worker's model connection. Scientific execution is offline; EVOLVE does not call
 To check without starting a service or creating a scientific task:
 
 ```sh
-uv run --frozen python -m factory.demo --check
+uv run --frozen python -m factory.assays.b12.demo --check
 ```
 
 ### Previous-run fallback, without Codex
 
 ```sh
-uv run --frozen python -m factory.demo --archive-only
+uv run --frozen python -m factory.assays.b12.demo --archive-only
 ```
 
 The local presenter always includes the committed **Previous completed run**, even
@@ -87,8 +87,8 @@ Run `npm ci`, `npx playwright install chromium`, `npm run build` and `uv run --f
 
 ```sh
 uv run --frozen python -m unittest discover -s tests -v
-uv run --frozen python -m factory.replay_bundle public/b12/completed.json
-uv run --frozen python -m factory.benchmark public/b12/completed.json --out runs/b12-evaluation-01
+uv run --frozen python -m factory.assays.b12.replay_bundle public/b12/completed.json
+uv run --frozen python -m factory.assays.b12.benchmark public/b12/completed.json --out runs/b12-evaluation-01
 ```
 
 Run scientific tests on a host where the runner can apply its own sandbox. Missing
@@ -104,7 +104,7 @@ physical-instrument validation. See [retained evaluation](public/b12/evaluation/
 
 The existing static EPR/B12 workbench remains available with `npm ci` and
 `npm run dev`; `npm run build` exports it to `out/`. Node and the web build are not
-required for the local B12 demo. The lower-level `python -m factory.lab` entry point
+required for the local B12 demo. The lower-level `python -m factory.assays.b12.lab` entry point
 remains available without the launcher's readiness checks or bundled fallback.
 
 For serial virtual UV–Vis experiments, see the [local scheduler and two-experiment test](docs/EXPERIMENT-SCHEDULER.md).

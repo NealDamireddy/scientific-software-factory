@@ -11,9 +11,9 @@ import time
 import unittest
 from uuid import uuid4
 
-from factory.experiment_scheduler import ExperimentOrchestrator
-from factory.uvvis_adapter import InstrumentUnavailable
-from factory.uvvis_contract import InstrumentError
+from factory.experiments.experiment_scheduler import ExperimentOrchestrator
+from factory.instruments.uvvis_adapter import InstrumentUnavailable
+from factory.instruments.uvvis_contract import InstrumentError
 
 
 A = sha256(b"concentration spec").hexdigest()

@@ -8,8 +8,8 @@ import unittest
 from unittest.mock import patch
 
 from factory.context import ROOT, read_json
-from factory.lab import Lab, save
-from factory.optics import assess
+from factory.assays.b12.lab import Lab, save
+from factory.assays.b12.optics import assess
 from tests.b12_release_fixtures import verified_task
 
 
