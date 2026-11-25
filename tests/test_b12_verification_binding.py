@@ -8,17 +8,18 @@ from factory.assays.b12 import b12_build
 from factory.assays.b12.b12_reuse import release_contract, select_release
 from factory.assays.b12.b12_verification import UNBOUND_VERIFICATION, validate_receipt, verification_receipt
 from factory.context import ROOT, read_json
+from tests.b12_release_fixtures import verified_task
 
 
 class VerificationBindingTests(unittest.TestCase):
     def setUp(self):
         bundle = read_json(ROOT / "public/b12/completed.json")
-        self.task = bundle["direct"]
+        self.task = verified_task(bundle, "direct")
         self.files = {name: source.encode("utf-8")
                       for name, source in bundle["sources"][self.task["id"]]["files"].items()}
         self.contract = release_contract(False)
-        self.task["verification"] = verification_receipt(
-            self.task["revision"], self.task["checks"], self.task["worker"], self.contract)
+        self.assertEqual(self.task["verification"], verification_receipt(
+            self.task["revision"], self.task["checks"], self.task["worker"], self.contract))
 
     def test_valid_binding_is_stable_across_serialized_key_order(self):
         contract = dict(reversed(self.contract.items()))
@@ -63,7 +64,7 @@ class VerificationBindingTests(unittest.TestCase):
                 elif field == "worker":
                     task["worker"]["model"] = "another-model"
                 else:
-                    contract["verification_profile"] = "optical-checks@2"
+                    contract["verification_profile"] = "optical-checks@1"
                 with self.assertRaisesRegex(ValueError, "verification evidence mismatch"):
                     validate_receipt(task, self.files, contract)
 

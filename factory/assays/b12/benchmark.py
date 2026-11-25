@@ -3,7 +3,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from statistics import mean, stdev
+from statistics import linear_regression, mean, stdev
 import tempfile
 
 from factory.assays.b12 import b12_build
@@ -93,6 +93,26 @@ def _join_labels(predictions, samples, label_key):
     return rows, mae
 
 
+def _subset_mae(rows, extrapolated):
+    errors = [abs(row["signed_error_mg_l"]) for row in rows if row["extrapolated"] is extrapolated]
+    return mean(errors) if errors and all(e is not None for e in errors) else None
+
+
+def self_calibration_loo_mae(samples, label_key="prepared_ppm"):
+    """Leave-one-out MAE when the published points calibrate themselves.
+
+    This shows how well a linear calibration fitted on that instrument's own
+    data predicts each held-out point. Comparing it with the frozen-calibration
+    error separates calibration transfer from the method itself.
+    """
+    errors = []
+    for index, held_out in enumerate(samples):
+        rest = [sample for position, sample in enumerate(samples) if position != index]
+        slope, intercept = linear_regression([s[label_key] for s in rest], [s["mean_absorbance"] for s in rest])
+        errors.append(abs((held_out["mean_absorbance"] - intercept) / slope - held_out[label_key]))
+    return mean(errors)
+
+
 def evaluate(package, out, *, dataset_path=DATASET):
     package_bytes = package.read_bytes()
     dataset_bytes = dataset_path.read_bytes()
@@ -150,8 +170,17 @@ def evaluate(package, out, *, dataset_path=DATASET):
         "panel": {"rows": panel_rows, "mae_mg_l": panel_mae, "target_mae_mg_l": limit,
                   "target_met": panel_mae is not None and panel_mae <= limit,
                   "seed_policy": SEED_POLICY, "noise_sd_counts": panel["noise_sd_counts"]},
+        # The panel shares the analysis's ideal model: a software regression check, not accuracy.
+        "panel_interpretation": "Software regression check under ideal simulated optics. The simulator "
+                                "and the analysis share one linear model, so this does not measure accuracy.",
         "published": {**{k: v for k, v in published.items() if k != "samples"},
                       "rows": published_rows, "mae_mg_l": published_mae,
+                      "released_rows_mae_mg_l": _subset_mae(published_rows, False),
+                      "extrapolated_rows_mae_mg_l": _subset_mae(published_rows, True),
+                      "self_calibration_loo_mae_ppm": self_calibration_loo_mae(published["samples"]),
+                      "interpretation": "Calibration-transfer error: the simulator's frozen calibration applied "
+                                        "to another instrument's readings. Extrapolated rows were withheld by the "
+                                        "released app and scored with benchmark-only linear extrapolation.",
                       "mean_input_adapter": "One published mean per vial. Repeated identically for the released triplicate input contract. No raw replicates or spread inferred."},
         "scientific_review": "Comparison assumes dilute aqueous ppm corresponds numerically to mg/L. Six published means cannot establish the cause of transfer error.",
     }

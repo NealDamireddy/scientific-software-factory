@@ -18,6 +18,7 @@ class handler(InstrumentHandler):
         except (TypeError, ValueError) as exc:
             return self.reply(400, {"error": str(exc)})
         method = "EVOLVE protocol compiler"
+        rejected = None
         token = os.getenv("AI_GATEWAY_API_KEY") or os.getenv("VERCEL_OIDC_TOKEN")
         if token:
             model = "openai/gpt-4o-mini"
@@ -29,11 +30,18 @@ class handler(InstrumentHandler):
                               data=json.dumps({"model": model, "messages": [{"role": "user", "content": prompt}],
                                                "max_tokens": 80}).encode(),
                               headers={"Authorization": "Bearer " + token, "Content-Type": "application/json"})
+            expression = None
             try:
                 with urlopen(request, timeout=12) as response:
                     expression = json.load(response)["choices"][0]["message"]["content"]
                 release = compile_assay(spec, expression, CALIBRATION)
                 method = model + " + EVOLVE protocol compiler"
-            except (OSError, ValueError, KeyError, IndexError, TypeError, SyntaxError, ArithmeticError):
-                pass
-        self.reply(200, {**release, "worker": {"model": method}})
+            except (OSError, ValueError, KeyError, IndexError, TypeError, SyntaxError, ArithmeticError) as error:
+                # Say that the model's answer was refused rather than swapping it silently.
+                rejected = {"model": model, "reason": type(error).__name__ + ": " + str(error)[:200],
+                            "expression": expression[:160] if isinstance(expression, str) else None}
+                print(json.dumps({"event": "presenter_expression_rejected", **rejected}), flush=True)
+        worker = {"model": method}
+        if rejected:
+            worker["rejected_model_expression"] = rejected
+        self.reply(200, {**release, "worker": worker})

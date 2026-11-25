@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from api.instrument import CALIBRATION, handler as InstrumentHandler, read_vial
 from factory.assays.b12 import b12_build
+from factory.assays.b12.hosted_assay import check_against_reference
 from factory.assays.b12.optics import RECIPE, verify_candidate
 from factory.software.sandbox import execute
 
@@ -66,6 +67,7 @@ def run_generated(task_id, store):
                    "absorbances": [PAPER_SAMPLE["mean_absorbance"]] * RECIPE["replicates"]}
     source = folder / "analysis.py"
     output, sandbox = execute(source, json.dumps(payload).encode())
+    check_against_reference(output, receipt["reference"])
     paper_output, _ = execute(source, json.dumps(paper_input).encode())
     return {"acquisition": receipt, "analysis": {"output": output, "paperOutput": paper_output,
             "paperInput": paper_input, "runtime": sandbox}}

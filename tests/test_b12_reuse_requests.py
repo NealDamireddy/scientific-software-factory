@@ -202,7 +202,7 @@ class RequestReuseTests(unittest.TestCase):
     def test_unbound_historical_run_is_preserved_and_new_request_builds_verified_source(self):
         old = self.seed_live("direct")
         folder = self.lab.path(old["id"])
-        save(folder / "task.json", self.bundle["direct"])
+        save(folder / "task.json", {key: value for key, value in old.items() if key != "verification"})
         before = (folder / "task.json").read_bytes()
         files = self.bundle["sources"][old["id"]]["files"]
         response = {"source": files["analysis.py"], "recipe": json.loads(files["recipe.json"]),
@@ -215,6 +215,24 @@ class RequestReuseTests(unittest.TestCase):
             self.assertNotEqual(new["id"], old["id"])
             worker.assert_called_once()
         self.assertEqual(before, (folder / "task.json").read_bytes())
+
+    def test_release_from_superseded_verification_profile_is_not_reused(self):
+        # The public archive was verified under optical-checks@1, whose single
+        # calibration could not tell some wrong formulas from the right one.
+        old = self.seed_live("direct")
+        folder = self.lab.path(old["id"])
+        save(folder / "task.json", self.bundle["direct"])
+        self.assertEqual(self.bundle["direct"]["context"]["verification_profile"], "optical-checks@1")
+        files = self.bundle["sources"][old["id"]]["files"]
+        response = {"source": files["analysis.py"], "recipe": json.loads(files["recipe.json"]),
+                    "views": json.loads(files["views.json"])}
+        with patch("factory.assays.b12.b12_build.invoke_worker", return_value=(response, {"method": "fixture"})) as worker:
+            new = self.wait_for_task(self.lab.submit("B12")["id"])
+            self.assertEqual(new["status"], "verified", new.get("error"))
+            self.assertEqual(new["reuse_rejections"][old["id"]], ["Incompatible verification_profile"])
+            self.assertEqual(new["mode"], "fresh generation")
+            self.assertEqual(new["context"]["verification_profile"], "optical-checks@2")
+            worker.assert_called_once()
 
     def test_prepared_reuse_preserves_distinct_experimental_and_original_parent_receipts(self):
         old = self.bundle["direct"]

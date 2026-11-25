@@ -13,7 +13,7 @@ PROFILE = {
     "project": "b12-assay",
     "instrument_profile": "osms-sim@1",
     "protocol": "b12-optical@1",
-    "verification_profile": "optical-checks@1",
+    "verification_profile": "optical-checks@2",
 }
 RECIPE = {"wavelength_nm": 550, "replicates": 3, "operation": "measure-absorbance"}
 STANDARDS_MG_L = (3, 5, 10, 15, 20, 24)
@@ -21,8 +21,11 @@ ADC_MAX = 65535
 DARK_COUNTS = 100
 BLANK_COUNTS = 50000
 DEFAULT_NOISE_COUNTS = 8
-# Cyanocobalamin in aqueous solution, 1 cm path. Model the finite-bandwidth
-# channel at its nominal centre, using 8700 M^-1 cm^-1 and 1355.37 g/mol.
+# Cyanocobalamin in aqueous solution, 1 cm path: ideal Beer-Lambert absorbance
+# at exactly 550 nm, using 8700 M^-1 cm^-1 and 1355.37 g/mol. The simulator models
+# no bandwidth, stray light, detector nonlinearity or blank drift; only Gaussian
+# detector noise. (virtual-uvvis@1 in factory/instruments/uvvis_service.py uses
+# a different, generic 0.009 L/mg, so the two simulators do not agree at 550 nm.)
 MODEL_SLOPE = 8700 / (1000 * 1355.37)
 
 
@@ -186,17 +189,33 @@ def verify_candidate(source, prepared=False):
     return [_check_case(source, *case) for case in verification_cases(prepared)]
 
 
+# optical-checks@1 used only REFERENCE_CALIBRATION, whose intercept is exactly twice
+# its slope. With that one calibration the wrong formula
+# (signal - intercept) / (intercept - slope) gives the same answers as the right
+# one, so @2 adds calibrations whose slope and intercept are unrelated, including a
+# negative intercept and different absorbance bounds.
+REFERENCE_CALIBRATION = {"id": "ref-cal-v1", "slope": 0.01, "intercept": 0.02, "low": 0.05, "high": 0.26}
+STEEP_CALIBRATION = {"id": "ref-cal-steep", "slope": 0.025, "intercept": 0.013, "low": 0.1, "high": 0.6}
+SHALLOW_CALIBRATION = {"id": "ref-cal-shallow", "slope": 0.0064, "intercept": -0.0031, "low": 0.02, "high": 0.15}
+# Valid dilutions. A direct-only parent declines exactly these prepared cases.
+VALID_PREPARED_CASES = ("prepared-2x", "prepared-4x", "prepared-2x-steep")
+
+
 def verification_cases(prepared=False):
-    """Public inputs and expected outputs for optical-checks@1 in stable order."""
-    cal = {"id": "ref-cal-v1", "slope": 0.01, "intercept": 0.02, "low": 0.05, "high": 0.26}
+    """Public inputs and expected outputs for optical-checks@2 in stable order."""
     fixtures = (
-        ("direct-mean-and-intercept", (0.10, 0.11, 0.21), 12.0),
-        ("direct-calibrated-boundaries", (0.05, 0.26, 0.20), 15.0),
-        ("above-calibration", (0.27, 0.28, 0.29), None),
-        ("below-calibration", (0.02, 0.03, 0.04), None),
-        ("one-replicate-outside", (0.15, 0.17, 0.27), None),
+        ("direct-mean-and-intercept", REFERENCE_CALIBRATION, (0.10, 0.11, 0.21), 12.0),
+        ("direct-calibrated-boundaries", REFERENCE_CALIBRATION, (0.05, 0.26, 0.20), 15.0),
+        ("above-calibration", REFERENCE_CALIBRATION, (0.27, 0.28, 0.29), None),
+        ("below-calibration", REFERENCE_CALIBRATION, (0.02, 0.03, 0.04), None),
+        ("one-replicate-outside", REFERENCE_CALIBRATION, (0.15, 0.17, 0.27), None),
+        # (0.25 - 0.013) / 0.025 and (0.07 + 0.0031) / 0.0064.
+        ("direct-steep-calibration", STEEP_CALIBRATION, (0.20, 0.25, 0.30), 9.48),
+        ("direct-negative-intercept", SHALLOW_CALIBRATION, (0.06, 0.07, 0.08), 11.421875),
+        # In range for the reference calibration, below this calibration's bounds.
+        ("steep-below-calibration", STEEP_CALIBRATION, (0.06, 0.07, 0.08), None),
     )
-    for name, values, concentration in fixtures:
+    for name, cal, values, concentration in fixtures:
         sample = {"sample_id": name, "absorbances": values, "calibration": cal, "preparation": None}
         expected = {
             "sample_id": name, "calibration_id": cal["id"],
@@ -204,34 +223,39 @@ def verification_cases(prepared=False):
         }
         yield name, sample, expected
     if prepared:
-        yield from _prepared_cases(cal)
+        yield from _prepared_cases()
 
 
-def _prepared_cases(cal):
+def _prepared_cases():
+    cal = REFERENCE_CALIBRATION
     twofold = {"id": "P2", "parent_id": "R2", "sample_ml": 1, "final_ml": 2, "unit": "mL"}
     fourfold = {"id": "P4", "parent_id": "R4", "sample_ml": 0.5, "final_ml": 2, "unit": "mL"}
     fixtures = [
-        ("prepared-2x", "D2", (0.09, 0.10, 0.14), twofold, {
+        ("prepared-2x", "D2", (0.09, 0.10, 0.14), twofold, cal, {
             "status": "ok", "concentration_mg_l": 18.0, "diluted_mg_l": 9.0,
             "factor": 2.0, "parent_id": "R2", "preparation_id": "P2",
         }),
-        ("prepared-4x", "D4", (0.07, 0.08, 0.12), fourfold, {
+        ("prepared-4x", "D4", (0.07, 0.08, 0.12), fourfold, cal, {
             "status": "ok", "concentration_mg_l": 28.0, "diluted_mg_l": 7.0,
             "factor": 4.0, "parent_id": "R4", "preparation_id": "P4",
+        }),
+        ("prepared-2x-steep", "D2", (0.20, 0.25, 0.30), twofold, STEEP_CALIBRATION, {
+            "status": "ok", "concentration_mg_l": 18.96, "diluted_mg_l": 9.48,
+            "factor": 2.0, "parent_id": "R2", "preparation_id": "P2",
         }),
     ]
     review = {"status": "review", "concentration_mg_l": None}
     # A dilution does not guarantee that its new readings will be in range.
-    fixtures.append(("prepared-one-outside", "D2", (0.21, 0.21, 0.27), twofold, review))
+    fixtures.append(("prepared-one-outside", "D2", (0.21, 0.21, 0.27), twofold, cal, review))
     for name, changes in (
         ("missing-parent", {"parent_id": None}), ("self-parent", {"parent_id": "D2"}),
         ("missing-preparation-id", {"id": ""}), ("invalid-unit", {"unit": "L"}),
         ("zero-sample", {"sample_ml": 0}), ("invalid-final-volume", {"final_ml": -1}),
         ("equal-volumes", {"final_ml": 1}), ("invalid-volume-type", {"sample_ml": True}),
     ):
-        fixtures.append((f"prepared-{name}", "D2", (0.09, 0.10, 0.14), {**twofold, **changes}, review))
+        fixtures.append((f"prepared-{name}", "D2", (0.09, 0.10, 0.14), {**twofold, **changes}, cal, review))
 
-    for name, child, values, preparation, output in fixtures:
-        sample = {"sample_id": child, "absorbances": values, "calibration": cal, "preparation": preparation}
-        expected = {"sample_id": child, "calibration_id": cal["id"], **output}
+    for name, child, values, preparation, calibration, output in fixtures:
+        sample = {"sample_id": child, "absorbances": values, "calibration": calibration, "preparation": preparation}
+        expected = {"sample_id": child, "calibration_id": calibration["id"], **output}
         yield name, sample, expected

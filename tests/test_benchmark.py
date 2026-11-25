@@ -47,9 +47,33 @@ class BenchmarkTests(unittest.TestCase):
                     self.assertEqual(row["released_status"], "ok")
             self.assertAlmostEqual(published["mae_mg_l"], statistics.mean(errors))
             self.assertEqual(sum(row["extrapolated"] for row in published["rows"]), 2)
+            released = [abs(r["signed_error_mg_l"]) for r in published["rows"] if not r["extrapolated"]]
+            extrapolated = [abs(r["signed_error_mg_l"]) for r in published["rows"] if r["extrapolated"]]
+            self.assertAlmostEqual(published["released_rows_mae_mg_l"], statistics.mean(released))
+            self.assertAlmostEqual(published["extrapolated_rows_mae_mg_l"], statistics.mean(extrapolated))
+            self.assertAlmostEqual(published["self_calibration_loo_mae_ppm"], 1.018, places=3)
+            self.assertIn("regression check", report["panel_interpretation"])
             with self.assertRaises(FileExistsError):
                 benchmark.evaluate(package, out)
             self.assertEqual(read_json(out / "report.json"), report)
+
+    def test_retained_report_separates_released_extrapolated_and_self_calibration_errors(self):
+        report = read_json(ROOT / "public/b12/evaluation/report.json")
+        dataset = read_json(benchmark.DATASET)
+        published = report["published"]
+        self.assertEqual(published["released_rows_mae_mg_l"], benchmark._subset_mae(published["rows"], False))
+        self.assertEqual(published["extrapolated_rows_mae_mg_l"], benchmark._subset_mae(published["rows"], True))
+        self.assertEqual(published["self_calibration_loo_mae_ppm"],
+                         benchmark.self_calibration_loo_mae(dataset["published"]["samples"]))
+        # The README quotes these rounded figures.
+        readme = (ROOT / "README.md").read_text()
+        for value in (report["panel"]["mae_mg_l"], published["released_rows_mae_mg_l"],
+                      published["extrapolated_rows_mae_mg_l"], published["self_calibration_loo_mae_ppm"]):
+            self.assertIn(f"{value:.2g}" if value < 0.1 else f"{value:.1f}", readme)
+
+    def test_leave_one_out_on_an_exact_line_is_zero(self):
+        samples = [{"prepared_ppm": c, "mean_absorbance": 0.01 * c + 0.02} for c in (1, 2, 4, 8)]
+        self.assertAlmostEqual(benchmark.self_calibration_loo_mae(samples), 0)
 
     def test_withheld_or_unmatched_predictions_are_never_scored_as_success(self):
         samples = [{"id": "x", "prepared_mg_l": 22}]
