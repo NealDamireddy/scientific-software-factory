@@ -65,7 +65,8 @@ test("confirmPlan with a procedure plays the activity and builds one passing ord
   assert.equal(built.text, BUILT);
   const view = await c.getSubmissionView("WO-2", 1);
   const k = view.submission.results.length;
-  assert.ok(k > 0);
+  assert.equal(k, 15);
+  assert.ok(view.submission.results.some((r) => r.name === "step 1: text values"));
   assert.deepEqual(seen.map((a) => [a.label, a.outcome]), [
     ["Read lab context (revision 1)", "done"],
     ["Read project context (revision 1)", "done"],
@@ -115,6 +116,16 @@ test("confirmPlan with a procedure plays the activity and builds one passing ord
   assert.equal(w.analysis_app, undefined);
   assert.equal(w.simulation, undefined);
   assert.deepEqual((await c.needsAttention(LAB, "approver")).map((a) => a.work_order_id), ["WO-B12", "WO-2"]);
+});
+
+test("a throwing onActivity callback does not strand the build", async () => {
+  const c = fresh();
+  const { e, proposal } = await newExperiment(c, "Wash and read the dye");
+  const [built] = await c.confirmPlan(e.id, proposal.id, ["procedure"], () => { throw new Error("ui broke"); });
+  assert.equal(built.text, BUILT);
+  assert.equal(built.activity!.length, 6);
+  assert.deepEqual(built.output_refs, [{ kind: "procedure", work_order_id: "WO-2", summary: "Submission 1, all checks passed" }]);
+  assert.equal((await c.getWorkspace(e.id)).procedure!.order.id, "WO-2");
 });
 
 test("confirmPlan validates its arguments and refuses a second confirmation", async () => {
@@ -279,6 +290,17 @@ test("attaching a protocol to Coomassie makes revision 2 and a passing WO-2", as
   assert.equal(again.activity, undefined);
   assert.equal((await c.listRevisions("experiment", "coomassie-run-1")).length, 3);
   assert.equal((await c.getWorkspace("coomassie-run-1")).procedure!.order.id, "WO-2");
+});
+
+test("two overlapping Coomassie attachments rewrite once", async () => {
+  const c = fresh({ stepMs: 2, delayMs: 5 });
+  const results = await Promise.all([
+    c.sendMessage("coomassie-run-1", "Here is the protocol", [protocol()]),
+    c.sendMessage("coomassie-run-1", "Here is the protocol", [protocol()]),
+  ]);
+  assert.deepEqual((await c.needsAttention(LAB, "approver")).map((a) => a.work_order_id), ["WO-B12", "WO-2"]);
+  assert.equal((await c.listRevisions("experiment", "coomassie-run-1")).length, 2);
+  assert.equal(results.filter(([, reply]) => reply.text === COOMASSIE_REPLY).length, 1);
 });
 
 test("other attachments are added as documents and named in the reply", async () => {

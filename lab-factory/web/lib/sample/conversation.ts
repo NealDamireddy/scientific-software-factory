@@ -113,7 +113,12 @@ function activityLog(idPrefix: string, options: ActivityOptions) {
       if (items.length > 0 && stepMs > 0) await new Promise((resolve) => setTimeout(resolve, stepMs));
       const full: ActivityItem = { id: `${idPrefix}-a${items.length + 1}`, ...item };
       items.push(full);
-      options.onActivity?.(copy(full));
+      // The callback is only a UI notification: its failure must not strand the build.
+      try {
+        options.onActivity?.(copy(full));
+      } catch {
+        // ignored
+      }
     },
   };
 }
@@ -293,7 +298,9 @@ function newestProcedure(state: SampleState, experimentId: string): WorkOrder | 
 }
 
 /** The Coomassie demo: the attachment becomes step 4's source in a new order, WO-2. */
-async function rewriteCoomassie(ctx: SampleContext, file: File, log: ReturnType<typeof activityLog>): Promise<OutputRef> {
+async function rewriteCoomassie(
+  ctx: SampleContext, file: File, log: ReturnType<typeof activityLog>,
+): Promise<{ ref: OutputRef; passed: boolean }> {
   const { state } = ctx;
   const docId = await attach(ctx, COOMASSIE, file);
   await log.emit({ label: "Read your attachment", outcome: "done" });
@@ -313,7 +320,10 @@ async function rewriteCoomassie(ctx: SampleContext, file: File, log: ReturnType<
   });
   await log.emit({ label: "Rewrote procedure", outcome: "done" });
   await log.emit(checksItem(submission.results));
-  return { kind: "procedure", work_order_id: order.id, summary: submissionSummary(1, submission.results) };
+  return {
+    ref: { kind: "procedure", work_order_id: order.id, summary: submissionSummary(1, submission.results) },
+    passed: submission.passed,
+  };
 }
 
 /**
@@ -344,10 +354,12 @@ export async function sendMessage(
     inFlight.add(COOMASSIE);
     try {
       const log = activityLog(person.id, options);
-      const ref = await rewriteCoomassie(ctx, files[0], log);
+      const { ref, passed } = await rewriteCoomassie(ctx, files[0], log);
       const reply = appendMessage(ctx, experimentId, {
         from: "factory",
-        text: `I added ${attachmentTitle(files[0])} to this experiment and rewrote the procedure. Every check passes, and it’s waiting for sign-off.`,
+        text: passed
+          ? `I added ${attachmentTitle(files[0])} to this experiment and rewrote the procedure. Every check passes, and it’s waiting for sign-off.`
+          : `I added ${attachmentTitle(files[0])} to this experiment and rewrote the procedure. Some checks failed, so nothing is waiting for sign-off yet.`,
         activity: log.items, output_refs: [ref],
       });
       return [copy(person), copy(reply)];
