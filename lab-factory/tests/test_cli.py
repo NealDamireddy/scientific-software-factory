@@ -93,3 +93,20 @@ def test_cli_errors_exit_1(operator, capsys, tmp_path):
     assert capsys.readouterr().err.startswith("error: submission 1 is not the latest")
     assert cli("lab", "put", str(tmp_path / "missing")) == 1
     assert capsys.readouterr().err.startswith("error: ")
+
+
+@pytest.mark.parametrize(("kind", "example", "original", "conflict", "key"), [
+    ("lab", "uvvis-lab.json", '"maximum": 700', '"maximum": 700, "maximum": 900', "maximum"),
+    ("experiment", "b12-experiment.json", '"lab_id": "emory-biophys"',
+     '"lab_id": "other", "lab_id": "emory-biophys"', "lab_id"),
+])
+def test_put_rejects_duplicate_json_fields(operator, tmp_path, capsys, kind, example, original, conflict, key):
+    cli, _ = operator
+    text = (EXAMPLES / example).read_text(encoding="utf-8")
+    assert original in text
+    invalid = tmp_path / example
+    invalid.write_text(text.replace(original, conflict, 1), encoding="utf-8")
+    assert cli(kind, "put", str(invalid)) == 1
+    assert capsys.readouterr().err.strip() == f"error: duplicate JSON field {key!r}"
+    assert cli(kind, "put", str(EXAMPLES / example)) == 0
+    assert capsys.readouterr().out.rstrip().endswith("revision 1")

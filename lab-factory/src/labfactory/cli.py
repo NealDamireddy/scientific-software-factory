@@ -83,9 +83,18 @@ def _show(orders: WorkOrders, id: str) -> str:
     return "\n".join(lines)
 
 
+def _unique_fields(pairs: list[tuple[str, object]]) -> dict:
+    fields = {}
+    for key, value in pairs:
+        if key in fields:
+            raise ContextError(f"duplicate JSON field {key!r}")
+        fields[key] = value
+    return fields
+
+
 def _operate(args, store: Store) -> None:
     if args.group in ("lab", "experiment"):
-        data = json.loads(args.file.read_text(encoding="utf-8"))
+        data = json.loads(args.file.read_text(encoding="utf-8"), object_pairs_hook=_unique_fields)
         if args.group == "lab":
             record = lab_from_dict(data)
             revision = store.put_lab(record)
