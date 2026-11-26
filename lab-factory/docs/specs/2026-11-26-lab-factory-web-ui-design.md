@@ -1,6 +1,6 @@
 # Lab Factory Web UI — Design
 
-Status: approved · 2026-11-26
+Status: approved, scope expanded by owner · 2026-11-26
 
 Mockups: the "Lab Factory UI mockups" canvas (private to the owner). Screen **I · Decluttered** is the reference layout. **H · Workspace, calmer** shows the procedure panel at a larger size. Earlier screens (A–G) are history, not targets.
 
@@ -36,26 +36,55 @@ The factory draws on all three layers of context. For example, a protocol attach
 
 **Backend gap.** Lab Factory's records have only Lab and Experiment today. **Project is a new level**, and it needs its own backend work, which is a separate project (see Non-goals). The UI's data interface defines Project now, so the backend can implement it to match.
 
+## Scope direction
+
+On 2026-11-26 the owner asked to **build the UI as ambitiously as possible, in line with the project goals, and then work backwards**. The web UI therefore shows the whole product as Lab Factory's design describes it: procedures, run plans and analysis apps, traceability to pinned context, versioned context, and sign-off. Simulation and code are included as extras. Everything runs on sample data and real in-browser computation, behind a client contract the backend will be built to match. That backend work is the "work backwards" part, and it stays out of this project.
+
 ## Goals
 
-1. A web app at `lab-factory/web/` that runs entirely on **sample data** behind a defined client interface, with a working **Lab → Project → Experiment** navigation.
-2. An **experiment workspace**: the conversation in the center and a collapsible output panel on the right with Procedure, Analysis app and Results tabs.
+**Core (unchanged from the first draft)**
+1. A web app at `lab-factory/web/` that runs on **sample data** behind a defined client interface, with **Lab → Project → Experiment** navigation.
+2. An **experiment workspace**: the conversation in the center and a collapsible output panel on the right.
 3. A **procedure view** that renders the factory's checked instrument settings on the instrument's real range, labels unchecked material plainly, resolves citations to document titles, and shows failing checks with their detail.
-4. A **project page** that shows the project's goals, shared documents and experiments, and starts a new experiment in that project.
-5. A **lab page** that shows instruments with their limits, and lab documents. It is read-only.
+4. A **project page** that shows the project's goals, shared documents and experiments, and starts a new experiment in the project.
+5. A **lab page** showing instruments with their commands and limits, and lab documents.
 6. A **sign-off flow**: a passing submission waits for sign-off, appears under "Needs your attention", and is approved or rejected by *named submission number*.
-7. A **typed client interface** that mirrors Lab Factory's records and lifecycle, so a live client can replace the sample client later without changing the screens.
+7. A **typed client interface** that mirrors Lab Factory's records and lifecycle.
+
+**Ambitious additions**
+
+8. **The factory at work, coding-tool style.**
+   - A new experiment's description gets a **plan proposal** from the factory, listing which outputs it will build. The person can switch outputs on or off and then confirms.
+   - The build then appears in the conversation as a collapsible **activity log**: reading context, writing each output, running checks, running reference cases. Each line shows its outcome.
+   - In sample mode the log plays out over a few seconds, under the sample-mode indicator.
+9. **Run plans** as a second output type. They are rendered as instrument command lines (`uvvis-1  read_absorbance`) with a range strip per setting. A disabled `Send to instrument` button explains that the instrument agent comes later.
+10. **Analysis apps that really run.**
+    - The analysis app is plain Python using only the standard library.
+    - The Results tab accepts a CSV of readings and runs the app in the browser with Pyodide, offline, in a Web Worker. It shows the computed result and an SVG plot of the readings with the fitted curve.
+    - A sample readings file can be downloaded, so the flow works end to end.
+    - The reference cases shown on the Analysis app tab are produced by running the same code.
+11. **Simulation and code extras.** A Simulation output shows a sample simulation as a plot plus its code: predicted fading curves for three amounts of reducing agent. It is clearly labelled as an extra and as sample content.
+12. **Submission history and comparison.** Each output lists its submissions with their check summaries. Any two submissions can be compared step by step, showing added, removed and changed steps and settings.
+13. **Traceability ("Built from").** For the shown submission:
+    - the pinned lab, project and experiment revisions with their SHA-256 digests
+    - the artifact digest
+    - the documents it cites
+    - once released, the approval record (name, submission number, digest, date)
+14. **Versioned context.** People can add a document (pasted text or a `.txt`/`.md` file) to a project or an experiment. Each change makes a new numbered revision, and each record shows its revision history. Identical content does not make a new revision, mirroring `store.py`.
+15. **Sign-off rule per lab** in a Lab settings page: "Anyone who gives their name" (default), or "Only these people" with a list of names. The client enforces it when someone approves or rejects.
+16. **Command palette** (Ctrl+K / ⌘K) to jump to any project, experiment, document or instrument.
+17. **Light and dark themes.** It follows the system by default and can be overridden in the lab menu. The dark theme uses calm tokens, not neon.
+18. **A live client against a written HTTP contract.** `lab-factory/web/API.md` documents every endpoint the client calls. When `NEXT_PUBLIC_LABFACTORY_API_URL` is set at build time, the app uses the live client. Otherwise it uses sample mode. The live client is tested against intercepted responses. The backend builds to this contract later.
 
 ## Non-goals (for this project)
 
-- **Any backend change.** That includes the Project record, an HTTP API, the drafting agent ("describe it, the factory plans it"), analysis-app generation and the conversational agent. Each is its own later project.
-- **A live client.** Define the interface only. Don't implement HTTP calls.
-- **A bench view.** The owner dropped it. The procedure tab is what people read while working, so it has to stay calm and scannable.
-- **Sign-off roles and per-lab rules.** In version 1, a person types their name to sign off, matching the CLI's `--by`. Lab settings for roles come later.
-- **Editing lab records, such as instruments and limits, from the UI.** Labs are onboarded by hand for now.
-- **Authentication, multi-user accounts, real file upload and storage.** Attach buttons accept a file in sample mode only and keep its name.
-- **Simulation and code outputs.** Show an "Add simulation or code" affordance that explains it is coming. Don't build the output type.
-- **Phone layouts beyond "nothing breaks".** The target is a laptop or desktop browser.
+- **Backend changes.** That includes the Project record, the HTTP API itself, the drafting agent, analysis-app generation and the conversational agent. They are built afterwards, to the contract in `API.md`.
+- **Controlling real instruments.**
+- **A bench view.** The owner dropped it. The procedure tab is what people read while working, so it stays calm and scannable.
+- **Authentication and accounts.** Names are typed, and roles come from the "Viewing as" switch.
+- **Persistence across reloads in sample mode.** State lives in the tab, and `Reset sample data` restores it.
+- **Phone-first layouts.** Laptop and desktop are the target. On a phone, nothing should break.
+- **Numerical libraries in the analysis app**, such as numpy or scipy. Only the standard library is used, so Pyodide runs offline from self-hosted files.
 
 ## Anti-goals
 
@@ -66,6 +95,8 @@ These carry over from the Lab Factory architecture. Breaking any of them is a fa
 - **Unchecked material is never styled like checked material.** Amounts, timing notes and free-text notes always carry the "not checked" treatment.
 - **No silent passes.** A failing check is shown with its detail. A step without a resolvable citation shows that it is missing.
 - **Sample data never looks real.** In sample mode a persistent, quiet indicator says so, and the scripted factory replies are recognisably sample content.
+- **Readings never leave the browser.** The analysis app runs offline in a Web Worker from self-hosted Pyodide files, and nothing is fetched from a CDN.
+- **Sample activity never passes for a live agent.** The sample-mode indicator stays visible while sample activity plays.
 - **Approval names what was reviewed.** Approve and reject always name the submission number. If a newer submission exists, approving an older one is refused, with the reason shown.
 
 ## Approaches considered
@@ -128,10 +159,14 @@ This is the most important screen. It renders a `Procedure` exactly as Lab Facto
 
   The names, dates and reasons come from the work order's history (see Client interface).
 
-### Analysis app and Results tabs
+### Analysis app, Results and Simulation tabs
 
-- **Analysis app.** A plain-language line saying what it does, the code in a light code block, and its reference cases (name, expected answer, found answer, pass or fail). It comes through the client interface as `AnalysisApp` (*new*, sample-only until the analysis-app backend exists), so the tab isn't hard-coded.
-- **Results.** In sample mode, an empty state that explains what will appear and accepts a file whose name it keeps. No parsing.
+- **Analysis app:** a plain-language summary, the Python source, and its reference cases with expected and computed answers. The computed answers come from running the same code (Goal 10).
+- **Results:**
+  - Upload a CSV with a `time_s` and an `absorbance` column, or use `Download sample readings`.
+  - The app runs in a Web Worker on self-hosted Pyodide. It shows the result fields (rate constant, half-life and fit error) and an SVG plot of the readings and the fitted curve.
+  - Malformed files get a plain error that says what to fix.
+- **Simulation:** shown only when the experiment has one. It contains a plot and its code, labelled `Extra: simulation` and as sample content.
 
 ### Sign-off
 
@@ -185,6 +220,8 @@ The only motion is the output panel opening and closing.
 - State lives in the browser tab and resets on reload. There's a "Reset sample data" item in the lab switcher menu.
 
 ### Client interface
+
+The block below is the core contract. The implementation plan extends it for Goals 8–18: activity, proposals, run plans, revisions, settings and search. `lab-factory/web/API.md` is the authoritative HTTP form of the complete contract.
 
 TypeScript types mirror Lab Factory's Python records and field names (`context.py`, `artifacts.py`, `workorders.py`, `checks.py`). Additions are marked *new*.
 
