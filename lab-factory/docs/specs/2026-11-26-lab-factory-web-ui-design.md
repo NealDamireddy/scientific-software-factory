@@ -76,6 +76,24 @@ On 2026-11-26 the owner asked to **build the UI as ambitiously as possible, in l
 17. **Light and dark themes.** It follows the system by default and can be overridden in the lab menu. The dark theme uses calm tokens, not neon.
 18. **A live client against a written HTTP contract.** `lab-factory/web/API.md` documents every endpoint the client calls. When `NEXT_PUBLIC_LABFACTORY_API_URL` is set at build time, the app uses the live client. Otherwise it uses sample mode. The live client is tested against intercepted responses. The backend builds to this contract later.
 
+19. **Skills.** These are the lab's reusable instructions for agents, for example "How we write procedures".
+    - A Skills page lists them. Each is Markdown with a title, a one-line description and an on/off switch, and can be edited.
+    - Every save makes a new numbered revision.
+    - Enabled skills are applied whenever the factory builds. The activity log names each one (`Used skill: {title}`), and "Built from" lists the skill revisions an output followed.
+20. **Connectors.** Outside tools the factory can draw context from, shown as a catalog:
+    - Google Drive (protocols and papers)
+    - Zotero (papers)
+    - a lab notebook (Benchling and others)
+    - a shared instrument-data folder (readings)
+    - GitHub (existing analysis code)
+
+    Connecting asks for an account or folder name. A connected connector lists its items, and an item can be added to a project or an experiment as a citable document. Readings from the instrument-data folder appear in the Results tab, so no upload is needed. In sample mode, connecting is simulated and labelled.
+21. **Connect your agent.** A page for bringing a person's own coding agent in to do the factory's work.
+    - **Via MCP:** copy-ready setup for Claude Code, Codex and Cursor, matching `lab-factory/README.md`, plus the four MCP tools with their real descriptions.
+    - **As a skill:** a downloadable `SKILL.md` that teaches any coding agent the work-order loop: list, claim, read the pinned context and the lab's skills, submit, and on failure, fix and resubmit.
+    - **Connected agents:** a list of workers that have claimed orders.
+    - **A trust note:** agents can submit work, but only a person can sign it off.
+
 ## Non-goals (for this project)
 
 - **Backend changes.** That includes the Project record, the HTTP API itself, the drafting agent, analysis-app generation and the conversational agent. They are built afterwards, to the contract in `API.md`.
