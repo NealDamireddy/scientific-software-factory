@@ -1,7 +1,10 @@
+import { ClientProvider } from "../components/ClientContext.tsx";
+import { Shell } from "../components/Shell.tsx";
+
 export default function Page() {
   return (
-    <main>
-      <h1>Lab Factory</h1>
-    </main>
+    <ClientProvider>
+      <Shell />
+    </ClientProvider>
   );
 }
