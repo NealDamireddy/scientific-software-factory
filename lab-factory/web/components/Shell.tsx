@@ -9,18 +9,14 @@ import { useClient, useRoute } from "./ClientContext.tsx";
 import { CommandPalette } from "./CommandPalette.tsx";
 import { NotFound } from "./NotFound.tsx";
 import { Sidebar } from "./Sidebar.tsx";
-// One import per view, grouped by the task that builds it: a task changes only its own lines.
-// Task 9 views
 import { LabHome } from "./LabHome.tsx";
 import { ProjectPage } from "./ProjectPage.tsx";
 import { LabPage } from "./LabPage.tsx";
 import { SettingsPage } from "./SettingsPage.tsx";
 import { DocumentDrawer } from "./DocumentDrawer.tsx";
-// Task 10 views
 import { SkillsPage } from "./SkillsPage.tsx";
 import { ConnectorsPage } from "./ConnectorsPage.tsx";
 import { AgentsPage } from "./AgentsPage.tsx";
-// Task 11 views
 import { Workspace } from "./Workspace.tsx";
 
 /** Each route maps to exactly one view. */

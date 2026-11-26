@@ -1,4 +1,4 @@
-// Small display helpers shared by the Task 9 views. Status lines live in lib/status.ts.
+// Small display helpers shared by the lab, project and settings pages. Status lines live in lib/status.ts.
 import type { AttentionItem, Document } from "../lib/types.ts";
 
 export { formatDate } from "../lib/status.ts";

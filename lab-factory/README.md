@@ -25,6 +25,10 @@ uv run --locked labfactory --db "$db" wo show WO-1
 
 Look for `released: submission 1 by Local reviewer` and the approved artifact’s SHA-256 digest in the history. To run the tests, use `uv run --locked pytest -v`.
 
+## Web UI
+
+The browser interface lives in `web/`. See [web/README.md](web/README.md).
+
 ## Connect a coding agent
 
 Use absolute paths to the project and the database containing your lab’s work orders. To connect Claude Code to the quickstart database from the same shell, run

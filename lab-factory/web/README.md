@@ -1,15 +1,13 @@
 # Lab Factory web
 
 The web interface for Lab Factory. It is one statically exported Next.js page
-that runs on sample data by default, and on a live backend when one is
-configured. Analysis code runs in the browser on a self-hosted Python runtime
-(Pyodide), so readings never leave the machine and nothing is fetched from a
-CDN.
+where a researcher describes an experiment, talks to the factory, reads the
+procedure and run plan it produces, and where an approver signs off a
+submission by name. Analysis and simulation code run in the browser on a
+self-hosted Python runtime, so readings never leave the machine. The app works
+on built-in sample data with no backend at all.
 
-This package is self-contained. It imports nothing from the repo root `app/`,
-from `factory/` or from `lab-factory/src/`.
-
-## Run
+## Quick start
 
 Use Node 22 and run every command from `lab-factory/web/`.
 
@@ -18,49 +16,102 @@ npm ci
 npm run dev
 ```
 
-`npm run dev` and `npm run build` first run `scripts/copy-runtime.mjs`, which
-copies the Pyodide files from `node_modules/pyodide` into `public/runtime/`.
-Those copies are git-ignored.
-
-## Build
+Open the address `next dev` prints. To build the static site and serve it:
 
 ```sh
 npm run build
-```
-
-The static site is written to `out/`. Serve it with any static file server,
-for example:
-
-```sh
 python3 -m http.server 4190 --bind 127.0.0.1 --directory out
 ```
 
-## Test
+The export is written to `out/` and works from any static file server. Open
+`http://127.0.0.1:4190/`.
 
-```sh
-npm run typecheck   # TypeScript, no emit
-npm run test:unit   # node --test over lib/**/*.test.ts
-npm run test:py     # python3 unittest over python/test_*.py
-npm run build       # the browser tests run against out/
-npm run test:e2e    # Playwright, serves out/ on port 4190
-```
+## Sample mode and live mode
 
-The browser tests need Chromium. Either install it with
-`npx playwright install chromium`, or point the tests at an existing binary
-with `PLAYWRIGHT_CHROMIUM_EXECUTABLE`:
+By default the app runs in sample mode. It shows a fixed lab, two projects and
+their experiments, and a banner says `Sample data. Nothing here is saved or
+real.` Nothing you do is stored beyond the open page.
+
+Live mode talks to a backend. Set both variables when you build; they are read
+at build time.
+
+| Variable | Meaning |
+|---|---|
+| `NEXT_PUBLIC_LABFACTORY_API_URL` | Base URL of the backend. When set, the app uses the live client. When unset, it uses sample data. |
+| `NEXT_PUBLIC_LABFACTORY_LAB_ID` | The lab to show in live mode. |
+
+Live mode needs a backend that implements [API.md](API.md). That backend does
+not exist yet, so live mode is the contract and a client, not something you
+can run end to end today.
+
+## The offline Python runtime
+
+The analysis app and the simulation run Python in a web worker using Pyodide,
+served from this origin. `scripts/copy-runtime.mjs` copies the Pyodide files
+from `node_modules/pyodide` into `public/runtime/`. It runs before `dev` and
+before `build`. Only `public/runtime/python-worker.mjs` is committed; the
+copies are git-ignored.
+
+The Python is standard library only. Readings are parsed and analyzed in the
+browser and are never sent anywhere. Pyodide loads only from `/runtime/`, and
+nothing is fetched from a CDN or from Google Fonts.
+
+## Scripts
+
+| Script | What it does |
+|---|---|
+| `npm run dev` | Copies the runtime, then starts the Next.js dev server. |
+| `npm run build` | Copies the runtime, then writes the static export to `out/`. |
+| `npm run typecheck` | Runs `tsc --noEmit` over the whole package. |
+| `npm run test:unit` | Runs `node --test` over `lib/**/*.test.ts`. |
+| `npm run test:py` | Runs the Python unit tests in `python/` with `python3 -I`. |
+| `npm run test:e2e` | Runs the Playwright browser tests, including the axe accessibility pass in both themes, against `out/`. Build first. |
+
+CI runs them in this order: typecheck, unit, Python, build, browser tests.
+
+## Running the browser tests in a sandbox
+
+The browser tests need Chromium. On a normal machine, install it with
+`npx playwright install chromium`. In a sandbox that already has a Chromium,
+point the tests at it instead and turn tracing off:
 
 ```sh
 PLAYWRIGHT_CHROMIUM_EXECUTABLE=/opt/pw-browsers/chromium npm run test:e2e -- --trace off
 ```
 
-## Sample and live mode
+The tests serve `out/` on port 4190. Set `PLAYWRIGHT_PORT` to use another port,
+for example when two checkouts run tests at once.
 
-Both variables are read at build time.
+## Map of the code
 
-| Variable | Meaning |
+| Path | What is there |
 |---|---|
-| `NEXT_PUBLIC_LABFACTORY_API_URL` | Base URL of the Lab Factory backend. When set, the app uses the live client. When unset, it uses sample data. |
-| `NEXT_PUBLIC_LABFACTORY_LAB_ID` | The lab to show in live mode. |
+| `app/` | The Next.js entry: layout, the single page, global styles and the icon. |
+| `components/` | The screens and their parts, with CSS next to them. |
+| `components/tabs/` | The five workspace tabs: Procedure, Run plan, Analysis app, Results and Simulation. |
+| `lib/` | Plain TypeScript with no React: routes, types, formatting, checks display, history and diff logic, readings and analysis helpers, plotting. Unit tests sit next to the code. |
+| `lib/sample/` | The sample client and its seed data, conversation script and records. |
+| `lib/live/` | The live client for the backend in `API.md`. |
+| `lib/runtime/` | The runner that talks to the Python worker. |
+| `python/` | The analysis and simulation code run in the browser, and its tests. |
+| `e2e/` | Playwright tests and shared helpers. |
+| `public/` | Static files: skills, and `runtime/` with the committed worker. |
 
-The live client is not built yet, so the app currently always runs on sample
-data.
+## Rules for contributors
+
+- The UI never decides pass or fail. Checks come from the backend or the
+  sample data, and the interface only shows them.
+- Code in `lib/` runs under Node type stripping. Use no `enum`, `namespace`
+  or constructor parameter properties, and end relative imports in `.ts`.
+- Nothing comes from a CDN. Fonts come from Fontsource and Python from
+  `/runtime/`.
+- No skipped tests: no `test.skip`, `test.fixme` or `.only`. Accessibility
+  checks get no rule exclusions; fix the cause.
+- Colors come from the theme tokens in `app/globals.css`, in both themes.
+
+## Where to read more
+
+- [API.md](API.md): the backend contract for live mode.
+- [The design spec](../docs/specs/2026-11-26-lab-factory-web-ui-design.md).
+- [The implementation plan](../docs/plans/2026-11-26-web-ui.md).
+- [The Lab Factory README](../README.md): the core, CLI and agent tools.
