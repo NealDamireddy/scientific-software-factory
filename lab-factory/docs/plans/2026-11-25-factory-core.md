@@ -143,7 +143,7 @@ def test_dimension_mismatch_and_unknown_unit():
     - parameter unit `"nanometers"`
     - duplicate instrument ids
     - duplicate document ids
-    - duplicate command names on one instrument
+    - duplicate parameter or command names on one instrument
     - a command whose required or optional list names `"slit_width"`, which is not a parameter
     - document kind `"blog"`
     - experiment with `instrument_ids=[]`
@@ -221,7 +221,7 @@ def test_dimension_mismatch_and_unknown_unit():
   - `KINDS = ("procedure", "run_plan")`
   - `parse_artifact(kind: str, data: dict) -> RunPlan | Procedure`
   - `render_step(step: ProcedureStep) -> list[str]`
-  - `render_procedure(procedure: Procedure) -> str`
+  - `render_procedure(procedure: Procedure) -> str` and `render_run_plan(plan: RunPlan) -> str`
   - `ARTIFACT_EXAMPLES: dict[str, dict]`, holding exactly the two payloads below
 
   Run plan:
@@ -244,10 +244,11 @@ def test_dimension_mismatch_and_unknown_unit():
                 "settings": [{"parameter": "wavelength", "value": 550, "unit": "nm"}]}}]}
   ```
 
-  `render_step` returns these lines, in this order, and leaves out any line whose part is empty. Values are formatted with `:g`, and multiple settings or amounts are joined with `", "`.
+  `render_step` returns these lines, in this order, and leaves out any line whose part is empty. Values retain their numeric precision (e.g. `550.0004 nm` and `550 nm`), and multiple settings or amounts are joined with `", "`.
   - `On {instrument_id}: {command} ({parameter} {value} {unit}, …)`
   - `Amounts, not checked against instrument limits: {what} {value} {unit}, …`
   - `Notes, not checked by code: {text}`
+  - `Citations: {document ids in the step’s order}`
 
   `render_procedure` writes each step as `Step {i}` followed by its lines, each indented two spaces, with steps separated by a blank line.
 
@@ -265,7 +266,8 @@ def test_dimension_mismatch_and_unknown_unit():
   - `test_render_uses_action_not_text`: render a step with text `"Measure at 800 nm."`, citations `["sop-cuvette"]` and an action at wavelength 550 nm. The lines are exactly:
     - `"On uvvis-1: read_absorbance (wavelength 550 nm)"`
     - `"Notes, not checked by code: Measure at 800 nm."`
-  - `test_render_procedure_example`: `render_procedure` of the parsed procedure example starts with `"Step 1\n  Notes, not checked by code: Rinse the cuvette twice with buffer.\n\nStep 2\n"`, and contains `"  Amounts, not checked against instrument limits: sample 1 mL"`.
+    - `"Citations: sop-cuvette"`
+  - `test_render_procedure_example`: `render_procedure` of the parsed procedure example starts with `"Step 1\n  Notes, not checked by code: Rinse the cuvette twice with buffer.\n  Citations: sop-cuvette\n\nStep 2\n"`, and contains `"  Amounts, not checked against instrument limits: sample 1 mL"`.
 
   Missing citations are a *check* (Task 5), not a parse error.
 
@@ -306,6 +308,7 @@ def test_dimension_mismatch_and_unknown_unit():
 - Rules:
   - **Command.** Fails with `"unknown command {c} on {instrument_id}"`, or `"missing required setting {p}"` when one is absent.
   - **Settings.**
+    - Duplicate settings for a parameter within a run step or procedure action fail with a readable detail.
     - A parameter the instrument doesn't have fails with `"unknown parameter"`.
     - A parameter the command doesn't accept fails with `"not accepted by {command}"`.
     - A unit problem fails with the `UnitError` message.
@@ -313,9 +316,9 @@ def test_dimension_mismatch_and_unknown_unit():
     - If the instrument isn't on the experiment or in the lab, every setting fails with `"unknown instrument"`.
   - **Text values.** Fails when `find_text_quantities(step.text)` is non-empty. The detail lists the matches and says `"put instrument values in the action and hand-measured values in amounts"`.
   - **Amounts.** Fail only when the unit is unknown.
-  - **Number format.** Every number in a detail uses `:g`.
+  - **Number format.** Numeric details preserve the precision of submitted values and limits and display whole numbers without a decimal suffix.
 
-  `find_text_quantities` matches a number (`\d+(?:\.\d+)?`), optional whitespace, then a unit token that isn't followed by a letter. Unit tokens:
+  Free-text notes still require human judgment. The checked instruction comes from the structured instrument action. `find_text_quantities` matches a number (`\d+(?:\.\d+)?`), optional whitespace, then a unit token that isn't followed by a letter. Unit tokens:
   - every supported unit spelling (case-sensitive)
   - the symbols `°C`, `µL`, `μL`, `µm`, `μm`
   - these words, case-insensitive: `nanometer(s)`, `micrometer(s)`, `microliter(s)`, `milliliter(s)`, `liter(s)`, `millisecond(s)`, `second(s)`, `sec`, `minute(s)`, `mins`, `hour(s)`, `hr(s)`, `kelvin`, `celsius`, `gauss`, `tesla`, `millitesla`
@@ -329,6 +332,7 @@ def test_dimension_mismatch_and_unknown_unit():
     - setting `wavelenght` fails with `"unknown parameter"`
     - unit `"nanometers"` fails with `"unknown unit"`
     - unit `"mL"` on `wavelength` fails with `"dimension"`
+  - Reject two settings for the same parameter in one run step or procedure action.
   - `test_commands_must_exist_and_be_complete`:
     - command `read_absorbence` fails `"step 1: command"` with `"unknown command read_absorbence on uvvis-1"`.
     - `read_absorbance` with only `integration_time` fails with `"missing required setting wavelength"`.
@@ -511,7 +515,7 @@ def test_dimension_mismatch_and_unknown_unit():
   - `wo show ID`, which prints these lines:
     - `{id} {kind} {status}`
     - `experiment {experiment_id} revision {n} · lab {lab_id} revision {m}`
-    - for each submission, `submission {n} by {worker} · digest {first 12 hex} · passed|failed`, followed by one `  pass|FAIL  {name}: {detail}` line per result, and then, for procedure orders, the output of `render_procedure`
+    - for each submission, `submission {n} by {worker} · digest {first 12 hex} · passed|failed`, followed by one `  pass|FAIL  {name}: {detail}` line per result, and then the submitted artifact: render a run plan’s instrument, commands and every parameter, value and unit in execution order, or render each procedure step with its citations, action, amounts and notes
     - `awaiting review: submission {n}` while the order is `in_review`
     - `released: submission {n} by {person}` once it is released
     - the history
@@ -530,6 +534,7 @@ def test_dimension_mismatch_and_unknown_unit():
     - `main([... "wo", "approve", "WO-1", "--submission", "1", "--by", "Neal"])` returns 0.
     - The `wo show WO-1` output contains `"released: submission 1 by Neal"` and `"lab emory-biophys revision 1"`.
   - `test_show_renders_procedure`: for a procedure order with a submitted example, `wo show` contains `"On uvvis-1: read_absorbance (wavelength 550 nm)"` and `"awaiting review: submission 1"`.
+  - Verify `wo show` before approval preserves multi-step and multi-setting order, exact numeric precision and per-step citations.
   - `test_cli_errors_exit_1`: each returns 1 with stderr starting with `error:`:
     - approving an `open` order
     - approving a stale submission number

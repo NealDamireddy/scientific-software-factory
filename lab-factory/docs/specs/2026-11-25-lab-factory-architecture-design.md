@@ -77,8 +77,8 @@ Undergrads (the main people running experiments), postdocs and PIs.
 - **Two kinds of knowledge.** Hard facts (parameter limits, units, firmware notes) are structured records. Written material (SOPs, manuals, standards) is stored as documents that outputs must cite.
 - **Live control follows the device/plan split.** Instrument drivers and their limits are written and verified once per instrument by a person. The factory generates only run plans, which are checked against those limits. Raw readings are always kept in full, so one instrument can serve many experiments. File upload stays a fallback. A later instrument agent will build on Bluesky.
 - **Instruments declare their commands.** Each instrument record lists the commands its driver supports, along with each command's required and optional parameters. Run plans and procedure actions may use only those commands. This is the "device" half of the device/plan split, recorded now so a release means something the later instrument agent can rely on.
-- **Procedures separate checked actions from unchecked prose.** A step has free-text notes, citations, an optional instrument *action* (instrument, command, settings) and optional *amounts* for things a person handles by hand, such as "sample 1 mL". The person sees the action as the factory renders it from the checked settings, never as the agent wrote it. Notes and amounts are labeled as not checked against instrument limits. A number with a unit inside the notes fails its check, so values can't hide in the prose.
-- **The person running the experiment signs off.** They approve a specific submission by number. If the work order has moved on to a newer submission, the approval is refused. The detailed sign-off rules are deferred.
+- **Procedures separate checked actions from unchecked prose.** A step has free-text notes, citations, an optional instrument *action* (instrument, command, settings) and optional *amounts* for things a person handles by hand, such as "sample 1 mL". The person sees the action as the factory renders it from the checked settings, never as the agent wrote it. Notes and amounts are labeled as not checked against instrument limits. The prose matcher flags the numeric unit expressions listed in the core plan. Free-text notes still require human judgment.
+- **The person running the experiment signs off.** They inspect the numbered submission in execution order, including every instrument command and setting or each procedure step’s citations, action, amounts and notes. They approve a specific submission by number. If the work order has moved on to a newer submission, the approval is refused. The detailed sign-off rules are deferred.
 - **Trust assumption for the core: a trusted local operator.** The MCP server offers no approve tool. But an agent with shell access as the same computer user could run the CLI's approve command itself, and the core does not prevent that. Enforced human-only release comes with the hosted lab deployment, where approval requires a login the agent doesn't have. The README states this plainly.
 - **The new system stays separate from the existing EVOLVE code.** It lives in `lab-factory/`, with its own Python project, and does not import from `factory/`. Ideas such as the sandbox verifier can be ported later as their own sub-projects.
 
@@ -109,12 +109,12 @@ Undergrads (the main people running experiments), postdocs and PIs.
   - The instrument is listed on the experiment.
   - Every command exists on that instrument.
   - Every required setting for a command is present, and no setting the command doesn't accept is present.
-  - Every setting names a parameter of the instrument, its unit converts, and its value is within limits.
+  - Parameter names are unique within an instrument. Each action or run step supplies at most one value per parameter. Every setting names a parameter of the instrument, its unit converts, and its value is within limits. Operator-facing instructions preserve the precision of each checked value.
 - **Procedure checks.**
   - Every step cites at least one document, and every citation resolves to a lab or experiment document in the pinned revisions.
   - Every action passes the same checks as a run-plan step.
   - Every amount has a known unit.
-  - The notes contain no number followed by a unit.
+  - The notes pass the plan’s matcher for numeric unit expressions.
 - **What a release certifies.** Against the pinned revisions, every check above passed for the exact artifact whose digest the approval recorded, and a named person approved that submission. It does not certify that the instrument's driver implements a command correctly, which is the instrument agent's job, or that the science is right, which is the reviewer's job.
 - **MCP tools** (agent-facing): `list_work_orders`, `get_work_order_context`, `claim_work_order`, `submit_artifact`. There is no approve tool.
 
