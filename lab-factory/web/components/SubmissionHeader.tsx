@@ -1,7 +1,7 @@
 "use client";
 
 import { CircleCheck, CircleX } from "lucide-react";
-import type { ReactNode } from "react";
+import type { ReactNode, Ref } from "react";
 
 import { statusLine, submissionFailed, submissionSummary } from "../lib/status.ts";
 import type { HistoryEvent, Submission, WorkOrder } from "../lib/types.ts";
@@ -15,25 +15,27 @@ export type SubmissionHeaderProps = {
   children?: ReactNode;
   /** A quiet line under the actions, such as the note that an earlier submission is shown. */
   note?: ReactNode;
+  /** The summary heading, focusable from script (sign-off moves focus here when it goes through). */
+  headingRef?: Ref<HTMLHeadingElement>;
 };
 
 /**
  * The tab's heading: the shown submission's check summary, then the order's status as people read it.
  * A failing summary is styled as a failure, but its words carry it on their own.
  */
-export function SubmissionHeader({ order, submission, history, children, note }: SubmissionHeaderProps) {
+export function SubmissionHeader({ order, submission, history, children, note, headingRef }: SubmissionHeaderProps) {
   const failed = submission ? submissionFailed(submission) : false;
   return (
     <header className="sub-header">
       {submission ? (
-        <h2 className="sub-summary" data-failed={failed ? "true" : "false"}>
+        <h2 ref={headingRef} tabIndex={-1} className="sub-summary" data-failed={failed ? "true" : "false"}>
           {failed
             ? <CircleX className="sub-icon" size={18} aria-hidden="true" />
             : <CircleCheck className="sub-icon" size={18} aria-hidden="true" />}
           <span>{submissionSummary(submission)}</span>
         </h2>
       ) : (
-        <h2 className="sub-summary">No submissions yet</h2>
+        <h2 ref={headingRef} tabIndex={-1} className="sub-summary">No submissions yet</h2>
       )}
       <p className="sub-status">{statusLine(order, history)}</p>
       {children !== undefined && children !== null && children !== false && <div className="sub-actions">{children}</div>}

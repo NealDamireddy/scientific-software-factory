@@ -29,3 +29,16 @@ export async function attachProtocol(page: Page): Promise<void> {
   await expect(page.getByText(reply)).toHaveCount(1, { timeout: 20_000 });
   await expect(page.getByText("The factory is working…")).toHaveCount(0);
 }
+
+/** Switches `Viewing as` in the lab menu, then closes the menu. The page and its sample data stay. */
+export async function viewAs(page: Page, role: "Researcher" | "Approver"): Promise<void> {
+  await page.getByRole("navigation", { name: "Lab" }).getByRole("button", { name: /Emory Biophysics/ }).click();
+  await page.getByRole("radio", { name: role }).check();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("radio", { name: role })).toBeHidden();
+}
+
+/** Goes to a hash route inside the page, so the sample data and the chosen role stay. */
+export async function goTo(page: Page, hash: string): Promise<void> {
+  await page.evaluate((h) => { window.location.hash = h; }, hash.replace(/^\/?#/, "#"));
+}

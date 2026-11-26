@@ -698,10 +698,12 @@
   color: var(--fail);
 }
 
+/* A rejection quotes its reason here, which can be one long unbroken word. */
 .sub-status {
   margin: 6px 0 0;
   color: var(--steel);
   font-size: 0.9375rem;
+  overflow-wrap: anywhere;
 }
 
 .sub-actions {
@@ -710,6 +712,57 @@
   align-items: center;
   gap: 8px;
   margin-top: 14px;
+}
+
+/* ---------------------------------------------------------------- sign-off */
+
+/* Follows the picker row, wrapping under it in a narrow panel; Approve is the one filled button. */
+.signoff-buttons {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-button.signoff-reject {
+  border-color: var(--rule);
+}
+
+.ws-button.signoff-reject[aria-expanded="true"] {
+  background: var(--ground);
+}
+
+/* The inline form drops onto its own line under the action row. */
+.signoff-form {
+  display: flex;
+  flex: 1 0 100%;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 28rem;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.signoff-field {
+  font-size: 0.875rem;
+}
+
+.signoff-field select {
+  color: var(--ink);
+  font: inherit;
+}
+
+.signoff-error {
+  overflow-wrap: anywhere;
+}
+
+.signoff-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
 }
 
 /* ---------------------------------------------------------------- procedure and run plan */
@@ -970,6 +1023,12 @@
   color: var(--ink);
   font: inherit;
   font-size: 0.875rem;
+}
+
+.hist-select:disabled {
+  background: var(--ground);
+  color: var(--steel);
+  cursor: default;
 }
 
 .hist-quiet {
@@ -1244,8 +1303,449 @@
 .hist-built-none,
 .hist-built-approval {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .hist-built-doclist .hist-doc {
   margin-left: 0;
+}
+
+/* ---------------------------------------------------------------- plots, code and computed results */
+
+/* Plot series colours. The first is indigo; the other three are the plan's literals, lightened for
+   the dark theme. Each is at least 3:1 against --paper in its theme. */
+:root,
+:root[data-theme="light"] {
+  --plot-1: var(--indigo);
+  --plot-2: #B8860B;
+  --plot-3: #4F8A6B;
+  --plot-4: #8A4F7D;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Keep identical to :root[data-theme="dark"] below. */
+  :root:not([data-theme]) {
+    --plot-2: #D9A93A;
+    --plot-3: #7FBF9A;
+    --plot-4: #C98DBB;
+  }
+}
+
+:root[data-theme="dark"] {
+  --plot-2: #D9A93A;
+  --plot-3: #7FBF9A;
+  --plot-4: #C98DBB;
+}
+
+.compute {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.compute > .panel-heading {
+  margin-bottom: 0;
+}
+
+.compute-summary,
+.compute-note {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.compute-note {
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.compute-subhead {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.compute-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.compute-status {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.compute-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+/* A quiet steel note: sand is kept for material that isn't checked. */
+.compute-tag {
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.compute-tag-line {
+  align-self: flex-start;
+  margin: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+
+.compute-table-wrap {
+  overflow-x: auto;
+}
+
+.compute-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.compute-table th,
+.compute-table td {
+  padding: 9px 12px 9px 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.compute-table thead th {
+  color: var(--steel);
+  font-weight: 500;
+}
+
+.compute-table tbody th {
+  font-weight: 500;
+}
+
+.compute-pending {
+  color: var(--steel);
+}
+
+.compute-result {
+  white-space: nowrap;
+}
+
+.compute-icon {
+  margin-right: 6px;
+  vertical-align: -3px;
+}
+
+.compute-result[data-passed="false"] {
+  color: var(--fail);
+}
+
+/* Code: Plex Mono in its own scroll region, keywords indigo, strings and comments steel. */
+.code-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 2px 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.code-label {
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.code-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.code-status {
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.ws-button.code-copy {
+  border-color: transparent;
+  background: none;
+  color: var(--indigo);
+  padding: 0 10px;
+}
+
+.code-pre {
+  max-height: 22rem;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  background: var(--ground);
+  border-radius: 0 0 8px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  tab-size: 4;
+}
+
+.code-keyword {
+  color: var(--indigo);
+}
+
+.code-string,
+.code-comment {
+  color: var(--steel);
+}
+
+.code-error {
+  margin: 8px;
+}
+
+/* Results: the readings controls, the instrument folder and the computed answer. */
+.results-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.results-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.results-upload-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.results-file {
+  max-width: 100%;
+  min-height: 40px;
+  color: var(--steel);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.results-file::file-selector-button {
+  min-height: 40px;
+  margin-right: 10px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+}
+
+.results-file::file-selector-button:hover {
+  background: var(--ground);
+}
+
+.results-sample {
+  align-self: flex-end;
+}
+
+.results-folder {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+.results-folder-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.results-folder-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ws-button.results-analyze {
+  border-color: var(--rule);
+}
+
+.compute-alert {
+  align-self: stretch;
+}
+
+.results-out {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.results-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+/* Plots: no animation; text stays at its size because the SVG takes the container's width. */
+.plot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+.plot-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.plot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink);
+  font-size: 0.8125rem;
+}
+
+.plot-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plot-swatch {
+  flex: none;
+}
+
+.plot-box {
+  min-width: 0;
+}
+
+.plot-svg {
+  display: block;
+  height: auto;
+  overflow: visible;
+}
+
+.plot-grid line {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.plot-axis {
+  stroke: var(--steel);
+  stroke-width: 1;
+}
+
+.plot-ticks text {
+  fill: var(--steel);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.plot-axis-label {
+  fill: var(--ink);
+  font-size: 12.5px;
+}
+
+.plot-points circle {
+  stroke: var(--paper);
+  stroke-width: 1;
+}
+
+.plot-line {
+  fill: none;
+  stroke-width: 2.25;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.plot-note {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.plot-table-note {
+  padding: 8px 12px 0;
+}
+
+.ws-button.plot-toggle {
+  align-self: flex-start;
+  padding: 0 12px;
+}
+
+.plot-toggle[aria-expanded="true"] {
+  background: var(--ground);
+}
+
+.plot-data {
+  max-height: 20rem;
+  overflow: auto;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.plot-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.plot-table caption {
+  padding: 8px 12px;
+  color: var(--steel);
+  text-align: left;
+}
+
+.plot-table th,
+.plot-table td {
+  padding: 5px 12px;
+  border-top: 1px solid var(--rule);
+  text-align: right;
+}
+
+.plot-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  color: var(--steel);
+  font-weight: 500;
+}
+
+.plot-table tbody th {
+  font-weight: 400;
 }

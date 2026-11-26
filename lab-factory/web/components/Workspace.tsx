@@ -12,6 +12,7 @@ import { Composer } from "./Composer.tsx";
 import { Conversation, ECHO_ANCHOR } from "./Conversation.tsx";
 import type { Echo, LiveActivity } from "./Conversation.tsx";
 import { OutputPanel, availableTabs } from "./OutputPanel.tsx";
+import { RunnerProvider } from "./RunnerContext.tsx";
 import type { PanelTab } from "./OutputPanel.tsx";
 import type { ShowOrderRequest } from "./SubmissionPanel.tsx";
 
@@ -22,7 +23,12 @@ function errorText(error: unknown): string {
 /** One experiment: its conversation with the factory, and the outputs it built beside it. */
 export function Workspace({ projectId, experimentId }: { projectId: string; experimentId: string }) {
   // Keyed, so moving to another experiment starts from a clean slate (panel, drafts, live activity).
-  return <ExperimentWorkspace key={experimentId} projectId={projectId} experimentId={experimentId} />;
+  // The Python runner sits above the key: its loaded runtime serves every experiment visited.
+  return (
+    <RunnerProvider>
+      <ExperimentWorkspace key={experimentId} projectId={projectId} experimentId={experimentId} />
+    </RunnerProvider>
+  );
 }
 
 /** A call to the factory in flight: what it shows until the stored messages come back. */

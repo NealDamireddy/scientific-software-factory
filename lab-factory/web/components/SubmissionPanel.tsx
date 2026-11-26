@@ -10,6 +10,7 @@ import type { CheckResult, OrderView, RunStepView, StepView } from "../lib/types
 import { ClientError } from "../lib/types.ts";
 import { BuiltFrom } from "./BuiltFrom.tsx";
 import { useClient } from "./ClientContext.tsx";
+import { SignOff } from "./SignOff.tsx";
 import { SubmissionDiff } from "./SubmissionDiff.tsx";
 import { SubmissionHeader } from "./SubmissionHeader.tsx";
 import { SubmissionPicker } from "./SubmissionPicker.tsx";
@@ -53,6 +54,7 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
   const diffId = useId();
   const picker = useRef<HTMLSelectElement>(null);
   const compareButton = useRef<HTMLButtonElement>(null);
+  const summary = useRef<HTMLHeadingElement>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [comparing, setComparing] = useState(false);
   const [loaded, setLoaded] = useState<Loaded<S> | null>(null);
@@ -60,6 +62,8 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
   const [skillTitles, setSkillTitles] = useState<ReadonlyMap<string, string> | null>(null);
   const [skillError, setSkillError] = useState<string | null>(null);
   const [consumed, setConsumed] = useState<number | null>(null);
+  // While a sign-off is in progress the shown submission stays put.
+  const [signing, setSigning] = useState(false);
 
   const options = submissionOptions(view);
   const latest = latestChoice(view);
@@ -139,7 +143,7 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
   const earlier = !isLatest && shown ? (
     <p className="hist-earlier">
       <span>You&apos;re viewing an earlier submission.</span>
-      <button type="button" className="ws-button hist-quiet" onClick={backToLatest}>Back to the latest</button>
+      <button type="button" className="ws-button hist-quiet" onClick={backToLatest} disabled={signing}>Back to the latest</button>
     </p>
   ) : null;
   const note = hint || earlier ? <>{hint}{earlier}</> : undefined;
@@ -151,31 +155,44 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
         submission={shown?.submission}
         history={shown ? shown.record.history : view.history}
         note={note}
+        headingRef={summary}
       >
         {options.length > 0 && (
-          <span className="hist-row">
-            <SubmissionPicker
-              ref={picker}
-              options={options}
-              value={chosenKey}
-              onChange={choose}
-              pending={shown ? undefined : `${view.order.id}, nothing submitted yet`}
-            />
-            <button
-              ref={compareButton}
-              type="button"
-              className="ws-button hist-quiet hist-compare"
-              aria-expanded={canCompare ? comparing : undefined}
-              aria-controls={canCompare ? diffId : undefined}
-              aria-describedby={canCompare ? undefined : hintId}
-              disabled={!canCompare}
-              onClick={() => setComparing((open) => !open)}
-            >
-              Compare
-            </button>
-          </span>
+          <>
+            <span className="hist-row">
+              <SubmissionPicker
+                ref={picker}
+                options={options}
+                value={chosenKey}
+                onChange={choose}
+                pending={shown ? undefined : `${view.order.id}, nothing submitted yet`}
+                disabled={signing}
+              />
+              <button
+                ref={compareButton}
+                type="button"
+                className="ws-button hist-quiet hist-compare"
+                aria-expanded={canCompare ? comparing : undefined}
+                aria-controls={canCompare ? diffId : undefined}
+                aria-describedby={canCompare ? undefined : hintId}
+                disabled={!canCompare || signing}
+                onClick={() => setComparing((open) => !open)}
+              >
+                Compare
+              </button>
+            </span>
+            {/* Sign-off only ever names the latest submission of the newest order. */}
+            {isLatest && shown && (
+              <SignOff
+                key={shown.key}
+                order={shown.record.order}
+                submission={shown.submission}
+                onDone={() => summary.current?.focus()}
+                onPendingChange={setSigning}
+              />
+            )}
+          </>
         )}
-        {/* Task 15: <SignOff order submission /> mounts here, only while isLatest. */}
       </SubmissionHeader>
       {comparing && canCompare && shown && (
         <SubmissionDiff key={shown.key} id={diffId} kind={kind} shown={shown} options={options} onClose={closeComparison} />
