@@ -712,6 +712,53 @@
   margin-top: 14px;
 }
 
+/* ---------------------------------------------------------------- sign-off */
+
+/* Follows the picker row, wrapping under it in a narrow panel; Approve is the one filled button. */
+.signoff-buttons {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-button.signoff-reject {
+  border-color: var(--rule);
+}
+
+.ws-button.signoff-reject[aria-expanded="true"] {
+  background: var(--ground);
+}
+
+/* The inline form drops onto its own line under the action row. */
+.signoff-form {
+  display: flex;
+  flex: 1 0 100%;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 28rem;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.signoff-field {
+  font-size: 0.875rem;
+}
+
+.signoff-field select {
+  color: var(--ink);
+  font: inherit;
+}
+
+.signoff-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
 /* ---------------------------------------------------------------- procedure and run plan */
 
 .proc-scope {

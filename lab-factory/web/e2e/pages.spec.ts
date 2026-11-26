@@ -1,14 +1,10 @@
 import { expect, test } from "playwright/test";
 import type { Page } from "playwright/test";
 
+import { viewAs } from "./helpers.ts";
+
 function sidebar(page: Page) {
   return page.getByRole("navigation", { name: "Lab" });
-}
-
-async function viewAs(page: Page, role: "Researcher" | "Approver") {
-  await sidebar(page).getByRole("button", { name: /Emory Biophysics/ }).click();
-  await page.getByRole("radio", { name: role }).check();
-  await page.keyboard.press("Escape");
 }
 
 test("a new project takes a versioned document, opens it in the drawer and starts an experiment", async ({ page }) => {
