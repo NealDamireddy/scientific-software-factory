@@ -3,7 +3,7 @@
 const byId = (id) => document.getElementById(id);
 const workspace = byId("workspace");
 const statuses = {open: "Open", in_progress: "In progress", in_review: "In review", released: "Released"};
-const kinds = {run_plan: "Run plan", procedure: "Procedure"};
+const kinds = {run_plan: "Run plan", procedure: "Procedure", analysis_app: "B12 analysis app"};
 let reviewer = null;
 let agentNames = [];
 let generation = 0;
@@ -238,14 +238,22 @@ function submissionView(order, submission, latest) {
   if (latest) {
     const head = element("div", undefined, "submission-head");
     const name = element("h2", title);
+    name.id = "latest-submission";
+    name.tabIndex = -1;
     name.append(element("small", "by " + submission.worker));
     head.append(name, status(submission.passed ? "Checks passed" : "Checks failed", submission.passed ? "passed" : "failed"));
     section.append(head);
   }
   const body = element("div", undefined, "details-content");
-  body.append(element("h3", "Submitted artifact"), element("pre", submission.rendered, "rendered"));
+  if (order.kind === "analysis_app") {
+    const source = element("pre", undefined, "analysis-source");
+    source.append(element("code", submission.artifact.source));
+    body.append(element("h3", "Agent’s Python source"), source);
+  } else {
+    body.append(element("h3", "Submitted artifact"), element("pre", submission.rendered, "rendered"));
+  }
   body.append(element("p", "Artifact SHA-256", "field-caption"), element("p", submission.artifact_digest, "digest mono"));
-  body.append(element("h3", "Recorded checks"));
+  body.append(element("h3", order.kind === "analysis_app" ? "Factory verification" : "Recorded checks"));
   const checks = element("ul", undefined, "checks");
   for (const check of submission.results) {
     const item = element("li");
@@ -264,11 +272,11 @@ function submissionView(order, submission, latest) {
   return section;
 }
 
-function showOrder(data) {
+function showOrder(data, assay) {
   const {order, submissions, history} = data;
   const back = element("div", undefined, "nav-back");
-  const link = element("a", "← Work orders");
-  link.href = "#orders";
+  const link = element("a", assay ? "← B12 analysis" : "← Work orders");
+  link.href = assay ? "#b12" : "#orders";
   back.append(link);
   const statusLine = element("div", undefined, "order-title");
   statusLine.append(element("span", order.id), status(statuses[order.status], order.status));
@@ -278,11 +286,22 @@ function showOrder(data) {
   definition(meta, "Lab", order.lab_id + " · revision " + order.lab_revision);
   definition(meta, "Worker", order.worker || "Unclaimed");
   workspace.replaceChildren(back, statusLine, heading(order.objective, refreshButton()), meta);
+  if (assay) {
+    workspace.append(readingEntry(order, assay));
+    if (order.status === "released") workspace.append(readingResults(order, assay.readings));
+  }
   const sorted = submissions.slice().sort((a,b) => b.number - a.number);
   if (!sorted.length) {
     const empty = panel("Submissions");
     empty.append(element("p", order.status === "open"
       ? "This order is open for an agent to claim." : "Waiting for the claiming agent to submit an artifact.", "empty"));
+    if (assay) {
+      const connect = element("a", "Connect a coding agent");
+      connect.href = "#agents";
+      const connection = element("div", undefined, "details-content");
+      connection.append(connect);
+      empty.append(connection);
+    }
     workspace.append(empty);
   }
   sorted.forEach((submission, i) => workspace.append(submissionView(order, submission, i === 0)));
@@ -306,6 +325,7 @@ function showOrder(data) {
     });
     workspace.append(previous);
   }
+  if (assay && order.status !== "released") workspace.append(readingResults(order, assay.readings));
   const events = panel("Order history");
   events.classList.add("history");
   const {wrapper, body} = table(["Event", "Actor", "Time", "Submission", "Note"]);
@@ -338,6 +358,154 @@ function showOrder(data) {
     events.append(more);
   }
   workspace.append(events);
+}
+
+function showB12(data) {
+  const create = button("Start B12 example", "primary", async () => {
+    const page = generation;
+    create.disabled = true;
+    try {
+      const result = await post("b12/orders", {});
+      if (page === generation) openOrder(result.id);
+    } catch (error) { if (page === generation) notify(error.message, true); }
+    finally { create.disabled = false; }
+  });
+  const list = panel("Analysis orders");
+  if (data.orders.length) {
+    const {wrapper, body} = table(["Order", "Objective", "Status"]);
+    for (const order of data.orders.slice().reverse()) {
+      const row = body.insertRow();
+      row.insertCell().append(linkToOrder(order.id));
+      row.insertCell().textContent = order.objective;
+      row.insertCell().append(status(statuses[order.status], order.status));
+    }
+    list.append(wrapper);
+  } else {
+    list.append(element("p", "Start the B12 example to open your first analysis order.", "empty"));
+  }
+  workspace.replaceChildren(heading("Vitamin B12 analysis", refreshButton(), create),
+    element("p", "Start a fresh review of the agent-written Python, or reopen an existing order. Each new example tests the source again before you approve it and calculate a concentration from simulated readings.", "assay-intro"), list);
+}
+
+function readingEntry(order, assay) {
+  const section = panel("Simulated absorbance readings");
+  const body = element("div", undefined, "panel-body assay-entry");
+  const form = element("form");
+  const caption = element("p", "Enter three replicate readings for the same simulated vial.", "muted");
+  const fields = element("div", undefined, "replicates");
+  const inputs = assay.sample_readings.map((value, index) => {
+    const label = element("label", "Reading " + (index + 1) + " (AU)");
+    const input = element("input");
+    input.type = "number";
+    input.name = "replicate";
+    input.step = "any";
+    input.required = true;
+    input.placeholder = String(value);
+    label.append(input);
+    fields.append(label);
+    return input;
+  });
+  const fill = button("Use example readings", "secondary", () => {
+    inputs.forEach((input, i) => { input.value = assay.sample_readings[i]; });
+    formError(form, "");
+  });
+  const save = element("button", "Save readings", "primary");
+  save.type = "submit";
+  const error = element("p", "", "form-error");
+  error.hidden = true;
+  error.setAttribute("role", "alert");
+  form.append(caption, fields, error, actions(fill, save));
+  const path = "b12/orders/" + encodeURIComponent(order.id) + "/readings";
+  handleForm(form, async (values) => {
+    const page = generation;
+    const readings = values.getAll("replicate").map(Number);
+    if (readings.length !== 3 || !readings.every(Number.isFinite)) throw new Error("Enter three finite numeric readings.");
+    await post(path, {readings});
+    if (page !== generation) return;
+    await navigate();
+    if (reviewer && location.hash === "#order/" + encodeURIComponent(order.id)) {
+      notify("Readings saved for " + order.id + ".");
+      const next = order.status === "in_review" ? byId("latest-submission") : byId("b12-datasets");
+      next?.focus();
+    }
+  });
+  const cal = assay.calibration;
+  const calibration = element("aside", undefined, "assay-calibration");
+  const label = element("h3", "Pinned calibration");
+  const dl = element("dl", undefined, "calibration-data");
+  definition(dl, "Wavelength", cal.wavelength_nm + " nm");
+  definition(dl, "Calibrated interval", cal.min_au + "–" + cal.max_au + " AU");
+  definition(dl, "Slope", cal.slope_au_per_mg_l + " AU per mg/L");
+  definition(dl, "Intercept", cal.intercept_au + " AU");
+  calibration.append(label, dl, element("p", cal.id, "mono calibration-id"));
+  body.append(form, calibration);
+  section.append(body);
+  return section;
+}
+
+function readingResults(order, datasets) {
+  const section = panel("Saved readings and results");
+  section.id = "b12-datasets";
+  section.tabIndex = -1;
+  section.classList.add("space-top");
+  if (!datasets.length) {
+    section.append(element("p", "Save three readings above to add a dataset.", "empty"));
+    return section;
+  }
+  for (const dataset of [...datasets].sort((a,b) => b.id - a.id)) {
+    const body = element("article", undefined, "dataset panel-body");
+    const caption = element("div", undefined, "dataset-head");
+    caption.append(element("h3", "Dataset " + dataset.id),
+      element("span", dataset.actor + " · " + dataset.created_at, "dataset-byline"));
+    body.append(caption, element("p", dataset.readings.join(" · ") + " AU", "dataset-readings"));
+    const result = dataset.result;
+    if (result) {
+      const estimated = result.status === "estimated";
+      const outcome = element("div", undefined, "b12-outcome" + (estimated ? "" : " withheld"));
+      if (estimated) {
+        const concentration = element("p", String(Number(result.concentration_mg_l.toPrecision(10))), "concentration");
+        concentration.append(element("span", " mg/L"));
+        outcome.append(element("p", "B12 concentration", "field-caption"), concentration);
+        concentration.title = String(result.concentration_mg_l) + " mg/L";
+      } else {
+        outcome.append(element("h3", "Concentration withheld"), element("p", result.reason));
+      }
+      outcome.append(element("p", "Mean absorbance " + Number(result.mean_absorbance_au.toPrecision(10)) + " AU", "mean"));
+      const trace = element("details", undefined, "result-trace");
+      trace.append(element("summary", "Result provenance"));
+      const dl = element("dl", undefined, "order-meta");
+      definition(dl, "Approved source", order.id + " · submission " + result.submission);
+      definition(dl, "Written by", result.worker);
+      definition(dl, "Approved by", result.approved_by);
+      definition(dl, "Calibration", result.calibration_id);
+      definition(dl, "Run by", result.actor + " · " + result.created_at);
+      definition(dl, "Artifact SHA-256", result.artifact_digest, "mono");
+      definition(dl, "Readings SHA-256", result.readings_digest, "mono");
+      trace.append(dl);
+      body.append(outcome, trace);
+    } else if (order.status === "released") {
+      const run = button("Run analysis", "primary", async () => {
+        const page = generation;
+        run.disabled = true;
+        try {
+          await post("b12/orders/" + encodeURIComponent(order.id) + "/readings/" + encodeURIComponent(dataset.id) + "/run",
+            {submission: order.released_submission});
+          if (generation !== page) return;
+          await navigate();
+          if (reviewer && location.hash === "#order/" + encodeURIComponent(order.id)) byId("dataset-" + dataset.id)?.focus();
+        } catch (error) { if (generation === page) notify(error.message, true); }
+        finally { run.disabled = false; }
+      });
+      run.setAttribute("aria-label", "Run analysis on dataset " + dataset.id);
+      body.append(run);
+    } else {
+      body.append(element("p", "Available to run once a reviewer releases the analysis.", "muted"));
+    }
+    body.id = "dataset-" + dataset.id;
+    body.tabIndex = -1;
+    section.append(body);
+  }
+  return section;
 }
 
 function examplePanel() {
@@ -423,13 +591,16 @@ async function navigate() {
   for (const modal of document.querySelectorAll("dialog[open]")) modal.close();
   const hash = location.hash.slice(1);
   const isOrder = hash.startsWith("order/");
-  const tab = ["context","agents"].includes(hash) ? hash : "orders";
-  for (const link of byId("nav").querySelectorAll("a")) {
-    if (link.dataset.tab === tab) link.setAttribute("aria-current", "page");
-    else link.removeAttribute("aria-current");
+  const tab = ["context","agents","b12"].includes(hash) ? hash : "orders";
+  function selectTab(active) {
+    for (const link of byId("nav").querySelectorAll("a")) {
+      if (link.dataset.tab === active) link.setAttribute("aria-current", "page");
+      else link.removeAttribute("aria-current");
+    }
   }
+  selectTab(tab);
   notify("");
-  const page = {orders:"Work orders",context:"Lab context",agents:"Agent access"}[tab];
+  const page = {orders:"Work orders",context:"Lab context",agents:"Agent access",b12:"Vitamin B12 analysis"}[tab];
   document.title = page + " · Lab Factory";
   workspace.setAttribute("aria-busy","true");
   try {
@@ -438,8 +609,17 @@ async function navigate() {
       const id = isOrder ? decodeURIComponent(hash.slice(6)) : "";
       const data = await api(isOrder ? "orders/" + encodeURIComponent(id) + "?submission=latest" : "orders");
       if (generation !== request) return;
-      if (isOrder) { showOrder(data); document.title = data.order.id + " · Lab Factory"; }
+      if (isOrder) {
+        const assay = data.order.kind === "analysis_app" ? await api("b12/orders/" + encodeURIComponent(id) + "/readings") : null;
+        if (generation !== request) return;
+        if (assay) selectTab("b12");
+        showOrder(data, assay); document.title = data.order.id + " · Lab Factory";
+      }
       else showOrders(data.orders);
+    } else if (tab === "b12") {
+      workspace.replaceChildren(element("p", "Loading analysis orders…", "muted"));
+      const data = await api("b12");
+      if (generation === request) showB12(data);
     } else if (tab === "context") showContext();
     else showAgents();
   } catch (error) {
@@ -493,6 +673,7 @@ handleForm(byId("decision-form"), async (fields) => {
   byId("decision-dialog").close();
   await navigate();
   notify(order + " submission " + number + (kind === "approve" ? " released." : " rejected. Order reopened."));
+  if (kind === "approve" && location.hash === "#order/" + encodeURIComponent(order)) byId("b12-datasets")?.focus();
 });
 for (const close of document.querySelectorAll("[data-close]")) {
   close.addEventListener("click", () => close.closest("dialog").close());

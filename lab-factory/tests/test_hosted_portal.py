@@ -1,6 +1,7 @@
 from copy import deepcopy
 import json
 import os
+from pathlib import Path
 
 import pytest
 from starlette.testclient import TestClient
@@ -11,6 +12,57 @@ from labfactory.hosted import application
 from labfactory.hosted_auth import SESSION_COOKIE, password_hash, token_digest
 from labfactory.store import Store
 from labfactory.workorders import WorkOrders
+
+
+def test_b12_browser_example_checks_approval_and_stores_result(client):
+    assert client.get("/api/b12").status_code == 401
+    assert client.post("/api/b12/orders", json={}).status_code == 401
+    login(client)
+    assert client.get("/api/b12").json()["orders"] == []
+    order = client.post("/api/b12/orders", json={})
+    assert order.status_code == 201
+    id = order.json()["id"]
+    path = f"/api/b12/orders/{id}/readings"
+    detail = client.get(f"/api/orders/{id}?submission=latest").json()
+    sub, = detail["submissions"]
+    assert sub["worker"] == "Codex (bundled example)"
+    assert sub["artifact_digest"] == canonical_digest(sub["artifact"])
+    assert sub["rendered"] == sub["artifact"]["source"]
+    assert sub["rendered"] == (Path(__file__).parents[1] / "src/labfactory/b12_example.py").read_text()
+    assert any(check["name"] == "Alternate slope" and check["passed"] for check in sub["results"])
+    assert all(check["passed"] for check in sub["results"])
+    assert client.post(path, json={"readings": [0.1]}).status_code == 400
+    assert client.post(path, json={"readings": [0.102, 0.1024, 0.1028]},
+                       headers={"Origin": "https://external.test"}).status_code == 403
+    dataset = client.post(path, json={"readings": [0.102, 0.1024, 0.1028]}).json()
+    assert dataset["result"] is None
+    run = f"{path}/{dataset['id']}/run"
+    assert client.post(run, json={"submission": 1}).status_code == 409
+    assert client.post(f"/api/orders/{id}/approve", json={"submission": 1, "expected_reviewer": "Ada"}).status_code == 200
+    assert client.post(run, json={"submission": 2}).status_code == 409
+    receipt = client.post(run, json={"submission": 1}).json()
+    assert receipt["status"] == "estimated" and receipt["concentration_mg_l"] == pytest.approx(16)
+    assert receipt["approved_by"] == "Ada" and receipt["artifact_digest"] == sub["artifact_digest"]
+    assert client.post(run, json={"submission": 1}).json() == receipt
+    outlier = client.post(path, json={"readings": [0.09, 0.10, 0.16]}).json()
+    withheld = client.post(f"{path}/{outlier['id']}/run", json={"submission": 1}).json()
+    assert withheld["status"] == "withheld" and withheld["concentration_mg_l"] is None
+    assert "Replicate 3" in withheld["reason"]
+    assert len(client.get(path).json()["readings"]) == 2
+    assert client.get("/api/b12").json()["orders"][0]["status"] == "released"
+
+
+def test_new_agent_analysis_remains_open_for_external_worker(client):
+    login(client)
+    assert client.post("/api/example", json={}).status_code == 201
+    unsupported = client.post("/api/orders", json={
+        "experiment_id": "b12-vial-a", "kind": "analysis_app", "objective": "Analyze uncalibrated readings",
+    })
+    assert unsupported.status_code == 409 and "calibration" in unsupported.json()["error"]
+    res = client.post("/api/b12/orders", json={"mode": "agent"})
+    assert res.status_code == 201
+    detail = client.get("/api/orders/" + res.json()["id"]).json()
+    assert detail["order"]["status"] == "open" and not detail["submissions"]
 
 
 ORIGIN = "https://localhost"

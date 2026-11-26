@@ -20,6 +20,17 @@ INSTRUCTIONS = (
     "and resubmit. A person reviews and releases passing work."
 )
 
+B12_INSTRUCTIONS = (
+    "Write Python source for the single function analyze(readings, slope, intercept). "
+    "The three readings are already simulated absorbances at 550 nm. Compute their arithmetic mean, "
+    "subtract the calibration intercept, then divide by slope to obtain mg/L. Read the pinned calibration "
+    "document. Use the supplied slope and intercept. The host owns the range gate for each replicate. "
+    "The arithmetic runner supports local assignments, return, +, -, *, /, readings[0..2], "
+    "sum(readings) and len(readings). Submit an object with the single field source. Independent "
+    "reference tests run on the submitted source. Read any failure or previous rejection and revise. "
+    "A reviewer approves the numbered source before a result can be saved."
+)
+
 
 def _return_domain_errors(method):
     @wraps(method)
@@ -51,7 +62,7 @@ class AgentTools:
                 "lab": to_dict(lab),
                 "experiment": to_dict(experiment),
                 "artifact_example": deepcopy(ARTIFACT_EXAMPLES[order.kind]),
-                "instructions": INSTRUCTIONS,
+                "instructions": B12_INSTRUCTIONS if order.kind == "analysis_app" else INSTRUCTIONS,
                 "previous_rejection": self._orders.latest_rejection(work_order_id),
             }
 

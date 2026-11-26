@@ -89,9 +89,13 @@ class WorkOrders:
         with self.store.transaction():
             exp, exp_rev = self.store.get_experiment(experiment_id)
             try:
-                _, lab_rev = self.store.lab_for_experiment(exp)
+                lab, lab_rev = self.store.lab_for_experiment(exp)
             except ContextError as exc:
                 raise WorkOrderError(f"cannot pin context for experiment {exp.id}: {exc}") from exc
+            if kind == "analysis_app":
+                from .b12_service import require_calibration
+
+                require_calibration(lab, exp)
             seq = self.db.execute("SELECT COALESCE(MAX(rowid),0) + 1 FROM work_orders").fetchone()[0]
             id = f"WO-{seq}"
             self.db.execute(

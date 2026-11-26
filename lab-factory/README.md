@@ -4,6 +4,17 @@ Lab Factory stores immutable revisions of lab and experiment records and pins bo
 
 ## Shared lab on Vercel
 
+### Try the simulated B12 analysis
+
+1. Open [B12 analysis](https://neal-lab-factory.vercel.app/#b12) and sign in as a reviewer. **Start B12 example** opens a fresh review of the bundled Codex-written Python and runs the factory’s independent reference tests. You can also open an analysis order already submitted by a connected agent.
+2. Enter three simulated absorbance readings in AU. Try `0.1020`, `0.1024`, and `0.1028`. Save the readings. They stay with the order while you review the source.
+3. Inspect the exact Python, worker, numbered submission and reference results. The tests cover both calibration endpoints, unequal readings, a different slope, and a nonzero intercept. Approve the displayed submission and confirm your decision.
+4. Select **Run analysis** on the saved readings. The example returns **16 mg/L**. Try `0.09`, `0.10`, and `0.16` on the same release to see the third replicate put the sample outside the calibrated range. The result and its provenance remain available when you reopen the order.
+
+The fixture represents absorbance at 550 nm with a fixed simulated slope of 0.0064 AU per mg/L and zero intercept. All three readings must lie between 0.0192 and 0.1536 AU, inclusive. The evaluator interprets a bounded arithmetic subset of Python and checks each returned concentration against the frozen calibration. Scope is simulated absorbance inputs. The app records the input readings, pinned context, calibration, reviewer, and digest of the source that produced each result.
+
+### Work orders and agents
+
 Open the [reviewer portal](https://neal-lab-factory.vercel.app/) and sign in with your named reviewer account. The portal shows work orders, numbered submissions, checked instructions, artifacts and decision history. Under **Lab context**, create an example using the UV-visible spectrophotometer, or import your own lab and experiment JSON and create an order in **Work orders**.
 
 To submit a newly created example from this directory, set `LAB_FACTORY_AGENT_TOKEN` to your issued agent token. Supply the open order ID shown in the portal and the worker name assigned to that token.

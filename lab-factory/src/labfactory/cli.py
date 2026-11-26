@@ -6,7 +6,7 @@ from pathlib import Path
 import sqlite3
 import sys
 
-from .artifacts import KINDS, Procedure, parse_artifact, render_procedure, render_run_plan
+from .artifacts import KINDS, render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
 from .store import NotFound, Store
 from .workorders import WorkOrderError, WorkOrders
@@ -64,8 +64,7 @@ def _show(orders: WorkOrders, id: str) -> str:
         for result in submission.results:
             mark = "pass" if result.passed else "FAIL"
             lines.append(f"  {mark}  {result.name}: {_one_line(result.detail)}")
-        artifact = parse_artifact(order.kind, submission.artifact)
-        lines.append(render_procedure(artifact) if isinstance(artifact, Procedure) else render_run_plan(artifact))
+        lines.append(render_artifact(order.kind, submission.artifact))
 
     if order.status == "in_review":
         lines.append(f"awaiting review: submission {submissions[-1].number}")

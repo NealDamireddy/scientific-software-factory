@@ -40,7 +40,7 @@ _SCHEMA = {
         id TEXT NOT NULL PRIMARY KEY,
         experiment_id TEXT NOT NULL, experiment_revision INTEGER NOT NULL,
         lab_id TEXT NOT NULL, lab_revision INTEGER NOT NULL,
-        kind TEXT NOT NULL CHECK (kind IN ('procedure','run_plan')),
+        kind TEXT NOT NULL CHECK (kind IN ('procedure','run_plan','analysis_app')),
         objective TEXT NOT NULL,
         status TEXT NOT NULL CHECK (status IN ('open','in_progress','in_review','released')),
         worker TEXT, released_submission INTEGER,
@@ -65,6 +65,21 @@ _SCHEMA = {
     )
     """,
     "events_by_order": "CREATE INDEX IF NOT EXISTS events_by_order ON events(work_order_id)",
+    "b12_readings": """
+    CREATE TABLE IF NOT EXISTS b12_readings (
+        id INTEGER PRIMARY KEY, work_order_id TEXT NOT NULL REFERENCES work_orders(id),
+        readings TEXT NOT NULL, actor TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )
+    """,
+    "b12_readings_by_order": "CREATE INDEX IF NOT EXISTS b12_readings_by_order ON b12_readings(work_order_id)",
+    "b12_results": """
+    CREATE TABLE IF NOT EXISTS b12_results (
+        reading_id INTEGER PRIMARY KEY REFERENCES b12_readings(id),
+        work_order_id TEXT NOT NULL, submission INTEGER NOT NULL,
+        receipt TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (work_order_id, submission) REFERENCES submissions(work_order_id, number)
+    )
+    """,
 }
 
 
@@ -87,14 +102,39 @@ class Store:
 
     def _initialize_schema(self) -> None:
         self.connection.execute("PRAGMA foreign_keys = ON")
-        existing = {row["name"] for row in self.connection.execute(
-            "SELECT name FROM sqlite_master WHERE type IN ('table', 'index')"
+        existing = {row["name"]: row["sql"] for row in self.connection.execute(
+            "SELECT name, sql FROM sqlite_master WHERE type IN ('table', 'index')"
         )}
-        if not _SCHEMA.keys() <= existing:
-            # Concurrent first opens serialize here. Every statement is idempotent.
+        legacy_orders = "work_orders" in existing and "'analysis_app'" not in existing["work_orders"]
+        if _SCHEMA.keys() <= existing.keys() and not legacy_orders:
+            return
+        # SQLite requires a table rebuild to widen a CHECK constraint. Leave all
+        # child tables in place, including their references and history cursors.
+        if legacy_orders:
+            self.connection.execute("PRAGMA foreign_keys = OFF")
+        try:
             with self.transaction() as connection:
+                if legacy_orders:
+                    current = connection.execute(
+                        "SELECT sql FROM sqlite_master WHERE name='work_orders' AND type='table'"
+                    ).fetchone()
+                    if current and "'analysis_app'" not in current["sql"]:
+                        connection.execute(_SCHEMA["work_orders"].replace(
+                            "IF NOT EXISTS work_orders (", "work_orders_b12_upgrade (", 1,
+                        ))
+                        columns = ("rowid,id,experiment_id,experiment_revision,lab_id,lab_revision,"
+                                   "kind,objective,status,worker,released_submission")
+                        connection.execute(f"INSERT INTO work_orders_b12_upgrade ({columns}) "
+                                           f"SELECT {columns} FROM work_orders")
+                        connection.execute("DROP TABLE work_orders")
+                        connection.execute("ALTER TABLE work_orders_b12_upgrade RENAME TO work_orders")
                 for statement in _SCHEMA.values():
                     connection.execute(statement)
+                if legacy_orders and connection.execute("PRAGMA foreign_key_check").fetchone():
+                    raise RuntimeError("Lab database upgrade found an invalid foreign key")
+        finally:
+            if legacy_orders:
+                self.connection.execute("PRAGMA foreign_keys = ON")
 
     def __enter__(self) -> "Store":
         return self
@@ -107,6 +147,17 @@ class Store:
 
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Connection]:
+        if self.connection.in_transaction:
+            # Context seeding and creating its first order form one atomic write.
+            self.connection.execute("SAVEPOINT nested_store_write")
+            try:
+                yield self.connection
+            except BaseException:
+                self.connection.execute("ROLLBACK TO nested_store_write")
+                raise
+            finally:
+                self.connection.execute("RELEASE nested_store_write")
+            return
         self.connection.execute("BEGIN IMMEDIATE")
         with self.connection:
             yield self.connection

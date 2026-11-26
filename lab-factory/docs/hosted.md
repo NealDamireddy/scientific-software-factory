@@ -2,6 +2,18 @@
 
 The Vercel project root is `lab-factory/`. Vercel builds the Python function from `uv.lock`, serves the browser portal from `public/`, and routes the reviewer API and Streamable HTTP MCP through the same application. The existing local CLI and stdio server continue to use the SQLite path supplied on the command line.
 
+## B12 source and result records
+
+**Start B12 example** submits the checked-in `src/labfactory/b12_example.py` as a bundled example and runs the verifier for this work order. It reuses source written for this simulation. For a new agent-authored implementation, a signed-in reviewer can send `POST /api/b12/orders` with `{"mode":"agent"}` using the portal’s same-origin JSON session. This opens an ordinary MCP work order. The agent receives the pinned protocol and a function signature, writes its implementation, and submits `{"source":"..."}` through the existing tools. The command below submits a source file in the environment of its issued worker.
+
+```sh
+uv run --locked python examples/submit_remote_example.py "$order" \
+  --url https://neal-lab-factory.vercel.app/mcp --worker lab-agent \
+  --source src/labfactory/b12_example.py
+```
+
+The factory evaluates arithmetic, local assignments, indexing of the three readings, `sum(readings)` and `len(readings)` in a bounded interpreter. Expected reference values belong to the factory. Approval rechecks the numbered submission. Each saved reading set can be run on that approved release, and repeated requests return its original receipt. Reopening an order retrieves the stored readings, results and review history.
+
 ## Storage
 
 The deployed service uses one **private Vercel Blob** in the same region as the function. Each operation reads the current SQLite snapshot, runs the core transaction and conditionally replaces the snapshot using its ETag. A competing write causes the callback to repeat against current history. If an upload loses its acknowledgement, inspect the order and its submission numbers before resubmitting.

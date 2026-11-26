@@ -13,7 +13,8 @@ from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from .artifacts import Procedure, parse_artifact, render_procedure, render_run_plan
+from . import b12_service
+from .artifacts import render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
 from .hosted_auth import Access, SESSION_COOKIE, SESSION_SECONDS
 from .hosted_mcp import make_mcp_app
@@ -141,8 +142,7 @@ def _details(store, id, submission=None, before_event=None):
             history = orders.history(id)
     values = []
     for sub in submissions:
-        artifact = parse_artifact(order.kind, sub.artifact)
-        rendered = render_procedure(artifact) if isinstance(artifact, Procedure) else render_run_plan(artifact)
+        rendered = render_artifact(order.kind, sub.artifact)
         values.append({**asdict(sub), "rendered": rendered})
     return {"order": asdict(order), "submissions": values, "history": history, **page}
 
@@ -224,6 +224,65 @@ async def example(request):
     return _response({"id": order.id}, 201)
 
 
+async def b12_catalog(request):
+    _reviewer(request)
+    return _response(await run_in_threadpool(run_store, b12_service.catalog))
+
+
+async def b12_order(request):
+    reviewer = _reviewer(request)
+    options = await _json_body(request)
+    if set(options) - {"mode"} or options.get("mode", "example") not in ("agent", "example"):
+        raise HTTPException(400, "Choose example or agent mode.")
+
+    def create(store):
+        data = b12_service.create_order(store, reviewer)
+        if options.get("mode") != "agent":
+            # Replay the versioned agent-written example as a new candidate for this lab.
+            source = Path(__file__).with_name("b12_example.py").read_text(encoding="utf-8")
+            orders = WorkOrders(store)
+            worker = "Codex (bundled example)"
+            orders.claim(data["id"], worker)
+            submitted = orders.submit(data["id"], worker, {"source": source})
+            if not submitted.passed:
+                raise WorkOrderError("The example source failed verification against the pinned experiment.")
+        return data
+
+    data = await run_in_threadpool(run_store, create, write=True)
+    return _response(data, 201)
+
+
+async def b12_readings(request):
+    reviewer = _reviewer(request)
+    id = request.path_params["id"]
+    if request.method == "GET":
+        return _response(await run_in_threadpool(run_store, lambda store: b12_service.list_readings(store, id)))
+    data = await _json_body(request)
+    if set(data) != {"readings"}:
+        raise HTTPException(400, "Supply three simulated absorbance readings.")
+    try:
+        values = await run_in_threadpool(
+            run_store, lambda store: b12_service.save_readings(store, id, reviewer, data["readings"]), write=True,
+        )
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from None
+    return _response(values, 201)
+
+
+async def b12_run(request):
+    reviewer = _reviewer(request)
+    id = request.path_params["id"]
+    reading_id = _positive_integer(request.path_params["reading_id"])
+    data = await _json_body(request)
+    if set(data) != {"submission"} or type(data["submission"]) is not int or not 0 < data["submission"] < 2**63:
+        raise HTTPException(400, "Supply the approved submission number.")
+    result = await run_in_threadpool(
+        run_store, lambda store: b12_service.run_readings(store, id, reading_id, reviewer, data["submission"]),
+        write=True,
+    )
+    return _response(result)
+
+
 async def decide(request):
     person = _reviewer(request)
     data = await _json_body(request)
@@ -260,6 +319,9 @@ portal = Starlette(routes=[
     Route("/api/logout", logout, methods=["POST"]), Route("/api/orders", order_list, methods=["GET", "POST"]),
     Route("/api/orders/{id}", order_detail), Route("/api/orders/{id}/{action}", decide, methods=["POST"]),
     Route("/api/context/{kind}", context_put, methods=["POST"]), Route("/api/example", example, methods=["POST"]),
+    Route("/api/b12", b12_catalog), Route("/api/b12/orders", b12_order, methods=["POST"]),
+    Route("/api/b12/orders/{id}/readings", b12_readings, methods=["GET", "POST"]),
+    Route("/api/b12/orders/{id}/readings/{reading_id}/run", b12_run, methods=["POST"]),
     Mount("/", app=StaticFiles(directory=PROJECT / "public", html=True, check_dir=False)),
 ], exception_handlers={cls: domain_error for cls in (HTTPException, ContextError, NotFound, WorkOrderError, HostedStorageError)})
 
