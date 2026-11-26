@@ -1,6 +1,8 @@
 import { defineConfig } from "playwright/test";
 
-const baseURL = "http://127.0.0.1:4190";
+// Parallel checkouts can set PLAYWRIGHT_PORT so their servers do not collide.
+const port = Number(process.env.PLAYWRIGHT_PORT ?? 4190);
+const baseURL = `http://127.0.0.1:${port}`;
 const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
 
 export default defineConfig({
@@ -11,7 +13,7 @@ export default defineConfig({
     launchOptions: executablePath ? { executablePath } : {},
   },
   webServer: {
-    command: "python3 -m http.server 4190 --bind 127.0.0.1 --directory out",
+    command: `python3 -m http.server ${port} --bind 127.0.0.1 --directory out`,
     url: baseURL,
   },
 });
