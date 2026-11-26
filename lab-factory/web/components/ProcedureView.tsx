@@ -1,6 +1,7 @@
 "use client";
 
 import { CircleX } from "lucide-react";
+import { Fragment } from "react";
 
 import { routeHref } from "../lib/route.ts";
 import type { CheckResult, SettingView, StepView } from "../lib/types.ts";
@@ -44,36 +45,48 @@ export function StepFailures({ failures }: { failures: CheckResult[] }) {
   );
 }
 
+/** Failing checks of the shown submission that belong to no rendered step, so none passes silently. */
+export function UnplacedFailures({ failures }: { failures: CheckResult[] }) {
+  if (failures.length === 0) return null;
+  return (
+    <div className="proc-unplaced">
+      <p className="proc-unplaced-head">Checks that failed outside the steps</p>
+      <StepFailures failures={failures} />
+    </div>
+  );
+}
+
 export type ProcedureViewProps = {
   /** The steps of the shown submission. Task 13 passes another submission's steps here. */
   steps: StepView[];
+  /** Failing checks no step carries (see `unplacedFailures`), listed above the steps. */
+  unplaced?: CheckResult[];
 };
 
 /**
  * A procedure as one continuous numbered list. Settings sit on range strips (checked), amounts and
  * notes carry the sand label (not checked), and failing checks sit on their step (failed).
  */
-export function ProcedureView({ steps }: ProcedureViewProps) {
+export function ProcedureView({ steps, unplaced = [] }: ProcedureViewProps) {
   const [route] = useRoute();
   return (
     <div className="proc">
       <p className="proc-scope">{PROCEDURE_LINE}</p>
-      <ol className="proc-steps" aria-label="Steps">
+      <UnplacedFailures failures={unplaced} />
+      <ol className="proc-steps" role="list" aria-label="Steps">
         {steps.map((step) => (
           <li key={step.number} className="proc-step">
             <span className="proc-num">{step.number}</span>
             <div className="proc-body">
               <p className="proc-text">
                 {step.text}
-                {step.sources.length > 0 && (
-                  <span className="proc-sources">
-                    {step.sources.map((source) => (
-                      <a key={source.id} className="proc-source" href={routeHref({ ...route, doc: source.id })}>
-                        {source.title}
-                      </a>
-                    ))}
-                  </span>
-                )}
+                {/* Real spaces before and between the sources, so the run wraps like the words around it. */}
+                {step.sources.map((source) => (
+                  <Fragment key={source.id}>
+                    {" "}
+                    <a className="proc-source" href={routeHref({ ...route, doc: source.id })}>{source.title}</a>
+                  </Fragment>
+                ))}
               </p>
               <SettingStrips settings={step.settings} />
               {step.unchecked.length > 0 && (

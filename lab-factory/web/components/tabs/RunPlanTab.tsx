@@ -1,6 +1,6 @@
 "use client";
 
-import { shownSubmission } from "../../lib/status.ts";
+import { shownSubmission, unplacedFailures } from "../../lib/status.ts";
 import type { Workspace } from "../../lib/types.ts";
 import { RunPlanView } from "../RunPlanView.tsx";
 import { SubmissionHeader } from "../SubmissionHeader.tsx";
@@ -13,7 +13,7 @@ export function RunPlanTab({ workspace }: { workspace: Workspace }) {
   return (
     <>
       <SubmissionHeader order={view.order} submission={submission} history={view.history} />
-      {submission && <RunPlanView steps={view.steps} />}
+      {submission && <RunPlanView steps={view.steps} unplaced={unplacedFailures(submission.results, view.steps)} />}
     </>
   );
 }

@@ -759,32 +759,23 @@
   line-height: 1.6;
 }
 
-/* Sources sit on the step's line in smaller text. The link's hit area reaches 40 px without
-   making the line taller. */
-.proc-sources {
-  display: inline;
-  margin-left: 10px;
-}
-
+/* Sources follow the step text on its line in smaller text, separated by real spaces so the run
+   wraps like words. Each link is its own 40 px tall box: only lines that carry a source grow, and
+   no hit area reaches over a neighbour. Long titles wrap inside their box. */
 .proc-source {
-  position: relative;
-  margin-right: 12px;
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 40px;
+  margin-left: 4px;
   color: var(--indigo);
   font-size: 0.8125rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  vertical-align: baseline;
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--indigo) 40%, transparent);
   text-underline-offset: 3px;
-  white-space: nowrap;
-}
-
-.proc-source:last-child {
-  margin-right: 0;
-}
-
-.proc-source::after {
-  content: "";
-  position: absolute;
-  inset: -10px -5px;
 }
 
 .proc-source:hover {
@@ -852,6 +843,19 @@
 .proc-fail-icon {
   flex: none;
   margin-top: 2px;
+}
+
+.proc-unplaced {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.proc-unplaced-head {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
 }
 
 .proc-send {

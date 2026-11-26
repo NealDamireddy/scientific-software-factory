@@ -120,3 +120,86 @@ test.describe("the B12 outputs", () => {
     await expect(send).toHaveAccessibleDescription("Instruments are controlled by the instrument agent, which comes later.");
   });
 });
+
+const PROTOCOL_REPLY = "I added reduction-protocol.txt to this experiment and rewrote the procedure. Every check passes, and it’s waiting for sign-off.";
+
+/** Attaches the reduction protocol on Coomassie and waits for the rewritten procedure, which cites it on step 4. */
+async function attachProtocol(page: Page) {
+  await page.getByLabel("Attach files").setInputFiles({
+    name: "reduction-protocol.txt", mimeType: "text/plain", buffer: Buffer.from("Add the reducing agent dropwise."),
+  });
+  await page.getByRole("textbox", { name: "Message the factory" }).fill("Here is the protocol");
+  await page.getByRole("button", { name: "Send" }).click();
+  await expect(page.getByText(PROTOCOL_REPLY)).toHaveCount(1, { timeout: 20_000 });
+}
+
+type Box = { x: number; y: number; width: number; height: number };
+const intersects = (a: Box, b: Box) =>
+  a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+
+for (const width of [1440, 1100]) {
+  test(`sources sit after the step text, inside the panel, at ${width} px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(COOMASSIE);
+    await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
+    await attachProtocol(page);
+    const body = tabBody(page, "Procedure");
+    await expect(steps(body).nth(3).getByRole("link", { name: "reduction-protocol.txt" })).toBeVisible();
+
+    const links = await body.getByRole("list", { name: "Steps" }).getByRole("link").all();
+    expect(links.length).toBeGreaterThanOrEqual(5);
+    const panelBox = await body.boundingBox();
+    expect(panelBox).not.toBeNull();
+    for (const link of links) {
+      // A real space separates a source from the words before it, so the two never run together.
+      const before = await link.evaluate((el) => {
+        const range = document.createRange();
+        range.setStart(el.closest("p")!, 0);
+        range.setEndBefore(el);
+        return range.toString();
+      });
+      expect(before).toMatch(/\S\s+$/);
+      const box = await link.boundingBox();
+      expect(box).not.toBeNull();
+      expect(box!.x).toBeGreaterThanOrEqual(panelBox!.x);
+      expect(box!.x + box!.width).toBeLessThanOrEqual(panelBox!.x + panelBox!.width);
+    }
+    const overflow = await body.evaluate((el) => el.scrollWidth - el.clientWidth);
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+}
+
+for (const [name, url] of [["Coomassie", COOMASSIE], ["B12", B12]] as const) {
+  test(`every source on ${name} has its own hit area of at least 40 px`, async ({ page }) => {
+    await page.goto(url);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    const body = tabBody(page, "Procedure");
+    await expect(steps(body).first()).toBeVisible();
+    const links = await body.getByRole("list", { name: "Steps" }).getByRole("link").all();
+    expect(links.length).toBeGreaterThan(0);
+    const boxes: Box[] = [];
+    for (const link of links) {
+      // The link itself receives a click at its centre: nothing else lies over it.
+      await link.scrollIntoViewIfNeeded();
+      const hit = await link.evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return top !== null && el.contains(top);
+      });
+      expect(hit).toBe(true);
+    }
+    // Measured in one go, so every box shares the same scroll position.
+    const rects = await body.getByRole("list", { name: "Steps" }).getByRole("link").evaluateAll((els) =>
+      els.map((el) => {
+        const r = el.getBoundingClientRect();
+        return { x: r.left, y: r.top, width: r.width, height: r.height };
+      }));
+    for (const box of rects) {
+      expect(box.height).toBeGreaterThanOrEqual(40);
+      boxes.push(box);
+    }
+    for (let i = 0; i < boxes.length; i++) {
+      for (let j = i + 1; j < boxes.length; j++) expect(intersects(boxes[i], boxes[j])).toBe(false);
+    }
+  });
+}

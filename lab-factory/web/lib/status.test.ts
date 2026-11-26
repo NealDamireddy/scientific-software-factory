@@ -1,8 +1,9 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { outputLabel, shownSubmission, statusLine, submissionFailed, submissionSummary } from "./status.ts";
-import type { CheckResult, HistoryEvent, Submission, WorkOrder, WorkOrderStatus } from "./types.ts";
+import { createSampleClient } from "./sample/client.ts";
+import { outputLabel, shownSubmission, statusLine, submissionFailed, submissionSummary, unplacedFailures } from "./status.ts";
+import type { CheckResult, HistoryEvent, StepView, Submission, WorkOrder, WorkOrderStatus } from "./types.ts";
 
 function order(status: WorkOrderStatus): WorkOrder {
   return { id: "WO-1", experiment_id: "e", kind: "procedure", objective: "o", status, released_submission: null, pins: [] };
@@ -99,4 +100,38 @@ test("the shown submission is the one the view names, if any", () => {
   assert.equal(shownSubmission(view), one);
   assert.equal(shownSubmission({ ...view, shown: 2 }), two);
   assert.equal(shownSubmission({ ...view, submissions: [], shown: 0 }), undefined);
+});
+
+const fail = (name: string, detail: string): CheckResult => ({ name, passed: false, detail });
+
+function step(number: number, failures: CheckResult[]): StepView {
+  return { number, text: `Step ${number}.`, sources: [], settings: [], unchecked: [], failures };
+}
+
+test("the seeded Coomassie procedure has no failure outside its steps", async () => {
+  const c = createSampleClient({ now: () => new Date("2026-11-26T12:00:00.000Z") });
+  const view = (await c.getWorkspace("coomassie-run-1")).procedure!;
+  const shown = shownSubmission(view)!;
+  assert.ok(shown.results.some((r) => !r.passed), "the seed has a failing check to place");
+  assert.deepEqual(unplacedFailures(shown.results, view.steps), []);
+});
+
+test("a failure for a step that is not shown is left over", () => {
+  const placed = fail("step 1: citations", "no citation");
+  const stray = fail("step 3: citations", "no citation");
+  const results = [ok("schema"), placed, stray];
+  assert.deepEqual(unplacedFailures(results, [step(1, [placed])]), [stray]);
+});
+
+test("a failure is placed only when both its name and its detail match", () => {
+  const onStep = fail("step 1: wavelength", "750 nm is above the maximum 700 nm");
+  const other = fail("step 1: wavelength", "a different detail");
+  assert.deepEqual(unplacedFailures([onStep, other], [step(1, [onStep])]), [other]);
+});
+
+test("with no steps every failure is left over, and passing checks never are", () => {
+  const a = fail("schema", "missing steps");
+  const b = fail("step 1: citations", "no citation");
+  assert.deepEqual(unplacedFailures([ok("x"), a, b], []), [a, b]);
+  assert.deepEqual(unplacedFailures([ok("x")], []), []);
 });

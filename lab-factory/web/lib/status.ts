@@ -1,6 +1,6 @@
 // How submissions and work orders read in the interface. Pure, so it runs under node --test.
 // These only put the factory's results into words; they never decide pass or fail.
-import type { HistoryEvent, OrderView, OutputKind, Submission, WorkOrder } from "./types.ts";
+import type { CheckResult, HistoryEvent, OrderView, OutputKind, Submission, WorkOrder } from "./types.ts";
 
 const OUTPUT_LABELS: Record<OutputKind, string> = {
   procedure: "Procedure",
@@ -31,6 +31,15 @@ export function shownSubmission<S>(view: OrderView<S>): Submission | undefined {
 /** Whether a submission's summary reads as a failure. */
 export function submissionFailed(s: Submission): boolean {
   return !s.passed || s.results.some((r) => !r.passed);
+}
+
+/**
+ * The shown submission's failing results that no step carries, matched by name and detail. The header
+ * counts every failure, so these are listed on their own rather than dropped.
+ */
+export function unplacedFailures(results: CheckResult[], steps: { failures: CheckResult[] }[]): CheckResult[] {
+  const placed = new Set(steps.flatMap((step) => step.failures.map((f) => JSON.stringify([f.name, f.detail]))));
+  return results.filter((r) => !r.passed && !placed.has(JSON.stringify([r.name, r.detail])));
 }
 
 export function formatDate(iso: string): string {

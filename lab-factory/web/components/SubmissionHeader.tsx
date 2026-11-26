@@ -31,7 +31,7 @@ export function SubmissionHeader({ order, submission, history, children }: Submi
           <span>{submissionSummary(submission)}</span>
         </h2>
       ) : (
-        <h2 className="sub-summary">Nothing has been submitted yet.</h2>
+        <h2 className="sub-summary">No submissions yet</h2>
       )}
       <p className="sub-status">{statusLine(order, history)}</p>
       {children !== undefined && children !== null && children !== false && <div className="sub-actions">{children}</div>}
