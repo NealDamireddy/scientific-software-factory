@@ -157,7 +157,11 @@ export function listAgentConnections(ctx: SampleContext, labId: string): AgentCo
   for (const [order, events] of Object.entries(state.history)) {
     for (const e of events) if (e.event === "claimed") claims.push({ worker: e.actor, order, at: e.at });
   }
-  claims.sort((a, b) => Date.parse(b.at) - Date.parse(a.at));
+  // Newest first; equal timestamps fall back to insertion order, a later claim counting as newer.
+  claims
+    .map((claim, index) => ({ claim, index }))
+    .sort((a, b) => Date.parse(b.claim.at) - Date.parse(a.claim.at) || b.index - a.index)
+    .forEach((entry, i) => { claims[i] = entry.claim; });
   const byWorker = new Map<string, AgentConnection>();
   for (const claim of claims) {
     const entry = byWorker.get(claim.worker);

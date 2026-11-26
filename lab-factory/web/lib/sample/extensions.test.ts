@@ -7,7 +7,7 @@ import { canonicalDigest } from "../digest.ts";
 import { ClientError } from "../types.ts";
 import { AGENT_SETUP, SKILL_MD } from "./agent-setup.ts";
 import { createSampleClient } from "./client.ts";
-import { enabledSkillPins, enabledSkills } from "./extensions.ts";
+import { enabledSkillPins, enabledSkills, listAgentConnections } from "./extensions.ts";
 import { createSeed } from "./seed.ts";
 
 const LAB = "emory-biophys";
@@ -231,6 +231,18 @@ test("listAgentConnections comes from claim events, newest first", async () => {
     { worker: "codex on lab-pc", last_seen: ago(185), work_order_ids: ["WO-B12-RP", "WO-B12"] },
   ]);
   await rejects(c.listAgentConnections("nope"), "not_found");
+});
+
+test("listAgentConnections breaks equal timestamps by insertion order, later claim newer", async () => {
+  const state = await createSeed(NOW);
+  const at = NOW.toISOString();
+  const claim = (actor: string) => ({ event: "claimed" as const, actor, submission: null, note: "", at });
+  state.history = { "WO-X": [claim("first")], "WO-Y": [claim("second")], "WO-Z": [claim("first")] };
+  const ctx = { state, now: () => NOW };
+  assert.deepEqual(listAgentConnections(ctx, LAB), [
+    { worker: "first", last_seen: at, work_order_ids: ["WO-Z", "WO-X"] },
+    { worker: "second", last_seen: at, work_order_ids: ["WO-Y"] },
+  ]);
 });
 
 test("SKILL_MD equals the file on disk and covers the loop and sign-off", () => {
