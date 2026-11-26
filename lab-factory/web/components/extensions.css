@@ -1,0 +1,433 @@
+/* Styles for the Skills, Connectors and Connect your agent pages and CopyField. */
+
+.ext-page {
+  max-width: 800px;
+}
+
+.ext-page > p {
+  max-width: 62ch;
+}
+
+.ext-intro {
+  margin: 0 0 8px;
+  color: var(--steel);
+}
+
+.ext-note {
+  margin: 4px 0 0;
+  color: var(--steel);
+  font-size: 0.9375rem;
+}
+
+.ext-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px 24px;
+}
+
+.ext-head h1 {
+  margin-bottom: 8px;
+}
+
+.pg-button.ext-link {
+  text-decoration: none;
+}
+
+.pg-button.ext-quiet-link,
+.ext-quiet-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 10px;
+  color: var(--indigo);
+  text-underline-offset: 3px;
+}
+
+.ext-error {
+  margin-top: 12px;
+}
+
+/* ---------------------------------------------------------------- skills list */
+
+.ext-skill {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 4px 16px;
+  padding: 12px 0;
+}
+
+.ext-skill-text {
+  min-width: 0;
+}
+
+.ext-skill-title {
+  display: block;
+  font-weight: 500;
+}
+
+.ext-skill-description {
+  display: block;
+  color: var(--steel);
+  font-size: 0.9375rem;
+}
+
+.ext-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--steel);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.ext-switch:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.ext-switch-track {
+  position: relative;
+  flex: none;
+  width: 40px;
+  height: 22px;
+  border: 1px solid color-mix(in srgb, var(--steel) 70%, var(--rule));
+  border-radius: 11px;
+  background: var(--paper);
+}
+
+.ext-switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--steel);
+}
+
+.ext-switch[aria-checked="true"] {
+  color: var(--ink);
+}
+
+.ext-switch[aria-checked="true"] .ext-switch-track {
+  border-color: var(--indigo);
+  background: var(--indigo);
+}
+
+.ext-switch[aria-checked="true"] .ext-switch-thumb {
+  left: 20px;
+  background: var(--paper);
+}
+
+.ext-switch-state {
+  min-width: 2ch;
+}
+
+/* ---------------------------------------------------------------- skill editor */
+
+.ext-editor {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--rule);
+}
+
+.ext-editor .pg-form {
+  max-width: 100%;
+}
+
+.ext-mono,
+.pg-field textarea.ext-mono {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.ext-preview {
+  margin: 0;
+  max-height: 320px;
+  overflow: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--ground);
+  font-size: 0.875rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------- connectors */
+
+.ext-connector {
+  padding: 24px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.ext-connector:first-of-type {
+  margin-top: 16px;
+}
+
+.ext-connector h2 {
+  margin: 0 0 4px;
+}
+
+.ext-connector > p {
+  margin: 0;
+}
+
+.ext-status {
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+
+.ext-connector-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+  margin-top: 12px;
+}
+
+.ext-connect-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+
+.ext-connect-form .pg-field {
+  flex: 1 1 240px;
+  max-width: 360px;
+}
+
+.ext-items {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ext-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 12px 0;
+  border-top: 1px solid var(--rule);
+}
+
+.ext-item-text {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.ext-item-title {
+  display: block;
+  font-weight: 500;
+}
+
+.ext-item-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+}
+
+.ext-item-add .pg-field {
+  flex: 0 1 280px;
+}
+
+.ext-result {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.9375rem;
+}
+
+/* ---------------------------------------------------------------- agents */
+
+.ext-table-wrap {
+  overflow-x: auto;
+}
+
+.ext-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+
+.ext-table caption {
+  padding: 0 0 8px;
+  text-align: left;
+  font-weight: 500;
+}
+
+.ext-table th,
+.ext-table td {
+  padding: 10px 16px 10px 0;
+  border-top: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+}
+
+.ext-table th {
+  color: var(--steel);
+  font-weight: 500;
+}
+
+.ext-table td:first-child {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.ext-agent {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+}
+
+.ext-agent:first-child {
+  border-top: 1px solid var(--rule);
+}
+
+.ext-agent-name {
+  font-weight: 500;
+}
+
+.ext-orders {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 16px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ext-orders a,
+.ext-orders span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+.ext-orders a {
+  color: var(--indigo);
+  text-underline-offset: 3px;
+}
+
+.ext-details summary {
+  display: flex;
+  align-items: center;
+  min-height: 40px;
+  color: var(--indigo);
+  cursor: pointer;
+}
+
+.ext-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin-bottom: 8px;
+}
+
+/* ---------------------------------------------------------------- copy field */
+
+.copy-field {
+  min-width: 0;
+  margin: 16px 0 0;
+}
+
+.copy-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.copy-label {
+  font-weight: 500;
+  font-size: 0.9375rem;
+}
+
+.copy-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copy-status {
+  color: var(--steel);
+  font-size: 0.9375rem;
+}
+
+.copy-pre {
+  margin: 4px 0 0;
+  max-width: 100%;
+  max-height: 360px;
+  overflow: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--ground);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  white-space: pre;
+}
+
+.copy-error {
+  margin: 6px 0 0;
+}
+
+/* ---------------------------------------------------------------- spacing refinements */
+
+.ext-head .ext-note {
+  margin-bottom: 16px;
+}
+
+.ext-connector-actions > .pg-quiet {
+  margin-left: -10px;
+}
+
+.ext-item {
+  align-items: center;
+}
+
+.ext-table-wrap {
+  margin-top: 20px;
+}
+
+.ext-page .ext-note + .ext-table-wrap,
+.copy-field + .ext-note {
+  margin-top: 16px;
+}
+
+/* Long unbroken text wraps instead of widening the page. */
+.ext-skill-title,
+.ext-skill-description,
+.ext-status,
+.ext-connector h2,
+.ext-connector > p,
+.ext-item-title,
+.ext-agent-name,
+.ext-result,
+.ext-error {
+  overflow-wrap: anywhere;
+}
+
+.ext-connector,
+.ext-agent,
+.ext-item-add {
+  min-width: 0;
+}
