@@ -74,6 +74,16 @@ def test_render_procedure_example():
     assert "  Citations: b12-protocol\n\nStep 3" in rendered
 
 
+@pytest.mark.parametrize(("ids", "labels"), [
+    (["Smith", "2022"], "Smith, 2022"),
+    (["Smith, 2022"], '"Smith, 2022"'),
+    (['A"B', r"C\D", " A "], r'"A\"B", "C\\D", " A "'),
+])
+def test_render_preserves_citation_boundaries(ids, labels):
+    step = parse_artifact("procedure", {"steps": [{"text": "", "citations": ids}]}).steps[0]
+    assert render_step(step) == [f"Citations: {labels}"]
+
+
 def test_render_run_plan_preserves_execution_order_and_precision():
     data = deepcopy(ARTIFACT_EXAMPLES["run_plan"])
     settings = data["steps"][0]["settings"]

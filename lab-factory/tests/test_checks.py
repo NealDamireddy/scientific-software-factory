@@ -125,6 +125,28 @@ def test_procedure_citations(context):
     assert all_passed(check_artifact(procedure(citations=("sop-cuvette", "b12-protocol")), *context))
 
 
+def test_citations_require_a_unique_pinned_document(context):
+    lab, experiment = context
+    duplicate = replace(experiment.documents[0], id=lab.documents[0].id)
+    experiment = replace(experiment, documents=(*experiment.documents, duplicate))
+    results = check_artifact(procedure(citations=("b12-protocol", "sop-cuvette")), lab, experiment)
+    assert_failure(results, "step 1: citations", "ambiguous document sop-cuvette")
+    assert all_passed(check_artifact(procedure(citations=("b12-protocol",)), lab, experiment))
+
+
+def test_citation_check_detail_preserves_id_boundaries(context):
+    lab, experiment = context
+    lab = replace(lab, documents=tuple(
+        replace(lab.documents[0], id=id) for id in ("Smith", "2022", "Smith, 2022")
+    ))
+    for citations, detail in [
+        (("Smith", "2022"), "Smith, 2022"),
+        (("Smith, 2022",), '"Smith, 2022"'),
+    ]:
+        result = result_named(check_artifact(procedure(citations=citations), lab, experiment), "step 1: citations")
+        assert result.passed and result.detail == detail
+
+
 def test_values_in_text_fail(context):
     action = Action("uvvis-1", "read_absorbance", (Setting("wavelength", 550, "nm"),))
     for candidate in (None, action):

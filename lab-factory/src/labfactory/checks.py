@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 import re
 
-from .artifacts import Procedure, ProcedureStep, RunPlan, Setting, format_number
+from .artifacts import Procedure, ProcedureStep, RunPlan, Setting, format_citation, format_number
 from .context import Command, Experiment, Instrument, Lab
 from .units import UNIT_SPELLINGS, UnitError, convert_exact, is_known_unit
 
@@ -100,10 +100,17 @@ def _command_checks(
     return results
 
 
-def _procedure_checks(prefix: str, step: ProcedureStep, document_ids: set[str]) -> list[CheckResult]:
-    missing = [f"unknown document {cite}" for cite in step.citations if cite not in document_ids]
+def _procedure_checks(prefix: str, step: ProcedureStep, document_counts: Counter[str]) -> list[CheckResult]:
+    citation_errors = []
+    for document_id in step.citations:
+        count = document_counts[document_id]
+        if count == 0:
+            citation_errors.append(f"unknown document {format_citation(document_id)}")
+        elif count > 1:
+            citation_errors.append(f"ambiguous document {format_citation(document_id)} in pinned context")
     if not step.citations:
-        missing.append("no citation")
+        citation_errors.append("no citation")
+    citation_detail = ", ".join(citation_errors or map(format_citation, step.citations))
     matches = find_text_quantities(step.text)
     text_detail = "no matching numeric unit expressions"
     if matches:
@@ -112,7 +119,7 @@ def _procedure_checks(prefix: str, step: ProcedureStep, document_ids: set[str]) 
             "and hand-measured values in amounts"
         )
     results = [
-        CheckResult(prefix + "citations", not missing, ", ".join(missing or step.citations)),
+        CheckResult(prefix + "citations", not citation_errors, citation_detail),
         CheckResult(prefix + "text values", not matches, text_detail),
     ]
     for amount in step.amounts:
@@ -132,11 +139,11 @@ def check_artifact(artifact: RunPlan | Procedure, lab: Lab, experiment: Experime
             ))
         return results
 
-    document_ids = {document.id for document in (*lab.documents, *experiment.documents)}
+    document_counts = Counter(document.id for document in (*lab.documents, *experiment.documents))
     results = []
     for index, step in enumerate(artifact.steps, start=1):
         prefix = f"step {index}: "
-        results.extend(_procedure_checks(prefix, step, document_ids))
+        results.extend(_procedure_checks(prefix, step, document_counts))
         action = step.action
         if action is not None:
             instrument, listed = _instrument_check(lab, experiment, action.instrument_id, prefix + "instrument listed")

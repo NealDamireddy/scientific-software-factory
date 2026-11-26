@@ -2,7 +2,9 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
+import json
 from math import isfinite
+import re
 from typing import TypeVar
 
 
@@ -154,6 +156,13 @@ def format_number(value: float) -> str:
     return str(value).removesuffix(".0")
 
 
+def format_citation(document_id: str) -> str:
+    """Keep simple IDs readable and quote IDs whose punctuation could be misread."""
+    if re.fullmatch(r"[\w.-]+", document_id):
+        return document_id
+    return json.dumps(document_id, ensure_ascii=False)
+
+
 def _render_command(instrument_id: str, command: str, settings: tuple[Setting, ...]) -> str:
     values = ", ".join(f"{s.parameter} {format_number(s.value)} {s.unit}" for s in settings)
     return f"On {instrument_id}: {command} ({values})"
@@ -171,7 +180,7 @@ def render_step(step: ProcedureStep) -> list[str]:
         notes = step.text if step.text.isprintable() else repr(step.text)
         lines.append(f"Notes, not checked by code: {notes}")
     if step.citations:
-        lines.append("Citations: " + ", ".join(step.citations))
+        lines.append("Citations: " + ", ".join(map(format_citation, step.citations)))
     return lines
 
 
