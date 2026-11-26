@@ -25,6 +25,7 @@ _UNITS = {
     "T": ("field", 1000, 0),
     "AU": ("absorbance", 1, 0),
 }
+UNIT_SPELLINGS = tuple(_UNITS)
 
 
 def is_known_unit(unit: str) -> bool:
