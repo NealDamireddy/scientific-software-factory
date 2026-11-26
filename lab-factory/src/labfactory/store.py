@@ -86,6 +86,15 @@ _SCHEMA = {
         FOREIGN KEY (work_order_id, submission) REFERENCES submissions(work_order_id, number)
     )
     """,
+    "honey_runs": """
+    CREATE TABLE IF NOT EXISTS honey_runs (
+        id INTEGER PRIMARY KEY, work_order_id TEXT NOT NULL, submission INTEGER NOT NULL,
+        actor TEXT NOT NULL, readings_digest TEXT NOT NULL, receipt TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(work_order_id, submission, actor, readings_digest),
+        FOREIGN KEY (work_order_id, submission) REFERENCES submissions(work_order_id, number)
+    )
+    """,
 }
 
 

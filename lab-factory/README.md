@@ -20,6 +20,19 @@ uv run --locked python examples/find_references.py --instrument agilent-1260-inf
 uv run --locked python examples/find_references.py --instrument hanna-hi96800 "Measure honey moisture"
 ```
 
+### Review and run the honey moisture analysis
+
+1. Open [Honey moisture](https://neal-lab-factory.vercel.app/#honey), sign in, and select the order marked **In review**. The submission shows how the agent uses each of four publications, its calculation, its conversion table, and its numerical tests.
+2. Inspect the numbered submission. The independent checks compare all 61 table entries with the International Honey Commission table and all 601 possible mean readings with the expected one-decimal results. Choose **Approve submission** and then **Approve and release** when you are satisfied.
+3. Enter `1.4914` and `1.4916` as two simulated measurements of the same sample on the Hanna HI96800 nD20 scale at 20 °C. Choose **Calculate honey moisture**. The result is **18.0 g water per 100 g honey**. Reopen the order to see the inputs, result, reviewer and approved artifact digest.
+
+**Create honey analysis order** opens a fresh order for a connected coding agent. It pins the instrument, objective and four source records. The agent reads the linked publications, writes a calculation and numerical tests, and submits them over MCP. The example submitted for this demonstration is in `examples/honey-analysis.json`. To replay it on a new open order, run the following from `lab-factory/` with your issued agent token in `LAB_FACTORY_AGENT_TOKEN`. Replace `WO-N` with the new order ID and use the worker name assigned to your token.
+
+```sh
+uv sync --locked
+uv run --locked python examples/submit_honey_analysis.py WO-N --worker lab-agent --url https://neal-lab-factory.vercel.app/mcp
+```
+
 ### Try the simulated B12 analysis
 
 1. Open [B12 analysis](https://neal-lab-factory.vercel.app/#b12) and sign in as a reviewer. **Start B12 example** opens a fresh review of the bundled Codex-written Python and runs the factory’s independent reference tests. You can also open an analysis order already submitted by a connected agent.

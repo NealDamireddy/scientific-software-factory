@@ -4,6 +4,9 @@ const byId = (id) => document.getElementById(id);
 const workspace = byId("workspace");
 const statuses = {open: "Open", in_progress: "In progress", in_review: "In review", released: "Released"};
 const kinds = {run_plan: "Run plan", procedure: "Procedure", analysis_app: "B12 analysis app"};
+const honeyGuide = {instrument: "hanna-hi96800", q: "Measure honey moisture"};
+const isHoneyOrder = order => order.kind === "analysis_app" && order.experiment_id === "honey-moisture-sim-v1";
+const artifactName = order => isHoneyOrder(order) ? "Honey moisture analysis" : kinds[order.kind] || order.kind;
 let reviewer = null;
 let agentNames = [];
 let generation = 0;
@@ -200,7 +203,7 @@ function showOrders(orders) {
     for (const order of selected.slice().reverse()) {
       const row = body.insertRow();
       row.insertCell().append(linkToOrder(order.id));
-      row.insertCell().textContent = kinds[order.kind] || order.kind;
+      row.insertCell().textContent = artifactName(order);
       const objective = row.insertCell();
       objective.className = "objective-cell";
       objective.textContent = order.objective;
@@ -231,7 +234,67 @@ function openDecision(kind, order, submission) {
   openForm(byId("decision-dialog"));
 }
 
-function submissionView(order, submission, latest) {
+function honeySubmission(artifact, brief) {
+  const content = document.createDocumentFragment();
+  content.append(element("h3", "Agent’s analysis"));
+  if (Array.isArray(artifact.algorithm)) {
+    const steps = element("ol", undefined, "analysis-steps");
+    for (const step of artifact.algorithm) {
+      let instruction = JSON.stringify(step);
+      if (step?.op === "mean") instruction = "Average the two refractive index readings at 20 °C.";
+      if (step?.op === "interpolate") instruction = "Look up the current index in the submitted “" + step.table + "” and interpolate linearly between adjacent rows.";
+      if (step?.op === "round") instruction = "Round the current value half up to " + step.places + (step.places === 1 ? " decimal place." : " decimal places.");
+      steps.append(element("li", instruction));
+    }
+    content.append(steps, element("p", "Output unit · g water per 100 g honey", "analysis-unit"));
+  }
+  if (Array.isArray(artifact.citations)) {
+    const sources = element("dl", undefined, "analysis-evidence");
+    for (const citation of artifact.citations) {
+      if (!citation) continue;
+      const finding = brief?.findings.find(row => row.id === citation.id);
+      const title = element("dt");
+      if (finding) {
+        const link = element("a", finding.title);
+        link.href = finding.url; link.target = "_blank"; link.rel = "noopener noreferrer";
+        title.append(link);
+      } else title.textContent = citation.id;
+      sources.append(title, element("dd", citation.use));
+    }
+    content.append(element("h3", "How the agent used the sources"), sources);
+  }
+  if (Array.isArray(artifact.table) && artifact.table.every(pair => Array.isArray(pair) && pair.length === 2 && pair.every(Number.isFinite))) {
+    const disclosure = element("details", undefined, "analysis-disclosure");
+    const {wrapper, body} = table(["Refractive index at 20 °C", "Water (g per 100 g honey)"]);
+    for (const [index, moisture] of artifact.table) {
+      const row = body.insertRow();
+      row.insertCell().textContent = Number(index.toFixed(4)) === index ? index.toFixed(4) : index;
+      row.insertCell().textContent = Number(moisture.toFixed(1)) === moisture ? moisture.toFixed(1) : moisture;
+    }
+    disclosure.append(element("summary", "Submitted conversion table (" + artifact.table.length + " rows)"), wrapper);
+    content.append(disclosure);
+  }
+  if (Array.isArray(artifact.tests)) {
+    const disclosure = element("details", undefined, "analysis-disclosure");
+    const {wrapper, body} = table(["Test", "Input readings (nD20)", "Expected (g/100 g)"]);
+    for (const test of artifact.tests) {
+      if (!test || !Array.isArray(test.readings)) continue;
+      const row = body.insertRow();
+      row.insertCell().textContent = test.label;
+      row.insertCell().textContent = test.readings.join(" · ");
+      row.insertCell().textContent = test.expected ?? "Withheld";
+    }
+    disclosure.append(element("summary", "Agent’s test cases (" + artifact.tests.length + ")"), wrapper);
+    content.append(disclosure);
+  }
+  const exact = element("details", undefined, "analysis-disclosure");
+  exact.append(element("summary", "Exact submitted analysis and agent tests (JSON)"),
+    element("pre", JSON.stringify(artifact, null, 2), "analysis-source"));
+  content.append(exact);
+  return content;
+}
+
+function submissionView(order, submission, latest, brief) {
   const section = element(latest ? "section" : "details", undefined, "panel submission");
   const title = "Submission " + submission.number;
   if (!latest) section.append(element("summary", title + " · " + submission.worker + (submission.passed ? " · Checks passed" : " · Checks failed")));
@@ -245,7 +308,9 @@ function submissionView(order, submission, latest) {
     section.append(head);
   }
   const body = element("div", undefined, "details-content");
-  if (order.kind === "analysis_app") {
+  if (isHoneyOrder(order)) {
+    body.append(honeySubmission(submission.artifact, brief));
+  } else if (order.kind === "analysis_app") {
     const source = element("pre", undefined, "analysis-source");
     source.append(element("code", submission.artifact.source));
     body.append(element("h3", "Agent’s Python source"), source);
@@ -274,21 +339,25 @@ function submissionView(order, submission, latest) {
 
 function showOrder(data, assay) {
   const {order, submissions, history, reference_brief: brief} = data;
+  const honey = isHoneyOrder(order);
   const back = element("div", undefined, "nav-back");
-  const link = element("a", brief ? "← Reference library" : assay ? "← B12 analysis" : "← Work orders");
-  link.href = brief ? "#references?" + new URLSearchParams({instrument: brief.instrument.id, q: brief.query}) :
+  const link = element("a", honey ? "← Honey moisture" : brief ? "← Reference library" : assay ? "← B12 analysis" : "← Work orders");
+  link.href = honey ? "#honey" : brief ? "#references?" + new URLSearchParams({instrument: brief.instrument.id, q: brief.query}) :
     assay ? "#b12" : "#orders";
   back.append(link);
   const statusLine = element("div", undefined, "order-title");
   statusLine.append(element("span", order.id), status(statuses[order.status], order.status));
   const meta = element("dl", undefined, "order-meta");
-  definition(meta, "Artifact", kinds[order.kind] || order.kind);
+  definition(meta, "Artifact", artifactName(order));
   definition(meta, "Experiment", order.experiment_id + " · revision " + order.experiment_revision);
   definition(meta, "Lab", order.lab_id + " · revision " + order.lab_revision);
   definition(meta, "Worker", order.worker || "Unclaimed");
   workspace.replaceChildren(back, statusLine, heading(order.objective, refreshButton()), meta);
-  if (brief) workspace.append(referenceBrief(brief));
-  if (assay) {
+  if (brief && !honey) workspace.append(referenceBrief(brief));
+  if (honey && order.status === "released") {
+    workspace.append(honeyReadingEntry(order));
+    if (data.runs.length) workspace.append(honeyRuns(data.runs));
+  } else if (assay) {
     workspace.append(readingEntry(order, assay));
     if (order.status === "released") workspace.append(readingResults(order, assay.readings));
   }
@@ -297,7 +366,7 @@ function showOrder(data, assay) {
     const empty = panel("Submissions");
     empty.append(element("p", order.status === "open"
       ? "This order is open for an agent to claim." : "Waiting for the claiming agent to submit an artifact.", "empty"));
-    if (assay) {
+    if (assay || honey) {
       const connect = element("a", "Connect a coding agent");
       connect.href = "#agents";
       const connection = element("div", undefined, "details-content");
@@ -306,7 +375,7 @@ function showOrder(data, assay) {
     }
     workspace.append(empty);
   }
-  sorted.forEach((submission, i) => workspace.append(submissionView(order, submission, i === 0)));
+  sorted.forEach((submission, i) => workspace.append(submissionView(order, submission, i === 0, brief)));
   const path = "orders/" + encodeURIComponent(order.id);
   const pageVersion = generation;
   let older = data.older_submission;
@@ -316,7 +385,7 @@ function showOrder(data, assay) {
       try {
         const page = await api(path + "?submission=" + older);
         if (pageVersion !== generation) return;
-        const detail = submissionView(order, page.submissions[0], false);
+        const detail = submissionView(order, page.submissions[0], false, brief);
         detail.open = true;
         previous.before(detail);
         older = page.older_submission;
@@ -328,6 +397,7 @@ function showOrder(data, assay) {
     workspace.append(previous);
   }
   if (assay && order.status !== "released") workspace.append(readingResults(order, assay.readings));
+  if (honey && brief) workspace.append(referenceBrief(brief));
   const events = panel("Order history");
   events.classList.add("history");
   const {wrapper, body} = table(["Event", "Actor", "Time", "Submission", "Note"]);
@@ -362,12 +432,13 @@ function showOrder(data, assay) {
   workspace.append(events);
 }
 
-function showB12(data) {
-  const create = button("Start B12 example", "primary", async () => {
+function showAnalysisOrders(data, tab) {
+  const honey = tab === "honey";
+  const create = button(honey ? "Create honey analysis order" : "Start B12 example", "primary", async () => {
     const page = generation;
     create.disabled = true;
     try {
-      const result = await post("b12/orders", {});
+      const result = await post(tab + "/orders", {});
       if (page === generation) openOrder(result.id);
     } catch (error) { if (page === generation) notify(error.message, true); }
     finally { create.disabled = false; }
@@ -383,12 +454,15 @@ function showB12(data) {
     }
     list.append(wrapper);
   } else {
-    list.append(element("p", "Start the B12 example to open your first analysis order.", "empty"));
+    list.append(element("p", honey ? "No honey analysis orders yet." : "Start the B12 example to open your first analysis order.", "empty"));
   }
-  const references = element("a", "Find B12 references");
-  references.href = "#references?q=B12";
-  workspace.replaceChildren(heading("Vitamin B12 analysis", references, refreshButton(), create),
-    element("p", "Start a fresh review of the agent-written Python, or reopen an existing order. Each new example tests the source again before you approve it and calculate a concentration from simulated readings.", "assay-intro"), list);
+  const references = element("a", honey ? "View honey references" : "Find B12 references");
+  references.href = honey ? "#references?" + new URLSearchParams(honeyGuide) : "#references?q=B12";
+  const intro = honey
+    ? "Open an order to review the agent’s calculation and its tests. Once you approve a submission, enter two simulated Hanna HI96800 readings to estimate grams of water per 100 grams of honey."
+    : "Start a fresh review of the agent-written Python, or reopen an existing order. Each new example tests the source again before you approve it and calculate a concentration from simulated readings.";
+  workspace.replaceChildren(heading(honey ? "Honey moisture analysis" : "Vitamin B12 analysis", references, refreshButton(), create),
+    element("p", intro, "assay-intro"), list);
 }
 
 const sourceTypes = {manual: "Instrument manuals", procedure: "Published procedures", paper: "Research papers"};
@@ -622,6 +696,11 @@ function showReferenceLibrary(catalog, initial) {
       }
       results.append(element("p", data.overview, "findings-overview"));
       if (data.requirements) results.append(element("p", data.requirements, "findings-overview"));
+      if (data.instrument.id === honeyGuide.instrument && data.query.toLowerCase() === honeyGuide.q.toLowerCase()) {
+        const honey = element("a", "Open honey moisture analysis");
+        honey.href = "#honey";
+        results.append(honey);
+      }
       const selected = new Map();
       const bar = element("div", undefined, "selection-bar");
       const typeFilter = element("select");
@@ -693,6 +772,74 @@ function showReferenceLibrary(catalog, initial) {
     results.replaceChildren(element("p", "Select Find sources to search this objective.", "muted"));
   });
   search();
+}
+
+function honeyReadingEntry(order) {
+  const section = panel("Simulated refractive index readings");
+  section.id = "honey-readings";
+  section.tabIndex = -1;
+  const form = element("form", undefined, "panel-body");
+  form.append(element("p", "Enter two readings of the same simulated honey sample on the Hanna HI96800 nD20 scale at 20 °C. The supported interval is 1.4740–1.5040. An out-of-range reading withholds the estimate.", "muted"));
+  const fields = element("div", undefined, "replicates honey-replicates");
+  const examples = ["1.4914", "1.4916"];
+  const inputs = examples.map((example, index) => {
+    const label = element("label", "Reading " + (index + 1) + " (nD20)");
+    const input = element("input");
+    input.type = "number"; input.name = "replicate"; input.step = "0.0001";
+    input.required = true; input.placeholder = example;
+    label.append(input); fields.append(label);
+    return input;
+  });
+  const fill = button("Use example readings", "secondary", () => {
+    inputs.forEach((input, index) => { input.value = examples[index]; });
+    formError(form, "");
+  });
+  const calculate = element("button", "Calculate honey moisture", "primary");
+  calculate.type = "submit";
+  const error = element("p", "", "form-error");
+  error.hidden = true; error.setAttribute("role", "alert");
+  form.append(fields, error, actions(fill, calculate));
+  handleForm(form, async values => {
+    const page = generation;
+    const receipt = await post("honey/orders/" + encodeURIComponent(order.id) + "/run",
+      {submission: order.released_submission, readings: values.getAll("replicate").map(Number)});
+    if (page !== generation) return;
+    await navigate();
+    if (reviewer && location.hash === "#order/" + encodeURIComponent(order.id)) byId("honey-result-" + receipt.id)?.focus();
+  });
+  section.append(form);
+  return section;
+}
+
+function honeyRuns(runs) {
+  const section = panel("Saved moisture results");
+  section.id = "honey-results"; section.tabIndex = -1;
+  section.classList.add("space-top");
+  for (const run of runs) {
+    const article = element("article", undefined, "dataset panel-body");
+    article.id = "honey-result-" + run.id; article.tabIndex = -1;
+    article.append(element("p", run.readings.map(value => value.toFixed(4)).join(" · ") + " nD20 at 20 °C", "dataset-readings"));
+    const estimated = run.status === "estimated";
+    const outcome = element("div", undefined, "b12-outcome" + (estimated ? "" : " withheld"));
+    if (estimated) {
+      const value = element("p", run.moisture_pct.toFixed(1), "concentration");
+      value.append(element("span", " g water / 100 g honey"));
+      outcome.append(element("p", "Simulated honey moisture", "field-caption"), value);
+    } else outcome.append(element("h3", "Moisture estimate withheld"), element("p", run.reason));
+    outcome.append(element("p", "Mean refractive index at 20 °C · " + run.mean_refractive_index, "mean"));
+    const trace = element("details", undefined, "result-trace");
+    const metadata = element("dl", undefined, "order-meta");
+    definition(metadata, "Approved source", run.work_order_id + " · submission " + run.submission);
+    definition(metadata, "Written by", run.worker);
+    definition(metadata, "Approved by", run.approved_by);
+    definition(metadata, "Run by", run.actor + " · " + run.created_at);
+    definition(metadata, "Artifact SHA-256", run.artifact_digest, "mono");
+    definition(metadata, "Readings SHA-256", run.readings_digest, "mono");
+    definition(metadata, "Pinned references SHA-256", run.reference_brief_digest, "mono");
+    trace.append(element("summary", "Result provenance"), metadata);
+    article.append(outcome, trace); section.append(article);
+  }
+  return section;
 }
 
 function readingEntry(order, assay) {
@@ -900,7 +1047,7 @@ async function navigate() {
   const hash = location.hash.slice(1);
   const route = hash.split("?")[0];
   const isOrder = hash.startsWith("order/");
-  const tab = ["context","agents","b12","references"].includes(route) ? route : "orders";
+  const tab = ["context","agents","b12","honey","references"].includes(route) ? route : "orders";
   function selectTab(active) {
     for (const link of byId("nav").querySelectorAll("a")) {
       if (link.dataset.tab === active) link.setAttribute("aria-current", "page");
@@ -909,7 +1056,7 @@ async function navigate() {
   }
   selectTab(tab);
   notify("");
-  const page = {orders:"Work orders",context:"Lab context",agents:"Agent access",b12:"Vitamin B12 analysis",references:"Reference library"}[tab];
+  const page = {orders:"Work orders",context:"Lab context",agents:"Agent access",b12:"Vitamin B12 analysis",honey:"Honey moisture analysis",references:"Reference library"}[tab];
   document.title = page + " · Lab Factory";
   workspace.setAttribute("aria-busy","true");
   try {
@@ -919,17 +1066,19 @@ async function navigate() {
       const data = await api(isOrder ? "orders/" + encodeURIComponent(id) + "?submission=latest" : "orders");
       if (generation !== request) return;
       if (isOrder) {
-        const assay = data.order.kind === "analysis_app" ? await api("b12/orders/" + encodeURIComponent(id) + "/readings") : null;
+        const honey = isHoneyOrder(data.order);
+        const assay = data.order.kind === "analysis_app" && !honey ? await api("b12/orders/" + encodeURIComponent(id) + "/readings") : null;
         if (generation !== request) return;
-        if (assay) selectTab("b12");
+        if (honey) selectTab("honey");
+        else if (assay) selectTab("b12");
         else if (data.reference_brief) selectTab("references");
         showOrder(data, assay); document.title = data.order.id + " · Lab Factory";
       }
       else showOrders(data.orders);
-    } else if (tab === "b12") {
+    } else if (tab === "b12" || tab === "honey") {
       workspace.replaceChildren(element("p", "Loading analysis orders…", "muted"));
-      const data = await api("b12");
-      if (generation === request) showB12(data);
+      const data = await api(tab);
+      if (generation === request) showAnalysisOrders(data, tab);
     } else if (tab === "references") {
       workspace.replaceChildren(element("p", "Opening the reference library…", "muted"));
       const catalog = await api("references");
@@ -987,7 +1136,9 @@ handleForm(byId("decision-form"), async (fields) => {
   byId("decision-dialog").close();
   await navigate();
   notify(order + " submission " + number + (kind === "approve" ? " released." : " rejected. Order reopened."));
-  if (kind === "approve" && location.hash === "#order/" + encodeURIComponent(order)) byId("b12-datasets")?.focus();
+  if (kind === "approve" && location.hash === "#order/" + encodeURIComponent(order)) {
+    (byId("honey-readings") || byId("b12-datasets"))?.focus();
+  }
 });
 for (const close of document.querySelectorAll("[data-close]")) {
   close.addEventListener("click", () => close.closest("dialog").close());

@@ -94,10 +94,16 @@ class WorkOrders:
                 lab, lab_rev = self.store.lab_for_experiment(exp)
             except ContextError as exc:
                 raise WorkOrderError(f"cannot pin context for experiment {exp.id}: {exc}") from exc
+            snapshot = None
             if kind == "analysis_app":
                 from .b12_service import require_calibration
+                from . import honey_service
 
-                require_calibration(lab, exp)
+                if exp.id == honey_service.EXPERIMENT_ID:
+                    snapshot = honey_service.current_snapshot()
+                    honey_service.require_context(lab, exp, snapshot)
+                else:
+                    require_calibration(lab, exp)
             seq = self.db.execute("SELECT COALESCE(MAX(rowid),0) + 1 FROM work_orders").fetchone()[0]
             id = f"WO-{seq}"
             self.db.execute(
@@ -107,6 +113,9 @@ class WorkOrders:
                 (id, exp.id, exp_rev.number, exp.lab_id, lab_rev.number, kind, objective),
             )
             self._event(id, "created", actor)
+            if snapshot is not None:
+                self.db.execute("INSERT INTO reference_briefs(work_order_id,snapshot) VALUES (?,?)",
+                                (id, canonical_json(snapshot)))
             return self.get(id)
 
     def pinned_context(self, id: str) -> tuple[Lab, Experiment]:
@@ -118,7 +127,15 @@ class WorkOrders:
         return lab, experiment
 
     def _check(self, order: WorkOrder, data: dict) -> list[CheckResult]:
-        return check_artifact(parse_artifact(order.kind, data), *self._context_for(order))
+        from . import honey_service
+
+        lab, exp = self._context_for(order)
+        if honey_service.is_honey_order(order):
+            from .honey_analysis import check
+
+            honey_service.require_context(lab, exp, self.store.reference_brief(order.id))
+            return check(data)
+        return check_artifact(parse_artifact(order.kind, data), lab, exp)
 
     def _transition(self, id, expected, status, worker, released=None):
         changed = self.db.execute(
@@ -201,6 +218,8 @@ class WorkOrders:
         _actor(person)
         with self.store.transaction():
             order, latest = self._reviewed(id, submission)
+            if latest.artifact_digest != canonical_digest(latest.artifact):
+                raise WorkOrderError(f"submission {submission} does not match its stored artifact digest")
             # A submission can outlive the version of the checker that first reviewed it.
             try:
                 results = self._check(order, latest.artifact)

@@ -38,12 +38,28 @@ def _snapshot(request: dict) -> dict:
             raise WorkOrderError("A selected source has changed. Search again and review it.")
         selected.add(source_id)
     findings = [source for source in result["findings"] if source["id"] in selected]
+    return snapshot_from_findings(result, findings)
+
+
+def snapshot_from_findings(result, findings):
     overview, brief = references.describe(result["instrument"], result["query"], findings)
     return {
         "instrument": result["instrument"], "query": result["query"], "catalog_digest": result["catalog_digest"],
         "overview": overview, "brief": brief, "findings": findings,
         **({"requirements": result["requirements"]} if result.get("requirements") else {}),
     }
+
+
+def source_documents(snapshot):
+    return tuple(
+        Document(
+            source["id"], "note" if source["kind"] == "procedure" else source["kind"],
+            source["title"], source["url"],
+            f'Externally published {source["kind"]}. {source["publisher"]}. {source["version"]}. {source["locator"]}\n'
+            f'{source["summary"]}\nApplicability: {source["scope"]}\nCatalog record SHA-256: {source["digest"]}',
+        )
+        for source in snapshot["findings"]
+    )
 
 
 def create_order(store: Store, reviewer: str, request: dict) -> dict:
@@ -57,18 +73,9 @@ def create_order(store: Store, reviewer: str, request: dict) -> dict:
             "Unverified", (), (), "Catalog model selected for planning. Local configuration is unverified.",
         ),)
     lab = Lab("reference-lab-" + canonical_digest(selector), "Shared reference library", instruments, ())
-    documents = tuple(
-        Document(
-            source["id"], "note" if source["kind"] == "procedure" else source["kind"],
-            source["title"], source["url"],
-            f'Externally published {source["kind"]}. {source["publisher"]}. {source["version"]}. {source["locator"]}\n'
-            f'{source["summary"]}\nApplicability: {source["scope"]}\nCatalog record SHA-256: {source["digest"]}',
-        )
-        for source in snapshot["findings"]
-    )
     experiment = Experiment(
         "reference-experiment-" + canonical_digest(snapshot), lab.id, objective, objective,
-        tuple(instrument.id for instrument in instruments), documents,
+        tuple(instrument.id for instrument in instruments), source_documents(snapshot),
     )
     with store.transaction() as db:
         store.put_lab(lab)

@@ -64,7 +64,7 @@ def _show(orders: WorkOrders, id: str) -> str:
         for result in submission.results:
             mark = "pass" if result.passed else "FAIL"
             lines.append(f"  {mark}  {result.name}: {_one_line(result.detail)}")
-        lines.append(render_artifact(order.kind, submission.artifact))
+        lines.append(render_artifact(order.kind, submission.artifact, experiment_id=order.experiment_id))
 
     if order.status == "in_review":
         lines.append(f"awaiting review: submission {submissions[-1].number}")

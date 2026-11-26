@@ -118,9 +118,20 @@ details.submission > summary {padding:16px 21px;cursor:pointer;font-weight:640}
 .assay-intro {max-width:76ch;color:var(--muted);margin:-12px 0 24px}
 .analysis-source {margin:12px 0 18px;padding:17px 20px;border-radius:6px;background:#18332a;color:#e2f4e8;font:.9rem/1.65 var(--mono);white-space:pre;overflow-x:auto;tab-size:4}
 .analysis-source code {font:inherit}
+.analysis-steps {margin:10px 0;padding-left:1.35rem;max-width:82ch}
+.analysis-steps li+li {margin-top:4px}
+.analysis-unit {margin:0 0 18px;color:var(--muted);font-size:.89rem}
+.analysis-evidence {margin:12px 0 18px;max-width:90ch}
+.analysis-evidence dt {font-weight:600;font-size:.92rem}
+.analysis-evidence dd {margin:3px 0 12px;color:var(--muted);font-size:.9rem}
+.analysis-disclosure {border-top:1px solid var(--line);padding:8px 0}
+.analysis-disclosure summary {cursor:pointer;color:var(--green);font-size:.92rem}
+.analysis-disclosure .table-wrap {margin-top:8px;max-height:22rem}
+.analysis-disclosure .analysis-source {max-height:24rem}
 .assay-entry {display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:clamp(20px,4vw,54px)}
 .replicates {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;max-width:31rem;margin-bottom:15px}
 .replicates label {margin:12px 0 0}.replicates input {margin-top:5px;font-family:var(--mono);font-size:.9rem}
+.honey-replicates {grid-template-columns:repeat(2,minmax(0,1fr));max-width:23rem}
 .assay-entry form .primary {margin-top:0}
 .assay-calibration {border-left:1px solid var(--line);padding-left:clamp(20px,3vw,38px)}
 .calibration-data {display:grid;grid-template-columns:1fr 1fr;gap:8px 18px;margin-top:12px}

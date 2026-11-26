@@ -216,7 +216,13 @@ def render_run_plan(plan: RunPlan) -> str:
     return "\n\n".join(sections)
 
 
-def render_artifact(kind: str, data: dict) -> str:
+def render_artifact(kind: str, data: dict, *, experiment_id: str | None = None) -> str:
+    if kind == "analysis_app":
+        from .honey_service import EXPERIMENT_ID
+
+        if experiment_id == EXPERIMENT_ID:
+            # Failed submissions also need an exact, printable representation for review.
+            return json.dumps(data, ensure_ascii=True, indent=2)
     artifact = parse_artifact(kind, data)
     if isinstance(artifact, AnalysisApp):
         return artifact.source

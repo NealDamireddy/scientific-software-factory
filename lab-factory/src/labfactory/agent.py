@@ -68,6 +68,13 @@ class AgentTools:
             brief = self._store.reference_brief(work_order_id)
             if brief is not None:
                 context["reference_brief"] = brief
+            from . import honey_service
+
+            if honey_service.is_honey_order(order):
+                honey_service.require_context(lab, experiment, brief)
+                context["instructions"] = honey_service.INSTRUCTIONS
+                context["artifact_example"] = {"algorithm": [], "table": [], "citations": [], "tests": []}
+            elif brief is not None:
                 context["instructions"] += (
                     " This is a reference-planning order. Use the selected sources and their stated "
                     "limits to write a cited procedure for review. Identify method transfer and any "

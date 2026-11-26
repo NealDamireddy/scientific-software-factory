@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from . import b12_service, reference_orders, references
+from . import b12_service, honey_service, reference_orders, references
 from .artifacts import render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
 from .hosted_auth import Access, SESSION_COOKIE, SESSION_SECONDS
@@ -130,6 +130,8 @@ def _details(store, id, submission=None, before_event=None):
     with store.read_transaction():
         order = orders.get(id)
         brief = store.reference_brief(id)
+        if honey_service.is_honey_order(order) and before_event is None and submission in (None, "latest"):
+            page["runs"] = honey_service.list_runs(store.connection, id)
         if before_event is not None:
             submissions = []
             history, page["before_event"] = _history_page(store, id, before_event)
@@ -143,7 +145,7 @@ def _details(store, id, submission=None, before_event=None):
             history = orders.history(id)
     values = []
     for sub in submissions:
-        rendered = render_artifact(order.kind, sub.artifact)
+        rendered = render_artifact(order.kind, sub.artifact, experiment_id=order.experiment_id)
         values.append({**asdict(sub), "rendered": rendered})
     if brief is not None:
         page["reference_brief"] = brief
@@ -230,6 +232,45 @@ async def example(request):
 async def b12_catalog(request):
     _reviewer(request)
     return _response(await run_in_threadpool(run_store, b12_service.catalog))
+
+
+async def honey_catalog(request):
+    _reviewer(request)
+    return _response(await run_in_threadpool(run_store, honey_service.catalog))
+
+
+async def honey_create(request):
+    reviewer = _reviewer(request)
+    if await _json_body(request):
+        raise HTTPException(400, "Start the honey analysis with an empty JSON object.")
+    data = await run_in_threadpool(run_store, lambda s: honey_service.create_order(s, reviewer), write=True)
+    return _response(data, 201)
+
+
+async def honey_order(request):
+    _reviewer(request)
+    order_id = request.path_params["id"]
+
+    def detail(store):
+        honey_service.require_order(WorkOrders(store).get(order_id))
+        return _details(store, order_id)
+
+    return _response(await run_in_threadpool(run_store, detail))
+
+
+async def honey_run(request):
+    reviewer = _reviewer(request)
+    data = await _json_body(request)
+    if set(data) not in ({"readings"}, {"readings", "submission"}) or (
+        "submission" in data and type(data["submission"]) is not int
+    ):
+        raise HTTPException(400, "Supply duplicate simulated refractive-index readings and optionally the submission number.")
+    order_id = request.path_params["id"]
+    result = await run_in_threadpool(
+        run_store, lambda s: honey_service.run(s, order_id, reviewer, data["readings"], data.get("submission")),
+        write=True,
+    )
+    return _response(result, 201)
 
 
 async def reference_catalog(request):
@@ -345,6 +386,9 @@ portal = Starlette(routes=[
     Route("/api/context/{kind}", context_put, methods=["POST"]), Route("/api/example", example, methods=["POST"]),
     Route("/api/references", reference_catalog), Route("/api/references/search", reference_search),
     Route("/api/references/orders", reference_order, methods=["POST"]),
+    Route("/api/honey", honey_catalog), Route("/api/honey/orders", honey_create, methods=["POST"]),
+    Route("/api/honey/orders/{id}", honey_order),
+    Route("/api/honey/orders/{id}/run", honey_run, methods=["POST"]),
     Route("/api/b12", b12_catalog), Route("/api/b12/orders", b12_order, methods=["POST"]),
     Route("/api/b12/orders/{id}/readings", b12_readings, methods=["GET", "POST"]),
     Route("/api/b12/orders/{id}/readings/{reading_id}/run", b12_run, methods=["POST"]),
