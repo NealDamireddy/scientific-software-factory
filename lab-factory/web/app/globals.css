@@ -1,0 +1,97 @@
+/* Theme tokens. With no data-theme attribute the theme follows the system. */
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --ground: #F5F6F4;
+  --paper: #FFFFFF;
+  --ink: #1C2133;
+  --steel: #5F6675;
+  --indigo: #3B4A8F;
+  --sand: #F3EBCF;
+  --sand-ink: #4A3B10;
+  --rule: #E6E8EC;
+  --fail: #9B2C2C;
+  --fail-bg: #FBEAEA;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --ground: #14171F;
+    --paper: #1B1F29;
+    --ink: #E6E8EE;
+    --steel: #A3A9B7;
+    --indigo: #8E9BE0;
+    --sand: #3A3320;
+    --sand-ink: #EADFB8;
+    --rule: #2A2F3B;
+    --fail: #F2B8B8;
+    --fail-bg: #3A1F22;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #14171F;
+  --paper: #1B1F29;
+  --ink: #E6E8EE;
+  --steel: #A3A9B7;
+  --indigo: #8E9BE0;
+  --sand: #3A3320;
+  --sand-ink: #EADFB8;
+  --rule: #2A2F3B;
+  --fail: #F2B8B8;
+  --fail-bg: #3A1F22;
+}
+
+:root {
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --spectrum: linear-gradient(90deg, #A898CF 0%, #8C9DD3 17%, #88B6CF 30%, #92BFA3 40%, #B8C98F 50%, #DDD093 60%, #DDB48E 70%, #D29A8A 83%, #B38783 100%);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono);
+}
+
+:focus-visible {
+  outline: 2px solid var(--indigo);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+main {
+  padding: 1.5rem;
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
