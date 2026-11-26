@@ -262,8 +262,12 @@ export function getWorkspace(ctx: SampleContext, experimentId: string): Workspac
     project: copy(findProject(state, experiment.project_id)),
     messages: copy(state.messages[experimentId] ?? []),
   };
-  if (procedure) workspace.procedure = orderView<StepView>(state, procedure);
-  if (runPlan) workspace.run_plan = orderView<RunStepView>(state, runPlan);
+  const earlier = (newestOrder: WorkOrder) => copy(orders
+    .filter((o) => o.kind === newestOrder.kind && o.id !== newestOrder.id)
+    .reverse()
+    .map((order) => ({ order, submissions: submissionsOf(state, order.id), history: state.history[order.id] ?? [] })));
+  if (procedure) workspace.procedure = { ...orderView<StepView>(state, procedure), earlier: earlier(procedure) };
+  if (runPlan) workspace.run_plan = { ...orderView<RunStepView>(state, runPlan), earlier: earlier(runPlan) };
   if (state.apps[experimentId]) workspace.analysis_app = copy(state.apps[experimentId]);
   if (state.simulations[experimentId]) workspace.simulation = copy(state.simulations[experimentId]);
   return workspace;

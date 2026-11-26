@@ -13,11 +13,14 @@ const ICON: Record<OutputKind, LucideIcon> = {
   simulation: ChartSpline,
 };
 
-/** A link-like row to an output the factory built: its label and one-line status. Opens the panel on it. */
-export function OutputRefCard({ output, onOpen }: { output: OutputRef; onOpen: (kind: OutputKind) => void }) {
+/**
+ * A link-like row to an output the factory built: its label and one-line status. Opens the panel on it,
+ * on the named work order's latest submission when it names one.
+ */
+export function OutputRefCard({ output, onOpen }: { output: OutputRef; onOpen: (output: OutputRef) => void }) {
   const Icon = ICON[output.kind];
   return (
-    <button type="button" className="conv-ref" onClick={() => onOpen(output.kind)}>
+    <button type="button" className="conv-ref" onClick={() => onOpen(output)}>
       <Icon size={18} aria-hidden="true" className="conv-ref-icon" />
       <span className="conv-ref-label">{OUTPUT_LABEL[output.kind]}</span>
       <span className="conv-ref-summary">{output.summary}</span>

@@ -66,6 +66,11 @@ test.describe("a new experiment", () => {
 
     await expect(panel(page)).toBeVisible();
     await expect.poll(() => tabNames(page)).toEqual(["Procedure", "Analysis app", "Results"]);
+    // The template's steps read as instructions to a person, not as command names.
+    const steps = panel(page).getByRole("tabpanel", { name: "Procedure" });
+    await expect(steps).toContainText("Read the absorbance of the prepared sample.");
+    await expect(steps).toContainText("Bring the sample to temperature.");
+    await expect(steps.getByText(/\bUse (read|set) /)).toHaveCount(0);
   });
 
   test("double-clicking Build these builds once", async ({ page }) => {

@@ -1,19 +1,21 @@
 "use client";
 
-import { shownSubmission, unplacedFailures } from "../../lib/status.ts";
 import type { Workspace } from "../../lib/types.ts";
 import { ProcedureView } from "../ProcedureView.tsx";
-import { SubmissionHeader } from "../SubmissionHeader.tsx";
+import { SubmissionPanel } from "../SubmissionPanel.tsx";
+import type { ShowOrderRequest } from "../SubmissionPanel.tsx";
 
-/** The Procedure tab: the shown submission's header and its steps. */
-export function ProcedureTab({ workspace }: { workspace: Workspace }) {
+/** The Procedure tab: the shown submission's header with its history, its steps and what it was built from. */
+export function ProcedureTab({ workspace, request = null }: { workspace: Workspace; request?: ShowOrderRequest | null }) {
   const view = workspace.procedure;
   if (!view) return <h2 className="panel-heading">Procedure</h2>;
-  const submission = shownSubmission(view);
   return (
-    <>
-      <SubmissionHeader order={view.order} submission={submission} history={view.history} />
-      {submission && <ProcedureView steps={view.steps} unplaced={unplacedFailures(submission.results, view.steps)} />}
-    </>
+    <SubmissionPanel
+      kind="procedure"
+      experimentId={workspace.experiment.id}
+      view={view}
+      request={request}
+      renderSteps={(steps, unplaced) => <ProcedureView steps={steps} unplaced={unplaced} />}
+    />
   );
 }

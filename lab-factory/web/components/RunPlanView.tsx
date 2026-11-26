@@ -6,7 +6,7 @@ import type { CheckResult, RunStepView } from "../lib/types.ts";
 import { SettingStrips, StepFailures, UnplacedFailures } from "./ProcedureView.tsx";
 
 export type RunPlanViewProps = {
-  /** The steps of the shown submission. Task 13 passes another submission's steps here. */
+  /** The steps of the shown submission, which may be an earlier one the person picked. */
   steps: RunStepView[];
   /** Failing checks no step carries (see `unplacedFailures`), listed above the steps. */
   unplaced?: CheckResult[];

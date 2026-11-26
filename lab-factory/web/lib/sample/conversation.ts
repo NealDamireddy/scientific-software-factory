@@ -3,6 +3,7 @@
 // everything that validates and claims (a proposal's `accepted`, an order id) does so in
 // one synchronous block; only hashing, file reads and the pauses between activity items await.
 import { canonicalDigest } from "../digest.ts";
+import { submissionSummary } from "../status.ts";
 import { ClientError } from "../types.ts";
 import type {
   ActivityItem, AnalysisApp, CheckResult, Experiment, HistoryEvent, Instrument, Message, OnActivity, OutputKind,
@@ -60,13 +61,6 @@ export async function createExperiment(
 }
 
 // ---------------------------------------------------------------- helpers
-
-/** `Submission {n}, all checks passed` / `1 check failed` / `{k} checks failed`. */
-function submissionSummary(number: number, results: CheckResult[]): string {
-  const failed = results.filter((r) => !r.passed).length;
-  if (failed === 0) return `Submission ${number}, all checks passed`;
-  return `Submission ${number}, ${failed} ${failed === 1 ? "check" : "checks"} failed`;
-}
 
 function checksItem(results: CheckResult[]): Omit<ActivityItem, "id"> {
   const failed = results.filter((r) => !r.passed);
@@ -248,7 +242,7 @@ export async function confirmPlan(
       await log.emit({ label: kind === "procedure" ? "Wrote procedure" : "Wrote run plan", outcome: "done" });
       await log.emit(checksItem(submission.results));
       allPassed &&= submission.passed;
-      refs.push({ kind, work_order_id: order.id, summary: submissionSummary(1, submission.results) });
+      refs.push({ kind, work_order_id: order.id, summary: submissionSummary(submission) });
     } else if (kind === "analysis_app") {
       const app = analysisApp();
       state.apps[experimentId] = app;
@@ -321,7 +315,7 @@ async function rewriteCoomassie(
   await log.emit({ label: "Rewrote procedure", outcome: "done" });
   await log.emit(checksItem(submission.results));
   return {
-    ref: { kind: "procedure", work_order_id: order.id, summary: submissionSummary(1, submission.results) },
+    ref: { kind: "procedure", work_order_id: order.id, summary: submissionSummary(submission) },
     passed: submission.passed,
   };
 }

@@ -2,7 +2,7 @@
 
 import { useLayoutEffect, useRef } from "react";
 
-import type { ActivityItem, Message, OutputKind } from "../lib/types.ts";
+import type { ActivityItem, Message, OutputKind, OutputRef } from "../lib/types.ts";
 import { ActivityLog } from "./ActivityLog.tsx";
 import { OutputRefCard } from "./OutputRefCard.tsx";
 import { ProposalCard } from "./ProposalCard.tsx";
@@ -44,7 +44,7 @@ export function Conversation({ messages, live, echo, fresh, busy, onBuild, onOpe
   fresh: ReadonlySet<string>;
   busy: boolean;
   onBuild: (messageId: string, outputs: OutputKind[]) => Promise<void>;
-  onOpenOutput: (kind: OutputKind) => void;
+  onOpenOutput: (output: OutputRef) => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const follow = useRef(true);

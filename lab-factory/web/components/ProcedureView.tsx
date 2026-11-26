@@ -57,7 +57,7 @@ export function UnplacedFailures({ failures }: { failures: CheckResult[] }) {
 }
 
 export type ProcedureViewProps = {
-  /** The steps of the shown submission. Task 13 passes another submission's steps here. */
+  /** The steps of the shown submission, which may be an earlier one the person picked. */
   steps: StepView[];
   /** Failing checks no step carries (see `unplacedFailures`), listed above the steps. */
   unplaced?: CheckResult[];

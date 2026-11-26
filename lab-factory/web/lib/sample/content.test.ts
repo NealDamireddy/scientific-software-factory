@@ -43,3 +43,25 @@ test("procedureTemplate with no citations is invalid", () => {
       && error.message === "A procedure needs at least one document to cite.",
   );
 });
+
+test("procedureTemplate writes the uvvis commands as plain instructions", () => {
+  const steps = procedureTemplate(instruments[0], ["sop-cuvette"]);
+  assert.deepEqual(steps.map((s) => s.text), [
+    "Prepare the sample as described in the cited source.",
+    "Read the absorbance of the prepared sample.",
+    "Bring the sample to temperature.",
+    "Record the result and clean up as described in the cited source.",
+  ]);
+});
+
+test("procedureTemplate falls back to the command's words for a command it doesn't know", () => {
+  const instrument = {
+    ...instruments[0], id: "plate-1",
+    commands: [
+      { name: "read_plate", required: [], optional: [] },
+      { name: "shake_2x-fast", required: [], optional: [] },
+    ],
+  };
+  const texts = procedureTemplate(instrument, ["sop-cuvette"]).map((s) => s.text);
+  assert.deepEqual(texts.slice(1, 3), ["Run read plate on the prepared sample.", "Run shake x fast on the prepared sample."]);
+});

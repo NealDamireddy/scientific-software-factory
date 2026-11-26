@@ -62,6 +62,7 @@ test("getWorkspace and getSubmissionView return the stored orders and views", as
   assert.equal(w.procedure?.steps.length, 5);
   assert.equal(w.procedure?.submissions.length, 1);
   assert.deepEqual(w.procedure?.history.map((h) => h.event), ["created", "claimed", "submitted"]);
+  assert.deepEqual(w.procedure?.earlier, []);
   assert.equal(w.run_plan, undefined);
   assert.ok(w.analysis_app && w.simulation);
   const b = await c.getWorkspace("b12-vial-a");
@@ -89,7 +90,11 @@ test("the workspace shows the newest order of each kind with every submission", 
   assert.equal(w.procedure?.submissions.length, 2);
   assert.deepEqual(w.procedure?.steps, []);
   assert.equal(w.procedure?.history.length, 1);
+  assert.deepEqual(w.procedure?.earlier?.map((e) => [e.order.id, e.submissions.map((x) => x.number), e.history.length]), [
+    ["WO-B12", [1], 3],
+  ]);
   assert.equal(w.run_plan?.order.id, "WO-B12-RP");
+  assert.deepEqual(w.run_plan?.earlier, []);
 });
 
 test("addDocument adds a revision, dedupes identical content and slugs colliding titles", async () => {

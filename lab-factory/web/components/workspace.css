@@ -925,3 +925,327 @@
     padding: 20px 16px 32px;
   }
 }
+
+/* ---------------------------------------------------------------- submission history */
+
+/* The picker and Compare share the header's quiet action row, and keep to one line: the select shrinks first. */
+.hist-row {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hist-field {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hist-field .hist-label {
+  flex: none;
+}
+
+.hist-label {
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+/* The select shrinks before the row wraps; its text is clipped, the full label is in the list. */
+.hist-select {
+  flex: 0 1 auto;
+  min-width: 8rem;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  min-height: 40px;
+  padding: 0 6px 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.hist-quiet {
+  border-color: transparent;
+  background: none;
+  color: var(--indigo);
+}
+
+/* Quiet, so the row stays calm; the border marks it as a control without competing with the summary. */
+.hist-compare {
+  flex: none;
+  padding: 0 10px;
+  border-color: var(--rule);
+}
+
+.hist-compare[aria-expanded="true"] {
+  background: var(--ground);
+}
+
+.ws-button.hist-compare:disabled {
+  border-color: var(--rule);
+  background: none;
+  color: var(--steel);
+}
+
+.hist-hint {
+  margin: 8px 0 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.hist-earlier {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 8px 0 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.hist-earlier .hist-quiet {
+  margin-left: -6px;
+  padding: 0 8px;
+}
+
+.hist-loading {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.hist-loading:not(:empty) {
+  margin-bottom: 12px;
+}
+
+/* The previous steps stay on screen, dimmed, until the chosen submission's arrive. */
+.hist-steps[data-stale="true"] {
+  opacity: .5;
+}
+
+.hist-load-error {
+  margin: 0 0 16px;
+}
+
+/* The comparison sits between the header and the steps, as one ruled block. */
+.hist-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.hist-diff-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.hist-diff-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.hist-diff-unreadable {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.hist-diff-same {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.hist-diff-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hist-diff-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding: 10px 0 10px 12px;
+  border-left: 2px solid var(--rule);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.hist-diff-row + .hist-diff-row {
+  margin-top: 6px;
+}
+
+.hist-diff-row[data-change="added"],
+.hist-diff-row[data-change="changed"] {
+  border-left-color: var(--indigo);
+}
+
+.hist-diff-row[data-change="removed"] {
+  border-left-color: var(--steel);
+}
+
+.hist-diff-row[data-change="unchanged"] {
+  color: var(--steel);
+}
+
+.hist-diff-mark {
+  font-weight: 600;
+}
+
+.hist-diff-step {
+  color: var(--steel);
+}
+
+.hist-diff-row[data-change="removed"] .hist-diff-text {
+  color: var(--steel);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--steel) 60%, transparent);
+}
+
+/* "Built from" closes the tab: quiet until opened. */
+.hist-built {
+  margin-top: 20px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+  font-size: 0.875rem;
+}
+
+.hist-built-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  color: var(--steel);
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+
+.hist-built-summary::-webkit-details-marker {
+  display: none;
+}
+
+.hist-built-summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.hist-built[open] > .hist-built-summary::before {
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.hist-built-summary:hover {
+  color: var(--ink);
+}
+
+.hist-built-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0 4px 12px;
+}
+
+.hist-built-lines,
+.hist-built-doclist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Label, digest, Copy: only the label wraps, so Copy stays on its row. */
+.hist-built-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0 12px;
+  min-height: 40px;
+}
+
+.hist-built-line + .hist-built-line {
+  border-top: 1px solid var(--rule);
+}
+
+.hist-built-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hist-digest {
+  color: var(--steel);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.hist-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hist-copied {
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.hist-copy .hist-quiet {
+  padding: 0 10px;
+}
+
+/* A quiet fallback on its own line under the row: the full digest, selected, to copy by hand. */
+.hist-copy-fallback {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1 / -1;
+  gap: 4px;
+  padding: 2px 0 10px;
+}
+
+.hist-copy-error {
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.hist-copy-field {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.hist-built-head {
+  margin: 0;
+  color: var(--steel);
+}
+
+.hist-built-none,
+.hist-built-approval {
+  margin: 0;
+}
+
+.hist-built-doclist .hist-doc {
+  margin-left: 0;
+}
