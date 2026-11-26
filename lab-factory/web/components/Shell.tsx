@@ -11,10 +11,11 @@ import { NotFound } from "./NotFound.tsx";
 import { Sidebar } from "./Sidebar.tsx";
 // One import per view, grouped by the task that builds it: a task changes only its own lines.
 // Task 9 views
-import { LabHome } from "./placeholders.tsx";
-import { ProjectPage } from "./placeholders.tsx";
-import { LabPage } from "./placeholders.tsx";
-import { SettingsPage } from "./placeholders.tsx";
+import { LabHome } from "./LabHome.tsx";
+import { ProjectPage } from "./ProjectPage.tsx";
+import { LabPage } from "./LabPage.tsx";
+import { SettingsPage } from "./SettingsPage.tsx";
+import { DocumentDrawer } from "./DocumentDrawer.tsx";
 // Task 10 views
 import { SkillsPage } from "./placeholders.tsx";
 import { ConnectorsPage } from "./placeholders.tsx";
@@ -94,7 +95,7 @@ export function Shell() {
       <Sidebar onSearch={openPalette} inert={paletteOpen} />
       <main className="content" inert={paletteOpen}>{view}</main>
 
-      {/* Task 9: document drawer */}
+      <DocumentDrawer />
 
       <CommandPalette open={paletteOpen} onOpen={openPalette} onClose={closePalette} />
     </div>
