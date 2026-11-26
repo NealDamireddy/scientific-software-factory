@@ -140,11 +140,11 @@ test("saving a document again with identical content says it was already saved",
 
 test("only the wavelength strip is drawn with the spectrum", async ({ page }) => {
   await goto(page, "/#/lab");
-  const wavelength = page.getByRole("img", { name: /^Wavelength / }).first();
+  const wavelength = page.getByRole("img", { name: /^Wavelength, allowed / }).first();
   await expect(wavelength.locator(".range-track .range-spectrum")).toHaveCSS("background-image", /linear-gradient/);
   // The lab's 400 to 700 nm instrument shows the spectrum across the whole track.
   await expect(wavelength.locator(".range-spectrum")).toHaveAttribute("style", /left: 0%; width: 100%/);
-  const temperature = page.getByRole("img", { name: /^Temperature / }).first();
+  const temperature = page.getByRole("img", { name: /^Temperature, allowed / }).first();
   await expect(temperature.locator(".range-spectrum")).toHaveCount(0);
   await expect(temperature.locator(".range-track")).toHaveCSS("background-image", "none");
 });

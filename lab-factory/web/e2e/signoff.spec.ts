@@ -316,7 +316,7 @@ test("attention opens the named order and Back restores that order", async ({ pa
 
 test("a missing linked order cannot offer sign-off for a different output", async ({ page }) => {
   await goto(page, B12 + "?order=removed-order");
-  await expect(page.getByRole("alert")).toContainText("removed-order");
+  await expect(page.getByRole("main").getByRole("alert")).toContainText("removed-order");
   await expect(page.getByRole("tab", { name: "Procedure" })).toHaveCount(0);
   await page.getByRole("link", { name: "Open experiment" }).click();
   await expect(page.getByRole("tabpanel", { name: "Procedure" })).toBeVisible();

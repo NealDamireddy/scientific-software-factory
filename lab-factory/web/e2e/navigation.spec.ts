@@ -37,6 +37,10 @@ test("the sidebar lists its entries in order", async ({ page }) => {
 });
 
 test("the Search button is named Search and announces its shortcut and dialog", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, "platform", { value: "Linux" });
+    Object.defineProperty(navigator, "userAgentData", { value: { platform: "Linux" } });
+  });
   await goto(page, "/");
   const search = sidebar(page).getByRole("button", { name: "Search", exact: true });
   await expect(search).toContainText("Ctrl K");
