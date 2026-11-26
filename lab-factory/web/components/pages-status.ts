@@ -1,30 +1,7 @@
-// Small display helpers shared by the Task 9 views.
-// statusLine here is a local stand-in: Task 12's lib/status.ts replaces it with the real one.
-import type { AttentionItem, Document, OrderView, StepView } from "../lib/types.ts";
+// Small display helpers shared by the Task 9 views. Status lines live in lib/status.ts.
+import type { AttentionItem, Document } from "../lib/types.ts";
 
-export function formatDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
-}
-
-/** The status line of a procedure; `No procedure yet` when there is none. */
-export function procedureStatusLine(procedure: OrderView<StepView> | undefined): string {
-  if (!procedure) return "No procedure yet";
-  const { order, history } = procedure;
-  const last = history[history.length - 1];
-  switch (order.status) {
-    case "in_progress": return "Being revised";
-    case "in_review": return "Waiting for sign-off";
-    case "released": {
-      const approved = [...history].reverse().find((h) => h.event === "approved");
-      return approved ? `Signed off by ${approved.actor} on ${formatDate(approved.at)}` : "Signed off";
-    }
-    default:
-      if (last && last.event === "rejected") return `Rejected by ${last.actor}: ${last.note}`;
-      return "Not started";
-  }
-}
+export { formatDate } from "../lib/status.ts";
 
 export const ATTENTION_TEXT: Record<AttentionItem["kind"], string> = {
   sign_off: "Waiting for sign-off",

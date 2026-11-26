@@ -5,10 +5,11 @@ import "./pages.css";
 import { useEffect, useState } from "react";
 
 import { routeHref } from "../lib/route.ts";
+import { statusLine } from "../lib/status.ts";
 import type { Experiment, Project } from "../lib/types.ts";
 import { AddDocument } from "./AddDocument.tsx";
 import { useClient, useRoute } from "./ClientContext.tsx";
-import { errorText, kindLabel, procedureStatusLine } from "./pages-status.ts";
+import { errorText, kindLabel } from "./pages-status.ts";
 import { RevisionList } from "./RevisionList.tsx";
 import { StartExperiment } from "./StartExperiment.tsx";
 
@@ -30,7 +31,7 @@ export function ProjectPage({ projectId }: { projectId: string }) {
         setProject(p);
         setError(null);
         Promise.all(p.experiments.map((e) => client.getWorkspace(e.id).then(
-          (w) => [e.id, procedureStatusLine(w.procedure)] as const,
+          (w) => [e.id, w.procedure ? statusLine(w.procedure.order, w.procedure.history) : "No procedure yet"] as const,
           () => [e.id, "No procedure yet"] as const,
         ))).then((pairs) => { if (live) setStatuses(Object.fromEntries(pairs)); });
       },

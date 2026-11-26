@@ -1,0 +1,122 @@
+import { expect, test } from "playwright/test";
+import type { Page } from "playwright/test";
+
+import { B12, COOMASSIE } from "./helpers.ts";
+
+const PROCEDURE_LINE =
+  "Only settings shown on a range are checked against your instruments. The rest is written for you and your approver to judge.";
+
+function tabBody(page: Page, name: string) {
+  return page.getByRole("region", { name: "Outputs" }).getByRole("tabpanel", { name });
+}
+
+async function openTab(page: Page, name: string) {
+  const tab = page.getByRole("region", { name: "Outputs" }).getByRole("tab", { name });
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+  return tabBody(page, name);
+}
+
+/** The numbered steps of a procedure or run plan, one list item each. */
+function steps(body: ReturnType<typeof tabBody>) {
+  return body.getByRole("list", { name: "Steps" }).getByRole("listitem");
+}
+
+test.describe("the Coomassie procedure", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(COOMASSIE);
+    await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
+  });
+
+  test("says what is checked, once, above the steps", async ({ page }) => {
+    const body = tabBody(page, "Procedure");
+    await expect(body.getByText(PROCEDURE_LINE, { exact: true })).toHaveCount(1);
+    await expect(body.getByRole("list", { name: "Steps" })).toBeVisible();
+    await expect(steps(body)).toHaveCount(5);
+  });
+
+  test("shows the submission summary and the status", async ({ page }) => {
+    const body = tabBody(page, "Procedure");
+    await expect(body.getByRole("heading", { level: 2, name: "Submission 1, 1 check failed" })).toBeVisible();
+    await expect(body.getByText("Being revised", { exact: true })).toBeVisible();
+  });
+
+  test("shows step 2's wavelength on its range", async ({ page }) => {
+    const body = tabBody(page, "Procedure");
+    const step2 = steps(body).nth(1);
+    await expect(step2).toContainText("Blank the spectrophotometer with solvent only.");
+    const strip = step2.getByRole("img", { name: "Wavelength 595 nm, allowed 400 to 700 nm" });
+    await expect(strip).toBeVisible();
+    await expect(strip.locator(".range-marker")).toHaveAttribute("style", /left: 65%/);
+  });
+
+  test("labels the amount as not checked, and only once", async ({ page }) => {
+    const body = tabBody(page, "Procedure");
+    const label = body.getByText("Not checked: dye solution 1 mL", { exact: true });
+    await expect(label).toHaveCount(1);
+    await expect(steps(body).nth(0)).toContainText("Not checked: dye solution 1 mL");
+  });
+
+  test("shows the failing citation check on step 4", async ({ page }) => {
+    const body = tabBody(page, "Procedure");
+    const step4 = steps(body).nth(3);
+    await expect(step4).toContainText("Add the reducing agent and mix.");
+    const note = step4.getByRole("note");
+    await expect(note).toHaveText("step 4: citations: no citation");
+    await expect(step4.getByRole("link")).toHaveCount(0);
+    // The only failure in the procedure is that one.
+    await expect(body.getByRole("note")).toHaveCount(1);
+  });
+
+  test("a source opens the document drawer", async ({ page }) => {
+    const body = tabBody(page, "Procedure");
+    const source = steps(body).nth(0).getByRole("link", { name: "Dye stock preparation" });
+    await expect(source).toHaveAttribute("href", /doc=coomassie-dye-prep/);
+    await source.click();
+    const drawer = page.getByRole("complementary", { name: "Document" });
+    await expect(drawer.getByRole("heading", { level: 2, name: "Dye stock preparation" })).toBeVisible();
+    await expect(page).toHaveURL(/experiments\/coomassie-run-1\?doc=coomassie-dye-prep$/);
+  });
+});
+
+test.describe("the B12 outputs", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.goto(B12);
+    await expect(page.getByRole("heading", { level: 1, name: "Vitamin B12 absorbance" })).toBeVisible();
+  });
+
+  test("the procedure passed and waits for sign-off", async ({ page }) => {
+    const body = tabBody(page, "Procedure");
+    await expect(body.getByRole("heading", { level: 2, name: "Submission 1, all checks passed" })).toBeVisible();
+    await expect(body.getByText("Waiting for sign-off", { exact: true })).toBeVisible();
+    await expect(body.getByRole("note")).toHaveCount(0);
+    await expect(body.getByText("Not checked: sample 1 mL", { exact: true })).toBeVisible();
+  });
+
+  test("the run plan shows the command line, the out-of-range marker and the failing check", async ({ page }) => {
+    const body = await openTab(page, "Run plan");
+    await expect(body.getByRole("heading", { level: 2, name: "Submission 1, 1 check failed" })).toBeVisible();
+    await expect(body.getByText("Being revised", { exact: true })).toBeVisible();
+
+    const step1 = steps(body).nth(0);
+    // Two spaces between the instrument and the command, kept as written.
+    const command = step1.getByText("uvvis-1  read_absorbance", { exact: true });
+    await expect(command).toBeVisible();
+    expect(await command.textContent()).toBe("uvvis-1  read_absorbance");
+    expect(await command.evaluate((el) => (el as HTMLElement).innerText)).toBe("uvvis-1  read_absorbance");
+
+    const strip = step1.getByRole("img", { name: "Wavelength 750 nm, allowed 400 to 700 nm" });
+    await expect(strip).toBeVisible();
+    const left = await strip.locator(".range-marker").evaluate((el) => (el as HTMLElement).style.left);
+    expect(left).toBe("100%");
+
+    await expect(step1.getByRole("note")).toHaveText("step 1: wavelength: 750 nm is above the maximum 700 nm");
+  });
+
+  test("sending to an instrument is disabled and says why", async ({ page }) => {
+    const body = await openTab(page, "Run plan");
+    const send = body.getByRole("button", { name: "Send to instrument" });
+    await expect(send).toBeDisabled();
+    await expect(send).toHaveAccessibleDescription("Instruments are controlled by the instrument agent, which comes later.");
+  });
+});
