@@ -1,0 +1,41 @@
+name: Lab Factory web
+on:
+  pull_request:
+    paths:
+      - lab-factory/web/**
+      - .github/workflows/lab-factory-web.yml
+  push:
+    branches: [main]
+    paths:
+      - lab-factory/web/**
+      - .github/workflows/lab-factory-web.yml
+permissions:
+  contents: read
+
+jobs:
+  web:
+    name: Typecheck, unit, Python and browser tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: lab-factory/web
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: lab-factory/web/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:unit
+      - run: npm run test:py
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e -- --trace off
