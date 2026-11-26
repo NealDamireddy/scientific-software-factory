@@ -20,7 +20,7 @@ import { SkillsPage } from "./placeholders.tsx";
 import { ConnectorsPage } from "./placeholders.tsx";
 import { AgentsPage } from "./placeholders.tsx";
 // Task 11 views
-import { Workspace } from "./placeholders.tsx";
+import { Workspace } from "./Workspace.tsx";
 
 /** Each route maps to exactly one view. */
 function View({ route }: { route: Route }) {
