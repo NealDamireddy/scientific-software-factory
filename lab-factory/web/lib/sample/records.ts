@@ -26,9 +26,9 @@ export function copy<T>(value: T): T {
   return structuredClone(value);
 }
 
-/** Lowercase letters and digits joined by single hyphens. */
+/** Lowercase letters and digits joined by single hyphens; accented letters fold to ASCII. */
 export function slugify(text: string, fallback = "item"): string {
-  const slug = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  const slug = text.normalize("NFKD").replace(/\p{M}+/gu, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   return slug === "" ? fallback : slug;
 }
 
@@ -144,8 +144,10 @@ export async function addDocumentTo(
     const id = uniqueSlug(title, takenDocumentIds(state, projectIdOf(owner, target)), "document");
     const added: Document = { id, kind: doc.kind, title, source, text: doc.text };
     const digest = await recordDigest(target.kind, { ...owner, documents: [...owner.documents, added] });
-    // The record may have changed while hashing: start again from the current state.
+    // The record may have changed while hashing, or an overlapping add elsewhere in the
+    // project may have taken the id: start again from the current state.
     if (stamp !== `${owner.documents.length}:${(state.revisions[key] ?? []).length}`) continue;
+    if (takenDocumentIds(state, projectIdOf(owner, target)).includes(id)) continue;
 
     owner.documents.push(added);
     const revision: Revision = { number: revisions.length + 1, digest, at: now().toISOString(), note: `Added ${title}` };
@@ -282,11 +284,21 @@ export function getSettings(ctx: SampleContext, labId: string): LabSettings {
   return copy(ctx.state.settings);
 }
 
+/** A name as the sign-off rule compares it: trimmed, inner whitespace runs collapsed to one space. */
+function tidyName(name: string): string {
+  return name.trim().replace(/\s+/g, " ");
+}
+
 export function updateSettings(ctx: SampleContext, labId: string, settings: LabSettings): LabSettings {
   getLabOf(ctx.state, labId);
   const rule = settings.sign_off;
   if (rule.mode === "listed") {
-    const names = [...new Set(rule.names.map((n) => n.trim()).filter((n) => n !== ""))];
+    // De-duplicated case-insensitively, keeping the first spelling.
+    const names: string[] = [];
+    for (const raw of rule.names) {
+      const name = tidyName(raw);
+      if (name !== "" && !names.some((n) => n.toLowerCase() === name.toLowerCase())) names.push(name);
+    }
     if (names.length === 0) throw new ClientError("invalid", "Name at least one person who can sign off.");
     ctx.state.settings = { sign_off: { mode: "listed", names } };
   } else {
@@ -347,7 +359,7 @@ function checkSignOff(state: SampleState, order: WorkOrder, submission: number, 
     throw new ClientError("refused", "This submission isn't waiting for sign-off.");
   }
   const rule = state.settings.sign_off;
-  if (rule.mode === "listed" && !rule.names.some((n) => n.trim().toLowerCase() === name.toLowerCase())) {
+  if (rule.mode === "listed" && !rule.names.some((n) => tidyName(n).toLowerCase() === tidyName(name).toLowerCase())) {
     throw new ClientError("refused", `${name} isn't on this lab's sign-off list.`);
   }
 }

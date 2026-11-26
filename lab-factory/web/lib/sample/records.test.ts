@@ -363,3 +363,62 @@ test("methods that later tasks add refuse for now", async () => {
   await rejects(c.sendMessage("coomassie-run-1", "hi", []), "refused", "Not available yet.");
   await rejects(c.confirmPlan("coomassie-run-1", "coomassie-run-1-m2", ["procedure"]), "refused", "Not available yet.");
 });
+
+test("slugify folds accents to ASCII", () => {
+  assert.equal(slugify("Über Lösung"), "uber-losung");
+  assert.equal(slugify("Café crème"), "cafe-creme");
+});
+
+test("overlapping adds to a project and its experiment never share a document id", async () => {
+  const c = fresh();
+  const doc = { title: "Shared note", kind: "note" as const, text: "Shared." };
+  const [a, b] = await Promise.all([
+    c.addDocument({ kind: "project", id: "coomassie-reduction" }, doc),
+    c.addDocument({ kind: "experiment", id: "coomassie-run-1" }, { ...doc, text: "Other." }),
+  ]);
+  assert.equal(a.number, 2);
+  assert.equal(b.number, 2);
+  const project = await c.getProject("coomassie-reduction");
+  const ids = [...project.documents.map((d) => d.id), ...project.experiments[0].documents.map((d) => d.id)];
+  assert.deepEqual(ids.filter((id) => id.startsWith("shared-note")).sort(), ["shared-note", "shared-note-2"]);
+});
+
+test("an open order without a rejection is not shown to the researcher", async () => {
+  const state = await createSeed(NOW);
+  const ctx = { state, now: () => NOW };
+  records.reject(ctx, "WO-B12", 1, "Sam", "Cite the protocol.");
+  records.findOrder(state, "WO-1").status = "open";
+  assert.equal(records.getWorkspace(ctx, "coomassie-run-1").procedure!.history.some((h) => h.event === "rejected"), false);
+  assert.deepEqual(records.needsAttention(ctx, "emory-biophys", "researcher").map((a) => [a.kind, a.work_order_id]), [["rejected", "WO-B12"]]);
+});
+
+test("search lists documents before instruments", async () => {
+  const c = fresh();
+  assert.deepEqual((await c.search("emory-biophys", "uv")).map((h) => [h.kind, h.id]), [
+    ["document", "sop-cuvette"], ["instrument", "uvvis-1"],
+  ]);
+});
+
+test("updateSettings de-duplicates names case-insensitively and collapses spaces", async () => {
+  const c = fresh();
+  const saved = await c.updateSettings("emory-biophys", {
+    sign_off: { mode: "listed", names: [" Dr   Rivera ", "ana", "dr rivera", "ANA", "Ben"] },
+  });
+  assert.deepEqual(saved, { sign_off: { mode: "listed", names: ["Dr Rivera", "ana", "Ben"] } });
+  const order = await c.approve("WO-B12", 1, " dr  rivera ");
+  assert.equal(order.status, "released");
+});
+
+test("the sign-off rule collapses spaces in stored names too", async () => {
+  const state = await createSeed(NOW);
+  const ctx = { state, now: () => NOW };
+  state.settings = { sign_off: { mode: "listed", names: ["Dr  Rivera"] } };
+  assert.equal(records.approve(ctx, "WO-B12", 1, "dr rivera").status, "released");
+});
+
+test("a failed seed is retried on the next call", async () => {
+  let calls = 0;
+  const c = createSampleClient({ now: () => (calls++ === 0 ? new Date(Number.NaN) : NOW) });
+  await assert.rejects(c.getLab("emory-biophys"), RangeError);
+  assert.equal((await c.getLab("emory-biophys")).id, "emory-biophys");
+});

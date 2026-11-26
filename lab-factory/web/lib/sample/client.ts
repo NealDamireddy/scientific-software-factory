@@ -15,7 +15,15 @@ export function createSampleClient(options: SampleClientOptions = {}): LabFactor
   const now = options.now ?? (() => new Date());
   // stepMs (between activity items) is used by the conversation engine in Task 7.
   let loading: Promise<SampleState> | null = null;
-  const load = (): Promise<SampleState> => (loading ??= createSeed(now()));
+  // A seed that fails is forgotten, so the next call tries again.
+  const load = (): Promise<SampleState> => {
+    if (!loading) {
+      const attempt = createSeed(now());
+      loading = attempt;
+      attempt.catch(() => { if (loading === attempt) loading = null; });
+    }
+    return loading;
+  };
 
   // Waits for the delay and the one shared seed, then hands out the context. Everything
   // after this await runs synchronously in the records functions.
@@ -32,8 +40,9 @@ export function createSampleClient(options: SampleClientOptions = {}): LabFactor
 
   return {
     async reset() {
-      loading = createSeed(now());
-      await loading;
+      // Calls already holding the old state when reset() runs finish against it, so their changes are lost.
+      loading = null;
+      await load();
     },
     getLab: (labId) => run((c) => records.getLab(c, labId)),
     listProjects: (labId) => run((c) => records.listProjects(c, labId)),
