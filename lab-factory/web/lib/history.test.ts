@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import {
-  approvalLine, citedSources, diffRows, latestChoice, pinLabel, shortDigest, submissionOptions, summaryTail, unchangedLabel,
+  approvalLine, citedSources, diffRows, unreadableLine, latestChoice, pinLabel, shortDigest, submissionOptions, summaryTail, unchangedLabel,
 } from "./history.ts";
 import type { OrderView, ProcedureStep, Submission, WorkOrder } from "./types.ts";
 
@@ -44,18 +44,26 @@ test("submissionOptions lists every order's submissions, newest first", () => {
   assert.deepEqual(submissionOptions({ ...view, earlier: undefined }).map((o) => o.key), ["WO-3#2", "WO-3#1"]);
 });
 
+const rowsOf = (result: ReturnType<typeof diffRows>) => {
+  assert.equal(result.readable, true, JSON.stringify(result));
+  return result.readable ? result.rows : [];
+};
+
 test("diffRows marks each change and counts the unchanged steps in one row", () => {
   const after = structuredClone(steps);
   after[2] = { ...after[2], citations: ["b"] };
-  assert.deepEqual(diffRows("procedure", sub("WO-1", 1, steps), sub("WO-2", 1, after)), [
-    { change: "changed", mark: "Changed: citations", step: "Step 3", text: "Three." },
-    { change: "unchanged", mark: "3 unchanged steps" },
-  ]);
+  assert.deepEqual(diffRows("procedure", sub("WO-1", 1, steps), sub("WO-2", 1, after)), {
+    readable: true,
+    rows: [
+      { change: "changed", mark: "Changed: citations", step: "Step 3", text: "Three." },
+      { change: "unchanged", mark: "3 unchanged steps" },
+    ],
+  });
 });
 
 test("diffRows shows added and removed steps with their own text", () => {
   const after: ProcedureStep[] = [steps[0], { text: "New.", citations: ["a"], amounts: [] }, steps[2], { ...steps[3], text: "Four!" }];
-  const rows = diffRows("procedure", sub("WO-1", 1, steps), sub("WO-1", 2, after));
+  const rows = rowsOf(diffRows("procedure", sub("WO-1", 1, steps), sub("WO-1", 2, after)));
   assert.deepEqual(rows, [
     { change: "removed", mark: "Removed", step: "Step 2", text: "Two." },
     { change: "added", mark: "Added", step: "Step 2", text: "New." },
@@ -67,27 +75,40 @@ test("diffRows shows added and removed steps with their own text", () => {
 
 test("diffRows names a moved, changed step by both numbers and lists every changed field", () => {
   const after: ProcedureStep[] = [{ text: "Zero.", citations: [] }, { ...steps[0], citations: ["b"], amounts: [{ what: "x", value: 1, unit: "mL" }] }];
-  const rows = diffRows("procedure", sub("WO-1", 1, [steps[0]]), sub("WO-1", 2, after));
+  const rows = rowsOf(diffRows("procedure", sub("WO-1", 1, [steps[0]]), sub("WO-1", 2, after)));
   assert.deepEqual(rows, [
     { change: "added", mark: "Added", step: "Step 1", text: "Zero." },
     { change: "changed", mark: "Changed: citations, amounts", step: "Step 2, was step 1", text: "One." },
   ]);
 });
 
-test("diffRows reads run plan commands, and a malformed artifact reads as no steps", () => {
+test("diffRows reads run plan commands, and an empty step list compares as no steps", () => {
   const plan = (value: number) => ({ instrument_id: "uvvis-1", steps: [{ command: "read_absorbance", settings: [{ parameter: "wavelength", value, unit: "nm" }] }] });
   const a = { ...sub("WO-B12-RP", 1, []), artifact: plan(750) };
   const b = { ...sub("WO-B12-RP", 2, []), artifact: plan(550) };
-  assert.deepEqual(diffRows("run_plan", a, b), [
+  assert.deepEqual(rowsOf(diffRows("run_plan", a, b)), [
     { change: "changed", mark: "Changed: settings", step: "Step 1", text: "read_absorbance" },
   ]);
-  assert.deepEqual(diffRows("run_plan", { ...a, artifact: "broken" }, b), [
+  assert.deepEqual(rowsOf(diffRows("run_plan", { ...a, artifact: { instrument_id: "uvvis-1", steps: [] } }, b)), [
     { change: "added", mark: "Added", step: "Step 1", text: "read_absorbance" },
   ]);
   assert.equal(unchangedLabel(1), "1 unchanged step");
 });
 
+test("diffRows refuses to compare a malformed artifact and names the side it couldn't read", () => {
+  const good = sub("WO-2", 1, steps);
+  const broken = { ...sub("WO-1", 1, []), artifact: "broken" };
+  const wrongKind = { ...sub("WO-1", 2, []), artifact: { instrument_id: "uvvis-1", steps: [{ command: "x", settings: [] }] } };
+  assert.deepEqual(diffRows("procedure", broken, good), { readable: false, unreadable: [{ workOrderId: "WO-1", number: 1 }] });
+  assert.deepEqual(diffRows("procedure", good, wrongKind), { readable: false, unreadable: [{ workOrderId: "WO-1", number: 2 }] });
+  assert.deepEqual(diffRows("procedure", broken, wrongKind), {
+    readable: false, unreadable: [{ workOrderId: "WO-1", number: 1 }, { workOrderId: "WO-1", number: 2 }],
+  });
+  assert.equal(unreadableLine({ workOrderId: "WO-1", number: 1 }), "WO-1 submission 1's steps couldn't be read, so they can't be compared.");
+});
+
 test("pinLabel names each pin, resolving skill titles and falling back to the id", () => {
+  assert.equal(pinLabel({ kind: "skill", id: "procedure-style", revision: 1, digest: "x" }, null), "Skill revision 1");
   const titles = new Map([["procedure-style", "How we write procedures"]]);
   const pin = (kind: "lab" | "project" | "experiment" | "skill", id: string, revision: number) => ({ kind, id, revision, digest: "x" });
   assert.equal(pinLabel(pin("lab", "l", 1), titles), "Lab revision 1");

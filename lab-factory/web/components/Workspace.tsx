@@ -6,13 +6,14 @@ import { PanelRightOpen } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { routeHref } from "../lib/route.ts";
-import type { ActivityItem, Message, OnActivity, OutputKind, Workspace as WorkspaceData } from "../lib/types.ts";
+import type { ActivityItem, Message, OnActivity, OutputKind, OutputRef, Workspace as WorkspaceData } from "../lib/types.ts";
 import { useClient } from "./ClientContext.tsx";
 import { Composer } from "./Composer.tsx";
 import { Conversation, ECHO_ANCHOR } from "./Conversation.tsx";
 import type { Echo, LiveActivity } from "./Conversation.tsx";
 import { OutputPanel, availableTabs } from "./OutputPanel.tsx";
 import type { PanelTab } from "./OutputPanel.tsx";
+import type { ShowOrderRequest } from "./SubmissionPanel.tsx";
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -61,6 +62,7 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
 
   const [closed, setClosed] = useState(false);
   const [tab, setTab] = useState<PanelTab | null>(null);
+  const [orderRequest, setOrderRequest] = useState<ShowOrderRequest | null>(null);
   const focusNext = useRef<"show" | "tab" | null>(null);
   const showButton = useRef<HTMLButtonElement>(null);
 
@@ -137,9 +139,13 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
       (onActivity) => client.sendMessage(experimentId, text, files, onActivity));
   }
 
-  function openOutput(kind: OutputKind) {
+  function openOutput(output: OutputRef) {
+    const { kind, work_order_id: workOrderId } = output;
     setClosed(false);
     setTab(kind);
+    if (workOrderId && (kind === "procedure" || kind === "run_plan")) {
+      setOrderRequest((last) => ({ kind, workOrderId, nonce: (last?.nonce ?? 0) + 1 }));
+    }
     focusNext.current = "tab";
   }
 
@@ -189,6 +195,7 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
             workspace={data}
             tab={shownTab}
             onTab={setTab}
+            orderRequest={orderRequest}
             onClose={() => { setClosed(true); focusNext.current = "show"; }}
           />
         </div>

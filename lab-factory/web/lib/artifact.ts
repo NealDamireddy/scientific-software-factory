@@ -1,6 +1,7 @@
 // Reads the steps out of a submission's artifact, which the client types as `unknown`.
 // Procedure artifacts are `{ steps: ProcedureStep[] }` and run plans are `RunPlan`.
-// Defensive: anything malformed gives no steps rather than a half-read list.
+// Defensive: anything malformed gives `null` rather than a half-read list, and `[]` means the
+// artifact really lists no steps, so a caller never mistakes one for the other.
 import type { Action, Amount, ProcedureStep, RunStep, Setting } from "./types.ts";
 
 type Json = Record<string, unknown>;
@@ -66,24 +67,24 @@ function runStep(value: unknown): RunStep | null {
   return read ? { command: value.command, settings: read } : null;
 }
 
-function stepsOf<T>(artifact: unknown, read: (value: unknown) => T | null): T[] {
-  if (!isObject(artifact) || !Array.isArray(artifact.steps)) return [];
+function stepsOf<T>(artifact: unknown, read: (value: unknown) => T | null): T[] | null {
+  if (!isObject(artifact) || !Array.isArray(artifact.steps)) return null;
   const steps = artifact.steps.map(read);
-  return steps.every((s): s is T => s !== null) ? steps : [];
+  return steps.every((s): s is T => s !== null) ? steps : null;
 }
 
-/** A procedure artifact's steps, or `[]` when the artifact is malformed. */
-export function procedureSteps(artifact: unknown): ProcedureStep[] {
+/** A procedure artifact's steps, or `null` when the artifact is malformed. */
+export function procedureSteps(artifact: unknown): ProcedureStep[] | null {
   return stepsOf(artifact, procedureStep);
 }
 
-/** A run plan artifact's steps, or `[]` when the artifact is malformed. */
-export function runPlanSteps(artifact: unknown): RunStep[] {
-  if (!isObject(artifact) || typeof artifact.instrument_id !== "string") return [];
+/** A run plan artifact's steps, or `null` when the artifact is malformed. */
+export function runPlanSteps(artifact: unknown): RunStep[] | null {
+  if (!isObject(artifact) || typeof artifact.instrument_id !== "string") return null;
   return stepsOf(artifact, runStep);
 }
 
-/** The artifact's steps for an order of the given kind. */
-export function artifactSteps(kind: "procedure" | "run_plan", artifact: unknown): ProcedureStep[] | RunStep[] {
+/** The artifact's steps for an order of the given kind, or `null` when the artifact is malformed. */
+export function artifactSteps(kind: "procedure" | "run_plan", artifact: unknown): ProcedureStep[] | RunStep[] | null {
   return kind === "procedure" ? procedureSteps(artifact) : runPlanSteps(artifact);
 }

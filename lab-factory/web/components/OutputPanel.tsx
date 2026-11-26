@@ -9,6 +9,7 @@ import { AnalysisAppTab } from "./tabs/AnalysisAppTab.tsx";
 import { ProcedureTab } from "./tabs/ProcedureTab.tsx";
 import { ResultsTab } from "./tabs/ResultsTab.tsx";
 import { RunPlanTab } from "./tabs/RunPlanTab.tsx";
+import type { ShowOrderRequest } from "./SubmissionPanel.tsx";
 import { SimulationTab } from "./tabs/SimulationTab.tsx";
 
 export type PanelTab = "procedure" | "run_plan" | "analysis_app" | "results" | "simulation";
@@ -34,10 +35,10 @@ export function availableTabs(workspace: Workspace): PanelTab[] {
 }
 
 /** Each tab's body lives in its own file under tabs/, so later tasks change only that file. */
-function TabBody({ tab, workspace }: { tab: PanelTab; workspace: Workspace }): ReactNode {
+function TabBody({ tab, workspace, request }: { tab: PanelTab; workspace: Workspace; request: ShowOrderRequest | null }): ReactNode {
   switch (tab) {
-    case "procedure": return <ProcedureTab workspace={workspace} />;
-    case "run_plan": return <RunPlanTab workspace={workspace} />;
+    case "procedure": return <ProcedureTab workspace={workspace} request={request} />;
+    case "run_plan": return <RunPlanTab workspace={workspace} request={request} />;
     case "analysis_app": return <AnalysisAppTab workspace={workspace} />;
     case "results": return <ResultsTab workspace={workspace} />;
     case "simulation": return <SimulationTab workspace={workspace} />;
@@ -50,6 +51,8 @@ export type OutputPanelProps = {
   tab: PanelTab;
   onTab: (tab: PanelTab) => void;
   onClose: () => void;
+  /** An output card's request to show a work order's latest submission in its tab. */
+  orderRequest?: ShowOrderRequest | null;
 };
 
 /**
@@ -57,7 +60,7 @@ export type OutputPanelProps = {
  * mounted (hidden while another tab is shown), so work done in it, such as a run, survives a
  * tab switch.
  */
-export function OutputPanel({ workspace, tab, onTab, onClose }: OutputPanelProps) {
+export function OutputPanel({ workspace, tab, onTab, onClose, orderRequest = null }: OutputPanelProps) {
   const tabs = availableTabs(workspace);
   const [visited, setVisited] = useState<PanelTab[]>([tab]);
   if (!visited.includes(tab)) setVisited([...visited, tab]);
@@ -116,7 +119,7 @@ export function OutputPanel({ workspace, tab, onTab, onClose }: OutputPanelProps
           hidden={t !== tab}
           tabIndex={0}
         >
-          <TabBody tab={t} workspace={workspace} />
+          <TabBody tab={t} workspace={workspace} request={orderRequest} />
         </div>
       ))}
     </section>

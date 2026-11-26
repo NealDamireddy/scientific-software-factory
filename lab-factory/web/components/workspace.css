@@ -928,14 +928,27 @@
 
 /* ---------------------------------------------------------------- submission history */
 
-/* The picker and Compare share the header's quiet action row. */
-.hist-field {
-  display: inline-flex;
-  flex-wrap: wrap;
+/* The picker and Compare share the header's quiet action row, and keep to one line: the select shrinks first. */
+.hist-row {
+  display: flex;
+  flex: 0 1 auto;
   align-items: center;
-  gap: 4px 6px;
+  gap: 8px;
   min-width: 0;
   max-width: 100%;
+}
+
+.hist-field {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hist-field .hist-label {
+  flex: none;
 }
 
 .hist-label {
@@ -943,9 +956,12 @@
   font-size: 0.875rem;
 }
 
+/* The select shrinks before the row wraps; its text is clipped, the full label is in the list. */
 .hist-select {
-  min-width: 0;
+  flex: 0 1 auto;
+  min-width: 8rem;
   max-width: 100%;
+  text-overflow: ellipsis;
   min-height: 40px;
   padding: 0 6px 0 8px;
   border: 1px solid var(--rule);
@@ -964,6 +980,7 @@
 
 /* Quiet, so the row stays calm; the border marks it as a control without competing with the summary. */
 .hist-compare {
+  flex: none;
   padding: 0 10px;
   border-color: var(--rule);
 }
@@ -1005,6 +1022,15 @@
   font-size: 0.875rem;
 }
 
+.hist-loading:not(:empty) {
+  margin-bottom: 12px;
+}
+
+/* The previous steps stay on screen, dimmed, until the chosen submission's arrive. */
+.hist-steps[data-stale="true"] {
+  opacity: .5;
+}
+
 .hist-load-error {
   margin: 0 0 16px;
 }
@@ -1033,8 +1059,9 @@
   font-weight: 600;
 }
 
-.hist-diff-head .hist-quiet {
-  margin-right: -14px;
+.hist-diff-unreadable {
+  margin: 0;
+  font-size: 0.875rem;
 }
 
 .hist-diff-same {
@@ -1144,9 +1171,10 @@
   list-style: none;
 }
 
+/* Label, digest, Copy: only the label wraps, so Copy stays on its row. */
 .hist-built-line {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 0 12px;
   min-height: 40px;
@@ -1157,7 +1185,6 @@
 }
 
 .hist-built-label {
-  flex: 1 1 12rem;
   min-width: 0;
   overflow-wrap: anywhere;
 }
@@ -1183,9 +1210,30 @@
   padding: 0 10px;
 }
 
+/* A quiet fallback on its own line under the row: the full digest, selected, to copy by hand. */
+.hist-copy-fallback {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1 / -1;
+  gap: 4px;
+  padding: 2px 0 10px;
+}
+
 .hist-copy-error {
-  flex-basis: 100%;
-  margin: 4px 0;
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.hist-copy-field {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
 }
 
 .hist-built-head {

@@ -78,18 +78,35 @@ export function unchangedLabel(count: number): string {
   return count === 1 ? "1 unchanged step" : `${count} unchanged steps`;
 }
 
+/** A submission whose artifact couldn't be read as steps. */
+export type UnreadableSide = { workOrderId: string; number: number };
+export type DiffResult = { readable: true; rows: DiffRow[] } | { readable: false; unreadable: UnreadableSide[] };
+
+/** `WO-1 submission 1's steps couldn't be read, so they can't be compared.` */
+export function unreadableLine(side: UnreadableSide): string {
+  return `${side.workOrderId} submission ${side.number}'s steps couldn't be read, so they can't be compared.`;
+}
+
 /**
  * The comparison of two submissions' artifact steps, `after` being the shown one. Each added,
  * removed or changed step is a row in step order; the unchanged steps are counted in one closing row.
+ * When either artifact is malformed there is no comparison, only the sides that couldn't be read
+ * (`before` first), so a broken artifact never reads as every step added or removed.
  */
-export function diffRows(kind: "procedure" | "run_plan", before: Submission, after: Submission): DiffRow[] {
+export function diffRows(kind: "procedure" | "run_plan", before: Submission, after: Submission): DiffResult {
   const a = artifactSteps(kind, before.artifact);
   const b = artifactSteps(kind, after.artifact);
+  if (a === null || b === null) {
+    const unreadable = [[a, before] as const, [b, after] as const]
+      .filter(([steps]) => steps === null)
+      .map(([, s]) => ({ workOrderId: s.work_order_id, number: s.number }));
+    return { readable: false, unreadable };
+  }
   const changes = diffSteps(a, b);
   const rows = changes.map((c) => rowFor(c, a, b)).filter((r): r is DiffRow => r !== null);
   const same = changes.filter((c) => c.change === "same").length;
   if (same > 0) rows.push({ change: "unchanged", mark: unchangedLabel(same) });
-  return rows;
+  return { readable: true, rows };
 }
 
 // ---------------------------------------------------------------- built from
@@ -101,9 +118,13 @@ export function shortDigest(digest: string): string {
 
 const PIN_LABELS: Record<Exclude<Pin["kind"], "skill">, string> = { lab: "Lab", project: "Project", experiment: "Experiment" };
 
-/** `Lab revision 1`, `Experiment revision 2`, `Skill How we write procedures revision 1` (the id when the title is unknown). */
-export function pinLabel(pin: Pin, skillTitles: ReadonlyMap<string, string>): string {
-  const name = pin.kind === "skill" ? `Skill ${skillTitles.get(pin.id) ?? pin.id}` : PIN_LABELS[pin.kind];
+/**
+ * `Lab revision 1`, `Experiment revision 2`, `Skill How we write procedures revision 1`. Until the
+ * skill titles are known (`null`) a skill reads `Skill revision 1`; a skill missing from them reads by its id.
+ */
+export function pinLabel(pin: Pin, skillTitles: ReadonlyMap<string, string> | null): string {
+  if (pin.kind === "skill" && skillTitles === null) return `Skill revision ${pin.revision}`;
+  const name = pin.kind === "skill" ? `Skill ${skillTitles?.get(pin.id) ?? pin.id}` : PIN_LABELS[pin.kind];
   return `${name} revision ${pin.revision}`;
 }
 

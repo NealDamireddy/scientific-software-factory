@@ -19,11 +19,17 @@ test("procedureSteps reads well-formed steps with their optional fields", () => 
 test("procedureSteps returns a copy, never the artifact's own arrays", () => {
   const artifact = { steps: [{ text: "Rinse.", citations: ["sop"] }] };
   const steps = procedureSteps(artifact);
+  assert.ok(steps);
   steps[0].citations.push("other");
   assert.deepEqual(artifact.steps[0].citations, ["sop"]);
 });
 
-test("procedureSteps returns no steps for anything malformed", () => {
+test("procedureSteps reads an empty step list as no steps", () => {
+  assert.deepEqual(procedureSteps({ steps: [] }), []);
+  assert.deepEqual(runPlanSteps({ instrument_id: "uvvis-1", steps: [] }), []);
+});
+
+test("procedureSteps returns null for anything malformed, never a half-read or empty list", () => {
   for (const artifact of [
     undefined, null, 3, "steps", [], {}, { steps: "x" }, { steps: [null] },
     { steps: [{ text: 1, citations: [] }] },
@@ -35,7 +41,7 @@ test("procedureSteps returns no steps for anything malformed", () => {
     { steps: [{ text: "a", citations: [], amounts: [{ what: "dye", value: Number.NaN, unit: "mL" }] }] },
     { steps: [{ text: "ok", citations: [] }, { text: "bad" }] },
   ]) {
-    assert.deepEqual(procedureSteps(artifact), [], JSON.stringify(artifact));
+    assert.equal(procedureSteps(artifact), null, JSON.stringify(artifact));
   }
 });
 
@@ -46,13 +52,14 @@ test("runPlanSteps reads a run plan and refuses malformed ones", () => {
   for (const artifact of [
     null, { steps: plan.steps }, { instrument_id: "uvvis-1" }, { instrument_id: "uvvis-1", steps: [{ command: "x" }] },
     { instrument_id: "uvvis-1", steps: [{ settings: [] }] },
-    { instrument_id: 1, steps: plan.steps },
+    { instrument_id: 1, steps: plan.steps }, { instrument_id: "uvvis-1", steps: {} },
   ]) {
-    assert.deepEqual(runPlanSteps(artifact), [], JSON.stringify(artifact));
+    assert.equal(runPlanSteps(artifact), null, JSON.stringify(artifact));
   }
 });
 
-test("a procedure artifact read as a run plan gives no steps, and the reverse", () => {
-  assert.deepEqual(runPlanSteps({ steps: [{ text: "a", citations: [] }] }), []);
-  assert.deepEqual(procedureSteps({ instrument_id: "uvvis-1", steps: [{ command: "x", settings: [] }] }), []);
+test("a procedure artifact read as a run plan is malformed, and the reverse", () => {
+  assert.equal(runPlanSteps({ steps: [{ text: "a", citations: [] }] }), null);
+  assert.equal(procedureSteps({ instrument_id: "uvvis-1", steps: [{ command: "x", settings: [] }] }), null);
+  assert.equal(artifactSteps("procedure", "broken"), null);
 });
