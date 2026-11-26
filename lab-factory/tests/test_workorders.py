@@ -4,6 +4,7 @@ import threading
 
 import pytest
 
+from labfactory.agent import AgentTools
 from labfactory.artifacts import ARTIFACT_EXAMPLES, ArtifactError
 from labfactory.context import canonical_digest, experiment_from_dict, lab_from_dict
 from labfactory.store import Store
@@ -35,6 +36,39 @@ def test_create_pins_current_revisions(orders):
     assert orders.list("open") == orders.list() == [order, orders.get("WO-2")]
     with pytest.raises(WorkOrderError, match="kind"):
         orders.create("b12-vial-a", "software", "Analyze")
+
+
+def test_create_rejects_incompatible_context_without_changing_prior_pins(orders, store, uvvis_lab_dict):
+    old = create(orders)
+    original = lab_from_dict(uvvis_lab_dict)
+    uvvis_lab_dict["instruments"] = []
+    store.put_lab(lab_from_dict(uvvis_lab_dict))
+
+    with pytest.raises(WorkOrderError, match="unknown instrument uvvis-1"):
+        create(orders)
+    assert orders.list() == [old]
+    orders.claim(old.id, "codex")
+    assert orders.submit(old.id, "codex", plan()).passed
+
+    assert store.put_lab(original).number == 3
+    new = create(orders)
+    assert (new.id, new.lab_revision) == ("WO-2", 3)
+
+
+def test_agent_reads_committed_state_during_write(tmp_path, uvvis_lab_dict, b12_experiment_dict):
+    path = tmp_path / "review.db"
+    with Store(path) as writer:
+        writer.put_lab(lab_from_dict(uvvis_lab_dict))
+        writer.put_experiment(experiment_from_dict(b12_experiment_dict))
+        order = create(WorkOrders(writer))
+        with writer.transaction() as connection:
+            connection.execute("UPDATE work_orders SET objective = ?", ("Draft change",))
+            with Store(path) as reader:
+                agent = AgentTools(reader)
+                assert agent.list_work_orders()[0]["objective"] == order.objective
+                context = agent.get_work_order_context(order.id)
+                assert context["work_order"]["objective"] == order.objective
+        assert WorkOrders(writer).get(order.id).objective == "Draft change"
 
 
 def test_happy_path_to_release(orders):

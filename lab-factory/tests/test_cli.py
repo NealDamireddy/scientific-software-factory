@@ -110,3 +110,14 @@ def test_put_rejects_duplicate_json_fields(operator, tmp_path, capsys, kind, exa
     assert capsys.readouterr().err.strip() == f"error: duplicate JSON field {key!r}"
     assert cli(kind, "put", str(EXAMPLES / example)) == 0
     assert capsys.readouterr().out.rstrip().endswith("revision 1")
+
+
+def test_list_and_show_see_committed_order_during_write(operator, tmp_path, capsys):
+    cli, _ = operator
+    create(cli, "run_plan")
+    capsys.readouterr()
+    with Store(tmp_path / "factory.db") as writer, writer.transaction() as connection:
+        connection.execute("UPDATE work_orders SET status = 'in_progress' WHERE id = 'WO-1'")
+        for args in [("list", "--status", "open"), ("show", "WO-1")]:
+            assert cli("wo", *args) == 0
+            assert "WO-1 run_plan open" in capsys.readouterr().out

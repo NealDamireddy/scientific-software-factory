@@ -43,7 +43,7 @@ class AgentTools:
     @_return_domain_errors
     def get_work_order_context(self, work_order_id: str) -> dict:
         # Read status, pins, and rejection history at the same point in time.
-        with self._store.transaction():
+        with self._store.read_transaction():
             order = self._orders.get(work_order_id)
             lab, experiment = self._orders.pinned_context(work_order_id)
             return {

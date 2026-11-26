@@ -44,7 +44,7 @@ def _one_line(text: str) -> str:
 
 def _show(orders: WorkOrders, id: str) -> str:
     # Read one consistent view even when a claim or review occurs concurrently.
-    with orders.store.transaction():
+    with orders.store.read_transaction():
         order = orders.get(id)
         submissions = orders.submissions(id)
         history = orders.history(id)

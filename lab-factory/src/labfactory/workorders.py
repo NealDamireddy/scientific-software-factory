@@ -9,7 +9,7 @@ import sqlite3
 
 from .artifacts import KINDS, parse_artifact
 from .checks import CheckResult, all_passed, check_artifact
-from .context import Experiment, Lab, canonical_digest, canonical_json
+from .context import ContextError, Experiment, Lab, canonical_digest, canonical_json
 from .store import NotFound, Store
 
 
@@ -87,7 +87,10 @@ class WorkOrders:
             raise WorkOrderError("work order needs an objective")
         with self.store.transaction():
             exp, exp_rev = self.store.get_experiment(experiment_id)
-            _, lab_rev = self.store.get_lab(exp.lab_id)
+            try:
+                _, lab_rev = self.store.lab_for_experiment(exp)
+            except ContextError as exc:
+                raise WorkOrderError(f"cannot pin context for experiment {exp.id}: {exc}") from exc
             seq = self.db.execute("SELECT COALESCE(MAX(rowid),0) + 1 FROM work_orders").fetchone()[0]
             id = f"WO-{seq}"
             self.db.execute(

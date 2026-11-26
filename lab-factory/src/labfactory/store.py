@@ -23,8 +23,8 @@ class NotFound(LookupError):
     """The requested record or revision does not exist."""
 
 
-_SCHEMA = (
-    """
+_SCHEMA = {
+    "records": """
     CREATE TABLE IF NOT EXISTS records (
         kind TEXT NOT NULL,
         id TEXT NOT NULL,
@@ -35,7 +35,7 @@ _SCHEMA = (
         PRIMARY KEY (kind, id, number)
     )
     """,
-    """
+    "work_orders": """
     CREATE TABLE IF NOT EXISTS work_orders (
         id TEXT NOT NULL PRIMARY KEY,
         experiment_id TEXT NOT NULL, experiment_revision INTEGER NOT NULL,
@@ -47,7 +47,7 @@ _SCHEMA = (
         FOREIGN KEY (id, released_submission) REFERENCES submissions(work_order_id, number)
     )
     """,
-    """
+    "submissions": """
     CREATE TABLE IF NOT EXISTS submissions (
         work_order_id TEXT NOT NULL REFERENCES work_orders(id), number INTEGER NOT NULL,
         worker TEXT NOT NULL, artifact TEXT NOT NULL, artifact_digest TEXT NOT NULL,
@@ -56,7 +56,7 @@ _SCHEMA = (
         PRIMARY KEY (work_order_id, number)
     )
     """,
-    """
+    "events": """
     CREATE TABLE IF NOT EXISTS events (
         work_order_id TEXT NOT NULL REFERENCES work_orders(id), event TEXT NOT NULL,
         actor TEXT NOT NULL, at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -64,8 +64,8 @@ _SCHEMA = (
         FOREIGN KEY (work_order_id, submission) REFERENCES submissions(work_order_id, number)
     )
     """,
-    "CREATE INDEX IF NOT EXISTS events_by_order ON events(work_order_id)",
-)
+    "events_by_order": "CREATE INDEX IF NOT EXISTS events_by_order ON events(work_order_id)",
+}
 
 
 def _record_data(record: Lab | Experiment) -> dict:
@@ -81,9 +81,14 @@ class Store:
         self.connection.row_factory = sqlite3.Row
         try:
             self.connection.execute("PRAGMA foreign_keys = ON")
-            with self.transaction() as connection:
-                for statement in _SCHEMA:
-                    connection.execute(statement)
+            existing = {row["name"] for row in self.connection.execute(
+                "SELECT name FROM sqlite_master WHERE type IN ('table', 'index')"
+            )}
+            if not _SCHEMA.keys() <= existing:
+                # Concurrent first opens serialize here. Every statement is idempotent.
+                with self.transaction() as connection:
+                    for statement in _SCHEMA.values():
+                        connection.execute(statement)
         except BaseException:
             self.close()
             raise
@@ -100,12 +105,15 @@ class Store:
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Connection]:
         self.connection.execute("BEGIN IMMEDIATE")
-        try:
+        with self.connection:
             yield self.connection
-            self.connection.commit()
-        except BaseException:
-            self.connection.rollback()
-            raise
+
+    @contextmanager
+    def read_transaction(self) -> Iterator[sqlite3.Connection]:
+        """Read one committed snapshot without reserving the write lock."""
+        self.connection.execute("BEGIN")
+        with self.connection:
+            yield self.connection
 
     def _append_revision(self, kind: str, record_id: str, data: dict) -> Revision:
         latest = self.connection.execute(
@@ -143,16 +151,21 @@ class Store:
         data, revision = self._read_revision("lab", lab_id, number)
         return lab_from_dict(data), revision
 
+    def lab_for_experiment(self, exp: Experiment) -> tuple[Lab, Revision]:
+        """Load the current lab and validate the experiment's instrument references."""
+        try:
+            lab, revision = self.get_lab(exp.lab_id)
+        except NotFound as exc:
+            raise ContextError(str(exc)) from exc
+        for instrument_id in exp.instrument_ids:
+            if lab.instrument(instrument_id) is None:
+                raise ContextError(f"unknown instrument {instrument_id} in lab {lab.id} revision {revision.number}")
+        return lab, revision
+
     def put_experiment(self, exp: Experiment) -> Revision:
         validated = experiment_from_dict(_record_data(exp))
         with self.transaction():
-            try:
-                lab, _ = self.get_lab(validated.lab_id)
-            except NotFound as exc:
-                raise ContextError(str(exc)) from exc
-            for instrument_id in validated.instrument_ids:
-                if lab.instrument(instrument_id) is None:
-                    raise ContextError(f"unknown instrument {instrument_id} in lab {lab.id}")
+            self.lab_for_experiment(validated)
             return self._append_revision("experiment", validated.id, to_dict(validated))
 
     def get_experiment(

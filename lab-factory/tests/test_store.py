@@ -1,4 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import replace
+import threading
 
 import pytest
 
@@ -81,3 +83,20 @@ def test_transaction_rolls_back_on_exception(store, uvvis_lab_dict):
             connection.execute("DELETE FROM records")
             raise RuntimeError("abort")
     assert store.get_lab(lab.id) == (lab, first)
+
+
+def test_first_open_race_preserves_both_writers(tmp_path, uvvis_lab_dict):
+    path = tmp_path / "new.db"
+    lab = lab_from_dict(uvvis_lab_dict)
+    ready = threading.Barrier(2)
+
+    def write(lab_id):
+        ready.wait(timeout=5)
+        with Store(path) as store:
+            return store.put_lab(replace(lab, id=lab_id))
+
+    ids = ["lab-a", "lab-b"]
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        revisions = list(pool.map(write, ids))
+    with Store(path) as store:
+        assert [store.get_lab(id)[1] for id in ids] == revisions
