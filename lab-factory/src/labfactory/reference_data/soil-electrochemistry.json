@@ -1,0 +1,94 @@
+[
+  {
+    "id": "epa-9045d-soil-ph",
+    "kind": "procedure",
+    "title": "Soil and Waste pH",
+    "publisher": "U.S. Environmental Protection Agency",
+    "year": 2004,
+    "version": "SW-846 method 9045D, revision 4, November 2004",
+    "url": "https://www.epa.gov/sites/default/files/2015-12/documents/9045d.pdf",
+    "locator": "Sections 3–4, interferences and apparatus. Sections 7.1–7.2, calibration and soil preparation.",
+    "summary": "The soil procedure measures an aqueous phase after the specified soil-to-water mixing, settling or filtration. It describes temperature compensation, electrode selection and conditions that can bias extreme readings.",
+    "scope": "Use the soil branch for soil. Report how the extract was prepared. Readings from salt solutions or a different soil-to-water ratio measure different conditions.",
+    "instrument_ids": [],
+    "techniques": [
+      "ph"
+    ],
+    "topics": [
+      "soil pH",
+      "soil acidity",
+      "soil extraction",
+      "glass electrode"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "miller-kissel-soil-ph",
+    "kind": "paper",
+    "title": "Comparison of Soil pH Methods on Soils of North America",
+    "publisher": "Soil Science Society of America Journal",
+    "year": 2010,
+    "version": "R. O. Miller and D. E. Kissel, 74, 310–316. DOI 10.2136/sssaj2008.0047",
+    "url": "https://acsess.onlinelibrary.wiley.com/doi/abs/10.2136/sssaj2008.0047",
+    "locator": "Authors’ abstract, comparison of 120 agricultural soils and the relationship with electrical conductivity.",
+    "summary": "The authors compared measurements in water, salt solution and saturated paste using agricultural soils from a proficiency program. Electrical conductivity explained much of the difference between the two 1:1 water and calcium chloride pH measurements.",
+    "scope": "Interpret differences in the context of the extraction liquid and soil properties. The study does not provide a universal conversion for an arbitrary soil.",
+    "instrument_ids": [],
+    "techniques": [
+      "ph"
+    ],
+    "topics": [
+      "soil pH",
+      "soil acidity",
+      "agricultural soils",
+      "extract ratio"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "fao-glosolan-soil-ec",
+    "kind": "procedure",
+    "title": "Standard operating procedure for soil electrical conductivity, soil/water, 1:5",
+    "publisher": "FAO, Global Soil Laboratory Network",
+    "year": 2021,
+    "version": "GLOSOLAN-SOP-07, version 1, 13 January 2021",
+    "url": "https://www.fao.org/3/cb3354en/cb3354en.pdf",
+    "locator": "Sections 7–8, sample preparation, cell calibration and determination. Section 10, quality assurance and control.",
+    "summary": "Measure conductivity in the soil-water extract prepared at the stated ratio. The procedure links cell calibration and temperature control to checks on duplicate samples and control material.",
+    "scope": "State the extraction ratio and temperature basis. A conductivity reading on this extract cannot be substituted directly for one from saturated soil paste.",
+    "instrument_ids": [],
+    "techniques": [
+      "conductivity"
+    ],
+    "topics": [
+      "soil conductivity",
+      "soil salinity",
+      "soil extract",
+      "electrical conductivity"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "soil-ec-extract-comparison",
+    "kind": "paper",
+    "title": "Comparison of Soil EC Values from Methods Based on 1:1 and 1:5 Soil to Water Ratios and ECe from Saturated Paste Extract Based Method",
+    "publisher": "Water",
+    "year": 2020,
+    "version": "Water 12, article 1010. DOI 10.3390/w12041010",
+    "url": "https://www.mdpi.com/2073-4441/12/4/1010",
+    "locator": "Sections 2.1–2.3, sampling and extraction methods. Results and discussion, comparison of extract measurements.",
+    "summary": "The researchers measured extracts from soils collected in three parts of Greece. They compared soil-water ratios and agitation procedures against conductivity from saturated paste extracts.",
+    "scope": "The comparison supports testing the extraction conditions for a local salinity study. Relationships derived for these soils can change with texture, salts and extract preparation.",
+    "instrument_ids": [],
+    "techniques": [
+      "conductivity"
+    ],
+    "topics": [
+      "soil conductivity",
+      "soil salinity",
+      "soil extract",
+      "saturated paste"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  }
+]

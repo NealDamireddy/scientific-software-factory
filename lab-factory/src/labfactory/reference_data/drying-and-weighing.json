@@ -1,0 +1,177 @@
+[
+  {
+    "id": "memmert-uf-single-display",
+    "kind": "manual",
+    "title": "Operating manual: UN | UF Universal oven U, SingleDISPLAY",
+    "publisher": "Memmert",
+    "year": 2025,
+    "version": "D53179, April 2025",
+    "url": "https://www.memmert.com/fileadmin/products/documents/user-manuals/Usingle/BA-UN-UF-EN-D53179.pdf",
+    "locator": "Sections 2.5.1–2.5.2, intended loads. Sections 6.3–6.5, loading and timed operation, pp. 25–29. Section 8.5.1, temperature calibration, p. 42.",
+    "summary": "The guide explains shelf loading, fan control on the UF series and temperature calibration. It identifies operating conditions that affect air circulation around a load.",
+    "scope": "The UF55 uses forced circulation. Sections 2.5.1–2.5.2 restrict loads to non-explosive, noncombustible materials. Check that the entire sample and its container are suitable before selecting an experiment.",
+    "instrument_ids": [
+      "memmert-uf55"
+    ],
+    "techniques": [
+      "oven-drying"
+    ],
+    "topics": [
+      "forced air oven",
+      "temperature calibration",
+      "drying"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "globe-soil-moisture-by-mass",
+    "kind": "procedure",
+    "title": "Gravimetric Soil Moisture Protocols",
+    "publisher": "The GLOBE Program",
+    "year": 2014,
+    "version": "GLOBE 2014, Soil (Pedosphere)",
+    "url": "https://www.globe.gov/documents/352961/353769/Soil%2BMoisture%2B-%2BGravimetric%2Bprotocol/cbca34da-fcc7-4e5b-a8d9-eae745c7c17d",
+    "locator": "Lab Guide, p. 9, steps 3–7, and Looking at the Data, calculation of gravimetric soil water content.",
+    "summary": "Weigh a soil sample in its container before drying and check the mass again after further drying. Subtracting the container mass permits the water loss to be expressed relative to dry soil mass.",
+    "scope": "Choose the protocol for the available drying conditions. Keep sampling position and depth comparable. For a UF55 use only confirmed noncombustible mineral material.",
+    "instrument_ids": [],
+    "techniques": [
+      "oven-drying",
+      "gravimetry"
+    ],
+    "topics": [
+      "soil moisture",
+      "soil water content",
+      "mineral soil",
+      "dry mass",
+      "constant mass"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "franzluebbers-soil-drying",
+    "kind": "paper",
+    "title": "Soil organic matter, texture, and drying temperature effects on water content",
+    "publisher": "Soil Science Society of America Journal",
+    "year": 2022,
+    "version": "A. J. Franzluebbers, 86, 1086–1095. DOI 10.1002/saj2.20425",
+    "url": "https://acsess.onlinelibrary.wiley.com/doi/10.1002/saj2.20425",
+    "locator": "Section 3.2, Drying conditions, and Figure 5.",
+    "summary": "The study compared soil masses after drying at 55 °C and 105 °C. The second drying removed a mean additional 0.011 kg of water per kg in the soils tested. The difference varied with soil properties.",
+    "scope": "Use this comparison to assess the endpoint chosen for a soil moisture experiment. A different soil composition can change the difference between endpoints.",
+    "instrument_ids": [],
+    "techniques": [
+      "oven-drying",
+      "gravimetry"
+    ],
+    "topics": [
+      "soil moisture",
+      "drying temperature",
+      "soil water",
+      "constant mass"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "usda-ars-flour-moisture",
+    "kind": "procedure",
+    "title": "Flour Tests: Flour Moisture",
+    "publisher": "USDA Agricultural Research Service, Soft Wheat Quality Laboratory",
+    "year": null,
+    "version": "Soft Wheat Quality Laboratory Materials and Methods, modified AACC 44-16",
+    "url": "https://www.ars.usda.gov/midwest-area/wooster-oh/corn-soybean-and-wheat-quality-research/docs/flour-tests/",
+    "locator": "Second Flour Moisture subsection, modified AACC 44-16, equipment list and steps 1–7.",
+    "summary": "This procedure measures the mass a flour sample loses in a convection oven. It specifies when to start timing after oven recovery, how to cool the covered dish, and how to subtract the dish mass.",
+    "scope": "This is the laboratory’s modified timed method for flour. Check oven performance, dish dimensions and balance capacity. Other moisture methods can use different temperatures and endpoints. Use an oven suitable for flour. The Memmert UF55 is restricted to noncombustible loads.",
+    "instrument_ids": [],
+    "techniques": [
+      "oven-drying",
+      "gravimetry"
+    ],
+    "topics": [
+      "flour moisture",
+      "wheat flour",
+      "loss on drying",
+      "food moisture"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source.",
+    "excluded_instrument_ids": [
+      "memmert-uf55"
+    ]
+  },
+  {
+    "id": "fisher-jones-flour-moisture",
+    "kind": "paper",
+    "title": "The determination of moisture in wheat and flour: A study of “moisture testing” in water ovens and electric ovens",
+    "publisher": "The Journal of Agricultural Science, Cambridge University Press",
+    "year": 1928,
+    "version": "E. A. Fisher and C. R. Jones, 18, 649–670. DOI 10.1017/S0021859600009230",
+    "url": "https://doi.org/10.1017/S0021859600009230",
+    "locator": "Authors’ extract, paragraphs 1–3, comparing ovens, time and temperature.",
+    "summary": "About 400 determinations on a wheat flour sample compared drying times and temperatures. The measurements show how changing either condition affects the apparent moisture reported by loss on drying.",
+    "scope": "This historical experiment explains method dependence. Its reported precision concerns the tested flour and ovens. Select a modern procedure and verify repeatability on the local setup.",
+    "instrument_ids": [],
+    "techniques": [
+      "oven-drying",
+      "gravimetry"
+    ],
+    "topics": [
+      "flour moisture",
+      "wheat flour",
+      "loss on drying",
+      "oven temperature"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source.",
+    "excluded_instrument_ids": [
+      "memmert-uf55"
+    ]
+  },
+  {
+    "id": "wsdot-t85-aggregate-absorption",
+    "kind": "procedure",
+    "title": "Specific Gravity and Absorption of Coarse Aggregate",
+    "publisher": "Washington State Department of Transportation",
+    "year": 2026,
+    "version": "Materials Manual M 46-01, January 2026. Field operating procedure for AASHTO T 85-25",
+    "url": "https://wsdot.wa.gov/publications/manuals/fulltext/M46-01/t85.pdf",
+    "locator": "Scope and Apparatus. Procedure and Calculations, including bulk specific gravity and percent absorption.",
+    "summary": "The field procedure relates the masses of oven-dry, saturated surface-dry and immersed coarse aggregate. It defines the surface-dry endpoint and gives equations for absorption and specific gravity.",
+    "scope": "For suitable noncombustible coarse mineral aggregate. Lightweight aggregate is outside the procedure. A sufficiently large balance, basket and water tank are needed alongside the oven. Check minimum sample mass and oven load limits.",
+    "instrument_ids": [],
+    "techniques": [
+      "oven-drying"
+    ],
+    "topics": [
+      "coarse aggregate",
+      "water absorption",
+      "specific gravity",
+      "granite",
+      "oven dry mass"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "nchrp-805-aggregate-precision",
+    "kind": "paper",
+    "title": "Improved Test Methods for Specific Gravity and Absorption of Coarse and Fine Aggregate",
+    "publisher": "Transportation Research Board, National Cooperative Highway Research Program",
+    "year": 2015,
+    "version": "NCHRP Report 805, supporting research data. DOI 10.17226/22147",
+    "url": "https://onlinepubs.trb.org/onlinepubs/nchrp/docs/NCHRP04-35_NR805_AppendicesC-J.pdf",
+    "locator": "Appendix I, Table I.2, coarse granite replicates from AAPRL using AASHTO T 85.",
+    "summary": "The primary research report tabulates replicate pan tare, dry, surface-dry and submerged measurements alongside computed specific gravities and absorption. The table provides data for checking a calculation on coarse granite.",
+    "scope": "These are trial results for specified aggregate and test conditions. Use them as a worked comparison. They do not supply a local acceptance limit or performance certification for the oven.",
+    "instrument_ids": [],
+    "techniques": [
+      "oven-drying"
+    ],
+    "topics": [
+      "coarse aggregate",
+      "water absorption",
+      "specific gravity",
+      "granite",
+      "replicate measurements"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  }
+]

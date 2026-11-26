@@ -20,6 +20,17 @@ INSTRUCTIONS = (
     "and resubmit. A person reviews and releases passing work."
 )
 
+B12_INSTRUCTIONS = (
+    "Write Python source for the single function analyze(readings, slope, intercept). "
+    "The three readings are already simulated absorbances at 550 nm. Compute their arithmetic mean, "
+    "subtract the calibration intercept, then divide by slope to obtain mg/L. Read the pinned calibration "
+    "document. Use the supplied slope and intercept. The host owns the range gate for each replicate. "
+    "The arithmetic runner supports local assignments, return, +, -, *, /, readings[0..2], "
+    "sum(readings) and len(readings). Submit an object with the single field source. Independent "
+    "reference tests run on the submitted source. Read any failure or previous rejection and revise. "
+    "A reviewer approves the numbered source before a result can be saved."
+)
+
 
 def _return_domain_errors(method):
     @wraps(method)
@@ -46,14 +57,49 @@ class AgentTools:
         with self._store.read_transaction():
             order = self._orders.get(work_order_id)
             lab, experiment = self._orders.pinned_context(work_order_id)
-            return {
+            context = {
                 "work_order": asdict(order),
                 "lab": to_dict(lab),
                 "experiment": to_dict(experiment),
                 "artifact_example": deepcopy(ARTIFACT_EXAMPLES[order.kind]),
-                "instructions": INSTRUCTIONS,
+                "instructions": B12_INSTRUCTIONS if order.kind == "analysis_app" else INSTRUCTIONS,
                 "previous_rejection": self._orders.latest_rejection(work_order_id),
             }
+            brief = self._store.reference_brief(work_order_id)
+            if brief is not None:
+                context["reference_brief"] = brief
+            from . import honey_service
+
+            from . import tabular_service
+
+            if tabular_service.is_order(order):
+                from .tabular_analysis import INSTRUCTIONS as profile_instructions
+
+                context["analysis"] = tabular_service.public_context(self._store, order)
+                context["artifact_example"] = {"source": "", "explanation": "", "tests": []}
+                context["instructions"] = profile_instructions + (
+                    " The public protocol and standards in analysis describe this experiment. "
+                    "If required information is missing, submit a single field needs_input with a concise "
+                    "question instead of fabricating an answer. The assigned control is held by the reviewer."
+                )
+                if context["previous_rejection"]:
+                    # Free-text reviewer feedback can mention the hidden target or reading.
+                    context["previous_rejection"]["reason"] = "The reviewer requested a revision."
+            elif honey_service.is_honey_order(order):
+                honey_service.require_context(lab, experiment, brief)
+                context["instructions"] = honey_service.INSTRUCTIONS
+                context["artifact_example"] = {"algorithm": [], "table": [], "citations": [], "tests": []}
+            elif brief is not None:
+                context["instructions"] += (
+                    " This is a reference-planning order. Use the selected sources and their stated "
+                    "limits to write a cited procedure for review. Identify method transfer and any "
+                    "details the lab must establish. No local instrument commands have been registered."
+                )
+                context["artifact_example"] = {"steps": [{
+                    "text": "Review the cited source and record which conditions apply to the sample.",
+                    "citations": [brief["findings"][0]["id"]],
+                }]}
+            return context
 
     @_return_domain_errors
     def claim_work_order(self, work_order_id: str, worker: str) -> dict:

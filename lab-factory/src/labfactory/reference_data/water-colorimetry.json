@@ -1,0 +1,17 @@
+[
+  {
+    "id": "epa-365-1-phosphorus",
+    "kind": "procedure",
+    "title": "Determination of Phosphorus by Semi-Automated Colorimetry",
+    "publisher": "U.S. Environmental Protection Agency",
+    "year": 1993,
+    "version": "Method 365.1, revision 2.0, August 1993",
+    "url": "https://www.epa.gov/sites/default/files/2015-08/documents/method_365-1_1993.pdf",
+    "locator": "Sections 1–3, scope and forms of phosphorus. Sections 9 and 11, quality control and procedure.",
+    "summary": "The color measurement responds to orthophosphate. The sample preparation determines which phosphorus fraction is measured. The agency describes the usable range, calibration checks and how to report the result.",
+    "scope": "The published method uses a semi-automated manifold and colorimeter for waters and wastes. A benchtop UV–Vis instrument alone does not establish that the lab can reproduce this setup.",
+    "instrument_ids": [], "techniques": ["uv-vis"],
+    "topics": ["colorimetry", "phosphorus", "phosphate", "orthophosphate", "drinking water", "wastewater", "quality control"],
+    "rights": "Federal agency link and original summary."
+  }
+]

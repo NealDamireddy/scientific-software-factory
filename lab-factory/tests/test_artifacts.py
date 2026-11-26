@@ -5,6 +5,7 @@ import pytest
 from labfactory.artifacts import (
     ARTIFACT_EXAMPLES,
     KINDS,
+    AnalysisApp,
     ArtifactError,
     Procedure,
     RunPlan,
@@ -15,8 +16,9 @@ from labfactory.artifacts import (
 )
 
 
-def test_parses_both_examples():
-    assert set(ARTIFACT_EXAMPLES) == set(KINDS) == {"procedure", "run_plan"}
+def test_parses_each_artifact_format():
+    assert set(ARTIFACT_EXAMPLES) == set(KINDS) == {"procedure", "run_plan", "analysis_app"}
+    assert isinstance(parse_artifact("analysis_app", ARTIFACT_EXAMPLES["analysis_app"]), AnalysisApp)
     assert isinstance(parse_artifact("procedure", ARTIFACT_EXAMPLES["procedure"]), Procedure)
     assert isinstance(parse_artifact("run_plan", ARTIFACT_EXAMPLES["run_plan"]), RunPlan)
 
@@ -25,6 +27,8 @@ def test_parses_both_examples():
     ("kind", "data"),
     [
         ("analysis_app", {}),
+        ("analysis_app", {"source": " ", "results": []}),
+        ("unknown", {}),
         ("procedure", {"steps": []}),
         ("run_plan", {"instrument_id": "uvvis-1"}),
         ("procedure", {"steps": [{"text": "Read.", "action": {"instrument_id": "uvvis-1", "settings": []}}]}),

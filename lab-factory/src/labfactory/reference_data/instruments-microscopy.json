@@ -1,0 +1,16 @@
+[
+  {
+    "id": "olympus-cx23",
+    "manufacturer": "Olympus",
+    "model": "CX23",
+    "technique": "microscopy",
+    "aliases": ["Olympus CX23", "Evident CX23", "CX23 binocular"]
+  },
+  {
+    "id": "zeiss-axioscope-5",
+    "manufacturer": "ZEISS",
+    "model": "Axioscope 5",
+    "technique": "microscopy",
+    "aliases": ["Carl Zeiss Axioscope 5", "Axioscope 5 TL"]
+  }
+]

@@ -6,8 +6,8 @@ from pathlib import Path
 import sqlite3
 import sys
 
-from .artifacts import KINDS, Procedure, parse_artifact, render_procedure, render_run_plan
-from .context import ContextError, experiment_from_dict, lab_from_dict
+from .artifacts import KINDS, render_artifact
+from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
 from .store import NotFound, Store
 from .workorders import WorkOrderError, WorkOrders
 
@@ -64,8 +64,7 @@ def _show(orders: WorkOrders, id: str) -> str:
         for result in submission.results:
             mark = "pass" if result.passed else "FAIL"
             lines.append(f"  {mark}  {result.name}: {_one_line(result.detail)}")
-        artifact = parse_artifact(order.kind, submission.artifact)
-        lines.append(render_procedure(artifact) if isinstance(artifact, Procedure) else render_run_plan(artifact))
+        lines.append(render_artifact(order.kind, submission.artifact, experiment_id=order.experiment_id))
 
     if order.status == "in_review":
         lines.append(f"awaiting review: submission {submissions[-1].number}")
@@ -83,18 +82,9 @@ def _show(orders: WorkOrders, id: str) -> str:
     return "\n".join(lines)
 
 
-def _unique_fields(pairs: list[tuple[str, object]]) -> dict:
-    fields = {}
-    for key, value in pairs:
-        if key in fields:
-            raise ContextError(f"duplicate JSON field {key!r}")
-        fields[key] = value
-    return fields
-
-
 def _operate(args, store: Store) -> None:
     if args.group in ("lab", "experiment"):
-        data = json.loads(args.file.read_text(encoding="utf-8"), object_pairs_hook=_unique_fields)
+        data = json.loads(args.file.read_text(encoding="utf-8"), object_pairs_hook=unique_fields)
         if args.group == "lab":
             record = lab_from_dict(data)
             revision = store.put_lab(record)

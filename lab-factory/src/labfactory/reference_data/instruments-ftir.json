@@ -1,0 +1,9 @@
+[
+  {
+    "id": "agilent-cary-630",
+    "manufacturer": "Agilent Technologies",
+    "model": "Cary 630 FTIR",
+    "technique": "ftir",
+    "aliases": ["Cary 630", "Agilent Cary 630 FTIR"]
+  }
+]

@@ -33,10 +33,12 @@ def assert_failure(results, name, detail):
     assert detail in result.detail
 
 
-def test_valid_examples_pass(context):
+def test_instrument_examples_pass_in_the_example_lab(context):
     assert not all_passed([])
-    for kind, payload in ARTIFACT_EXAMPLES.items():
-        assert all_passed(check_artifact(parse_artifact(kind, payload), *context))
+    for kind in ("procedure", "run_plan"):
+        assert all_passed(check_artifact(parse_artifact(kind, ARTIFACT_EXAMPLES[kind]), *context))
+    signature = parse_artifact("analysis_app", ARTIFACT_EXAMPLES["analysis_app"])
+    assert not all_passed(check_artifact(signature, *context))
 
 
 def test_limits_are_inclusive(context):
