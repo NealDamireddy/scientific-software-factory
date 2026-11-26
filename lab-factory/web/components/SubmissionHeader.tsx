@@ -13,13 +13,15 @@ export type SubmissionHeaderProps = {
   history: HistoryEvent[];
   /** Actions for the shown submission: the submission picker and compare (Task 13), sign-off (Task 15). */
   children?: ReactNode;
+  /** A quiet line under the actions, such as the note that an earlier submission is shown. */
+  note?: ReactNode;
 };
 
 /**
  * The tab's heading: the shown submission's check summary, then the order's status as people read it.
  * A failing summary is styled as a failure, but its words carry it on their own.
  */
-export function SubmissionHeader({ order, submission, history, children }: SubmissionHeaderProps) {
+export function SubmissionHeader({ order, submission, history, children, note }: SubmissionHeaderProps) {
   const failed = submission ? submissionFailed(submission) : false;
   return (
     <header className="sub-header">
@@ -35,6 +37,7 @@ export function SubmissionHeader({ order, submission, history, children }: Submi
       )}
       <p className="sub-status">{statusLine(order, history)}</p>
       {children !== undefined && children !== null && children !== false && <div className="sub-actions">{children}</div>}
+      {note}
     </header>
   );
 }

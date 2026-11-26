@@ -14,3 +14,18 @@ export async function startExperiment(page: Page, description: string): Promise<
   await page.getByRole("button", { name: "Start experiment" }).click();
   await expect(page).toHaveURL(/#\/projects\/[^/]+\/experiments\/[^/?]+/);
 }
+
+/**
+ * On the Coomassie workspace: attaches `reduction-protocol.txt`, sends `Here is the protocol`, and waits
+ * for the factory's reply, so the rewritten procedure (WO-2) is the newest one.
+ */
+export async function attachProtocol(page: Page): Promise<void> {
+  await page.getByLabel("Attach files").setInputFiles({
+    name: "reduction-protocol.txt", mimeType: "text/plain", buffer: Buffer.from("Add the reducing agent dropwise."),
+  });
+  await page.getByRole("textbox", { name: "Message the factory" }).fill("Here is the protocol");
+  await page.getByRole("button", { name: "Send" }).click();
+  const reply = "I added reduction-protocol.txt to this experiment and rewrote the procedure. Every check passes, and it’s waiting for sign-off.";
+  await expect(page.getByText(reply)).toHaveCount(1, { timeout: 20_000 });
+  await expect(page.getByText("The factory is working…")).toHaveCount(0);
+}

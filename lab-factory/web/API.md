@@ -177,9 +177,37 @@ separated by `\n`, written as the work happens.
     `OrderView<StepView>` and `OrderView<RunStepView>`. `submissions` is oldest
     first, `shown` is the latest submission's number, `steps` are the views of
     that submission, and `history` is the order's events oldest first.
+  - `earlier` (optional) lists the experiment's older work orders of the same
+    kind, newest first, each with its `submissions` (oldest first) and
+    `history`. The submission picker lists these after the newest order's
+    submissions, and the UI loads an earlier submission's steps with "Get one
+    submission's view". A service that leaves it out shows only the newest
+    order's submissions.
   - `analysis_app` and `simulation` are present only when the experiment has
     them.
 - Errors: `404` for an unknown experiment.
+
+```json
+{
+  "experiment": { "id": "coomassie-run-1", "...": "..." },
+  "project": { "id": "coomassie-reduction", "...": "..." },
+  "messages": [],
+  "procedure": {
+    "order": { "id": "WO-2", "kind": "procedure", "status": "in_review", "...": "..." },
+    "submissions": [{ "work_order_id": "WO-2", "number": 1, "...": "..." }],
+    "shown": 1,
+    "steps": [],
+    "history": [],
+    "earlier": [
+      {
+        "order": { "id": "WO-1", "kind": "procedure", "status": "in_progress", "...": "..." },
+        "submissions": [{ "work_order_id": "WO-1", "number": 1, "...": "..." }],
+        "history": []
+      }
+    ]
+  }
+}
+```
 
 ### Get one submission's view
 

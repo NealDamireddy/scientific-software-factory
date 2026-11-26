@@ -44,7 +44,9 @@ export type RunStepView = { number: number; instrument_id: string; command: stri
 export type HistoryEvent = { event: "created" | "claimed" | "submitted" | "approved" | "rejected";
                              actor: string; submission: number | null; note: string; at: string };
 export type OrderView<S> = { order: WorkOrder; submissions: Submission[]; shown: number; steps: S[];
-                             history: HistoryEvent[] };
+                             history: HistoryEvent[];
+                             /** Older orders of the same kind for the experiment, newest first. */
+                             earlier?: { order: WorkOrder; submissions: Submission[]; history: HistoryEvent[] }[] };
 
 export type ReferenceCase = { name: string; input: SyntheticParams; expect: { decay: boolean; rate_constant_per_s?: number };
                               rel_tol: number };

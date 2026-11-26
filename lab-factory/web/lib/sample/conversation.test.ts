@@ -276,8 +276,12 @@ test("attaching a protocol to Coomassie makes revision 2 and a passing WO-2", as
   assert.deepEqual(changes.filter((x) => x.change !== "same"), [{ change: "changed", before: 3, after: 3, fields: ["citations"] }]);
   assert.equal(changes.filter((x) => x.change === "same").length, 4);
 
-  // WO-1 is untouched.
+  // WO-1 is untouched, and the workspace lists it as the earlier procedure.
   assert.deepEqual(await c.getSubmissionView("WO-1", 1), wo1Before);
+  const earlier = w.procedure!.earlier!;
+  assert.deepEqual(earlier.map((e) => [e.order.id, e.order.status, e.submissions.length]), [["WO-1", "in_progress", 1]]);
+  assert.deepEqual(earlier[0].submissions[0], wo1Before.submission);
+  assert.deepEqual(earlier[0].history.map((h) => h.event), ["created", "claimed", "submitted"]);
   assert.equal(w.procedure!.order.id === "WO-1", false);
   assert.deepEqual((await c.needsAttention(LAB, "approver")).map((a) => [a.work_order_id, a.title]), [
     ["WO-B12", "Vitamin B12 absorbance"], ["WO-2", "Reducing Coomassie blue"],
