@@ -86,6 +86,50 @@ _SCHEMA = {
         FOREIGN KEY (work_order_id, submission) REFERENCES submissions(work_order_id, number)
     )
     """,
+    "tabular_files": """
+    CREATE TABLE IF NOT EXISTS tabular_files (digest TEXT PRIMARY KEY, local_text TEXT)
+    """,
+    "tabular_intakes": """
+    CREATE TABLE IF NOT EXISTS tabular_intakes (
+        work_order_id TEXT PRIMARY KEY REFERENCES work_orders(id),
+        profile TEXT NOT NULL, batch TEXT NOT NULL
+    )
+    """,
+    "tabular_requests": """
+    CREATE TABLE IF NOT EXISTS tabular_requests (
+        actor TEXT NOT NULL, request_id TEXT NOT NULL, digest TEXT NOT NULL,
+        work_order_id TEXT NOT NULL REFERENCES work_orders(id), PRIMARY KEY (actor, request_id)
+    )
+    """,
+    "tabular_batch_controls": """
+    CREATE TABLE IF NOT EXISTS tabular_batch_controls (
+        work_order_id TEXT NOT NULL REFERENCES work_orders(id), csv_digest TEXT NOT NULL,
+        control_digest TEXT NOT NULL, PRIMARY KEY (work_order_id, csv_digest)
+    )
+    """,
+    "tabular_controls": """
+    CREATE TABLE IF NOT EXISTS tabular_controls (
+        work_order_id TEXT NOT NULL REFERENCES work_orders(id), edition INTEGER NOT NULL,
+        value TEXT NOT NULL, actor TEXT NOT NULL, PRIMARY KEY (work_order_id, edition)
+    )
+    """,
+    "tabular_reports": """
+    CREATE TABLE IF NOT EXISTS tabular_reports (
+        work_order_id TEXT NOT NULL, submission INTEGER NOT NULL, edition INTEGER NOT NULL,
+        report TEXT NOT NULL, PRIMARY KEY (work_order_id, submission), UNIQUE(work_order_id, edition),
+        FOREIGN KEY (work_order_id, submission) REFERENCES submissions(work_order_id, number),
+        FOREIGN KEY (work_order_id, edition) REFERENCES tabular_controls(work_order_id, edition)
+    )
+    """,
+    "tabular_runs": """
+    CREATE TABLE IF NOT EXISTS tabular_runs (
+        id INTEGER PRIMARY KEY, work_order_id TEXT NOT NULL, submission INTEGER NOT NULL,
+        batch_digest TEXT NOT NULL, actor TEXT NOT NULL, receipt TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(work_order_id, submission, batch_digest, actor),
+        FOREIGN KEY (work_order_id, submission) REFERENCES submissions(work_order_id, number)
+    )
+    """,
     "honey_runs": """
     CREATE TABLE IF NOT EXISTS honey_runs (
         id INTEGER PRIMARY KEY, work_order_id TEXT NOT NULL, submission INTEGER NOT NULL,

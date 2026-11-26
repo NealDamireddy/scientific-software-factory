@@ -70,7 +70,22 @@ class AgentTools:
                 context["reference_brief"] = brief
             from . import honey_service
 
-            if honey_service.is_honey_order(order):
+            from . import tabular_service
+
+            if tabular_service.is_order(order):
+                from .tabular_analysis import INSTRUCTIONS as profile_instructions
+
+                context["analysis"] = tabular_service.public_context(self._store, order)
+                context["artifact_example"] = {"source": "", "explanation": "", "tests": []}
+                context["instructions"] = profile_instructions + (
+                    " The public protocol and standards in analysis describe this experiment. "
+                    "If required information is missing, submit a single field needs_input with a concise "
+                    "question instead of fabricating an answer. The assigned control is held by the reviewer."
+                )
+                if context["previous_rejection"]:
+                    # Free-text reviewer feedback can mention the hidden target or reading.
+                    context["previous_rejection"]["reason"] = "The reviewer requested a revision."
+            elif honey_service.is_honey_order(order):
                 honey_service.require_context(lab, experiment, brief)
                 context["instructions"] = honey_service.INSTRUCTIONS
                 context["artifact_example"] = {"algorithm": [], "table": [], "citations": [], "tests": []}

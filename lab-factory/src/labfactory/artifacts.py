@@ -220,7 +220,9 @@ def render_artifact(kind: str, data: dict, *, experiment_id: str | None = None) 
     if kind == "analysis_app":
         from .honey_service import EXPERIMENT_ID
 
-        if experiment_id == EXPERIMENT_ID:
+        from .tabular_service import PREFIX
+
+        if experiment_id == EXPERIMENT_ID or (experiment_id or "").startswith(PREFIX):
             # Failed submissions also need an exact, printable representation for review.
             return json.dumps(data, ensure_ascii=True, indent=2)
     artifact = parse_artifact(kind, data)

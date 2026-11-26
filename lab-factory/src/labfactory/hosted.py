@@ -4,16 +4,17 @@ from dataclasses import asdict
 import json
 import os
 from pathlib import Path
+from urllib.parse import quote
 
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
-from starlette.responses import JSONResponse, StreamingResponse
+from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from . import b12_service, honey_service, reference_orders, references
+from . import b12_service, honey_service, reference_orders, references, tabular_service
 from .artifacts import render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
 from .hosted_auth import Access, SESSION_COOKIE, SESSION_SECONDS
@@ -130,6 +131,12 @@ def _details(store, id, submission=None, before_event=None):
     with store.read_transaction():
         order = orders.get(id)
         brief = store.reference_brief(id)
+        reports = {}
+        if tabular_service.is_order(order) and before_event is None:
+            page["analysis"] = tabular_service.reviewer_context(store, order)
+            page["runs"] = tabular_service.list_runs(store.connection, id)
+            reports = {r["submission"]: json.loads(r["report"]) for r in store.connection.execute(
+                "SELECT submission,report FROM tabular_reports WHERE work_order_id=?", (id,))}
         if honey_service.is_honey_order(order) and before_event is None and submission in (None, "latest"):
             page["runs"] = honey_service.list_runs(store.connection, id)
         if before_event is not None:
@@ -146,7 +153,10 @@ def _details(store, id, submission=None, before_event=None):
     values = []
     for sub in submissions:
         rendered = render_artifact(order.kind, sub.artifact, experiment_id=order.experiment_id)
-        values.append({**asdict(sub), "rendered": rendered})
+        value = {**asdict(sub), "rendered": rendered}
+        if tabular_service.is_order(order):
+            value["control"] = reports.get(sub.number)
+        values.append(value)
     if brief is not None:
         page["reference_brief"] = brief
     return {"order": asdict(order), "submissions": values, "history": history, **page}
@@ -232,6 +242,53 @@ async def example(request):
 async def b12_catalog(request):
     _reviewer(request)
     return _response(await run_in_threadpool(run_store, b12_service.catalog))
+
+
+async def analysis_catalog(request):
+    _reviewer(request)
+    return _response(await run_in_threadpool(run_store, tabular_service.catalog))
+
+
+async def analysis_create(request):
+    person = _reviewer(request)
+    data = await _json_body(request)
+    result = await run_in_threadpool(run_store, lambda s: tabular_service.create_order(s, person, data), write=True)
+    return _response(result, 201)
+
+
+async def analysis_order(request):
+    _reviewer(request)
+    id = request.path_params["id"]
+
+    def detail(store):
+        if not tabular_service.is_order(WorkOrders(store).get(id)):
+            raise NotFound("No general analysis order with that ID")
+        return _details(store, id)
+
+    return _response(await run_in_threadpool(run_store, detail))
+
+
+async def analysis_upload(request):
+    _reviewer(request)
+    params = request.path_params
+    if "run_id" in params:
+        run_id = _positive_integer(params["run_id"])
+        name, content = await run_in_threadpool(run_store, lambda s: tabular_service.run_original(s, params["id"], run_id))
+    else:
+        name, content = await run_in_threadpool(run_store, lambda s: tabular_service.original(s, params["id"], params["kind"]))
+    return Response(content.encode("utf-8"), media_type="application/octet-stream", headers={
+        "Cache-Control": "private, no-store",
+        "Content-Disposition": "attachment; filename*=UTF-8''" + quote(name, safe=""),
+    })
+
+
+async def analysis_action(request):
+    person = _reviewer(request)
+    data = await _json_body(request)
+    id = request.path_params["id"]
+    operation = tabular_service.run if request.url.path.endswith("/runs") else tabular_service.replace_control
+    result = await run_in_threadpool(run_store, lambda s: operation(s, id, person, data), write=True)
+    return _response(result, 201)
 
 
 async def honey_catalog(request):
@@ -386,6 +443,12 @@ portal = Starlette(routes=[
     Route("/api/context/{kind}", context_put, methods=["POST"]), Route("/api/example", example, methods=["POST"]),
     Route("/api/references", reference_catalog), Route("/api/references/search", reference_search),
     Route("/api/references/orders", reference_order, methods=["POST"]),
+    Route("/api/analysis", analysis_catalog), Route("/api/analysis/orders", analysis_create, methods=["POST"]),
+    Route("/api/analysis/orders/{id}", analysis_order),
+    Route("/api/analysis/orders/{id}/uploads/{kind}", analysis_upload),
+    Route("/api/analysis/orders/{id}/runs/{run_id}/readings", analysis_upload),
+    Route("/api/analysis/orders/{id}/runs", analysis_action, methods=["POST"]),
+    Route("/api/analysis/orders/{id}/control", analysis_action, methods=["POST"]),
     Route("/api/honey", honey_catalog), Route("/api/honey/orders", honey_create, methods=["POST"]),
     Route("/api/honey/orders/{id}", honey_order),
     Route("/api/honey/orders/{id}/run", honey_run, methods=["POST"]),
