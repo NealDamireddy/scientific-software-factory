@@ -47,7 +47,9 @@ export function LabMenu() {
 
   useEffect(() => {
     if (!open) return;
-    popover.current?.querySelector<HTMLElement>("input:checked, input, a, button")?.focus();
+    // Focus the checked choice of the first group.
+    const first = popover.current?.querySelector(".menu-group");
+    (first?.querySelector<HTMLElement>("input:checked") ?? first?.querySelector<HTMLElement>("input"))?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();

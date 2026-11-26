@@ -9,14 +9,17 @@ import { useClient, useRoute } from "./ClientContext.tsx";
 import { CommandPalette } from "./CommandPalette.tsx";
 import { NotFound } from "./NotFound.tsx";
 import { Sidebar } from "./Sidebar.tsx";
-// One import per view: a task that builds a view changes only its own line.
+// One import per view, grouped by the task that builds it: a task changes only its own lines.
+// Task 9 views
 import { LabHome } from "./placeholders.tsx";
 import { ProjectPage } from "./placeholders.tsx";
 import { LabPage } from "./placeholders.tsx";
 import { SettingsPage } from "./placeholders.tsx";
+// Task 10 views
 import { SkillsPage } from "./placeholders.tsx";
 import { ConnectorsPage } from "./placeholders.tsx";
 import { AgentsPage } from "./placeholders.tsx";
+// Task 11 views
 import { Workspace } from "./placeholders.tsx";
 
 /** Each route maps to exactly one view. */
@@ -73,6 +76,7 @@ function KnownIds({ projectId, experimentId, children }: { projectId: string; ex
 }
 
 export function Shell() {
+  const { mode } = useClient();
   const [route] = useRoute();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const openPalette = useCallback(() => setPaletteOpen(true), []);
@@ -85,9 +89,13 @@ export function Shell() {
   }
 
   return (
-    <div className="shell">
-      <Sidebar onSearch={openPalette} />
-      <main className="content">{view}</main>
+    <div className={mode === "sample" ? "shell shell-sample" : "shell"}>
+      {/* While the palette is open, everything behind it is inert. */}
+      <Sidebar onSearch={openPalette} inert={paletteOpen} />
+      <main className="content" inert={paletteOpen}>{view}</main>
+
+      {/* Task 9: document drawer */}
+
       <CommandPalette open={paletteOpen} onOpen={openPalette} onClose={closePalette} />
     </div>
   );

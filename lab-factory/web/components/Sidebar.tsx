@@ -32,7 +32,7 @@ function projectIdOf(route: Route): string | null {
   return route.view === "project" || route.view === "experiment" ? route.projectId : null;
 }
 
-export function Sidebar({ onSearch }: { onSearch: () => void }) {
+export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boolean }) {
   const { client, labId, version } = useClient();
   const [route] = useRoute();
   const [projects, setProjects] = useState<ProjectRow[] | null>(null);
@@ -58,9 +58,19 @@ export function Sidebar({ onSearch }: { onSearch: () => void }) {
     return () => { live = false; };
   }, [client, labId, version]);
 
-  // The project in the route is always shown open.
+  // The project in the route is shown open. When the route moves to a project or one of its
+  // experiments, a manual collapse of that project is forgotten, so the current link is never hidden.
   const currentProject = projectIdOf(route);
   const currentExperiment = route.view === "experiment" ? route.experimentId : null;
+  const routeKey = `${currentProject ?? ""}\n${currentExperiment ?? ""}`;
+  const [seenRouteKey, setSeenRouteKey] = useState(routeKey);
+  if (seenRouteKey !== routeKey) {
+    setSeenRouteKey(routeKey);
+    if (currentProject !== null && expanded[currentProject] === false) {
+      const { [currentProject]: _collapsed, ...rest } = expanded;
+      setExpanded(rest);
+    }
+  }
   const isOpen = (id: string) => expanded[id] ?? id === currentProject;
   const newExperimentHref = routeHref(currentProject ? { view: "project", projectId: currentProject } : { view: "home" });
   const bottomLinks: [string, Route][] = [
@@ -72,13 +82,20 @@ export function Sidebar({ onSearch }: { onSearch: () => void }) {
   ];
 
   return (
-    <nav className="sidebar" aria-label="Lab">
+    <nav className="sidebar" aria-label="Lab" inert={inert}>
       <LabMenu />
       <div className="sidebar-actions">
-        <button type="button" className="sidebar-item" onClick={onSearch}>
+        <button
+          type="button"
+          className="sidebar-item"
+          data-palette-trigger=""
+          aria-haspopup="dialog"
+          aria-keyshortcuts="Control+K Meta+K"
+          onClick={onSearch}
+        >
           <Search size={16} aria-hidden="true" />
           <span className="sidebar-item-label">Search</span>
-          <kbd className="shortcut">Ctrl K</kbd>
+          <kbd className="shortcut" aria-hidden="true">Ctrl K</kbd>
         </button>
         <a className="sidebar-item" href={newExperimentHref}>
           <Plus size={16} aria-hidden="true" />
