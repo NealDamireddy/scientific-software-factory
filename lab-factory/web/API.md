@@ -365,7 +365,8 @@ The client maps `Pin["kind"]` to the path: `lab` to `labs`, `project` to
 ```
 
 - Response `201` for create (or `200`) and `200` for edit: `Skill`.
-- Create: the id is a slug of the title, de-duplicated with `-2`, `-3`. The
+- Create: the id is a slug of the title, de-duplicated with `-2`, `-3`. The id `new` is
+  reserved (it is the new-skill route) and the server must never issue it. The
   skill starts enabled at revision 1 with the note `Created`.
 - Edit: appends a revision with the note `Edited`, unless title, description
   and body are all unchanged, in which case the skill is returned as is.

@@ -11,6 +11,9 @@ import { addDocumentTo, copy, findExperiment, findProject, getLabOf, revisionKey
 import type { SampleContext } from "./records.ts";
 import type { SampleState } from "./seed.ts";
 
+/** `#/skills?skill=new` is the new-skill editor, so no skill may take this id. */
+const RESERVED_SKILL_ID = "new";
+
 export type SkillInput = { id?: string; title: string; description: string; body: string };
 
 // ---------------------------------------------------------------- skills
@@ -62,7 +65,7 @@ export async function saveSkill(ctx: SampleContext, labId: string, input: SkillI
 
     if (input.id === undefined) {
       const skill: Skill = {
-        id: uniqueSlug(title, state.skills.map((s) => s.id), "skill"), title, description, body, enabled: true, revision: 1,
+        id: uniqueSlug(title, [...state.skills.map((s) => s.id), RESERVED_SKILL_ID], "skill"), title, description, body, enabled: true, revision: 1,
       };
       const digest = await skillDigest(skill);
       // Another save may have taken the id while hashing: start again.

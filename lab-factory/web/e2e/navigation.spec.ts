@@ -206,7 +206,7 @@ test.describe("with many results", () => {
     await page.goto("/");
     await page.keyboard.press("Control+k");
     await page.getByRole("combobox", { name: "Search the lab" }).fill("e");
-    const options = page.getByRole("option");
+    const options = page.getByRole("dialog").getByRole("option");
     await expect(options.first()).toBeVisible();
     const last = options.last();
     await expect(last).not.toBeInViewport();
