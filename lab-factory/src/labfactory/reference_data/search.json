@@ -64,6 +64,35 @@
       "vitamin b6",
       "vitamin b-6",
       "vitamin b 6"
+    ],
+    "microscopy": [
+      "optical microscopy",
+      "light microscopy"
+    ],
+    "refractometry": [
+      "refractometers",
+      "refractometer"
+    ],
+    "turbidity": [
+      "nephelometry",
+      "turbidimetry"
+    ],
+    "gc": [
+      "gas chromatography",
+      "gas chromatograph",
+      "gas chromatographs"
+    ],
+    "stomatal": [
+      "stomata"
+    ],
+    "sweeteners": [
+      "sweetener"
+    ],
+    "pipetting": [
+      "pipette",
+      "pipettes",
+      "micropipette",
+      "micropipettes"
     ]
   },
   "technique_names": {
@@ -72,7 +101,13 @@
     "ph": "pH measurement",
     "conductivity": "Conductivity",
     "ftir": "FTIR spectroscopy",
-    "hplc": "High-performance liquid chromatography"
+    "hplc": "High-performance liquid chromatography",
+    "microscopy": "Optical microscopy",
+    "turbidity": "Turbidity (nephelometry)",
+    "refractometry": "Refractometry",
+    "oven-drying": "Drying oven",
+    "gc": "Gas chromatography",
+    "pipetting": "Adjustable pipettes"
   },
   "examples": [
     {
@@ -150,5 +185,409 @@
     "readings",
     "reading",
     "spectroscopy"
+  ],
+  "experiments": [
+    {
+      "label": "Caffeine in coffee",
+      "q": "Measure caffeine in coffee",
+      "techniques": [
+        "hplc"
+      ],
+      "instrument": "agilent-1260-infinity-binary-lc",
+      "procedure": [
+        "agilent-caffeine-in-coffee-din-20481"
+      ],
+      "paper": [
+        "albaqami-2023-coffee-caffeine",
+        "rudolph-2012-caffeine-foods"
+      ],
+      "requirements": "Check the installed column and UV detector. Distinguish extract concentration from caffeine per mass of coffee."
+    },
+    {
+      "label": "Sweeteners in diet drinks",
+      "q": "Measure sweeteners in diet drinks",
+      "techniques": [
+        "hplc"
+      ],
+      "instrument": "agilent-1260-infinity-binary-lc",
+      "procedure": [
+        "jaoac-1988-diet-food-sweeteners"
+      ],
+      "paper": [
+        "szekelyhidi-beverage-sweeteners"
+      ],
+      "requirements": "Choose the target sweeteners before comparing separations. Confirm the detector can measure each compound and check recovery in the beverage."
+    },
+    {
+      "label": "Identify microplastic polymers",
+      "q": "Identify a polymer using infrared spectra",
+      "techniques": [
+        "ftir"
+      ],
+      "instrument": "agilent-cary-630",
+      "procedure": [
+        "california-swb-mp1"
+      ],
+      "paper": [
+        "primpke-2018-ftir-polymers"
+      ],
+      "requirements": "The drinking-water procedure needs microscopy and optics appropriate to particle size. Bench ATR can support bulk reference spectra; confirm the installed accessory before planning particle imaging."
+    },
+    {
+      "label": "Screen flour identity by infrared spectra",
+      "q": "Screen wheat flour identity by infrared spectra",
+      "techniques": [
+        "ftir"
+      ],
+      "instrument": "agilent-cary-630",
+      "procedure": [
+        "agilent-ftir-flour-identity"
+      ],
+      "paper": [
+        "cereal-science-atr-durum-flour"
+      ],
+      "requirements": "Requires diamond ATR for the cited Cary workflow. Use representative flours and independent test mixtures to check the spectral classification."
+    },
+    {
+      "label": "Cyanocobalamin identity",
+      "q": "Check cyanocobalamin identity in solution",
+      "techniques": [
+        "uv-vis"
+      ],
+      "instrument": "mettler-toledo-uv7",
+      "procedure": [
+        "mettler-m9305-cyanocobalamin"
+      ],
+      "paper": [
+        "wang-2023-cobalamin-standards",
+        "laganovska-2020-b12"
+      ],
+      "requirements": "Use a suitable quartz cell and reference standard. Identity, calibration of pure standards and analysis of a food extract answer different questions."
+    },
+    {
+      "label": "Orthophosphate colorimetry",
+      "q": "Measure orthophosphate in water",
+      "techniques": [
+        "uv-vis"
+      ],
+      "instrument": "agilent-cary-60",
+      "procedure": [
+        "epa-365-3-phosphate"
+      ],
+      "paper": [
+        "murphy-riley-soluble-phosphate"
+      ],
+      "requirements": "Match the calibration range and optical path to the method. Confirm a suitable cuvette and check for matrix effects before measuring unknowns."
+    },
+    {
+      "label": "Water pH",
+      "q": "Measure the pH of water",
+      "techniques": [
+        "ph"
+      ],
+      "instrument": "thermo-orion-star-a211",
+      "procedure": [
+        "usgs-nfm-ph"
+      ],
+      "paper": [
+        "koch-1986-rainwater-ph"
+      ],
+      "requirements": "Select an appropriate pH electrode, buffers and temperature measurement. Low-ionic-strength water needs particular attention to electrode response."
+    },
+    {
+      "label": "Soil pH by water extraction",
+      "q": "Measure soil pH in a water extract",
+      "techniques": [
+        "ph"
+      ],
+      "instrument": "thermo-orion-star-a211",
+      "procedure": [
+        "epa-9045d-soil-ph"
+      ],
+      "paper": [
+        "miller-kissel-soil-ph"
+      ],
+      "requirements": "Record the soil-to-water ratio, electrode, calibration and temperature. Soil pH values depend on the extraction method."
+    },
+    {
+      "label": "Water conductivity",
+      "q": "Check water conductivity against a standard",
+      "techniques": [
+        "conductivity"
+      ],
+      "instrument": "thermo-orion-star-a212",
+      "procedure": [
+        "usgs-nfm-specific-conductance"
+      ],
+      "paper": [
+        "mccleskey-2012-natural-water-conductivity"
+      ],
+      "requirements": "Use the correct conductivity cell, calibration standard and temperature basis. Predicting conductance independently also requires the dissolved-ion composition."
+    },
+    {
+      "label": "Soil salinity by conductivity",
+      "q": "Measure soil salinity by conductivity",
+      "techniques": [
+        "conductivity"
+      ],
+      "instrument": "thermo-orion-star-a212",
+      "procedure": [
+        "fao-glosolan-soil-ec"
+      ],
+      "paper": [
+        "soil-ec-extract-comparison"
+      ],
+      "requirements": "Use the specified extract ratio and report the temperature basis. Comparing this with a saturated-paste value requires evidence for the soils being tested."
+    },
+    {
+      "label": "Suspended solids by mass",
+      "q": "Determine suspended solids in water by gravimetry",
+      "techniques": [
+        "gravimetry"
+      ],
+      "instrument": "mettler-toledo-me204",
+      "procedure": [
+        "epa-160-2-suspended-solids"
+      ],
+      "paper": [
+        "gray-2000-suspended-sediment"
+      ],
+      "requirements": "Requires suitable filter media and drying equipment as well as a balance. Select a representative subsample and check the expected mass gain against the balance resolution."
+    },
+    {
+      "label": "Mineral soil moisture by mass",
+      "q": "Measure moisture in mineral soil",
+      "techniques": [
+        "gravimetry",
+        "oven-drying"
+      ],
+      "instrument": "memmert-uf55",
+      "procedure": [
+        "globe-soil-moisture-by-mass"
+      ],
+      "paper": [
+        "franzluebbers-soil-drying"
+      ],
+      "requirements": "Requires both an oven and a balance sized for the container. For the UF55, confirm the mineral load is noncombustible and within its intended use. Report the dry-mass basis."
+    },
+    {
+      "label": "Flour moisture by loss on drying",
+      "q": "Determine flour moisture by mass",
+      "techniques": [
+        "gravimetry"
+      ],
+      "instrument": "mettler-toledo-me204",
+      "procedure": [
+        "usda-ars-flour-moisture"
+      ],
+      "paper": [
+        "fisher-jones-flour-moisture"
+      ],
+      "requirements": "Use a balance that can take the loaded dish and a separate oven suitable for flour. The UF55 is restricted to noncombustible loads."
+    },
+    {
+      "label": "Coarse aggregate water absorption",
+      "q": "Measure coarse aggregate water absorption",
+      "techniques": [
+        "oven-drying"
+      ],
+      "instrument": "memmert-uf55",
+      "procedure": [
+        "wsdot-t85-aggregate-absorption"
+      ],
+      "paper": [
+        "nchrp-805-aggregate-precision"
+      ],
+      "requirements": "Use noncombustible coarse mineral aggregate within the oven load limit. You also need a balance sized for the bulk specimen, a basket and an immersion tank."
+    },
+    {
+      "label": "Honey moisture by refractive index",
+      "q": "Measure honey moisture",
+      "techniques": [
+        "refractometry"
+      ],
+      "instrument": "hanna-hi96800",
+      "procedure": [
+        "ihc-2009-honey-moisture",
+        "hanna-honey-refractive-index"
+      ],
+      "paper": [
+        "barbour-2026-honey-moisture"
+      ],
+      "requirements": "Use the refractive index and honey-specific conversion at the appropriate temperature. A sucrose Brix reading alone is insufficient."
+    },
+    {
+      "label": "Cactus pear juice soluble solids",
+      "q": "Measure cactus pear soluble solids",
+      "techniques": [
+        "refractometry"
+      ],
+      "instrument": "hanna-hi96800",
+      "procedure": [
+        "oecd-fruit-soluble-solids"
+      ],
+      "paper": [
+        "tunc-2025-cactus-pear-soluble-solids"
+      ],
+      "requirements": "Use representative clarified juice, verify the zero and record the Brix scale. Other dissolved substances contribute to the reading."
+    },
+    {
+      "label": "Grape juice ripeness by Brix",
+      "q": "Measure grape juice Brix",
+      "techniques": [
+        "refractometry"
+      ],
+      "instrument": "hanna-hi96800",
+      "procedure": [
+        "awri-2022-grape-juice-brix"
+      ],
+      "paper": [
+        "schorn-garcia-2023-grape-ripening"
+      ],
+      "requirements": "Document berry sampling, juice extraction, scale and temperature. Within-bunch variation can exceed instrument repeatability."
+    },
+    {
+      "label": "Honey pollen microscopy",
+      "q": "Identify pollen in honey",
+      "techniques": [
+        "microscopy"
+      ],
+      "instrument": "zeiss-axioscope-5",
+      "procedure": [
+        "ihc-harmonized-honey-pollen"
+      ],
+      "paper": [
+        "ndlovu-2023-seasonal-honey-pollen",
+        "pospiech-2021-pollen-imaging"
+      ],
+      "requirements": "Check transmitted-light optics, slide preparation and the pollen reference collection. Automated classifications also require a suitable imaging system."
+    },
+    {
+      "label": "Leaf stomatal density",
+      "q": "Measure leaf stomatal density",
+      "techniques": [
+        "microscopy"
+      ],
+      "instrument": "olympus-cx23",
+      "procedure": [
+        "rothamsted-leaf-stomatal-density"
+      ],
+      "paper": [
+        "asafa-2024-watermelon-stomata",
+        "saha-2025-cereal-stomata"
+      ],
+      "requirements": "Calibrate the viewed field area and record the leaf side, preparation and sampling scheme. Comparing counts requires a common area basis."
+    },
+    {
+      "label": "Jar-test coagulation by turbidity",
+      "q": "Compare coagulation in jar tests",
+      "techniques": [
+        "turbidity"
+      ],
+      "instrument": "hach-2100q",
+      "procedure": [
+        "schott-2020-jar-testing"
+      ],
+      "paper": [
+        "sustainability-2023-kaolin-jar-tests",
+        "serajuddin-2020-coagulation-jar-tests"
+      ],
+      "requirements": "Requires a jar-test setup and consistent settling and sampling. Record the meter’s light source and reporting unit when comparing studies."
+    },
+    {
+      "label": "Suspended sediment from turbidity",
+      "q": "Estimate suspended sediment concentration",
+      "techniques": [
+        "turbidity"
+      ],
+      "instrument": "hach-2100qis",
+      "procedure": [
+        "usgs-tm3c4-suspended-sediment"
+      ],
+      "paper": [
+        "kim-2025-sediment-fractions",
+        "merten-2014-sediment-optics"
+      ],
+      "requirements": "Collect paired local turbidity and reference sediment measurements across the range. A published slope or a continuous-sensor calibration requires local verification on a portable meter."
+    },
+    {
+      "label": "Kombucha ethanol by headspace GC",
+      "q": "Measure ethanol in kombucha",
+      "techniques": [
+        "gc"
+      ],
+      "instrument": "agilent-7890b",
+      "procedure": [
+        "aoac-2016-12-kombucha-ethanol"
+      ],
+      "paper": [
+        "talebi-2017-commercial-kombucha-ethanol"
+      ],
+      "requirements": "Check headspace sampling and the selected detector, column and alcohol standards. This experiment measures a beverage sample."
+    },
+    {
+      "label": "Fatty acid profiles of vegetable oils",
+      "q": "Compare fatty acids in vegetable oils",
+      "techniques": [
+        "gc"
+      ],
+      "instrument": "agilent-7890b",
+      "procedure": [
+        "ioc-33-fatty-acid-methyl-esters",
+        "agilent-37-fame-column-comparison"
+      ],
+      "paper": [
+        "kampa-2022-vegetable-oil-profile"
+      ],
+      "requirements": "Requires suitable FAME preparation, a capillary column, a flame ionization detector and reference standards. Confirm resolution of the target isomers."
+    },
+    {
+      "label": "Aroma volatiles in olive oil",
+      "q": "Measure aroma volatiles in virgin olive oil",
+      "techniques": [
+        "gc"
+      ],
+      "instrument": "agilent-7890b",
+      "procedure": [
+        "ioc-37-olive-oil-volatiles"
+      ],
+      "paper": [
+        "molecules-2019-olive-oil-aroma"
+      ],
+      "requirements": "Confirm headspace SPME equipment, fiber, column and detector. Analyte identification and detector response depend on the chosen configuration."
+    },
+    {
+      "label": "Pipette delivery by weighing water",
+      "q": "Check gravimetric pipette delivery",
+      "techniques": [
+        "pipetting"
+      ],
+      "instrument": "eppendorf-research-plus-200",
+      "procedure": [
+        "eppendorf-gravimetric-test-sop",
+        "npl-2004-piston-pipette-calibration"
+      ],
+      "paper": [
+        "ouyang-2008-pipette-dye-volume",
+        "krishnan-2019-gravimetric-delivery"
+      ],
+      "requirements": "Use a calibrated balance with sufficient resolution at the chosen volume and control evaporation. Compare like volumes, compatible tips and the limits for the exact pipette."
+    },
+    {
+      "label": "Pipetting precision with dye dilutions",
+      "q": "Check dye serial dilution precision",
+      "techniques": [
+        "pipetting"
+      ],
+      "instrument": "eppendorf-research-plus-200",
+      "procedure": [
+        "clark-2023-microplate-serial-dilutions",
+        "delaware-dye-tube-dilution"
+      ],
+      "paper": [
+        "richter-2022-dye-serial-dilution"
+      ],
+      "requirements": "For the quantitative plate exercise, provide a compatible reader and both pipette ranges when specified. The tube exercise provides a visual dilution check. Check every transfer against the pipette range."
+    }
   ]
 }

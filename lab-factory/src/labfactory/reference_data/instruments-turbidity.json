@@ -1,0 +1,16 @@
+[
+  {
+    "id": "hach-2100q",
+    "manufacturer": "Hach",
+    "model": "2100Q",
+    "technique": "turbidity",
+    "aliases": ["Hach 2100Q portable turbidimeter", "2100Q tungsten"]
+  },
+  {
+    "id": "hach-2100qis",
+    "manufacturer": "Hach",
+    "model": "2100Qis",
+    "technique": "turbidity",
+    "aliases": ["2100Q IS", "Hach 2100Qis portable turbidimeter", "2100Qis infrared"]
+  }
+]

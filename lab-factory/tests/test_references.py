@@ -103,3 +103,53 @@ def test_new_techniques_and_sources_are_searchable_from_data_alone(tmp_path, mon
     monkeypatch.setattr(references, "_index", lambda: index)
     found = references.search("other-refractometry", "measure sucrose in water")
     assert [r["id"] for r in found["findings"]] == ["test-refractometry"]
+
+
+def test_every_catalog_model_has_two_sourced_experiments():
+    catalog = references.catalog()
+    assert len({g["q"].casefold() for g in catalog["experiments"]}) == len(catalog["experiments"])
+    models = [item for item in catalog["instruments"] if item["scope"] == "model"]
+    for model in models:
+        guides = [g for g in catalog["experiments"] if set(g["techniques"]).intersection(model["techniques"])]
+        assert len({g["q"] for g in guides}) >= 2, model["id"]
+        for guide in guides:
+            result = references.search(model["id"], guide["q"])
+            cited_ids = {key for section in result["brief"] for key in section["source_ids"]}
+            cited = {row["kind"]: row for row in result["findings"] if row["id"] in cited_ids}
+            assert cited["manual"]["match"] == "instrument_manual"
+            assert model["id"] in cited["manual"]["instrument_ids"]
+            for kind in ("procedure", "paper"):
+                assert cited[kind]["id"] in guide[kind], (guide["q"], model["id"])
+            assert result["requirements"] == guide["requirements"] and result["requirements"].strip()
+
+
+def test_incompatible_optics_materials_and_pipette_ranges():
+    tungsten = "epa-180-1-nephelometry"
+    for model, present in (("hach-2100q", True), ("hach-2100qis", False)):
+        assert (tungsten in {s["id"] for s in references.search(model, "drinking water turbidity")["findings"]}) is present
+    oven = references.search("memmert-uf55", "Measure flour moisture")
+    assert oven["findings"] == [] and "flour" in oven["incompatible_terms"]
+    assert "usda-ars-flour-moisture" in {s["id"] for s in references.search("mettler-toledo-me204", "flour moisture")["findings"]}
+    query = "Check dye serial dilution precision"
+    for model, applicable, excluded in (
+        ("eppendorf-research-plus-200", "clark-2023-microplate-serial-dilutions", "delaware-dye-tube-dilution"),
+        ("eppendorf-research-plus-1000", "delaware-dye-tube-dilution", "clark-2023-microplate-serial-dilutions"),
+    ):
+        hits = {r["id"] for r in references.search(model, query)["findings"]}
+        assert applicable in hits and excluded not in hits
+
+
+def test_a_companion_technique_can_be_part_of_an_instrument_question():
+    result = references.search("eppendorf-research-plus-200", "Check gravimetric pipette delivery repeatability")
+    findings = {row["id"] for row in result["findings"]}
+    assert {"eppendorf-research-plus-operating-manual", "npl-2004-piston-pipette-calibration",
+            "ouyang-2008-pipette-dye-volume"} <= findings
+    assert result["requirements"] == ""
+
+
+def test_manufacturer_procedure_and_measured_model_have_distinct_labels():
+    result = references.search("hanna-hi96800", "Measure honey moisture")
+    matches = {r["id"]: r["match"] for r in result["findings"]}
+    assert matches["hanna-hi96800-manual"] == "instrument_manual"
+    assert matches["hanna-honey-refractive-index"] == "model_method"
+    assert matches["barbour-2026-honey-moisture"] == "same_model_study"

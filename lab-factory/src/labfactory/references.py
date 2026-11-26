@@ -71,6 +71,7 @@ class ReferenceIndex:
         self.scopes.update(sorted(self.models.items(), key=lambda item: (
             item[1]["technique"], item[1]["manufacturer"].casefold(), item[1]["model"].casefold())))
         self.examples = config["examples"]
+        self.experiments = config.get("experiments", [])
         if any(ex["instrument"] not in self.scopes for ex in self.examples):
             raise ValueError("A reference example specifies an unknown instrument")
         # Concurrent hosted requests share these immutable tables. CPython's
@@ -89,6 +90,20 @@ class ReferenceIndex:
                 key = _id(record, fingerprints)
                 self._add(record, families)
                 fingerprints[key] = canonical_digest(record)
+        for experiment in self.experiments:
+            techniques = set(experiment["techniques"])
+            if not techniques or techniques - families or experiment["instrument"] not in self.models:
+                raise ValueError(f"Unknown model or technique on {experiment['label']}")
+            if not techniques.intersection(self.models[experiment["instrument"]]["techniques"]):
+                raise ValueError(f"Example instrument does not support {experiment['label']}")
+            for kind in ("procedure", "paper"):
+                records = experiment[kind]
+                if not records:
+                    raise ValueError(f"No {kind} for {experiment['label']}")
+                for key in records:
+                    row = self.db.execute("SELECT payload FROM sources WHERE id=? AND kind=?", (key, kind)).fetchone()
+                    if not row or not techniques.intersection(json.loads(row[0])["techniques"]):
+                        raise ValueError(f"Invalid {kind} reference {key} on {experiment['label']}")
         self.counts = {k: 0 for k in KINDS}
         self.counts.update(self.db.execute("SELECT kind, count(*) FROM sources GROUP BY kind"))
         self.size = sum(self.counts.values())
@@ -100,6 +115,12 @@ class ReferenceIndex:
         key = record["id"]
         if record["kind"] not in KINDS or not set(record["instrument_ids"]) <= self.models.keys():
             raise ValueError(f"Invalid kind or model link on {key}")
+        excluded = set(record.get("excluded_instrument_ids", []))
+        prescribed = set(record.get("method_instrument_ids", []))
+        if prescribed and (record["kind"] != "procedure" or prescribed - self.models.keys()):
+            raise ValueError(f"Invalid method model on {key}")
+        if excluded - self.models.keys() or excluded.intersection(prescribed.union(record["instrument_ids"])):
+            raise ValueError(f"Invalid incompatible model on {key}")
         for field in ("title", "publisher", "version", "summary", "scope", "locator", "rights"):
             if not isinstance(record[field], str) or not record[field].strip():
                 raise ValueError(f"Missing {field} on {key}")
@@ -114,7 +135,7 @@ class ReferenceIndex:
         row = {**record, "digest": canonical_digest(record)}
         self.db.execute("INSERT INTO sources VALUES (?,?,?)", (key, record["kind"], json.dumps(row)))
         self.db.executemany("INSERT INTO techniques VALUES (?,?)", [(t, key) for t in techniques])
-        named = [self.models[i] for i in record["instrument_ids"]]
+        named = [self.models[i] for i in sorted(prescribed.union(record["instrument_ids"]))]
         model_text = " ".join(" ".join([m["manufacturer"], m["model"], *m["aliases"]]) for m in named)
         terms = Counter()
         for value, weight in ((record["summary"], 1), (record["title"], 4),
@@ -170,6 +191,7 @@ def _index():
 def catalog():
     index = _index()
     return {"catalog_digest": index.digest, "counts": dict(index.counts), "examples": index.examples,
+            "experiments": index.experiments,
             "technique_names": index.labels, "instruments": list(index.scopes.values())}
 
 
@@ -213,12 +235,25 @@ def search(instrument="all", q=""):
         raise ContextError("The reference query must be valid Unicode text") from None
     q = q.strip()
     scope = index.scopes[instrument]
-    candidates = index.candidates(scope)
+    family_records = index.candidates(scope)
+    excluded = {r["id"] for r in family_records if instrument in r.get("excluded_instrument_ids", ())}
+    candidates = [r for r in family_records if r["id"] not in excluded]
+    # Give the editor-selected methods and papers precedence for a published
+    # experiment objective. Free-text searches continue to use term relevance.
+    recommended = set()
+    requirements = ""
+    for experiment in index.experiments:
+        if q.casefold() == experiment["q"].casefold() and (
+            scope["scope"] == "all" or set(experiment["techniques"]).intersection(scope["techniques"])
+        ):
+            recommended.update(experiment["procedure"] + experiment["paper"])
+            requirements = experiment["requirements"]
     words = _tokens(q, index.aliases)
     scores, matched = index.matches(words)
     named_families = {family for family, terms in index.family_terms.items() if terms <= words}
-    if named_families:
-        candidates = [r for r in candidates if named_families.intersection(r["techniques"])]
+    within_scope = named_families if scope["scope"] == "all" else named_families.intersection(scope["techniques"])
+    if within_scope:
+        candidates = [r for r in candidates if within_scope.intersection(r["techniques"])]
     # A shared matrix such as water does not make a paper relevant to every
     # analyte in that matrix. Instrument family alone is equally unspecific.
     # In objectives such as "measure copper in water by colorimetry" the
@@ -228,6 +263,15 @@ def search(instrument="all", q=""):
     if named_families:
         family_words = set().union(*(index.family_terms[t] for t in named_families))
         focus = focus - family_words or focus
+    # If the flour records rule out a given oven, a shared word such as
+    # "moisture" must not substitute a soil procedure for the flour query.
+    unavailable = set()
+    if excluded and focus and not recommended:
+        excluded_terms = {t for key in excluded for t in matched.get(key, ())}
+        available_terms = {t for r in candidates for t in matched.get(r["id"], ())}
+        unavailable = (focus & excluded_terms) - available_terms
+        if unavailable:
+            candidates = []
     if focus:
         scores = Counter({key: score for key, score in scores.items() if focus.intersection(matched[key])})
     requested_models = index.requested_models(q)
@@ -236,15 +280,16 @@ def search(instrument="all", q=""):
     exact_scope = scope["scope"] == "model"
     # A plan can pair a matched study with the selected instrument's manual even
     # when that manual does not name the sample or analyte.
-    has_evidence = any(r["kind"] != "manual" and r["id"] in scores for r in candidates)
+    has_evidence = any(r["kind"] != "manual" and (r["id"] in scores or r["id"] in recommended) for r in candidates)
     ranked = []
     for record in candidates:
         key = record["id"]
         exact = exact_scope and instrument in record["instrument_ids"]
+        prescribed = exact_scope and instrument in record.get("method_instrument_ids", ())
         manual = record["kind"] == "manual"
         if exact_scope and manual and not exact:
             continue
-        if q and key not in scores and not (exact and manual and has_evidence):
+        if q and key not in scores and key not in recommended and not (exact and manual and has_evidence):
             continue
         if manual and exact:
             match, reason = "instrument_manual", "The manufacturer lists the selected model in this guide."
@@ -253,16 +298,25 @@ def search(instrument="all", q=""):
                 index.models[i]["model"] for i in record["instrument_ids"]) + "."
         elif exact:
             match, reason = "same_model_study", "The source reports using the selected model."
+        elif prescribed:
+            match, reason = "model_method", "The published procedure specifically lists the selected model."
         else:
             match = "related_method"
             reason = ("The source covers " + ", ".join(index.labels[t] for t in record["techniques"]) + ".")
             if exact_scope:
                 reason += " Its evidence has no confirmed link to the selected model."
+        if key in recommended:
+            reason += " Selected for this experiment in the reference library."
         if q and key in matched:
             reason += " Indexed terms matched: " + ", ".join(matched[key]) + "."
-        ranked.append((scores[key], exact, {**record, "match": match, "reason": reason}))
-    ranked.sort(key=lambda item: (-item[0], -item[1], item[2]["title"].casefold(), item[2]["id"]))
+        ranked.append((scores[key], exact or prescribed, {**record, "match": match, "reason": reason}))
+    ranked.sort(key=lambda item: (item[2]["id"] not in recommended,
+                                  not (item[1] and item[2]["id"] in recommended),
+                                  -item[0], -item[1], item[2]["title"].casefold(), item[2]["id"]))
     findings = [row for _, _, row in ranked]
     overview, brief = describe(scope, q, findings)
+    if unavailable:
+        overview = "The indexed sources matching " + ", ".join(sorted(unavailable)) + " exclude this model."
     return {"instrument": scope, "query": q, "catalog_digest": index.digest, "findings": findings,
-            "overview": overview, "brief": brief}
+            "overview": overview, "brief": brief, "requirements": requirements,
+            "incompatible_terms": sorted(unavailable)}
