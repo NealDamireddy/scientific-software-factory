@@ -1,0 +1,95 @@
+{
+  "algorithm": [
+    {"op": "mean"},
+    {"op": "interpolate", "table": "table"},
+    {"op": "round", "places": 1}
+  ],
+  "table": [
+    [1.4740, 25.0],
+    [1.4745, 24.8],
+    [1.4750, 24.6],
+    [1.4755, 24.4],
+    [1.4760, 24.2],
+    [1.4765, 24.0],
+    [1.4770, 23.8],
+    [1.4775, 23.6],
+    [1.4780, 23.4],
+    [1.4785, 23.2],
+    [1.4790, 23.0],
+    [1.4795, 22.8],
+    [1.4800, 22.6],
+    [1.4805, 22.4],
+    [1.4810, 22.2],
+    [1.4815, 22.0],
+    [1.4820, 21.8],
+    [1.4825, 21.6],
+    [1.4830, 21.4],
+    [1.4835, 21.2],
+    [1.4840, 21.0],
+    [1.4845, 20.8],
+    [1.4850, 20.6],
+    [1.4855, 20.4],
+    [1.4860, 20.2],
+    [1.4865, 20.0],
+    [1.4870, 19.8],
+    [1.4875, 19.6],
+    [1.4880, 19.4],
+    [1.4885, 19.2],
+    [1.4890, 19.0],
+    [1.4895, 18.8],
+    [1.4900, 18.6],
+    [1.4905, 18.4],
+    [1.4910, 18.2],
+    [1.4915, 18.0],
+    [1.4920, 17.8],
+    [1.4925, 17.6],
+    [1.4930, 17.4],
+    [1.4935, 17.2],
+    [1.4940, 17.0],
+    [1.4946, 16.8],
+    [1.4951, 16.6],
+    [1.4956, 16.4],
+    [1.4961, 16.2],
+    [1.4966, 16.0],
+    [1.4971, 15.8],
+    [1.4976, 15.6],
+    [1.4982, 15.4],
+    [1.4987, 15.2],
+    [1.4992, 15.0],
+    [1.4997, 14.8],
+    [1.5002, 14.6],
+    [1.5007, 14.4],
+    [1.5012, 14.2],
+    [1.5018, 14.0],
+    [1.5023, 13.8],
+    [1.5028, 13.6],
+    [1.5033, 13.4],
+    [1.5038, 13.2],
+    [1.5044, 13.0]
+  ],
+  "citations": [
+    {
+      "id": "hanna-hi96800-manual",
+      "use": "Pages 5–6 and 12–13 identify the nD20 scale, its 1.5040 upper limit and 0.0001 display increment. Both simulated readings represent samples at 20 °C."
+    },
+    {
+      "id": "hanna-honey-refractive-index",
+      "use": "Page 3 supplies the 20 °C index-to-moisture pairs for this instrument. The final table row brackets readings near the model limit. An index of 1.5044 is outside its nD20 display range."
+    },
+    {
+      "id": "ihc-2009-honey-moisture",
+      "use": "Section 1, pages 10–11 averages duplicate indices before table lookup and gives water in g/100 g honey. Between printed rows this analysis uses linear interpolation and rounds the final result to one decimal, half up. The IHC precision study on the Abbé instrument does not establish precision on this meter."
+    },
+    {
+      "id": "barbour-2026-honey-moisture",
+      "use": "The physicochemical analysis used the HI96800 and a published chart at 20 °C. Table 5 reports measured honey blends. Those observations support the choice of instrument and method and supply no calibration pairs."
+    }
+  ],
+  "tests": [
+    {"label": "Duplicates averaging to a published row", "readings": [1.4914, 1.4916], "expected": 18.0},
+    {"label": "Duplicate mean halfway between rows", "readings": [1.4912, 1.4913], "expected": 18.1},
+    {"label": "Lower limit of the published index table", "readings": [1.4740, 1.4740], "expected": 25.0},
+    {"label": "Highest displayable compensated index", "readings": [1.5040, 1.5040], "expected": 13.1},
+    {"label": "Half-up rounding inside a wider interval", "readings": [1.4944, 1.4945], "expected": 16.9}
+  ]
+}
