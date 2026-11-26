@@ -142,3 +142,13 @@ def test_hosted_reference_flow_requires_reviewer_and_pins_exact_subset(tmp_path,
         assert detail["reference_brief"]["findings"] == [result["findings"][0]]
         assert detail["order"]["objective"] == "B12"
         assert detail["history"][0]["actor"] == "Ada"
+
+
+def test_experiment_requirements_are_pinned_with_a_reviewer_selection(store, monkeypatch):
+    result = references.search("hach-2100qis", "Compare coagulation in jar tests")
+    chosen = [next(r for r in result["findings"] if r["id"] == item["source_ids"][0]) for item in result["brief"]]
+    order_id = reference_orders.create_order(store, "Reviewer", selection(result, *chosen))["id"]
+    monkeypatch.setattr(references, "search", lambda *args: pytest.fail("Pinned requirements must survive a new edition"))
+    brief = AgentTools(store).get_work_order_context(order_id)["reference_brief"]
+    assert brief["requirements"] == result["requirements"] and "meter" in brief["requirements"]
+    assert {r["id"] for r in brief["findings"]} == {r["id"] for r in chosen}

@@ -22,6 +22,8 @@ async def run(args):
             print(item["id"], "·", item["manufacturer"], item["model"])
         return
     print(data["overview"])
+    if data.get("requirements"):
+        print(data["requirements"])
     for item in data["findings"]:
         print(f"\n{item['kind'].upper()} · {item['title']}\n{item['reason']}\n{item['summary']}"
               f"\nApplicability: {item['scope']}\n{item['locator']}\n{item['url']}")

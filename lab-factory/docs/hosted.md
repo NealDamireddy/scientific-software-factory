@@ -10,13 +10,15 @@ Agents can discover the following JSON resources with MCP resources/list and res
 
 | Resource URI | Contents |
 | --- | --- |
-| `labfactory://references/catalog` | Exact model IDs, technique scopes, example queries and source counts |
+| `labfactory://references/catalog` | Exact model IDs, technique scopes, source counts and curated experiments with objectives, source IDs and equipment requirements |
 | `labfactory://references/search/{instrument}/{query}` | Matches, limitations and citations for a URL-encoded objective. Use `all` for a cross-instrument search. |
 | `labfactory://references/source/{source_id}` | One current curated record with its publisher link and digest |
 
 Creating a reference work order snapshots only the selected records in the lab's private database. The agent reads that snapshot through `get_work_order_context`. Its document IDs are available for citations. Published procedures enter the work order as external references. Selecting a model supplies planning context. Local firmware, accessories, performance and executable commands still need to be established by the lab. The SHA-256 digest identifies the curated record. The publisher hosts the underlying document.
 
 To expand coverage, add a model to an `instruments*.json` array and records to a source JSON array in `src/labfactory/reference_data/`. Record the publisher, stable URL, edition or DOI, precise locator, scope, technique and search topics. Give each record a unique ID. Link a model only when the manufacturer documents it or the authors say they used it. Technique labels, synonyms and example searches live in `search.json`. Run the suite and check a supported objective and an unsupported one before deploying the edition.
+
+The `experiments` entries in `search.json` pair an objective with published procedures, independent research and requirements such as detectors or optical accessories. Each model has at least two guides. The suite runs each applicable guide against each model and checks the citations in the returned brief. For a procedure that explicitly prescribes a model, use `method_instrument_ids`. For equipment the publication actually used, use `instrument_ids`. Record a documented incompatibility in the scope note and `excluded_instrument_ids` so the procedure stays out of searches for that model. Selecting an experiment prioritizes its curated references. A reviewer can also enter a free-text objective.
 
 ## B12 source and result records
 

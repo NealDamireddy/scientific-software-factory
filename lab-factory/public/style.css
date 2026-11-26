@@ -143,6 +143,9 @@ details.submission > summary {padding:16px 21px;cursor:pointer;font-weight:640}
 .library-search label {margin:0}.library-search input,.library-search select {display:block;margin-top:6px;font-weight:400}
 .library-examples {display:flex;align-items:baseline;flex-wrap:wrap;gap:4px 16px;margin-top:10px;font-size:.84rem;color:var(--muted)}
 .library-examples:empty {display:none}
+.library-experiment {display:block;max-width:34rem;margin:16px 0 4px}
+.library-experiment select {display:block;margin-top:5px;width:100%}
+.library-experiment[hidden] {display:none}
 .query-example {color:var(--green);border:0;background:transparent;padding:3px 0;text-decoration:underline;text-underline-offset:3px}
 .library-results {margin-top:30px}.library-results:empty {margin:0}
 .findings-overview,.brief-query {margin:7px 0 13px;color:var(--muted);max-width:82ch}

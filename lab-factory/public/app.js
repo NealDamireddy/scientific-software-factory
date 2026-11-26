@@ -392,7 +392,7 @@ function showB12(data) {
 }
 
 const sourceTypes = {manual: "Instrument manuals", procedure: "Published procedures", paper: "Research papers"};
-const matchTypes = {instrument_manual: "Manual for this model", same_model_study: "Uses this model", related_method: "Related method",
+const matchTypes = {instrument_manual: "Manual for this model", model_method: "Procedure for this model", same_model_study: "Uses this model", related_method: "Related method",
   catalog_manual: "Catalog manual", technique_manual: "Manual for this technique"};
 
 function modelName(instrument) {
@@ -493,6 +493,7 @@ function referenceBrief(brief) {
   block.append(element("h2", "Pinned references"),
     element("p", modelName(brief.instrument) + " · " + brief.query, "brief-query"),
     element("p", brief.overview, "muted"));
+  if (brief.requirements) block.append(element("p", brief.requirements, "findings-overview"));
   if (brief.brief?.length) block.append(evidenceBrief(brief));
   if (brief.catalog_digest) {
     const provenance = element("details", undefined, "source-version");
@@ -562,6 +563,31 @@ function showReferenceLibrary(catalog, initial) {
   const collection = element("p", "Curated collection · " + counts.manual + " manuals · " +
     counts.procedure + " published procedures · " + counts.paper + " papers", "library-counts");
   const examples = element("div", undefined, "library-examples");
+  const experimentLabel = element("label", "Browse experiments", "library-experiment");
+  const experimentSelect = element("select");
+  experimentLabel.append(experimentSelect);
+  function fillExperiments() {
+    const model = catalog.instruments.find(item => item.id === select.value);
+    experimentSelect.replaceChildren(element("option", "Choose an experiment…"));
+    experimentSelect.options[0].value = "";
+    for (const [index, experiment] of (catalog.experiments || []).entries()) {
+      if (!model || (model.scope !== "all" && !model.techniques.some(t => experiment.techniques.includes(t)))) continue;
+      const option = element("option", experiment.label);
+      option.value = String(index);
+      option.selected = experiment.q === query.value.trim();
+      experimentSelect.append(option);
+    }
+    experimentLabel.hidden = experimentSelect.options.length === 1;
+  }
+  experimentSelect.addEventListener("change", () => {
+    if (!experimentSelect.value) return;
+    const experiment = catalog.experiments[Number(experimentSelect.value)];
+    if (select.value === "all") {
+      filterInput.value = ""; fillModels(experiment.instrument);
+    }
+    query.value = experiment.q;
+    search();
+  });
   if (catalog.examples?.length) {
     examples.append(element("span", "Example searches"));
     for (const example of catalog.examples) {
@@ -570,10 +596,11 @@ function showReferenceLibrary(catalog, initial) {
       }));
     }
   }
-  workspace.replaceChildren(heading("Reference library"), collection, form, examples, results);
+  workspace.replaceChildren(heading("Reference library"), collection, form, experimentLabel, examples, results);
 
   async function search() {
     const revision = ++request;
+    fillExperiments();
     if (!select.value) {
       results.replaceChildren(element("p", "No instrument matches that filter. Try its manufacturer or technique.", "muted"));
       results.removeAttribute("aria-busy");
@@ -590,9 +617,11 @@ function showReferenceLibrary(catalog, initial) {
       results.replaceChildren(element("h2", "Findings for " + modelName(data.instrument)));
       if (!data.findings.length) {
         results.append(element("p", "No matching sources. Try another experiment, topic or instrument.", "muted"));
+        if (data.incompatible_terms?.length) results.append(element("p", data.overview, "muted"));
         return;
       }
       results.append(element("p", data.overview, "findings-overview"));
+      if (data.requirements) results.append(element("p", data.requirements, "findings-overview"));
       const selected = new Map();
       const bar = element("div", undefined, "selection-bar");
       const typeFilter = element("select");
@@ -618,6 +647,7 @@ function showReferenceLibrary(catalog, initial) {
         pin.disabled = true;
         for (const input of form.elements) input.disabled = true;
         for (const control of examples.querySelectorAll("button")) control.disabled = true;
+        experimentSelect.disabled = true;
         for (const check of results.querySelectorAll("input")) check.disabled = true;
         try {
           const order = await post("references/orders", {instrument: data.instrument.id, q: data.query,
@@ -628,6 +658,7 @@ function showReferenceLibrary(catalog, initial) {
         } finally {
           for (const input of form.elements) input.disabled = false;
           for (const control of examples.querySelectorAll("button")) control.disabled = false;
+          experimentSelect.disabled = false;
           for (const check of results.querySelectorAll("input")) check.disabled = false;
           pin.disabled = !canPin || selected.size === 0;
         }
@@ -657,6 +688,7 @@ function showReferenceLibrary(catalog, initial) {
   });
   query.addEventListener("input", () => {
     request++;
+    experimentSelect.value = "";
     results.removeAttribute("aria-busy");
     results.replaceChildren(element("p", "Select Find sources to search this objective.", "muted"));
   });

@@ -8,6 +8,8 @@ Lab Factory stores immutable revisions of lab and experiment records and pins bo
 
 Open the [reference library](https://neal-lab-factory.vercel.app/#references) and sign in. Leave **All instruments** selected if you do not know the model, choose a technique, or filter by a model number. Enter an objective or choose an example such as **Caffeine in coffee** or **Identify a polymer**. Each finding links to its source and identifies the relevant pages, edition, model relationship and limits.
 
+After choosing a model, use **Browse experiments** to see objectives with a manual, a published method and primary research. For instance, the Hanna HI96800 offers honey moisture and juice soluble solids. The Olympus CX23 offers honey pollen identification and leaf stomatal density. The Agilent 7890B offers beverage ethanol, vegetable-oil fatty acids and olive-oil aroma. Each guide lists the additional equipment or sample conditions that matter. The selection is saved with the exact references you pin.
+
 For the Agilent 1260 Infinity Binary LC, the coffee search pairs the instrument guide with an Agilent method that used that system and independent research on different equipment. Compare the equipment, sample and calibration before adopting a method. Select the records you want and choose **Create order with sources**. The reviewer and a connected agent can reopen the same record versions and cite them in a procedure submission.
 
 To run the same search locally through an MCP client, run these commands from `lab-factory/`. Omit the objective and instrument arguments to list all available models and technique scopes.
@@ -15,6 +17,7 @@ To run the same search locally through an MCP client, run these commands from `l
 ```sh
 uv sync --locked
 uv run --locked python examples/find_references.py --instrument agilent-1260-infinity-binary-lc "Measure caffeine in coffee"
+uv run --locked python examples/find_references.py --instrument hanna-hi96800 "Measure honey moisture"
 ```
 
 ### Try the simulated B12 analysis

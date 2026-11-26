@@ -42,6 +42,7 @@ def _snapshot(request: dict) -> dict:
     return {
         "instrument": result["instrument"], "query": result["query"], "catalog_digest": result["catalog_digest"],
         "overview": overview, "brief": brief, "findings": findings,
+        **({"requirements": result["requirements"]} if result.get("requirements") else {}),
     }
 
 
