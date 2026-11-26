@@ -301,7 +301,7 @@ function matches(query: string, ...fields: string[]): boolean {
   return fields.some((f) => f.toLowerCase().includes(query));
 }
 
-/** Projects, experiments, documents, then instruments. Tasks that add more kinds append to this list. */
+/** Projects, experiments, documents, instruments, skills, then connectors. */
 export function searchHits(state: SampleState, query: string): SearchHit[] {
   const q = query.trim().toLowerCase();
   if (q === "") return [];
@@ -321,6 +321,12 @@ export function searchHits(state: SampleState, query: string): SearchHit[] {
   for (const e of state.experiments) for (const d of e.documents) docHit(d, experimentHref(e));
   for (const i of state.lab.instruments) {
     if (matches(q, i.name, i.id)) hits.push({ kind: "instrument", id: i.id, title: i.name, href: "#/lab" });
+  }
+  for (const s of state.skills) {
+    if (matches(q, s.title, s.id)) hits.push({ kind: "skill", id: s.id, title: s.title, href: `#/skills?skill=${s.id}` });
+  }
+  for (const c of state.connectors) {
+    if (matches(q, c.name, c.id)) hits.push({ kind: "connector", id: c.id, title: c.name, href: "#/connectors" });
   }
   return hits;
 }

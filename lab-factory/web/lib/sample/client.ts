@@ -1,7 +1,8 @@
 // The sample LabFactoryClient: an in-memory lab seeded by createSeed. All logic lives in
-// records.ts (and the files Tasks 6 and 7 add); this file only wires it to the interface.
+// records.ts, extensions.ts (and the file Task 7 adds); this file only wires it to the interface.
 import { ClientError } from "../types.ts";
 import type { LabFactoryClient } from "../types.ts";
+import * as extensions from "./extensions.ts";
 import * as records from "./records.ts";
 import type { SampleContext } from "./records.ts";
 import { createSeed } from "./seed.ts";
@@ -54,15 +55,15 @@ export function createSampleClient(options: SampleClientOptions = {}): LabFactor
     // Task 7 (conversation engine) replaces these two.
     sendMessage: () => later(),
     confirmPlan: () => later(),
-    // Task 6 (skills, connectors, agent setup) replaces these.
-    listSkills: () => later(),
-    saveSkill: () => later(),
-    setSkillEnabled: () => later(),
-    listConnectors: () => later(),
-    connect: () => later(),
-    disconnect: () => later(),
-    importFromConnector: () => later(),
-    listAgentConnections: () => later(),
-    getAgentSetup: () => later(),
+    listSkills: (labId) => run((c) => extensions.listSkills(c, labId)),
+    saveSkill: (labId, skill) => run((c) => extensions.saveSkill(c, labId, skill)),
+    setSkillEnabled: (labId, id, enabled) => run((c) => extensions.setSkillEnabled(c, labId, id, enabled)),
+    listConnectors: (labId) => run((c) => extensions.listConnectors(c, labId)),
+    connect: (labId, id, account) => run((c) => extensions.connect(c, labId, id, account)),
+    disconnect: (labId, id) => run((c) => extensions.disconnect(c, labId, id)),
+    importFromConnector: (labId, id, itemId, target) =>
+      run((c) => extensions.importFromConnector(c, labId, id, itemId, target)),
+    listAgentConnections: (labId) => run((c) => extensions.listAgentConnections(c, labId)),
+    getAgentSetup: (labId) => run((c) => extensions.getAgentSetup(c, labId)),
   };
 }

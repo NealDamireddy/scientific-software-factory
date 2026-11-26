@@ -361,6 +361,5 @@ test("concurrent first calls seed once, and delayMs is awaited", async () => {
 test("methods that later tasks add refuse for now", async () => {
   const c = fresh();
   await rejects(c.sendMessage("coomassie-run-1", "hi", []), "refused", "Not available yet.");
-  await rejects(c.listSkills("emory-biophys"), "refused", "Not available yet.");
-  await rejects(c.getAgentSetup("emory-biophys"), "refused", "Not available yet.");
+  await rejects(c.confirmPlan("coomassie-run-1", "coomassie-run-1-m2", ["procedure"]), "refused", "Not available yet.");
 });
