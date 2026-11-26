@@ -1,0 +1,132 @@
+"""SQLite storage for immutable lab and experiment revisions."""
+
+from collections.abc import Iterator
+from contextlib import contextmanager
+from dataclasses import dataclass
+import json
+import os
+import sqlite3
+
+from .context import (
+    ContextError, Experiment, Lab, canonical_digest, canonical_json,
+    experiment_from_dict, lab_from_dict, to_dict,
+)
+
+
+@dataclass(frozen=True)
+class Revision:
+    number: int
+    digest: str
+
+
+class NotFound(LookupError):
+    """The requested record or revision does not exist."""
+
+
+_SCHEMA = (
+    """
+    CREATE TABLE IF NOT EXISTS records (
+        kind TEXT NOT NULL,
+        id TEXT NOT NULL,
+        number INTEGER NOT NULL,
+        digest TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (kind, id, number)
+    )
+    """,
+)
+
+
+def _record_data(record: Lab | Experiment) -> dict:
+    try:
+        return to_dict(record)
+    except (TypeError, ValueError) as exc:
+        raise ContextError(f"invalid context record: {exc}") from exc
+
+
+class Store:
+    def __init__(self, path: str | os.PathLike):
+        self.connection = sqlite3.connect(path, isolation_level=None, timeout=5.0)
+        self.connection.row_factory = sqlite3.Row
+        try:
+            self.connection.execute("PRAGMA foreign_keys = ON")
+            with self.transaction() as connection:
+                for statement in _SCHEMA:
+                    connection.execute(statement)
+        except BaseException:
+            self.close()
+            raise
+
+    def __enter__(self) -> "Store":
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def close(self) -> None:
+        self.connection.close()
+
+    @contextmanager
+    def transaction(self) -> Iterator[sqlite3.Connection]:
+        self.connection.execute("BEGIN IMMEDIATE")
+        try:
+            yield self.connection
+            self.connection.commit()
+        except BaseException:
+            self.connection.rollback()
+            raise
+
+    def _append_revision(self, kind: str, record_id: str, data: dict) -> Revision:
+        latest = self.connection.execute(
+            "SELECT number, digest FROM records WHERE kind = ? AND id = ? "
+            "ORDER BY number DESC LIMIT 1", (kind, record_id),
+        ).fetchone()
+        fingerprint = canonical_digest(data)
+        if latest is not None and latest["digest"] == fingerprint:
+            return Revision(latest["number"], fingerprint)
+        number = 1 if latest is None else latest["number"] + 1
+        self.connection.execute(
+            "INSERT INTO records (kind, id, number, digest, body) VALUES (?, ?, ?, ?, ?)",
+            (kind, record_id, number, fingerprint, canonical_json(data)),
+        )
+        return Revision(number, fingerprint)
+
+    def _read_revision(self, kind: str, record_id: str, number: int | None) -> tuple[dict, Revision]:
+        sql = "SELECT number, digest, body FROM records WHERE kind = ? AND id = ? "
+        if number is None:
+            row = self.connection.execute(sql + "ORDER BY number DESC LIMIT 1", (kind, record_id))
+        else:
+            row = self.connection.execute(sql + "AND number = ?", (kind, record_id, number))
+        result = row.fetchone()
+        if result is None:
+            revision = "" if number is None else f" revision {number}"
+            raise NotFound(f"unknown {kind} {record_id}{revision}")
+        return json.loads(result["body"]), Revision(result["number"], result["digest"])
+
+    def put_lab(self, lab: Lab) -> Revision:
+        validated = lab_from_dict(_record_data(lab))
+        with self.transaction():
+            return self._append_revision("lab", validated.id, to_dict(validated))
+
+    def get_lab(self, lab_id: str, number: int | None = None) -> tuple[Lab, Revision]:
+        data, revision = self._read_revision("lab", lab_id, number)
+        return lab_from_dict(data), revision
+
+    def put_experiment(self, exp: Experiment) -> Revision:
+        validated = experiment_from_dict(_record_data(exp))
+        with self.transaction():
+            try:
+                lab, _ = self.get_lab(validated.lab_id)
+            except NotFound as exc:
+                raise ContextError(str(exc)) from exc
+            for instrument_id in validated.instrument_ids:
+                if lab.instrument(instrument_id) is None:
+                    raise ContextError(f"unknown instrument {instrument_id} in lab {lab.id}")
+            return self._append_revision("experiment", validated.id, to_dict(validated))
+
+    def get_experiment(
+        self, experiment_id: str, number: int | None = None,
+    ) -> tuple[Experiment, Revision]:
+        data, revision = self._read_revision("experiment", experiment_id, number)
+        return experiment_from_dict(data), revision

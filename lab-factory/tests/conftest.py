@@ -40,3 +40,11 @@ def b12_experiment_dict():
             "source": "Experiment notebook", "text": "Use the labeled reference solution in vial A.",
         }],
     }
+
+
+@pytest.fixture
+def store(tmp_path):
+    from labfactory.store import Store
+
+    with Store(tmp_path / "lf.db") as db:
+        yield db
