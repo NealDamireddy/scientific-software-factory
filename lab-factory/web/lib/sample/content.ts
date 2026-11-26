@@ -105,7 +105,20 @@ function commandSettings(instrument: Instrument, command: Command): Setting[] {
 }
 
 function words(name: string): string {
-  return name.replace(/[_-]+/g, " ").replace(/\d+/g, "").trim();
+  return name.replace(/[_-]+/g, " ").replace(/\d+/g, "").replace(/\s+/g, " ").trim();
+}
+
+/** How a person would be told to run the commands the factory knows. No values or units: those are on the action. */
+const COMMAND_STEPS: Record<string, string> = {
+  read_absorbance: "Read the absorbance of the prepared sample.",
+  set_temperature: "Bring the sample to temperature.",
+};
+
+/** A command as an instruction: a known sentence, or `Run {command words} on the prepared sample.` */
+function commandStep(name: string): string {
+  if (Object.hasOwn(COMMAND_STEPS, name)) return COMMAND_STEPS[name];
+  const said = words(name);
+  return said === "" ? "Run the command on the prepared sample." : `Run ${said} on the prepared sample.`;
 }
 
 /**
@@ -130,7 +143,7 @@ export function procedureTemplate(instrument: Instrument, citations: string[]): 
       command: command.name,
       settings: commandSettings(instrument, command),
     };
-    steps.push({ text: `Use ${words(command.name)} on the prepared sample.`, citations: cite(i + 1), action });
+    steps.push({ text: commandStep(command.name), citations: cite(i + 1), action });
   });
   steps.push({ text: "Record the result and clean up as described in the cited source.", citations: cite(instrument.commands.length + 1) });
   return steps;
