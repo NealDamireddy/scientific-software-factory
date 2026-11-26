@@ -3,7 +3,7 @@
 import "./workspace.css";
 
 import { PanelRightOpen } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { routeHref } from "../lib/route.ts";
 import type { ActivityItem, Message, OnActivity, OutputKind, Workspace as WorkspaceData } from "../lib/types.ts";
@@ -27,6 +27,25 @@ export function Workspace({ projectId, experimentId }: { projectId: string; expe
 /** A call to the factory in flight: what it shows until the stored messages come back. */
 type InFlight = { live: LiveActivity; echo: Echo | null; /** Stored messages shown meanwhile. */ cutoff: number };
 
+/**
+ * What each experiment has in flight, kept outside the keyed workspace so leaving an experiment
+ * mid-build and coming back still shows the work, and one experiment's state never shows in another.
+ */
+type Entry = { inFlight: InFlight | null; fresh: ReadonlySet<string> };
+const NO_ENTRY: Entry = { inFlight: null, fresh: new Set() };
+const entries = new Map<string, Entry>();
+const listeners = new Set<() => void>();
+
+function updateEntry(id: string, change: (entry: Entry) => Entry) {
+  entries.set(id, change(entries.get(id) ?? NO_ENTRY));
+  for (const listener of listeners) listener();
+}
+
+function subscribe(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => { listeners.delete(listener); };
+}
+
 function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; experimentId: string }) {
   const { client, version, refresh } = useClient();
   const [data, setData] = useState<WorkspaceData | null>(null);
@@ -34,9 +53,11 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
   // Only the newest fetch may land, so an older, slower one never overwrites newer data.
   const fetchSeq = useRef(0);
 
-  const [inFlight, setInFlight] = useState<InFlight | null>(null);
-  const busyRef = useRef(false);
-  const [fresh, setFresh] = useState<ReadonlySet<string>>(new Set());
+  const { inFlight, fresh } = useSyncExternalStore(
+    subscribe,
+    () => entries.get(experimentId) ?? NO_ENTRY,
+    () => NO_ENTRY,
+  );
 
   const [closed, setClosed] = useState(false);
   const [tab, setTab] = useState<PanelTab | null>(null);
@@ -71,17 +92,17 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
 
   /** Streams activity into the in-flight log, once per item id. */
   function collect(anchor: string): OnActivity {
-    return (item: ActivityItem) => setInFlight((current) => {
-      if (!current || current.live.anchor !== anchor || current.live.items.some((i) => i.id === item.id)) return current;
-      return { ...current, live: { anchor, items: [...current.live.items, item] } };
+    return (item: ActivityItem) => updateEntry(experimentId, (entry) => {
+      const current = entry.inFlight;
+      if (!current || current.live.anchor !== anchor || current.live.items.some((i) => i.id === item.id)) return entry;
+      return { ...entry, inFlight: { ...current, live: { anchor, items: [...current.live.items, item] } } };
     });
   }
 
   /** Runs one call to the factory, then renders from the stored workspace so nothing shows twice. */
   async function act(start: Omit<InFlight, "cutoff">, call: (onActivity: OnActivity) => Promise<Message[]>) {
-    if (busyRef.current || !data) return;
-    busyRef.current = true;
-    setInFlight({ ...start, cutoff: data.messages.length });
+    if ((entries.get(experimentId) ?? NO_ENTRY).inFlight || !data) return;
+    updateEntry(experimentId, (entry) => ({ ...entry, inFlight: { ...start, cutoff: data.messages.length } }));
     let added: Message[] = [];
     let failure: unknown = null;
     try {
@@ -96,9 +117,10 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
     } catch (e) {
       if (mine === fetchSeq.current) setLoadError(errorText(e));
     }
-    setInFlight(null);
-    if (added.length > 0) setFresh((current) => new Set([...current, ...added.map((m) => m.id)]));
-    busyRef.current = false;
+    updateEntry(experimentId, (entry) => ({
+      inFlight: null,
+      fresh: added.length > 0 ? new Set([...entry.fresh, ...added.map((m) => m.id)]) : entry.fresh,
+    }));
     // The sidebar's status dots and the attention badge follow the new orders.
     refresh();
     if (failure !== null) throw failure;

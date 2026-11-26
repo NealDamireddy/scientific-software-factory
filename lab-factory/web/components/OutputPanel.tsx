@@ -1,7 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 
 import type { OutputKind, Workspace } from "../lib/types.ts";
@@ -63,6 +63,11 @@ export function OutputPanel({ workspace, tab, onTab, onClose }: OutputPanelProps
   if (!visited.includes(tab)) setVisited([...visited, tab]);
   const buttons = useRef(new Map<PanelTab, HTMLButtonElement>());
 
+  // The selected tab stays in view, however the tab list lays out.
+  useEffect(() => {
+    buttons.current.get(tab)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [tab]);
+
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const index = tabs.indexOf(tab);
     let next: number | null = null;
@@ -79,7 +84,7 @@ export function OutputPanel({ workspace, tab, onTab, onClose }: OutputPanelProps
   return (
     <section className="panel" aria-label="Outputs">
       <div className="panel-bar">
-        <div className="panel-tabs" role="tablist" aria-label="Outputs" onKeyDown={onKeyDown}>
+        <div className="panel-tabs" role="tablist" aria-label="Output tabs" onKeyDown={onKeyDown}>
           {tabs.map((t) => (
             <button
               key={t}

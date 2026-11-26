@@ -20,6 +20,21 @@ function activity(page: Page) {
   return page.getByRole("list", { name: "Activity" });
 }
 
+/** Records whether an empty activity log (`0 steps`) ever appears from now on. */
+async function watchForEmptyLog(page: Page) {
+  await page.evaluate(() => {
+    const w = window as unknown as { __emptyLog: boolean };
+    w.__emptyLog = false;
+    new MutationObserver(() => {
+      if (document.body.innerText.includes("0 steps")) w.__emptyLog = true;
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  });
+}
+
+async function sawEmptyLog(page: Page): Promise<boolean> {
+  return page.evaluate(() => (window as unknown as { __emptyLog: boolean }).__emptyLog);
+}
+
 async function tabNames(page: Page): Promise<string[]> {
   return panel(page).getByRole("tablist").getByRole("tab").allTextContents();
 }
@@ -55,7 +70,9 @@ test.describe("a new experiment", () => {
 
   test("double-clicking Build these builds once", async ({ page }) => {
     await startExperiment(page, FADING);
-    await page.getByRole("button", { name: "Build these" }).dblclick();
+    const build = page.getByRole("button", { name: "Build these" });
+    // Several clicks in the same task, so the extra ones hit the same button before React re-renders.
+    await build.evaluate((b: HTMLElement) => { b.click(); b.click(); b.click(); });
     const log = activity(page);
     await expect(log.getByRole("listitem").last()).toContainText("Wrote simulation", { timeout: BUILD_MS });
     await expect(page.getByText(/^Built\./)).toHaveCount(1);
@@ -147,8 +164,11 @@ test.describe("the Coomassie workspace", () => {
 
   test("sending hello shows the sample reply once", async ({ page }) => {
     await page.getByRole("textbox", { name: "Message the factory" }).fill("hello");
+    await watchForEmptyLog(page);
     await page.getByRole("button", { name: "Send" }).click();
     await expect(page.getByText(SAMPLE_REPLY)).toBeVisible();
+    await expect(page.getByText("0 steps")).toHaveCount(0);
+    expect(await sawEmptyLog(page)).toBe(false);
     await expect(page.getByText(SAMPLE_REPLY)).toHaveCount(1);
     await expect(conversation(page).getByText("hello", { exact: true })).toHaveCount(1);
     await expect(page.getByRole("textbox", { name: "Message the factory" })).toHaveValue("");
@@ -196,6 +216,70 @@ test.describe("the Coomassie workspace", () => {
     const lines = await page.getByText("Rewrote procedure").count();
     expect(lines).toBe(1);
   });
+});
+
+for (const width of [1120, 1280]) {
+  test(`every panel tab is fully inside the panel at ${width} px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto(COOMASSIE);
+    await expect.poll(() => tabNames(page)).toEqual(["Procedure", "Analysis app", "Results", "Simulation"]);
+    await expect(panel(page).getByRole("tablist", { name: "Output tabs" })).toBeVisible();
+    const box = await panel(page).boundingBox();
+    expect(box).not.toBeNull();
+    for (const tab of await panel(page).getByRole("tab").all()) {
+      const b = await tab.boundingBox();
+      expect(b).not.toBeNull();
+      expect(b!.x).toBeGreaterThanOrEqual(box!.x);
+      expect(b!.x + b!.width).toBeLessThanOrEqual(box!.x + box!.width);
+      const clipped = await tab.evaluate((el) => el.scrollWidth > el.clientWidth);
+      expect(clipped).toBe(false);
+    }
+  });
+}
+
+test("removing the last chip moves focus to the attach control", async ({ page }) => {
+  await page.goto(COOMASSIE);
+  await page.getByLabel("Attach files").setInputFiles([
+    { name: "a.txt", mimeType: "text/plain", buffer: Buffer.from("A") },
+    { name: "b.txt", mimeType: "text/plain", buffer: Buffer.from("B") },
+  ]);
+  await page.getByRole("button", { name: "Remove a.txt" }).click();
+  await expect(page.getByRole("button", { name: "Remove b.txt" })).toBeFocused();
+  await page.getByRole("button", { name: "Remove b.txt" }).click();
+  await expect(page.getByLabel("Attach files")).toBeFocused();
+});
+
+test("returning to an experiment mid-build shows the work in progress", async ({ page }) => {
+  await page.goto(COOMASSIE);
+  await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
+  await page.getByLabel("Attach files").setInputFiles({
+    name: "reduction-protocol.txt", mimeType: "text/plain", buffer: Buffer.from("Add the reducing agent dropwise."),
+  });
+  await page.getByRole("textbox", { name: "Message the factory" }).fill("Here is the protocol");
+  await page.getByRole("button", { name: "Send" }).click();
+  await expect(page.getByText("Read your attachment")).toBeVisible();
+
+  // Away to B12 and straight back, in one step so the build is still running on return.
+  await page.evaluate(async ([away, back]) => {
+    const heading = () => document.querySelector("main h1")?.textContent ?? "";
+    const until = (text: string) => new Promise<void>((resolve) => {
+      const check = () => (heading() === text ? resolve() : requestAnimationFrame(check));
+      check();
+    });
+    window.location.hash = away;
+    await until("Vitamin B12 absorbance");
+    // Nothing from the other experiment shows here.
+    if (document.body.innerText.includes("The factory is working")) throw new Error("working state leaked into B12");
+    window.location.hash = back;
+    await until("Reducing Coomassie blue");
+  }, [B12.replace("/#", ""), COOMASSIE.replace("/#", "")]);
+  const reply = "I added reduction-protocol.txt to this experiment and rewrote the procedure. Every check passes, and it’s waiting for sign-off.";
+  await expect(page.getByRole("status").filter({ hasText: "The factory is working…" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send" })).toBeDisabled();
+  await expect(page.getByText("Read your attachment")).toBeVisible();
+  await expect(page.getByText(reply)).toHaveCount(1, { timeout: BUILD_MS });
+  await expect(page.getByText("The factory is working…")).toHaveCount(0);
+  await expect(page.getByText("Rewrote procedure")).toHaveCount(1);
 });
 
 test("the B12 workspace has Procedure and Run plan tabs", async ({ page }) => {

@@ -1,7 +1,7 @@
 "use client";
 
 import { ArrowUp, Paperclip, X } from "lucide-react";
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 
 function errorText(error: unknown): string {
@@ -23,6 +23,19 @@ export function Composer({ busy, onSend }: {
   const [error, setError] = useState<string | null>(null);
   const inFlight = useRef(false);
   const fieldId = useId();
+  const attachInput = useRef<HTMLInputElement>(null);
+  const chips = useRef<HTMLUListElement>(null);
+  // After a chip is removed, focus goes to the next chip, or to the attach control when none remain.
+  const focusAfterRemove = useRef<number | null>(null);
+
+  useEffect(() => {
+    const index = focusAfterRemove.current;
+    if (index === null) return;
+    focusAfterRemove.current = null;
+    const buttons = chips.current?.querySelectorAll<HTMLButtonElement>(".ws-chip-remove");
+    if (buttons && buttons.length > 0) buttons[Math.min(index, buttons.length - 1)].focus();
+    else attachInput.current?.focus();
+  }, [files]);
 
   const empty = text.trim() === "" && files.length === 0;
   const disabled = empty || busy;
@@ -78,7 +91,7 @@ export function Composer({ busy, onSend }: {
           onKeyDown={onKeyDown}
         />
         {files.length > 0 ? (
-          <ul className="ws-chips" aria-label="Attached files">
+          <ul ref={chips} className="ws-chips" aria-label="Attached files">
             {files.map((file, index) => (
               <li key={`${index}-${file.name}`} className="ws-chip">
                 <span className="ws-chip-name">{file.name}</span>
@@ -86,7 +99,10 @@ export function Composer({ busy, onSend }: {
                   type="button"
                   className="ws-chip-remove"
                   aria-label={`Remove ${file.name}`}
-                  onClick={() => setFiles((current) => current.filter((_, i) => i !== index))}
+                  onClick={() => {
+                    focusAfterRemove.current = index;
+                    setFiles((current) => current.filter((_, i) => i !== index));
+                  }}
                 >
                   <X size={14} aria-hidden="true" />
                 </button>
@@ -97,6 +113,7 @@ export function Composer({ busy, onSend }: {
         <div className="ws-composer-actions">
           <label className="ws-attach" title="Attach files">
             <input
+              ref={attachInput}
               type="file"
               multiple
               className="visually-hidden"

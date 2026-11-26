@@ -49,7 +49,7 @@ export function Conversation({ messages, live, echo, fresh, busy, onBuild, onOpe
   const scroller = useRef<HTMLDivElement>(null);
   const follow = useRef(true);
   const liveLog = (anchor: string) =>
-    live && live.anchor === anchor ? <ActivityLog key={`live-${anchor}`} items={live.items} live /> : null;
+    live && live.anchor === anchor && live.items.length > 0 ? <ActivityLog key={`live-${anchor}`} items={live.items} live /> : null;
 
   // Keep the newest message and activity line in view, unless the person scrolled up to read.
   const contentKey = `${messages.length}:${messages.at(-1)?.id ?? ""}:${live?.items.length ?? -1}:${echo ? 1 : 0}`;
@@ -103,7 +103,7 @@ export function Conversation({ messages, live, echo, fresh, busy, onBuild, onOpe
             <PersonMessage text={echo.text} attachments={echo.attachments} />
           </li>
         ) : null}
-        {echo && live?.anchor === ECHO_ANCHOR ? (
+        {echo && live?.anchor === ECHO_ANCHOR && live.items.length > 0 ? (
           <li className="conv-message">
             <div className="conv-factory">
               <span className="visually-hidden">Factory: </span>
