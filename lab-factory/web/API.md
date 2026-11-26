@@ -15,7 +15,7 @@ The app is built in one of two modes:
 | Variable | Meaning |
 |---|---|
 | `NEXT_PUBLIC_LABFACTORY_API_URL` | Base URL of the service, for example `https://labfactory.example.org/api`. When it is set at build time, the app uses the live client. When it is unset, the app uses sample data. |
-| `NEXT_PUBLIC_LABFACTORY_LAB_ID` | The lab the app shows in live mode. The app passes it as `{lab}` in the lab-scoped paths below. |
+| `NEXT_PUBLIC_LABFACTORY_LAB_ID` | Optional. The lab the app shows in live mode, passed as `{lab}` in the lab-scoped paths below. Defaults to the sample lab id, `emory-biophys`. |
 
 Paths in this document are relative to the base URL. A trailing slash on the
 base URL is ignored.
@@ -108,6 +108,16 @@ separated by `\n`, written as the work happens.
   digest of its canonical JSON, as `store.py` does today. If the new content's
   digest equals the latest revision's digest, no revision is appended and the
   latest revision is returned unchanged.
+- **Analysis code never reaches the network.** The analysis app and the
+  simulation run in a browser worker on the person's readings, which never
+  leave the browser. Once the Python runtime has loaded, the worker removes
+  every way the code has to make a request (`fetch`, `XMLHttpRequest`,
+  `WebSocket`, `EventSource`, `importScripts`, `sendBeacon`, nested workers,
+  and running strings as code, which would reach dynamic `import()`), so
+  Python's `js` module finds them refused with `Network access is not
+  available to analysis code.` The host serving the app should also send
+  `Content-Security-Policy: connect-src 'self'` (plus the service's origin in
+  live mode), so the browser itself enforces the same boundary.
 - **Digests.** A digest is SHA-256 over canonical JSON (`sort_keys`, compact
   separators, ASCII-escaped). The backend must not emit whole-valued floats
   (for example `550.0`) in digested records, because JSON parsers in the
@@ -186,6 +196,10 @@ separated by `\n`, written as the work happens.
   - `analysis_app` and `simulation` are present only when the experiment has
     them.
 - Errors: `404` for an unknown experiment.
+- The UI has no other source for an experiment's status, so on each refresh
+  it calls this once per experiment in the lab: for the sidebar's status
+  dots, the status lines on the project page and the order links on the
+  "Connect your agent" page (see "Work backwards").
 
 ```json
 {
@@ -326,8 +340,10 @@ separated by `\n`, written as the work happens.
   note `Added {title}`.
 - The document id is a slug of the title. If it collides with any document id
   in the lab, the project or the experiment, the service appends `-2`, `-3`
-  and so on, so every citation resolves to one document. The `source` of a
-  pasted or uploaded document is empty.
+  and so on, so every citation resolves to one document. The service sets the
+  document's `source`: `Added in Lab Factory` for a document added here
+  (pasted or uploaded), `{connector name}: {account}` for a connector import,
+  and `Attached in the conversation` for an attachment kept from a message.
 - If the target already has a document with the same title and text, nothing
   changes and the response is the latest revision.
 - Errors: `404` for an unknown project or experiment, `422` if the title or
@@ -345,6 +361,10 @@ The client maps `Pin["kind"]` to the path: `lab` to `labs`, `project` to
   record's canonical JSON, `at` is an ISO 8601 timestamp and `note` says what
   changed.
 - Errors: `404` for an unknown record.
+- "Built from" lists a submission's pins. Next to a pinned skill revision it
+  shows the skill's current title, from "Skills", because a `Pin` carries no
+  title; a skill renamed since keeps its pinned revision but reads with its
+  new title.
 
 ### Get and update lab settings
 
@@ -518,3 +538,9 @@ following backend changes. They are separate work, done after the web UI.
     events, and serve `AgentSetup` from the same values as
     `lab-factory/README.md` and `mcp_server.py`, with the `SKILL.md` the web
     app ships at `public/skills/labfactory-work-orders/SKILL.md`.
+13. **A status summary on `listProjects`.** Each experiment row could carry
+    its newest procedure order's status and latest event (for example
+    `{ "status": "in_review", "rejected_by": null }`). That would remove the
+    UI's one `GET /experiments/{id}/workspace` per experiment on each refresh,
+    which today feeds the sidebar's status dots, the project page's status
+    lines and the agents page's order links.

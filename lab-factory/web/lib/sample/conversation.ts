@@ -248,7 +248,8 @@ export async function confirmPlan(
       state.apps[experimentId] = app;
       await log.emit({ label: "Wrote analysis app", outcome: "done" });
       await log.emit({ label: `Ran ${app.reference_cases.length} reference cases`, outcome: "info" });
-      refs.push({ kind, summary: `Passes ${app.reference_cases.length} reference cases` });
+      // The browser runs the reference cases when the tab opens, so the card claims no result yet.
+      refs.push({ kind, summary: app.summary });
     } else {
       const sim = simulation();
       state.simulations[experimentId] = sim;

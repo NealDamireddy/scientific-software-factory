@@ -2,11 +2,12 @@
 
 import "./pages.css";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import type { Instrument } from "../lib/types.ts";
 import { useClient, useRoute } from "./ClientContext.tsx";
+import { useFocusRequest } from "./focus-request.ts";
 import { errorText } from "./pages-status.ts";
 
 export function StartExperiment({ projectId }: { projectId?: string }) {
@@ -17,6 +18,8 @@ export function StartExperiment({ projectId }: { projectId?: string }) {
   const [chosen, setChosen] = useState<string[] | null>(null);
   const [project, setProject] = useState("");
   const [description, setDescription] = useState("");
+  const field = useRef<HTMLTextAreaElement>(null);
+  useFocusRequest("experiment-description", field);
   const [loadedProjects, setLoadedProjects] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +72,7 @@ export function StartExperiment({ projectId }: { projectId?: string }) {
     <form className="pg-form" onSubmit={onSubmit} aria-label="Start an experiment">
       <label className="pg-field">
         <span>Describe your experiment</span>
-        <textarea rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
+        <textarea ref={field} rows={3} value={description} onChange={(e) => setDescription(e.target.value)} />
       </label>
       {instruments.length > 0 && (
         <fieldset className="pg-field pg-choices">

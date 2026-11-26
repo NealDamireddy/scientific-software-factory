@@ -1,6 +1,6 @@
 // How submissions and work orders read in the interface. Pure, so it runs under node --test.
 // These only put the factory's results into words; they never decide pass or fail.
-import type { CheckResult, HistoryEvent, OrderView, OutputKind, Submission, WorkOrder } from "./types.ts";
+import type { AttentionItem, CheckResult, HistoryEvent, OutputKind, Submission, WorkOrder, WorkOrderStatus } from "./types.ts";
 
 const OUTPUT_LABELS: Record<OutputKind, string> = {
   procedure: "Procedure",
@@ -23,9 +23,31 @@ export function submissionSummary(s: Submission): string {
   return `Submission ${s.number}, all checks passed`;
 }
 
-/** The submission an order view shows, or undefined when nothing has been submitted yet. */
-export function shownSubmission<S>(view: OrderView<S>): Submission | undefined {
-  return view.submissions.find((s) => s.number === view.shown);
+/** A work order's status in one or two words, as the sidebar and status lines say it. */
+const STATUS_WORDS: Record<WorkOrderStatus, string> = {
+  released: "Signed off",
+  in_review: "Waiting for sign-off",
+  in_progress: "Being revised",
+  open: "Not started",
+};
+
+/** What an experiment with no procedure order says instead of a status. */
+export const NO_PROCEDURE = "No procedure yet";
+
+/** The status word for an experiment's newest procedure order, or NO_PROCEDURE when it has none. */
+export function statusWord(status: WorkOrderStatus | null): string {
+  return status === null ? NO_PROCEDURE : STATUS_WORDS[status];
+}
+
+const ATTENTION_TEXT: Record<AttentionItem["kind"], string> = {
+  sign_off: STATUS_WORDS.in_review,
+  signed_off: STATUS_WORDS.released,
+  rejected: "Rejected",
+};
+
+/** What a `Needs your attention` row says about its order. */
+export function attentionText(kind: AttentionItem["kind"]): string {
+  return ATTENTION_TEXT[kind];
 }
 
 /** Whether a submission's summary reads as a failure. */
@@ -52,17 +74,21 @@ export function formatDate(iso: string): string {
 export function statusLine(order: WorkOrder, history: HistoryEvent[]): string {
   switch (order.status) {
     case "in_progress":
-      return "Being revised";
     case "in_review":
-      return "Waiting for sign-off";
+      return STATUS_WORDS[order.status];
     case "released": {
       const approved = [...history].reverse().find((h) => h.event === "approved");
-      return approved ? `Signed off by ${approved.actor} on ${formatDate(approved.at)}` : "Signed off";
+      return approved ? `Signed off by ${approved.actor} on ${formatDate(approved.at)}` : STATUS_WORDS.released;
     }
     case "open": {
       const last = history[history.length - 1];
       if (last && last.event === "rejected") return `Rejected by ${last.actor}: ${last.note}`;
-      return "Not started";
+      return STATUS_WORDS.open;
     }
   }
+}
+
+/** An error's message as the interface shows it. */
+export function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
 }

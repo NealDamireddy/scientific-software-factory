@@ -1,7 +1,7 @@
 import { expect, test } from "playwright/test";
 import type { Page } from "playwright/test";
 
-import { B12, COOMASSIE, attachProtocol } from "./helpers.ts";
+import { B12, COOMASSIE, attachProtocol, goto } from "./helpers.ts";
 
 const EARLIER = "You're viewing an earlier submission.";
 
@@ -22,7 +22,7 @@ async function optionTexts(body: ReturnType<typeof tabBody>, label: string): Pro
 
 test.describe("Coomassie after the protocol is attached", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(COOMASSIE);
+    await goto(page, COOMASSIE);
     await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
     await attachProtocol(page);
     const body = tabBody(page, "Procedure");
@@ -69,11 +69,17 @@ test.describe("Coomassie after the protocol is attached", () => {
     const withSelect = body.getByLabel("Compare with", { exact: true });
     await expect.poll(() => optionTexts(body, "Compare with")).toEqual(["WO-1 submission 1, 1 check failed"]);
     await expect(withSelect).toHaveValue("WO-1#1");
-    const rows = body.getByRole("list", { name: "Changes" }).getByRole("listitem");
+    const rows = body.getByRole("list", { name: "Changes" }).locator(":scope > li");
     await expect(rows).toHaveCount(2);
     await expect(rows.filter({ hasText: "Changed: " })).toHaveCount(1);
     await expect(rows.nth(0)).toContainText("Changed: citations");
     await expect(rows.nth(0)).toContainText("Step 4");
+    // It says what changed: the step's sources, before and after, by document title.
+    const details = rows.nth(0).getByRole("list", { name: "What changed" }).getByRole("listitem");
+    await expect(details).toHaveCount(1);
+    await expect(details.first()).toContainText("reduction-protocol.txt");
+    await expect(details.first()).toContainText("none");
+    await expect(details.first()).toHaveText(/^Sources: was none; now .*reduction-protocol\.txt/);
     await expect(rows.nth(1)).toHaveText("4 unchanged steps");
     await expect(rows.filter({ hasText: /^(Added|Removed)/ })).toHaveCount(0);
 
@@ -186,7 +192,7 @@ test.describe("Coomassie after the protocol is attached", () => {
 });
 
 test("the B12 run plan lists its one submission and has nothing to compare", async ({ page }) => {
-  await page.goto(B12);
+  await goto(page, B12);
   await expect(page.getByRole("heading", { level: 1, name: "Vitamin B12 absorbance" })).toBeVisible();
   const body = await openTab(page, "Run plan");
   await expect.poll(() => optionTexts(body, "Submission")).toEqual(["WO-B12-RP submission 1, 1 check failed"]);

@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { stripTypeScriptTypes } from "node:module";
 import { join } from "node:path";
 import { expect, test } from "playwright/test";
+import { goto } from "./helpers.ts";
 import type { Page } from "playwright/test";
 
 const webDir = join(import.meta.dirname, "..");
@@ -15,7 +16,7 @@ const TIMEOUT_MESSAGE = "The analysis runtime didn't respond within 60 s. Reload
 
 // Opens the page with createPythonRunner on window, and counts the workers it starts.
 async function openWithRunner(page: Page): Promise<void> {
-  await page.goto("/");
+  await goto(page, "/");
   await page.addScriptTag({
     type: "module",
     content: `${runnerModule}
@@ -52,7 +53,7 @@ function sampleReadings(): { time_s: number[]; absorbance: number[] } {
 }
 
 test("the self-hosted worker runs the analysis on the sample readings", async ({ page }) => {
-  await page.goto("/");
+  await goto(page, "/");
   const reply = await page.evaluate(
     ({ code, readings }) =>
       new Promise<{ id: number; ok: boolean; value?: { decay: boolean; rate_constant_per_s: number }; error?: string }>(
@@ -150,4 +151,50 @@ test("the runner surfaces Python errors verbatim and returns simulation results"
   expect(outcome.lengths).toEqual([61, 61, 61]);
   expect(outcome.first[0]).toBe(0);
   expect(outcome.first[1]).toBeCloseTo(0.8, 9);
+});
+
+// Analysis code runs on readings that must stay in the browser: the worker takes network access away
+// from it once Pyodide has loaded, and no request it attempts reaches the server.
+test("analysis code can't send readings out of the browser, and later runs still work", async ({ page }) => {
+  await openWithRunner(page);
+  const leaked: string[] = [];
+  page.on("request", (request) => { if (request.url().includes("leak")) leaked.push(request.url()); });
+  const outcome = await page.evaluate(
+    async ({ analysis, simulation, readings }) => {
+      const runner = (window as unknown as RunnerWindow).__createPythonRunner();
+      const attempt = async (code: string) => {
+        try {
+          return `resolved: ${JSON.stringify(await runner.run(code, "attempt", {}))}`;
+        } catch (e) {
+          return (e as Error).message;
+        }
+      };
+      const messages = [
+        await attempt("import js\ndef attempt():\n    js.fetch('/leak?fetch=1')\n    return 'sent'"),
+        await attempt("import js\ndef attempt():\n    r = js.XMLHttpRequest.new()\n    r.open('GET', '/leak?xhr=1')\n    r.send()\n    return 'sent'"),
+        await attempt("import js\ndef attempt():\n    js.WebSocket.new('ws://127.0.0.1:1/leak')\n    return 'sent'"),
+        await attempt("import js\ndef attempt():\n    js.EventSource.new('/leak?sse=1')\n    return 'sent'"),
+        await attempt("import js\ndef attempt():\n    js.importScripts('/leak?import=1')\n    return 'sent'"),
+        await attempt("import js\ndef attempt():\n    js.Object.getPrototypeOf(js).fetch('/leak?proto=1')\n    return 'sent'"),
+        await attempt("import js\ndef attempt():\n    js.Worker.new('/leak?worker=1')\n    return 'sent'"),
+        // Code built from a string could reach dynamic import(), which requests a module from any URL.
+        await attempt("import js\ndef attempt():\n    js.eval(\"import('/leak?eval=1')\")\n    return 'sent'"),
+        await attempt("import js\ndef attempt():\n    js.Function.new(\"return import('/leak?function=1')\")()\n    return 'sent'"),
+        await attempt("import js\ndef attempt():\n    js.setTimeout(\"import('/leak?timer=1')\", 0)\n    return 'sent'"),
+      ];
+      const analyzed = (await runner.run(analysis, "analyze", { readings })) as { decay: boolean };
+      const simulated = (await runner.run(simulation, "simulate", {})) as { series: unknown[] };
+      const again = (await runner.run(analysis, "analyze", { readings })) as { decay: boolean };
+      runner.dispose();
+      return { messages, decay: analyzed.decay, series: simulated.series.length, again: again.decay };
+    },
+    { analysis: analysisCode, simulation: simulationCode, readings: sampleReadings() },
+  );
+  for (const message of outcome.messages) expect(message).toContain("Network access is not available to analysis code.");
+  expect(outcome.decay).toBe(true);
+  expect(outcome.series).toBe(3);
+  expect(outcome.again).toBe(true);
+  // Give any request that slipped out a moment to show up: wait for a round trip of our own.
+  await page.evaluate(() => fetch("/").then((r) => r.text()));
+  expect(leaked).toEqual([]);
 });

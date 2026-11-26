@@ -3,10 +3,7 @@
 import { ArrowUp, Paperclip, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
-
-function errorText(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+import { errorText } from "../lib/status.ts";
 
 /**
  * The message box under the conversation: text, attached files as removable chips, and Send.

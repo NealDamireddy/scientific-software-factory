@@ -3,14 +3,23 @@ on:
   pull_request:
     paths:
       - lab-factory/web/**
+      - lab-factory/examples/**
+      - lab-factory/src/labfactory/**
       - .github/workflows/lab-factory-web.yml
   push:
     branches: [main]
     paths:
       - lab-factory/web/**
+      - lab-factory/examples/**
+      - lab-factory/src/labfactory/**
       - .github/workflows/lab-factory-web.yml
 permissions:
   contents: read
+
+# A newer push to the same pull request cancels the run it supersedes. Runs on main always finish.
+concurrency:
+  group: lab-factory-web-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   web:

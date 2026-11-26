@@ -1,7 +1,7 @@
 import { expect, test } from "playwright/test";
 import type { Page } from "playwright/test";
 
-import { B12, COOMASSIE, SAMPLE, startExperiment } from "./helpers.ts";
+import { B12, COOMASSIE, SAMPLE, startExperiment, goto } from "./helpers.ts";
 
 const SAMPLE_REPLY = "This is sample data, so the factory can’t act on that here. In the live app it would answer and update the outputs.";
 const FADING = "Measure the rate of fading and simulate it";
@@ -59,12 +59,16 @@ test.describe("a new experiment", () => {
     const log = activity(page);
     await expect(log.getByText("Read lab context (revision 1)")).toBeVisible();
     await expect(log.getByText("Ran 3 reference cases")).toHaveCount(0);
+    // While the build is in flight the card says what is being built.
+    await expect(page.getByText("Building: Procedure, Analysis app", { exact: true })).toBeVisible();
     await expect(page.getByText(SAMPLE)).toBeInViewport();
     await expect(log.getByRole("listitem").last()).toContainText("Ran 3 reference cases", { timeout: BUILD_MS });
     await expect(log.getByText("Wrote simulation")).toHaveCount(0);
-    await expect(page.getByText("Building: Procedure, Analysis app")).toBeVisible();
 
     await expect(panel(page)).toBeVisible();
+    // Once the factory's result is in, it says what was built.
+    await expect(page.getByText("Built: Procedure, Analysis app", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^Building:/)).toHaveCount(0);
     await expect.poll(() => tabNames(page)).toEqual(["Procedure", "Analysis app", "Results"]);
     // The template's steps read as instructions to a person, not as command names.
     const steps = panel(page).getByRole("tabpanel", { name: "Procedure" });
@@ -92,7 +96,7 @@ test.describe("a new experiment", () => {
 
 test.describe("the Coomassie workspace", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(COOMASSIE);
+    await goto(page, COOMASSIE);
     await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
   });
 
@@ -102,7 +106,8 @@ test.describe("the Coomassie workspace", () => {
   });
 
   test("an accepted proposal shows what was built and no controls", async ({ page }) => {
-    await expect(page.getByText("Building: Procedure, Analysis app, Simulation")).toBeVisible();
+    await expect(page.getByText("Built: Procedure, Analysis app, Simulation", { exact: true })).toBeVisible();
+    await expect(page.getByText(/^Building:/)).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Build these" })).toHaveCount(0);
     await expect(conversation(page).getByRole("checkbox")).toHaveCount(0);
   });
@@ -223,10 +228,26 @@ test.describe("the Coomassie workspace", () => {
   });
 });
 
-for (const width of [1120, 1280]) {
+test("at a 1024 by 700 window the conversation and the panel sit side by side, with nothing scrolled", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 700 });
+  await goto(page, COOMASSIE);
+  const procedure = panel(page).getByRole("tabpanel", { name: "Procedure" });
+  await expect(procedure.getByRole("heading", { level: 2, name: "Submission 1, 1 check failed" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Coomassie reduction" }).first()).toBeInViewport();
+  await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeInViewport();
+  await expect(conversation(page)).toBeInViewport();
+  await expect(panel(page).getByRole("tab", { name: "Procedure" })).toBeInViewport();
+  await expect(procedure.getByRole("heading", { level: 2, name: "Submission 1, 1 check failed" })).toBeInViewport();
+  const conv = await conversation(page).boundingBox();
+  const out = await panel(page).boundingBox();
+  expect(conv!.x + conv!.width).toBeLessThanOrEqual(out!.x + 0.5);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+});
+
+for (const width of [1024, 1100, 1280]) {
   test(`every panel tab is fully inside the panel at ${width} px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 800 });
-    await page.goto(COOMASSIE);
+    await goto(page, COOMASSIE);
     await expect.poll(() => tabNames(page)).toEqual(["Procedure", "Analysis app", "Results", "Simulation"]);
     await expect(panel(page).getByRole("tablist", { name: "Output tabs" })).toBeVisible();
     const box = await panel(page).boundingBox();
@@ -243,11 +264,14 @@ for (const width of [1120, 1280]) {
 }
 
 test("removing the last chip moves focus to the attach control", async ({ page }) => {
-  await page.goto(COOMASSIE);
+  await goto(page, COOMASSIE);
   await page.getByLabel("Attach files").setInputFiles([
     { name: "a.txt", mimeType: "text/plain", buffer: Buffer.from("A") },
     { name: "b.txt", mimeType: "text/plain", buffer: Buffer.from("B") },
   ]);
+  const remove = await page.getByRole("button", { name: "Remove a.txt" }).boundingBox();
+  expect(remove!.width).toBeGreaterThanOrEqual(40);
+  expect(remove!.height).toBeGreaterThanOrEqual(40);
   await page.getByRole("button", { name: "Remove a.txt" }).click();
   await expect(page.getByRole("button", { name: "Remove b.txt" })).toBeFocused();
   await page.getByRole("button", { name: "Remove b.txt" }).click();
@@ -255,7 +279,7 @@ test("removing the last chip moves focus to the attach control", async ({ page }
 });
 
 test("returning to an experiment mid-build shows the work in progress", async ({ page }) => {
-  await page.goto(COOMASSIE);
+  await goto(page, COOMASSIE);
   await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
   await page.getByLabel("Attach files").setInputFiles({
     name: "reduction-protocol.txt", mimeType: "text/plain", buffer: Buffer.from("Add the reducing agent dropwise."),
@@ -288,7 +312,7 @@ test("returning to an experiment mid-build shows the work in progress", async ({
 });
 
 test("the B12 workspace has Procedure and Run plan tabs", async ({ page }) => {
-  await page.goto(B12);
+  await goto(page, B12);
   await expect(page.getByRole("heading", { level: 1, name: "Vitamin B12 absorbance" })).toBeVisible();
   await expect.poll(() => tabNames(page)).toEqual(["Procedure", "Run plan"]);
 });

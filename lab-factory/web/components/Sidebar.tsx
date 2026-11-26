@@ -1,12 +1,16 @@
 "use client";
 
 import { ChevronDown, ChevronRight, FolderPlus, Plus, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
+import type { MouseEvent } from "react";
 
 import { routeHref } from "../lib/route.ts";
+import { errorText, statusWord } from "../lib/status.ts";
 import type { Route } from "../lib/route.ts";
 import type { Experiment, Project, WorkOrderStatus } from "../lib/types.ts";
 import { useClient, useRoute } from "./ClientContext.tsx";
+import { requestFocus } from "./focus-request.ts";
+import type { FocusTarget } from "./focus-request.ts";
 import { LabMenu } from "./LabMenu.tsx";
 import { SampleIndicator } from "./SampleIndicator.tsx";
 
@@ -14,25 +18,32 @@ type ProjectRow = Project & { experiments: Pick<Experiment, "id" | "title">[] };
 /** The newest procedure order's status per experiment id; null when it has no procedure. */
 type Statuses = Record<string, WorkOrderStatus | null>;
 
-const STATUS_TEXT: Record<WorkOrderStatus | "none", string> = {
-  released: "Signed off",
-  in_review: "Waiting for sign-off",
-  in_progress: "Being revised",
-  open: "Not started",
-  none: "No procedure yet",
-};
-
 function dotClass(status: WorkOrderStatus | null | undefined): string {
   if (status === "released") return "status-dot status-dot-released";
   if (status === "in_review") return "status-dot status-dot-review";
   return "status-dot";
 }
 
+/** A plain click on a `New` link focuses its form's field; a click that opens a new tab doesn't. */
+function focusAfter(event: MouseEvent<HTMLAnchorElement>, target: FocusTarget): void {
+  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+  requestFocus(target);
+}
+
 function projectIdOf(route: Route): string | null {
   return route.view === "project" || route.view === "experiment" ? route.projectId : null;
 }
 
+const noSubscription = () => () => {};
+
+/** Apple keyboards say ⌘K. Decided on the client; the prerendered page says `Ctrl K`. */
+function onApple(): boolean {
+  const data = (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData;
+  return [data?.platform, navigator.platform].some((p) => typeof p === "string" && /mac|iphone|ipad|ipod/i.test(p));
+}
+
 export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boolean }) {
+  const shortcut = useSyncExternalStore(noSubscription, () => (onApple() ? "⌘K" : "Ctrl K"), () => "Ctrl K");
   const { client, labId, version } = useClient();
   const [route] = useRoute();
   const [projects, setProjects] = useState<ProjectRow[] | null>(null);
@@ -53,7 +64,7 @@ export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boo
           () => [id, null] as const,
         ))).then((pairs) => { if (live) setStatuses(Object.fromEntries(pairs)); });
       },
-      (e: unknown) => { if (live) setError(e instanceof Error ? e.message : String(e)); },
+      (e: unknown) => { if (live) setError(errorText(e)); },
     );
     return () => { live = false; };
   }, [client, labId, version]);
@@ -95,9 +106,9 @@ export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boo
         >
           <Search size={16} aria-hidden="true" />
           <span className="sidebar-item-label">Search</span>
-          <kbd className="shortcut" aria-hidden="true">Ctrl K</kbd>
+          <kbd className="shortcut" aria-hidden="true">{shortcut}</kbd>
         </button>
-        <a className="sidebar-item" href={newExperimentHref}>
+        <a className="sidebar-item" href={newExperimentHref} onClick={(e) => focusAfter(e, "experiment-description")}>
           <Plus size={16} aria-hidden="true" />
           <span className="sidebar-item-label">New experiment</span>
         </a>
@@ -147,7 +158,7 @@ export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boo
                             <span className={dotClass(status)} aria-hidden="true" />
                             <span className="sidebar-item-label">{e.title}</span>
                             {status !== undefined && (
-                              <span className="visually-hidden">, {STATUS_TEXT[status ?? "none"]}</span>
+                              <span className="visually-hidden">, {statusWord(status)}</span>
                             )}
                           </a>
                         </li>
@@ -160,7 +171,7 @@ export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boo
             })}
           </ul>
         )}
-        <a className="sidebar-item" href={routeHref({ view: "home" })}>
+        <a className="sidebar-item" href={routeHref({ view: "home" })} onClick={(e) => focusAfter(e, "project-title")}>
           <FolderPlus size={16} aria-hidden="true" />
           <span className="sidebar-item-label">New project</span>
         </a>

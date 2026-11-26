@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 
 import type { Route } from "../lib/route.ts";
@@ -18,6 +18,7 @@ import { SkillsPage } from "./SkillsPage.tsx";
 import { ConnectorsPage } from "./ConnectorsPage.tsx";
 import { AgentsPage } from "./AgentsPage.tsx";
 import { Workspace } from "./Workspace.tsx";
+import { errorText } from "../lib/status.ts";
 
 /** Each route maps to exactly one view. */
 function View({ route }: { route: Route }) {
@@ -40,7 +41,9 @@ type Check = "checking" | "found" | "missing" | { error: string };
  * client before the view renders: an unknown project, or an experiment outside that project, is
  * not found.
  */
-function KnownIds({ projectId, experimentId, children }: { projectId: string; experimentId?: string; children: ReactNode }) {
+function KnownIds({ projectId, experimentId, onResolved, children }: {
+  projectId: string; experimentId?: string; onResolved: () => void; children: ReactNode;
+}) {
   const { client, version } = useClient();
   const [check, setCheck] = useState<{ key: string; result: Check }>({ key: "", result: "checking" });
   const key = `${projectId}\n${experimentId ?? ""}`;
@@ -55,7 +58,7 @@ function KnownIds({ projectId, experimentId, children }: { projectId: string; ex
       (e: unknown) => {
         if (!live) return;
         const missing = e instanceof ClientError && e.code === "not_found";
-        setCheck({ key, result: missing ? "missing" : { error: e instanceof Error ? e.message : String(e) } });
+        setCheck({ key, result: missing ? "missing" : { error: errorText(e) } });
       },
     );
     return () => { live = false; };
@@ -64,6 +67,9 @@ function KnownIds({ projectId, experimentId, children }: { projectId: string; ex
   // A result for other ids (the route just changed) counts as still checking. After the first
   // check, re-checks on refresh keep showing the view.
   const result = check.key === key ? check.result : "checking";
+  useEffect(() => {
+    if (result !== "checking") onResolved();
+  }, [result, onResolved]);
   if (result === "checking") return null;
   if (result === "missing") return <NotFound />;
   if (result !== "found") {
@@ -72,24 +78,46 @@ function KnownIds({ projectId, experimentId, children }: { projectId: string; ex
   return <>{children}</>;
 }
 
+const noSubscription = () => () => {};
+
+/** False in the prerendered page and while it hydrates, true once the app runs on the client. */
+function useMounted(): boolean {
+  return useSyncExternalStore(noSubscription, () => true, () => false);
+}
+
 export function Shell() {
   const { mode } = useClient();
   const [route] = useRoute();
+  const mounted = useMounted();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // Whether the first route has resolved: at once for most views, after the id check for a
+  // project or experiment.
+  const [resolved, setResolved] = useState(false);
   const openPalette = useCallback(() => setPaletteOpen(true), []);
   const closePalette = useCallback(() => setPaletteOpen(false), []);
+  const markResolved = useCallback(() => setResolved(true), []);
+  const checksIds = route.view === "project" || route.view === "experiment";
+
+  useEffect(() => {
+    if (mounted && !checksIds) setResolved(true);
+  }, [mounted, checksIds]);
 
   let view = <View route={route} />;
-  if (route.view === "project") view = <KnownIds projectId={route.projectId}>{view}</KnownIds>;
+  if (route.view === "project") view = <KnownIds projectId={route.projectId} onResolved={markResolved}>{view}</KnownIds>;
   if (route.view === "experiment") {
-    view = <KnownIds projectId={route.projectId} experimentId={route.experimentId}>{view}</KnownIds>;
+    view = (
+      <KnownIds projectId={route.projectId} experimentId={route.experimentId} onResolved={markResolved}>{view}</KnownIds>
+    );
   }
 
+  // The static export prerenders without a route (the hash never reaches the server), so until the
+  // app has mounted the main area stays empty: a deep link never flashes the lab home first.
+  // The sidebar is drawn but inert until then, so nothing is clicked before it works.
   return (
-    <div className={mode === "sample" ? "shell shell-sample" : "shell"}>
+    <div className={mode === "sample" ? "shell shell-sample" : "shell"} data-ready={mounted && resolved ? "true" : "false"}>
       {/* While the palette is open, everything behind it is inert. */}
-      <Sidebar onSearch={openPalette} inert={paletteOpen} />
-      <main className="content" inert={paletteOpen}>{view}</main>
+      <Sidebar onSearch={openPalette} inert={paletteOpen || !mounted} />
+      <main className="content" inert={paletteOpen}>{mounted ? view : null}</main>
 
       <DocumentDrawer />
 

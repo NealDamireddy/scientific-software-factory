@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "playwright/test";
 import type { Page } from "playwright/test";
 
-import { B12, COOMASSIE, attachProtocol, startExperiment, viewAs } from "./helpers.ts";
+import { B12, COOMASSIE, attachProtocol, startExperiment, viewAs, goto } from "./helpers.ts";
 
 // Pyodide loads in the worker on the first run, so the first computed result gets a long wait.
 const COMPUTE = { timeout: 80_000 };
@@ -24,35 +24,99 @@ async function openTab(page: Page, name: string) {
 }
 
 async function openCoomassie(page: Page) {
-  await page.goto(COOMASSIE);
+  await goto(page, COOMASSIE);
   await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
 }
 
 async function openB12(page: Page) {
-  await page.goto(B12);
+  await goto(page, B12);
   await expect(page.getByRole("heading", { level: 1, name: "Vitamin B12 absorbance" })).toBeVisible();
 }
 
-async function heading(page: Page, name: string) {
-  await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
+/** The lab home with its attention list loaded: items, or the line that says there are none. */
+async function homeLoaded(page: Page) {
+  const attention = page.getByRole("region", { name: "Needs your attention" });
+  await expect(attention.getByRole("link").first().or(attention.getByText("Nothing needs you right now."))).toBeVisible();
 }
 
 /** The screens, each reached the way a person would reach it. Every one runs in both themes. */
 const SCREENS: Screen[] = [
-  { name: "lab home", prepare: async (page) => { await page.goto("/#/"); await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); } },
-  { name: "lab page", prepare: async (page) => { await page.goto("/#/lab"); await expect(page.getByText("Revision history")).toBeVisible(); } },
-  { name: "lab settings", prepare: async (page) => { await page.goto("/#/settings"); await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); } },
+  { name: "lab home", prepare: async (page) => { await goto(page, "/#/"); await homeLoaded(page); } },
+  {
+    name: "lab home as approver",
+    prepare: async (page) => {
+      await goto(page, "/#/");
+      await homeLoaded(page);
+      await viewAs(page, "Approver");
+      const attention = page.getByRole("region", { name: "Needs your attention" });
+      await expect(attention.getByText("Waiting for sign-off").first()).toBeVisible();
+    },
+  },
+  {
+    name: "lab page",
+    prepare: async (page) => {
+      await goto(page, "/#/lab");
+      await expect(page.getByText("Revision history")).toBeVisible();
+      await expect(page.locator(".range-strip").first()).toBeVisible();
+    },
+  },
+  {
+    name: "lab settings",
+    prepare: async (page) => {
+      await goto(page, "/#/settings");
+      await expect(page.getByRole("radio", { name: "Anyone who gives their name" })).toBeEnabled();
+      await expect(page.getByRole("radio", { checked: true })).toHaveCount(1);
+    },
+  },
   {
     name: "skills with the editor open",
     prepare: async (page) => {
-      await page.goto("/#/skills?skill=procedure-style");
-      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-      await expect(page.getByRole("textbox").first()).toBeVisible();
+      await goto(page, "/#/skills?skill=procedure-style");
+      const form = page.getByRole("form", { name: "Edit skill" });
+      await expect(form.getByLabel("Title")).not.toHaveValue("");
+      await expect(form.getByLabel("Instructions (Markdown)")).not.toHaveValue("");
     },
   },
-  { name: "connectors", prepare: async (page) => { await page.goto("/#/connectors"); await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); } },
-  { name: "connect your agent", prepare: async (page) => { await page.goto("/#/agents"); await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); } },
-  { name: "Coomassie project page", prepare: async (page) => { await page.goto("/#/projects/coomassie-reduction"); await expect(page.getByRole("heading", { level: 1 })).toBeVisible(); } },
+  {
+    name: "connectors",
+    prepare: async (page) => {
+      await goto(page, "/#/connectors");
+      await expect(page.getByText("Connected as Emory Biophysics library")).toBeVisible();
+    },
+  },
+  {
+    name: "connect your agent",
+    prepare: async (page) => {
+      await goto(page, "/#/agents");
+      const agents = page.getByRole("region", { name: "Connected agents" });
+      await expect(agents.getByText("codex on lab-pc", { exact: true })).toBeVisible();
+    },
+  },
+  {
+    name: "Coomassie project page",
+    prepare: async (page) => {
+      await goto(page, "/#/projects/coomassie-reduction");
+      const aside = page.getByRole("complementary", { name: "Shared with every experiment in this project" });
+      await expect(aside.getByRole("link").first()).toBeVisible();
+    },
+  },
+  {
+    name: "not found",
+    prepare: async (page) => {
+      await goto(page, "/#/projects/nope/experiments/nothing");
+      await expect(page.getByRole("link", { name: "Go to lab home" })).toBeVisible();
+    },
+  },
+  {
+    name: "experiment context open",
+    prepare: async (page) => {
+      await openCoomassie(page);
+      await page.getByRole("button", { name: "Experiment context" }).click();
+      const section = page.getByRole("region", { name: "Experiment context" });
+      await expect(section.getByRole("heading", { name: "Instruments" })).toBeVisible();
+      await expect(section.getByText("Loading")).toHaveCount(0);
+    },
+  },
   {
     name: "Coomassie workspace, Procedure tab",
     prepare: async (page) => {
@@ -101,7 +165,7 @@ const SCREENS: Screen[] = [
   {
     name: "command palette with results",
     prepare: async (page) => {
-      await page.goto("/#/");
+      await goto(page, "/#/");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await page.keyboard.press("Control+k");
       const input = page.getByRole("combobox", { name: "Search the lab" });
@@ -113,7 +177,7 @@ const SCREENS: Screen[] = [
   {
     name: "document drawer open",
     prepare: async (page) => {
-      await page.goto("/#/projects/coomassie-reduction/experiments/coomassie-run-1?doc=coomassie-dye-prep");
+      await goto(page, "/#/projects/coomassie-reduction/experiments/coomassie-run-1?doc=coomassie-dye-prep");
       const drawer = page.getByRole("complementary", { name: "Document" });
       await expect(drawer.getByRole("heading", { level: 2, name: "Dye stock preparation" })).toBeVisible();
     },
@@ -121,7 +185,7 @@ const SCREENS: Screen[] = [
   {
     name: "lab menu open",
     prepare: async (page) => {
-      await page.goto("/#/");
+      await goto(page, "/#/");
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
       await page.getByRole("navigation", { name: "Lab" }).getByRole("button", { name: /Emory Biophysics/ }).click();
       await expect(page.getByRole("radio", { name: "Approver" })).toBeVisible();

@@ -4,7 +4,7 @@ import { ChartSpline, Code, FileText, SquareTerminal } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import type { OutputKind, OutputRef } from "../lib/types.ts";
-import { OUTPUT_LABEL } from "./OutputPanel.tsx";
+import { outputLabel } from "../lib/status.ts";
 
 const ICON: Record<OutputKind, LucideIcon> = {
   procedure: FileText,
@@ -22,7 +22,7 @@ export function OutputRefCard({ output, onOpen }: { output: OutputRef; onOpen: (
   return (
     <button type="button" className="conv-ref" onClick={() => onOpen(output)}>
       <Icon size={18} aria-hidden="true" className="conv-ref-icon" />
-      <span className="conv-ref-label">{OUTPUT_LABEL[output.kind]}</span>
+      <span className="conv-ref-label">{outputLabel(output.kind)}</span>
       <span className="conv-ref-summary">{output.summary}</span>
     </button>
   );

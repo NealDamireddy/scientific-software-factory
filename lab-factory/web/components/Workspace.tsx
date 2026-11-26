@@ -3,22 +3,20 @@
 import "./workspace.css";
 
 import { PanelRightOpen } from "lucide-react";
-import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { routeHref } from "../lib/route.ts";
+import { errorText } from "../lib/status.ts";
 import type { ActivityItem, Message, OnActivity, OutputKind, OutputRef, Workspace as WorkspaceData } from "../lib/types.ts";
 import { useClient } from "./ClientContext.tsx";
 import { Composer } from "./Composer.tsx";
 import { Conversation, ECHO_ANCHOR } from "./Conversation.tsx";
+import { ExperimentContext, ExperimentContextToggle } from "./ExperimentContext.tsx";
 import type { Echo, LiveActivity } from "./Conversation.tsx";
 import { OutputPanel, availableTabs } from "./OutputPanel.tsx";
 import { RunnerProvider } from "./RunnerContext.tsx";
 import type { PanelTab } from "./OutputPanel.tsx";
 import type { ShowOrderRequest } from "./SubmissionPanel.tsx";
-
-function errorText(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
 
 /** One experiment: its conversation with the factory, and the outputs it built beside it. */
 export function Workspace({ projectId, experimentId }: { projectId: string; experimentId: string }) {
@@ -67,6 +65,8 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
   );
 
   const [closed, setClosed] = useState(false);
+  const [contextOpen, setContextOpen] = useState(false);
+  const contextId = useId();
   const [tab, setTab] = useState<PanelTab | null>(null);
   const [orderRequest, setOrderRequest] = useState<ShowOrderRequest | null>(null);
   const focusNext = useRef<"show" | "tab" | null>(null);
@@ -171,18 +171,22 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
             <span className="ws-crumb-sep">/</span>
             <h1 className="ws-title">{data.experiment.title}</h1>
           </div>
-          {hasOutputs && !open ? (
-            <button
-              ref={showButton}
-              type="button"
-              className="ws-button ws-show"
-              onClick={() => { setClosed(false); focusNext.current = "tab"; }}
-            >
-              <PanelRightOpen size={18} aria-hidden="true" />
-              <span>Show outputs</span>
-            </button>
-          ) : null}
+          <div className="ws-header-actions">
+            <ExperimentContextToggle open={contextOpen} controls={contextId} onToggle={() => setContextOpen((o) => !o)} />
+            {hasOutputs && !open ? (
+              <button
+                ref={showButton}
+                type="button"
+                className="ws-button ws-show"
+                onClick={() => { setClosed(false); focusNext.current = "tab"; }}
+              >
+                <PanelRightOpen size={18} aria-hidden="true" />
+                <span>Show outputs</span>
+              </button>
+            ) : null}
+          </div>
         </header>
+        {contextOpen && <ExperimentContext id={contextId} experiment={data.experiment} />}
         {loadError ? <p className="ws-error ws-load-error" role="alert">{loadError}</p> : null}
         <Conversation
           messages={messages}

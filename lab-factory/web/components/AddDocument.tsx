@@ -75,7 +75,7 @@ export function AddDocument({ target }: { target: DocumentTarget }) {
       </label>
       <div className="pg-field">
         <label htmlFor={`${uid}-file`} className="pg-note">Or fill it from a .txt or .md file</label>
-        <input id={`${uid}-file`} type="file" accept=".txt,.md,text/plain,text/markdown" onChange={onFile} />
+        <input id={`${uid}-file`} className="file-input" type="file" accept=".txt,.md,text/plain,text/markdown" onChange={onFile} />
       </div>
       <div className="pg-actions">
         <button type="submit" className="pg-button" disabled={!ready || pending}>Add document</button>

@@ -6,6 +6,7 @@ import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 
 import type { SearchHit } from "../lib/types.ts";
 import { useClient } from "./ClientContext.tsx";
+import { errorText } from "../lib/status.ts";
 
 const KIND_LABEL: Record<SearchHit["kind"], string> = {
   project: "Project",
@@ -70,7 +71,7 @@ function PaletteDialog({ onClose }: { onClose: () => void }) {
       client.search(labId, q).then(
         (found) => { if (live) { setResults({ query: q, hits: found, error: null }); setActive(0); } },
         (e: unknown) => {
-          if (live) setResults({ query: q, hits: [], error: e instanceof Error ? e.message : String(e) });
+          if (live) setResults({ query: q, hits: [], error: errorText(e) });
         },
       );
     }, DEBOUNCE_MS);
@@ -91,11 +92,14 @@ function PaletteDialog({ onClose }: { onClose: () => void }) {
     if (pendingEnter === current.query && current.hits.length > 0) choose(current.hits[0]);
   });
 
-  // A route change from anywhere closes the palette.
+  // A route change from anywhere closes the palette. A hashchange event that was already on its way
+  // when the palette opened names the hash it opened on, so it is ignored.
+  const [openedOn] = useState(() => window.location.hash);
   useEffect(() => {
-    window.addEventListener("hashchange", onClose);
-    return () => window.removeEventListener("hashchange", onClose);
-  }, [onClose]);
+    const onHash = () => { if (window.location.hash !== openedOn) onClose(); };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [onClose, openedOn]);
 
   // Escape and Tab are handled on the document, so they work wherever focus is while it's open.
   useEffect(() => {

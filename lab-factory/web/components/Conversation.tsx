@@ -14,6 +14,12 @@ export type Echo = { text: string; attachments: string[] };
 /** The anchor of live activity that belongs to the echo rather than to a stored message. */
 export const ECHO_ANCHOR = "echo";
 
+/** Whether a factory message after this one carries built outputs: the proposal's build came back. */
+function builtAfter(messages: Message[], id: string): boolean {
+  const at = messages.findIndex((m) => m.id === id);
+  return at !== -1 && messages.slice(at + 1).some((m) => m.from === "factory" && (m.output_refs?.length ?? 0) > 0);
+}
+
 // Within this distance of the bottom, the conversation follows new content.
 const FOLLOW_PX = 80;
 
@@ -79,6 +85,7 @@ export function Conversation({ messages, live, echo, fresh, busy, onBuild, onOpe
                 {message.proposal ? (
                   <ProposalCard
                     proposal={message.proposal}
+                    built={builtAfter(messages, message.id)}
                     busy={busy}
                     onBuild={(outputs) => onBuild(message.id, outputs)}
                   />

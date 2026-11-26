@@ -23,22 +23,28 @@ npm run build
 python3 -m http.server 4190 --bind 127.0.0.1 --directory out
 ```
 
-The export is written to `out/` and works from any static file server. Open
-`http://127.0.0.1:4190/`.
+The export is written to `out/` and works from any static file server, served
+at the root of an origin (it loads its scripts and the Python runtime from
+`/_next/` and `/runtime/`, so it can't live under a sub-path). Open
+`http://127.0.0.1:4190/`. The host should send
+`Content-Security-Policy: connect-src 'self'` (plus the backend's origin in
+live mode); see "Analysis code never reaches the network" in [API.md](API.md).
 
 ## Sample mode and live mode
 
 By default the app runs in sample mode. It shows a fixed lab, two projects and
 their experiments, and a banner says `Sample data. Nothing here is saved or
-real.` Nothing you do is stored beyond the open page.
+real.` No lab data is stored beyond the open page; only your theme choice is
+kept.
 
-Live mode talks to a backend. Set both variables when you build; they are read
-at build time.
+Live mode talks to a backend. Only `NEXT_PUBLIC_LABFACTORY_API_URL` switches
+the app to live mode; `NEXT_PUBLIC_LABFACTORY_LAB_ID` is optional. Both are
+read at build time.
 
 | Variable | Meaning |
 |---|---|
 | `NEXT_PUBLIC_LABFACTORY_API_URL` | Base URL of the backend. When set, the app uses the live client. When unset, it uses sample data. |
-| `NEXT_PUBLIC_LABFACTORY_LAB_ID` | The lab to show in live mode. |
+| `NEXT_PUBLIC_LABFACTORY_LAB_ID` | Optional. The lab to show in live mode. Defaults to the sample lab id, `emory-biophys`. |
 
 Live mode needs a backend that implements [API.md](API.md). That backend does
 not exist yet, so live mode is the contract and a client, not something you
@@ -53,7 +59,8 @@ before `build`. Only `public/runtime/python-worker.mjs` is committed; the
 copies are git-ignored.
 
 The Python is standard library only. Readings are parsed and analyzed in the
-browser and are never sent anywhere. Pyodide loads only from `/runtime/`, and
+browser and are never sent anywhere: once Pyodide has loaded, the worker
+removes network access from the analysis code. Pyodide loads only from `/runtime/`, and
 nothing is fetched from a CDN or from Google Fonts.
 
 ## Scripts

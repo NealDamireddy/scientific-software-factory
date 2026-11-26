@@ -1,13 +1,7 @@
 // Small display helpers shared by the lab, project and settings pages. Status lines live in lib/status.ts.
-import type { AttentionItem, Document } from "../lib/types.ts";
+import type { Document } from "../lib/types.ts";
 
-export { formatDate } from "../lib/status.ts";
-
-export const ATTENTION_TEXT: Record<AttentionItem["kind"], string> = {
-  sign_off: "Waiting for sign-off",
-  signed_off: "Signed off",
-  rejected: "Rejected",
-};
+export { errorText, formatDate } from "../lib/status.ts";
 
 export const DOCUMENT_KINDS: { value: Document["kind"]; label: string }[] = [
   { value: "sop", label: "SOP" },
@@ -25,8 +19,4 @@ export function kindLabel(kind: Document["kind"]): string {
 export function sentenceCase(name: string): string {
   const text = name.replace(/_/g, " ").trim();
   return text.charAt(0).toUpperCase() + text.slice(1);
-}
-
-export function errorText(e: unknown): string {
-  return e instanceof Error ? e.message : String(e);
 }

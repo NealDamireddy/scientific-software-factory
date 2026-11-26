@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createSampleClient } from "./sample/client.ts";
-import { outputLabel, shownSubmission, statusLine, submissionFailed, submissionSummary, unplacedFailures } from "./status.ts";
+import {
+  NO_PROCEDURE, attentionText, errorText, outputLabel, statusLine, statusWord, submissionFailed, submissionSummary, unplacedFailures,
+} from "./status.ts";
 import type { CheckResult, HistoryEvent, StepView, Submission, WorkOrder, WorkOrderStatus } from "./types.ts";
 
 function order(status: WorkOrderStatus): WorkOrder {
@@ -93,13 +95,24 @@ test("a failing summary is a failure, a passing one is not", () => {
   assert.equal(submissionFailed(submission(1, [ok("a")], false)), true);
 });
 
-test("the shown submission is the one the view names, if any", () => {
-  const one = submission(1, [bad("a")]);
-  const two = submission(2, [ok("a")]);
-  const view = { order: order("in_review"), submissions: [one, two], shown: 1, steps: [], history: BASE };
-  assert.equal(shownSubmission(view), one);
-  assert.equal(shownSubmission({ ...view, shown: 2 }), two);
-  assert.equal(shownSubmission({ ...view, submissions: [], shown: 0 }), undefined);
+test("status words, attention text and status lines say a status the same way", () => {
+  assert.equal(statusWord("released"), "Signed off");
+  assert.equal(statusWord("in_review"), "Waiting for sign-off");
+  assert.equal(statusWord("in_progress"), "Being revised");
+  assert.equal(statusWord("open"), "Not started");
+  assert.equal(statusWord(null), NO_PROCEDURE);
+  assert.equal(NO_PROCEDURE, "No procedure yet");
+  assert.equal(attentionText("sign_off"), statusWord("in_review"));
+  assert.equal(attentionText("signed_off"), statusWord("released"));
+  assert.equal(attentionText("rejected"), "Rejected");
+  for (const status of ["in_progress", "in_review", "open"] as const) {
+    assert.equal(statusLine(order(status), BASE), statusWord(status));
+  }
+});
+
+test("errorText gives an error's message, or the value as text", () => {
+  assert.equal(errorText(new Error("Nope.")), "Nope.");
+  assert.equal(errorText("plain"), "plain");
 });
 
 const fail = (name: string, detail: string): CheckResult => ({ name, passed: false, detail });
@@ -111,7 +124,7 @@ function step(number: number, failures: CheckResult[]): StepView {
 test("the seeded Coomassie procedure has no failure outside its steps", async () => {
   const c = createSampleClient({ now: () => new Date("2026-11-26T12:00:00.000Z") });
   const view = (await c.getWorkspace("coomassie-run-1")).procedure!;
-  const shown = shownSubmission(view)!;
+  const shown = view.submissions.find((s) => s.number === view.shown)!;
   assert.ok(shown.results.some((r) => !r.passed), "the seed has a failing check to place");
   assert.deepEqual(unplacedFailures(shown.results, view.steps), []);
 });

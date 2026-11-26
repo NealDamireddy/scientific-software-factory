@@ -3,18 +3,16 @@
 import { useRef, useState } from "react";
 
 import type { OutputKind, Proposal } from "../lib/types.ts";
-import { OUTPUT_LABEL } from "./OutputPanel.tsx";
-
-function errorText(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
+import { errorText, outputLabel } from "../lib/status.ts";
 
 /**
- * The factory's plan: one checkbox per proposed output and `Build these`. Once accepted (or while
- * the build is running) it states what is being built and offers no controls.
+ * The factory's plan: one checkbox per proposed output and `Build these`. While the build is running
+ * it says `Building: …`, and once the factory's result has come back, `Built: …`; neither offers controls.
  */
-export function ProposalCard({ proposal, busy, onBuild }: {
+export function ProposalCard({ proposal, built, busy, onBuild }: {
   proposal: Proposal;
+  /** A later factory message carries the built outputs: the build is done. */
+  built: boolean;
   /** Something else is in flight (a send or another build), so building waits. */
   busy: boolean;
   /** Starts the build. Rejects with the client's refusal. */
@@ -30,7 +28,7 @@ export function ProposalCard({ proposal, busy, onBuild }: {
   if (accepted) {
     return (
       <p className="conv-proposal conv-proposal-done">
-        Building: {accepted.map((kind) => OUTPUT_LABEL[kind]).join(", ")}
+        {proposal.accepted && built ? "Built" : "Building"}: {accepted.map((kind) => outputLabel(kind)).join(", ")}
       </p>
     );
   }
@@ -65,7 +63,7 @@ export function ProposalCard({ proposal, busy, onBuild }: {
           <li key={kind}>
             <label className="conv-proposal-option">
               <input type="checkbox" checked={chosen.includes(kind)} onChange={(e) => toggle(kind, e.currentTarget.checked)} />
-              <span>{OUTPUT_LABEL[kind]}</span>
+              <span>{outputLabel(kind)}</span>
             </label>
           </li>
         ))}

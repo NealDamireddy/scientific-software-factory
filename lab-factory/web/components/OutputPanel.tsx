@@ -4,7 +4,8 @@ import { X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { KeyboardEvent, ReactNode } from "react";
 
-import type { OutputKind, Workspace } from "../lib/types.ts";
+import { outputLabel } from "../lib/status.ts";
+import type { Workspace } from "../lib/types.ts";
 import { AnalysisAppTab } from "./tabs/AnalysisAppTab.tsx";
 import { ProcedureTab } from "./tabs/ProcedureTab.tsx";
 import { ResultsTab } from "./tabs/ResultsTab.tsx";
@@ -14,15 +15,10 @@ import { SimulationTab } from "./tabs/SimulationTab.tsx";
 
 export type PanelTab = "procedure" | "run_plan" | "analysis_app" | "results" | "simulation";
 
-/** How each kind of output is named in the interface. */
-export const OUTPUT_LABEL: Record<OutputKind, string> = {
-  procedure: "Procedure",
-  run_plan: "Run plan",
-  analysis_app: "Analysis app",
-  simulation: "Simulation",
-};
-
-export const TAB_LABEL: Record<PanelTab, string> = { ...OUTPUT_LABEL, results: "Results" };
+/** A tab is named after its output (lib/status.ts); Results comes with the analysis app. */
+function tabLabel(tab: PanelTab): string {
+  return tab === "results" ? "Results" : outputLabel(tab);
+}
 
 /** The tabs a workspace has: only the outputs present, in a fixed order. Results comes with an analysis app. */
 export function availableTabs(workspace: Workspace): PanelTab[] {
@@ -45,6 +41,16 @@ function TabBody({ tab, workspace, request }: { tab: PanelTab; workspace: Worksp
   }
 }
 
+/** Scrolls the tab strip, and only the strip, so the button is fully inside it. */
+function revealInStrip(strip: HTMLElement, button: HTMLElement): void {
+  const s = strip.getBoundingClientRect();
+  const b = button.getBoundingClientRect();
+  if (b.left < s.left) strip.scrollLeft -= s.left - b.left;
+  else if (b.right > s.right) strip.scrollLeft += b.right - s.right;
+  if (b.top < s.top) strip.scrollTop -= s.top - b.top;
+  else if (b.bottom > s.bottom) strip.scrollTop += b.bottom - s.bottom;
+}
+
 export type OutputPanelProps = {
   workspace: Workspace;
   /** The selected tab. It must be one of availableTabs(workspace). */
@@ -65,11 +71,21 @@ export function OutputPanel({ workspace, tab, onTab, onClose, orderRequest = nul
   const [visited, setVisited] = useState<PanelTab[]>([tab]);
   if (!visited.includes(tab)) setVisited([...visited, tab]);
   const buttons = useRef(new Map<PanelTab, HTMLButtonElement>());
+  const strip = useRef<HTMLDivElement>(null);
+  // Set when the person picks a tab; only then is the strip scrolled, and never the window.
+  const chosen = useRef(false);
 
-  // The selected tab stays in view, however the tab list lays out.
   useEffect(() => {
-    buttons.current.get(tab)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (!chosen.current) return;
+    chosen.current = false;
+    const button = buttons.current.get(tab);
+    if (strip.current && button) revealInStrip(strip.current, button);
   }, [tab]);
+
+  function choose(next: PanelTab) {
+    chosen.current = true;
+    onTab(next);
+  }
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const index = tabs.indexOf(tab);
@@ -80,14 +96,14 @@ export function OutputPanel({ workspace, tab, onTab, onClose, orderRequest = nul
     else if (event.key === "End") next = tabs.length - 1;
     if (next === null) return;
     event.preventDefault();
-    onTab(tabs[next]);
+    choose(tabs[next]);
     buttons.current.get(tabs[next])?.focus();
   }
 
   return (
     <section className="panel" aria-label="Outputs">
       <div className="panel-bar">
-        <div className="panel-tabs" role="tablist" aria-label="Output tabs" onKeyDown={onKeyDown}>
+        <div ref={strip} className="panel-tabs" role="tablist" aria-label="Output tabs" onKeyDown={onKeyDown}>
           {tabs.map((t) => (
             <button
               key={t}
@@ -99,9 +115,9 @@ export function OutputPanel({ workspace, tab, onTab, onClose, orderRequest = nul
               aria-controls={visited.includes(t) ? `panel-body-${t}` : undefined}
               tabIndex={t === tab ? 0 : -1}
               className="panel-tab"
-              onClick={() => onTab(t)}
+              onClick={() => choose(t)}
             >
-              {TAB_LABEL[t]}
+              {tabLabel(t)}
             </button>
           ))}
         </div>

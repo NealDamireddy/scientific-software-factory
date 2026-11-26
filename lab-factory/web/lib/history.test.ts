@@ -55,7 +55,7 @@ test("diffRows marks each change and counts the unchanged steps in one row", () 
   assert.deepEqual(diffRows("procedure", sub("WO-1", 1, steps), sub("WO-2", 1, after)), {
     readable: true,
     rows: [
-      { change: "changed", mark: "Changed: citations", step: "Step 3", text: "Three." },
+      { change: "changed", mark: "Changed: citations", step: "Step 3", text: "Three.", details: ["Sources: was none; now b"] },
       { change: "unchanged", mark: "3 unchanged steps" },
     ],
   });
@@ -78,7 +78,8 @@ test("diffRows names a moved, changed step by both numbers and lists every chang
   const rows = rowsOf(diffRows("procedure", sub("WO-1", 1, [steps[0]]), sub("WO-1", 2, after)));
   assert.deepEqual(rows, [
     { change: "added", mark: "Added", step: "Step 1", text: "Zero." },
-    { change: "changed", mark: "Changed: citations, amounts", step: "Step 2, was step 1", text: "One." },
+    { change: "changed", mark: "Changed: citations, amounts", step: "Step 2, was step 1", text: "One.",
+      details: ["Sources: was a; now b", "x 1 mL, added"] },
   ]);
 });
 
@@ -87,7 +88,7 @@ test("diffRows reads run plan commands, and an empty step list compares as no st
   const a = { ...sub("WO-B12-RP", 1, []), artifact: plan(750) };
   const b = { ...sub("WO-B12-RP", 2, []), artifact: plan(550) };
   assert.deepEqual(rowsOf(diffRows("run_plan", a, b)), [
-    { change: "changed", mark: "Changed: settings", step: "Step 1", text: "read_absorbance" },
+    { change: "changed", mark: "Changed: settings", step: "Step 1", text: "read_absorbance", details: ["Wavelength 550 nm, was 750 nm"] },
   ]);
   assert.deepEqual(rowsOf(diffRows("run_plan", { ...a, artifact: { instrument_id: "uvvis-1", steps: [] } }, b)), [
     { change: "added", mark: "Added", step: "Step 1", text: "read_absorbance" },
@@ -137,4 +138,48 @@ test("approvalLine names the released submission from the latest approval", () =
   assert.equal(approvalLine(released, { ...s, number: 1 }, history), null);
   assert.equal(approvalLine(order("WO-1"), s, history), null);
   assert.equal(approvalLine(released, s, []), null);
+});
+
+test("citation details use document titles when known, and ids otherwise", () => {
+  const before: ProcedureStep[] = [{ text: "Mix.", citations: ["sop-1"] }];
+  const after: ProcedureStep[] = [{ text: "Mix.", citations: ["sop-1", "protocol"] }];
+  const titles = new Map([["protocol", "reduction-protocol.txt"]]);
+  const rows = rowsOf(diffRows("procedure", sub("WO-1", 1, before), sub("WO-2", 1, after), titles));
+  assert.deepEqual(rows[0], {
+    change: "changed", mark: "Changed: citations", step: "Step 1", text: "Mix.",
+    details: ["Sources: was sop-1; now sop-1, reduction-protocol.txt"],
+  });
+  const cleared = rowsOf(diffRows("procedure", sub("WO-2", 1, after), sub("WO-3", 1, [{ text: "Mix.", citations: [] }]), titles));
+  assert.deepEqual(cleared[0].change === "changed" && cleared[0].details, ["Sources: was sop-1, reduction-protocol.txt; now none"]);
+});
+
+test("action setting details say what each setting was, and which were added or removed", () => {
+  const act = (settings: { parameter: string; value: number; unit: string }[], command = "read_absorbance") =>
+    ({ instrument_id: "uvvis-1", command, settings });
+  const before: ProcedureStep[] = [{ text: "Read.", citations: [], action: act([
+    { parameter: "wavelength", value: 600, unit: "nm" }, { parameter: "integration_time", value: 100, unit: "ms" }]) }];
+  const after: ProcedureStep[] = [{ text: "Read.", citations: [], action: act([
+    { parameter: "wavelength", value: 595, unit: "nm" }, { parameter: "averages", value: 3, unit: "" }], "scan") }];
+  const rows = rowsOf(diffRows("procedure", sub("WO-1", 1, before), sub("WO-1", 2, after)));
+  assert.deepEqual(rows[0].change === "changed" && rows[0].details, [
+    "Command: was “read_absorbance”",
+    "Wavelength 595 nm, was 600 nm",
+    "Averages 3, added",
+    "Integration time 100 ms, removed",
+  ]);
+});
+
+test("amount details say what each amount was", () => {
+  const before: ProcedureStep[] = [{ text: "Add.", citations: [], amounts: [
+    { what: "sodium dithionite", value: 10, unit: "mg" }, { what: "water", value: 5, unit: "mL" }] }];
+  const after: ProcedureStep[] = [{ text: "Add.", citations: [], amounts: [
+    { what: "sodium dithionite", value: 0.5, unit: "g" }, { what: "water", value: 5, unit: "mL" }] }];
+  const rows = rowsOf(diffRows("procedure", sub("WO-1", 1, before), sub("WO-1", 2, after)));
+  assert.deepEqual(rows[0].change === "changed" && rows[0].details, ["sodium dithionite 0.5 g, was 10 mg"]);
+});
+
+test("a changed run step command or wording says what it was", async () => {
+  const { changeDetails } = await import("./history.ts");
+  assert.deepEqual(changeDetails("text", { text: "Old.", citations: [] }, { text: "New.", citations: [] }, new Map()), ["was “Old.”"]);
+  assert.deepEqual(changeDetails("command", { command: "a", settings: [] }, { command: "b", settings: [] }, new Map()), ["was “a”"]);
 });

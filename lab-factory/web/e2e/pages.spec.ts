@@ -1,14 +1,14 @@
 import { expect, test } from "playwright/test";
 import type { Page } from "playwright/test";
 
-import { viewAs } from "./helpers.ts";
+import { viewAs, goto } from "./helpers.ts";
 
 function sidebar(page: Page) {
   return page.getByRole("navigation", { name: "Lab" });
 }
 
 test("a new project takes a versioned document, opens it in the drawer and starts an experiment", async ({ page }) => {
-  await page.goto("/");
+  await goto(page, "/");
   await expect(page.getByRole("heading", { name: "What are you working on?" })).toBeVisible();
 
   const create = page.getByRole("button", { name: "Create project" });
@@ -46,13 +46,13 @@ test("a new project takes a versioned document, opens it in the drawer and start
 });
 
 test("the project page shows each experiment's status line", async ({ page }) => {
-  await page.goto("/#/projects/coomassie-reduction");
+  await goto(page, "/#/projects/coomassie-reduction");
   await expect(page.getByRole("link", { name: "Reducing Coomassie blue" })).toBeVisible();
   await expect(page.getByText("Being revised")).toBeVisible();
 });
 
 test("the drawer says when a document isn't there, and Close removes it from the route", async ({ page }) => {
-  await page.goto("/#/lab?doc=nope");
+  await goto(page, "/#/lab?doc=nope");
   const drawer = page.getByRole("complementary", { name: "Document" });
   await expect(drawer.getByText("That document isn't here.")).toBeVisible();
   await drawer.getByRole("button", { name: "Close" }).click();
@@ -60,7 +60,7 @@ test("the drawer says when a document isn't there, and Close removes it from the
 });
 
 test("the lab page shows range strips, commands and lab documents", async ({ page }) => {
-  await page.goto("/#/lab");
+  await goto(page, "/#/lab");
   const strip = page.getByRole("img", { name: "Wavelength 400–700 nm, allowed 400 to 700 nm" });
   await expect(strip).toBeVisible();
   await expect(strip.locator(".range-marker")).toHaveAttribute("style", /left: 50%/);
@@ -69,7 +69,7 @@ test("the lab page shows range strips, commands and lab documents", async ({ pag
 });
 
 test("the approver's home lists the experiment waiting for sign-off, the researcher's is empty", async ({ page }) => {
-  await page.goto("/");
+  await goto(page, "/");
   await expect(page.getByRole("heading", { name: "Needs your attention" })).toBeVisible();
   await expect(page.getByText("Nothing needs you right now.")).toBeVisible();
   await viewAs(page, "Approver");
@@ -80,7 +80,7 @@ test("the approver's home lists the experiment waiting for sign-off, the researc
 });
 
 test("the sign-off rule is saved and still there after leaving settings", async ({ page }) => {
-  await page.goto("/#/settings");
+  await goto(page, "/#/settings");
   await expect(page.getByRole("radio", { name: "Anyone who gives their name" })).toBeChecked();
   await page.getByRole("radio", { name: "Only these people" }).check();
   await page.getByLabel("Names, one per line").fill("Dr Rivera");
@@ -93,7 +93,7 @@ test("the sign-off rule is saved and still there after leaving settings", async 
 });
 
 test("blank names are refused with a message that goes away when the person edits", async ({ page }) => {
-  await page.goto("/#/settings");
+  await goto(page, "/#/settings");
   await page.getByRole("radio", { name: "Only these people" }).check();
   await page.getByRole("button", { name: "Save settings" }).click();
   const form = page.getByRole("form", { name: "Lab settings" });
@@ -108,7 +108,7 @@ test("blank names are refused with a message that goes away when the person edit
 });
 
 test("a .md file fills the title and text, and a repeated title is listed twice", async ({ page }) => {
-  await page.goto("/#/projects/coomassie-reduction");
+  await goto(page, "/#/projects/coomassie-reduction");
   const aside = page.getByRole("complementary", { name: "Shared with every experiment in this project" });
   await aside.getByLabel("Or fill it from a .txt or .md file").setInputFiles({
     name: "twin-notes.md",
@@ -128,7 +128,7 @@ test("a .md file fills the title and text, and a repeated title is listed twice"
 });
 
 test("saving a document again with identical content says it was already saved", async ({ page }) => {
-  await page.goto("/#/projects/coomassie-reduction");
+  await goto(page, "/#/projects/coomassie-reduction");
   const aside = page.getByRole("complementary", { name: "Shared with every experiment in this project" });
   for (const expected of [/^Saved as revision \d+$/, /^Already saved as revision \d+$/]) {
     await aside.getByLabel("Title").fill("Same again");
@@ -139,9 +139,12 @@ test("saving a document again with identical content says it was already saved",
 });
 
 test("only the wavelength strip is drawn with the spectrum", async ({ page }) => {
-  await page.goto("/#/lab");
+  await goto(page, "/#/lab");
   const wavelength = page.getByRole("img", { name: /^Wavelength / }).first();
-  await expect(wavelength.locator(".range-track")).toHaveCSS("background-image", /linear-gradient/);
+  await expect(wavelength.locator(".range-track .range-spectrum")).toHaveCSS("background-image", /linear-gradient/);
+  // The lab's 400 to 700 nm instrument shows the spectrum across the whole track.
+  await expect(wavelength.locator(".range-spectrum")).toHaveAttribute("style", /left: 0%; width: 100%/);
   const temperature = page.getByRole("img", { name: /^Temperature / }).first();
+  await expect(temperature.locator(".range-spectrum")).toHaveCount(0);
   await expect(temperature.locator(".range-track")).toHaveCSS("background-image", "none");
 });

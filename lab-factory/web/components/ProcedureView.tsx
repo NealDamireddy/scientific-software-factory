@@ -80,13 +80,19 @@ export function ProcedureView({ steps, unplaced = [] }: ProcedureViewProps) {
             <div className="proc-body">
               <p className="proc-text">
                 {step.text}
-                {/* Real spaces before and between the sources, so the run wraps like the words around it. */}
-                {step.sources.map((source) => (
-                  <Fragment key={source.id}>
-                    {" "}
-                    <a className="proc-source" href={routeHref({ ...route, doc: source.id })}>{source.title}</a>
-                  </Fragment>
-                ))}
+                {/* Real spaces before and between the sources keep them apart from the words and from
+                    each other; the sources wrap as one unit after the text. */}
+                {step.sources.length > 0 && " "}
+                {step.sources.length > 0 && (
+                  <span className="proc-sources">
+                    {step.sources.map((source, i) => (
+                      <Fragment key={source.id}>
+                        {i > 0 && " "}
+                        <a className="proc-source" href={routeHref({ ...route, doc: source.id })}>{source.title}</a>
+                      </Fragment>
+                    ))}
+                  </span>
+                )}
               </p>
               <SettingStrips settings={step.settings} />
               {step.unchecked.length > 0 && (

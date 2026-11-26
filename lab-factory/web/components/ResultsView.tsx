@@ -14,6 +14,7 @@ import { ClientError } from "../lib/types.ts";
 import { useClient } from "./ClientContext.tsx";
 import { Plot } from "./Plot.tsx";
 import { runError, useRunner } from "./RunnerContext.tsx";
+import { errorText } from "../lib/status.ts";
 
 const SAMPLE_FILE = "coomassie-readings.csv";
 const UNREADABLE = "The analysis app returned something that isn't a result.";
@@ -72,7 +73,7 @@ export function ResultsView({ app }: { app: AnalysisApp }) {
         setFolderError(null);
       },
       (e: unknown) => {
-        if (live) setFolderError(e instanceof Error ? e.message : String(e));
+        if (live) setFolderError(errorText(e));
       },
     );
     return () => { live = false; };
@@ -122,7 +123,7 @@ export function ResultsView({ app }: { app: AnalysisApp }) {
       <div className="results-actions">
         <span className="results-upload">
           <label htmlFor={`${uid}-file`} className="results-upload-label">Upload readings (CSV)</label>
-          <input id={`${uid}-file`} className="results-file" type="file" accept=".csv,text/csv" onChange={onFile} />
+          <input id={`${uid}-file`} className="file-input" type="file" accept=".csv,text/csv" onChange={onFile} />
         </span>
         <button type="button" className="ws-button results-sample" onClick={downloadSample}>
           <Download size={16} aria-hidden="true" />

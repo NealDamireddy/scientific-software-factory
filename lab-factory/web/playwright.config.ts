@@ -7,6 +7,8 @@ const executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE;
 
 export default defineConfig({
   testDir: "./e2e",
+  // A stray .only must never pass CI by running a single test.
+  forbidOnly: !!process.env.CI,
   timeout: 90_000,
   use: {
     baseURL,

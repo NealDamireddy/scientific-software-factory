@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { readSimulation } from "../lib/analysis.ts";
 import type { SimulatedSeries } from "../lib/analysis.ts";
 import type { Simulation } from "../lib/types.ts";
+import { useClient } from "./ClientContext.tsx";
 import { CodeBlock } from "./CodeBlock.tsx";
 import { Plot } from "./Plot.tsx";
 import { runError, useRunner } from "./RunnerContext.tsx";
@@ -16,6 +17,7 @@ type Outcome = { state: "running" } | { state: "done"; series: SimulatedSeries[]
 /** The simulation extra: what it is, its code, and `Run simulation`, which runs it here and plots its curves. */
 export function SimulationView({ simulation }: { simulation: Simulation }) {
   const run = useRunner();
+  const { mode } = useClient();
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const seq = useRef(0);
 
@@ -40,7 +42,7 @@ export function SimulationView({ simulation }: { simulation: Simulation }) {
       <h2 className="panel-heading">Extra: simulation</h2>
       <h3 className="compute-subhead">{simulation.title}</h3>
       <p className="compute-summary">{simulation.summary}</p>
-      <p className="compute-tag compute-tag-line">Sample content</p>
+      {mode === "sample" && <p className="compute-tag compute-tag-line">Sample content</p>}
       <CodeBlock code={simulation.code} label="Simulation code" />
       <div className="sim-run">
         <button type="button" className="ws-button sim-button" disabled={busy} onClick={() => void simulate()}>

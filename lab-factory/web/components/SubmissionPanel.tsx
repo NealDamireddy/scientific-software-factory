@@ -35,6 +35,15 @@ type Loaded<S> = { key: string; steps: S[] } | { key: string; error: string };
 /** The steps on screen: the shown submission's, or the previous ones (dimmed) while the new ones load. */
 type Kept<S> = { key: string; steps: S[]; results: CheckResult[] };
 
+/** Document titles by id, from every step view on hand. */
+function documentTitles(lists: (StepView | RunStepView)[][]): Map<string, string> {
+  const titles = new Map<string, string>();
+  for (const steps of lists) for (const source of citedSources(steps as { sources?: { id: string; title: string }[] }[])) {
+    if (!titles.has(source.id)) titles.set(source.id, source.title);
+  }
+  return titles;
+}
+
 /** The latest submission of the named order, by key. */
 function latestOf(options: SubmissionOption[], workOrderId: string): string | null {
   const own = options.filter((o) => o.record.order.id === workOrderId);
@@ -195,7 +204,8 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
         )}
       </SubmissionHeader>
       {comparing && canCompare && shown && (
-        <SubmissionDiff key={shown.key} id={diffId} kind={kind} shown={shown} options={options} onClose={closeComparison} />
+        <SubmissionDiff key={shown.key} id={diffId} kind={kind} shown={shown} options={options}
+          titles={documentTitles([view.steps, onScreen?.steps ?? []])} onClose={closeComparison} />
       )}
       {loadError && <p role="alert" className="pg-error hist-load-error">{loadError}</p>}
       <p role="status" className="hist-loading">

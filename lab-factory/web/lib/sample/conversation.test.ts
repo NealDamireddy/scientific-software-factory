@@ -166,7 +166,7 @@ test("an analysis app and a simulation are stored per experiment", async () => {
   const [built] = await c.confirmPlan(e.id, proposal.id, ["procedure", "analysis_app"], (a) => seen.push(a));
   assert.deepEqual(seen.slice(-2).map((a) => [a.label, a.outcome]), [["Wrote analysis app", "done"], ["Ran 3 reference cases", "info"]]);
   assert.deepEqual(built.output_refs!.map((r) => [r.kind, r.summary]), [
-    ["procedure", "Submission 1, all checks passed"], ["analysis_app", "Passes 3 reference cases"],
+    ["procedure", "Submission 1, all checks passed"], ["analysis_app", "Turns absorbance over time into a rate constant and half-life."],
   ]);
   const w = await c.getWorkspace(e.id);
   assert.ok(w.procedure);

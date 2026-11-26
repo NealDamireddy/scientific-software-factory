@@ -1,7 +1,7 @@
 import { expect, test } from "playwright/test";
 import type { Page } from "playwright/test";
 
-import { B12, COOMASSIE } from "./helpers.ts";
+import { B12, COOMASSIE, goto } from "./helpers.ts";
 
 const PROCEDURE_LINE =
   "Only settings shown on a range are checked against your instruments. The rest is written for you and your approver to judge.";
@@ -24,7 +24,7 @@ function steps(body: ReturnType<typeof tabBody>) {
 
 test.describe("the Coomassie procedure", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(COOMASSIE);
+    await goto(page, COOMASSIE);
     await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
   });
 
@@ -81,7 +81,7 @@ test.describe("the Coomassie procedure", () => {
 
 test.describe("the B12 outputs", () => {
   test.beforeEach(async ({ page }) => {
-    await page.goto(B12);
+    await goto(page, B12);
     await expect(page.getByRole("heading", { level: 1, name: "Vitamin B12 absorbance" })).toBeVisible();
   });
 
@@ -140,7 +140,7 @@ const intersects = (a: Box, b: Box) =>
 for (const width of [1440, 1100]) {
   test(`sources sit after the step text, inside the panel, at ${width} px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
-    await page.goto(COOMASSIE);
+    await goto(page, COOMASSIE);
     await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
     await attachProtocol(page);
     const body = tabBody(page, "Procedure");
@@ -171,7 +171,7 @@ for (const width of [1440, 1100]) {
 
 for (const [name, url] of [["Coomassie", COOMASSIE], ["B12", B12]] as const) {
   test(`every source on ${name} has its own hit area of at least 40 px`, async ({ page }) => {
-    await page.goto(url);
+    await goto(page, url);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const body = tabBody(page, "Procedure");
     await expect(steps(body).first()).toBeVisible();

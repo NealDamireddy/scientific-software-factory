@@ -18,8 +18,26 @@ type Loaded = {
   orders: Record<string, { projectId: string; experimentId: string; title: string }>;
 };
 
+/** The static copy the app ships: what sample mode serves as the SKILL.md. */
+const SKILL_HREF = "/skills/labfactory-work-orders/SKILL.md";
+
+/**
+ * In live mode the download is built from the service's `skill_md`, so it is exactly the text shown
+ * under `Show SKILL.md`. Sample mode links the shipped file, which is the same text.
+ */
+function useSkillHref(live: boolean, text: string | undefined): string {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!live || text === undefined) return;
+    const made = URL.createObjectURL(new Blob([text], { type: "text/markdown" }));
+    setUrl(made);
+    return () => { URL.revokeObjectURL(made); setUrl(null); };
+  }, [live, text]);
+  return live && url ? url : SKILL_HREF;
+}
+
 export function AgentsPage() {
-  const { client, labId, version } = useClient();
+  const { client, labId, mode, version } = useClient();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +61,8 @@ export function AgentsPage() {
     })().catch((e: unknown) => { if (live) setError(errorText(e)); });
     return () => { live = false; };
   }, [client, labId, version]);
+
+  const skillHref = useSkillHref(mode === "live", loaded?.setup.skill_md);
 
   return (
     <div className="page pg-page ext-page">
@@ -79,7 +99,7 @@ export function AgentsPage() {
           <section className="pg-section" aria-labelledby="ext-skill">
             <h2 id="ext-skill">As a skill</h2>
             <div className="ext-actions-row">
-              <a className="pg-button ext-link" href="/skills/labfactory-work-orders/SKILL.md" download>Download SKILL.md</a>
+              <a className="pg-button ext-link" href={skillHref} download="SKILL.md">Download SKILL.md</a>
             </div>
             <details className="ext-details">
               <summary>Show SKILL.md</summary>

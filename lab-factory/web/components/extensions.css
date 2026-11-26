@@ -1,8 +1,6 @@
 /* Styles for the Skills, Connectors and Connect your agent pages and CopyField. */
 
-.ext-page {
-  max-width: 800px;
-}
+/* Pages share the .page width (app/globals.css); text inside stays at a readable measure. */
 
 .ext-page > p {
   max-width: 62ch;
@@ -183,9 +181,11 @@
   margin: 0;
 }
 
+/* The connection state, in the quiet status style used for status lines elsewhere. */
 .ext-status {
   margin: 4px 0 0;
-  font-weight: 500;
+  color: var(--steel);
+  font-size: 0.9375rem;
 }
 
 .ext-connector-actions {
@@ -234,15 +234,37 @@
   font-weight: 500;
 }
 
+/* `Add to`, its select and `Add` on one row at the right of the item's title; on a narrow screen
+   the row wraps under the title, still in that order. */
 .ext-item-add {
   display: flex;
+  flex: 0 1 auto;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 8px 12px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 10px;
+  margin-left: auto;
+  min-width: 0;
 }
 
 .ext-item-add .pg-field {
-  flex: 0 1 280px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.ext-item-add .pg-field > span {
+  font-weight: 400;
+  color: var(--steel);
+  white-space: nowrap;
+}
+
+.ext-item-add .pg-field select {
+  width: auto;
+  min-width: 0;
+  max-width: 280px;
 }
 
 .ext-result {
@@ -396,9 +418,7 @@
   margin-bottom: 16px;
 }
 
-.ext-connector-actions > .pg-quiet {
-  margin-left: -10px;
-}
+
 
 .ext-item {
   align-items: center;

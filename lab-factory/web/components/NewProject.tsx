@@ -2,10 +2,11 @@
 
 import "./pages.css";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import { useClient, useRoute } from "./ClientContext.tsx";
+import { useFocusRequest } from "./focus-request.ts";
 import { errorText } from "./pages-status.ts";
 
 export function NewProject() {
@@ -13,6 +14,8 @@ export function NewProject() {
   const [, navigate] = useRoute();
   const [title, setTitle] = useState("");
   const [goals, setGoals] = useState("");
+  const field = useRef<HTMLInputElement>(null);
+  useFocusRequest("project-title", field);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +38,7 @@ export function NewProject() {
     <form className="pg-form" onSubmit={onSubmit} aria-label="New project">
       <label className="pg-field">
         <span>Project title</span>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} />
+        <input ref={field} value={title} onChange={(e) => setTitle(e.target.value)} />
       </label>
       <label className="pg-field">
         <span>Goals</span>

@@ -2,7 +2,8 @@ import { canonicalJson } from "./digest.ts";
 import type { ProcedureStep, RunStep } from "./types.ts";
 
 type Step = ProcedureStep | RunStep;
-type Field = "text" | "citations" | "action" | "amounts" | "command" | "settings";
+export type StepField = "text" | "citations" | "action" | "amounts" | "command" | "settings";
+type Field = StepField;
 
 export type StepChange = {
   change: "same" | "added" | "removed" | "changed";

@@ -2,9 +2,10 @@
 // and the rows a step comparison shows. Pure, so it runs under node --test.
 import { artifactSteps } from "./artifact.ts";
 import { diffSteps } from "./diff.ts";
-import type { StepChange } from "./diff.ts";
+import type { StepChange, StepField } from "./diff.ts";
+import { plainNumber } from "./format.ts";
 import { formatDate, submissionSummary } from "./status.ts";
-import type { HistoryEvent, OrderView, Pin, ProcedureStep, RunStep, Submission, WorkOrder } from "./types.ts";
+import type { Amount, HistoryEvent, OrderView, Pin, ProcedureStep, RunStep, Setting, Submission, WorkOrder } from "./types.ts";
 
 export type SubmissionChoice = { workOrderId: string; number: number };
 export type OrderRecord = { order: WorkOrder; submissions: Submission[]; history: HistoryEvent[] };
@@ -49,14 +50,92 @@ export function latestChoice<S>(view: OrderView<S>): SubmissionChoice {
 }
 
 export type DiffRow =
-  | { change: "added" | "removed" | "changed"; mark: string; step: string; text: string }
+  | { change: "added" | "removed"; mark: string; step: string; text: string }
+  /** `details` says, one line each, what each changed field was and is now. */
+  | { change: "changed"; mark: string; step: string; text: string; details: string[] }
   | { change: "unchanged"; mark: string };
 
-function stepText(step: ProcedureStep | RunStep): string {
+type Step = ProcedureStep | RunStep;
+
+function stepText(step: Step): string {
   return "text" in step ? step.text : step.command;
 }
 
-function rowFor(change: StepChange, before: (ProcedureStep | RunStep)[], after: (ProcedureStep | RunStep)[]): DiffRow | null {
+/** `integration_time` reads `Integration time`. */
+function parameterName(name: string): string {
+  const text = name.replace(/_/g, " ").trim();
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function quantity(value: number, unit: string): string {
+  return unit.trim() === "" ? plainNumber(value) : `${plainNumber(value)} ${unit}`;
+}
+
+/** One line per setting or amount that differs, matched by name: changed, added or removed. */
+function namedDetails<T extends { value: number; unit: string }>(
+  before: T[], after: T[], nameOf: (item: T) => string, label: (item: T) => string,
+): string[] {
+  const lines: string[] = [];
+  const old = new Map(before.map((item) => [nameOf(item), item]));
+  const now = new Set(after.map(nameOf));
+  for (const item of after) {
+    const was = old.get(nameOf(item));
+    if (!was) lines.push(`${label(item)} ${quantity(item.value, item.unit)}, added`);
+    else if (was.value !== item.value || was.unit !== item.unit) {
+      lines.push(`${label(item)} ${quantity(item.value, item.unit)}, was ${quantity(was.value, was.unit)}`);
+    }
+  }
+  for (const item of before) {
+    if (!now.has(nameOf(item))) lines.push(`${label(item)} ${quantity(item.value, item.unit)}, removed`);
+  }
+  return lines;
+}
+
+function settingDetails(before: Setting[], after: Setting[]): string[] {
+  return namedDetails(before, after, (s) => s.parameter, (s) => parameterName(s.parameter));
+}
+
+function amountDetails(before: Amount[], after: Amount[]): string[] {
+  return namedDetails(before, after, (a) => a.what, (a) => a.what);
+}
+
+function sourceList(ids: string[], titles: ReadonlyMap<string, string>): string {
+  return ids.length === 0 ? "none" : ids.map((id) => titles.get(id) ?? id).join(", ");
+}
+
+/**
+ * What one changed field was and is now, in words: `Sources: was none; now reduction-protocol.txt`,
+ * `Wavelength 595 nm, was 600 nm`, `was “Stir gently.”`. Citation ids read as document titles when
+ * `titles` has them.
+ */
+export function changeDetails(field: StepField, before: Step, after: Step, titles: ReadonlyMap<string, string>): string[] {
+  const a = before as Partial<ProcedureStep & RunStep>;
+  const b = after as Partial<ProcedureStep & RunStep>;
+  switch (field) {
+    case "text":
+      return [`was “${a.text ?? ""}”`];
+    case "command":
+      return [`was “${a.command ?? ""}”`];
+    case "citations":
+      return [`Sources: was ${sourceList(a.citations ?? [], titles)}; now ${sourceList(b.citations ?? [], titles)}`];
+    case "settings":
+      return settingDetails(a.settings ?? [], b.settings ?? []);
+    case "amounts":
+      return amountDetails(a.amounts ?? [], b.amounts ?? []);
+    case "action": {
+      const lines: string[] = [];
+      if (!a.action) lines.push(`Instrument action added: “${b.action?.command ?? ""}”`);
+      else if (!b.action) lines.push(`Instrument action removed, was “${a.action.command}”`);
+      else {
+        if (a.action.instrument_id !== b.action.instrument_id) lines.push(`Instrument: was ${a.action.instrument_id}`);
+        if (a.action.command !== b.action.command) lines.push(`Command: was “${a.action.command}”`);
+      }
+      return [...lines, ...settingDetails(a.action?.settings ?? [], b.action?.settings ?? [])];
+    }
+  }
+}
+
+function rowFor(change: StepChange, before: Step[], after: Step[], titles: ReadonlyMap<string, string>): DiffRow | null {
   switch (change.change) {
     case "same":
       return null;
@@ -66,9 +145,11 @@ function rowFor(change: StepChange, before: (ProcedureStep | RunStep)[], after: 
       return { change: "removed", mark: "Removed", step: `Step ${change.before! + 1}`, text: stepText(before[change.before!]) };
     case "changed": {
       const was = change.before! === change.after! ? "" : `, was step ${change.before! + 1}`;
+      const fields = change.fields ?? [];
       return {
-        change: "changed", mark: `Changed: ${(change.fields ?? []).join(", ")}`,
+        change: "changed", mark: `Changed: ${fields.join(", ")}`,
         step: `Step ${change.after! + 1}${was}`, text: stepText(after[change.after!]),
+        details: fields.flatMap((f) => changeDetails(f, before[change.before!], after[change.after!], titles)),
       };
     }
   }
@@ -92,8 +173,11 @@ export function unreadableLine(side: UnreadableSide): string {
  * removed or changed step is a row in step order; the unchanged steps are counted in one closing row.
  * When either artifact is malformed there is no comparison, only the sides that couldn't be read
  * (`before` first), so a broken artifact never reads as every step added or removed.
+ * `titles` maps document ids to titles for the citation details; an id it lacks reads as the id.
  */
-export function diffRows(kind: "procedure" | "run_plan", before: Submission, after: Submission): DiffResult {
+export function diffRows(
+  kind: "procedure" | "run_plan", before: Submission, after: Submission, titles: ReadonlyMap<string, string> = new Map(),
+): DiffResult {
   const a = artifactSteps(kind, before.artifact);
   const b = artifactSteps(kind, after.artifact);
   if (a === null || b === null) {
@@ -103,7 +187,7 @@ export function diffRows(kind: "procedure" | "run_plan", before: Submission, aft
     return { readable: false, unreadable };
   }
   const changes = diffSteps(a, b);
-  const rows = changes.map((c) => rowFor(c, a, b)).filter((r): r is DiffRow => r !== null);
+  const rows = changes.map((c) => rowFor(c, a, b, titles)).filter((r): r is DiffRow => r !== null);
   const same = changes.filter((c) => c.change === "same").length;
   if (same > 0) rows.push({ change: "unchanged", mark: unchangedLabel(same) });
   return { readable: true, rows };

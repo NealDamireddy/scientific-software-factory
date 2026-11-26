@@ -1,7 +1,7 @@
 import { expect, test } from "playwright/test";
 import type { Page } from "playwright/test";
 
-import { B12, COOMASSIE, attachProtocol, goTo, viewAs } from "./helpers.ts";
+import { B12, COOMASSIE, attachProtocol, moveTo, viewAs, goto } from "./helpers.ts";
 
 function procedure(page: Page) {
   return page.getByRole("region", { name: "Outputs" }).getByRole("tabpanel", { name: "Procedure" });
@@ -21,7 +21,7 @@ function escapeRegExp(text: string): string {
 }
 
 async function openB12AsApprover(page: Page) {
-  await page.goto(B12);
+  await goto(page, B12);
   await expect(page.getByRole("heading", { level: 1, name: "Vitamin B12 absorbance" })).toBeVisible();
   await viewAs(page, "Approver");
   const body = procedure(page);
@@ -37,7 +37,7 @@ async function builtFrom(page: Page) {
 }
 
 test("full demo: attach the protocol, then the approver signs off submission 1 by name", async ({ page }) => {
-  await page.goto(COOMASSIE);
+  await goto(page, COOMASSIE);
   await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
   await attachProtocol(page);
   const body = procedure(page);
@@ -46,7 +46,7 @@ test("full demo: attach the protocol, then the approver signs off submission 1 b
   await expect(body.getByRole("button", { name: /^(Approve|Reject) submission/ })).toHaveCount(0);
 
   await viewAs(page, "Approver");
-  await goTo(page, "#/");
+  await moveTo(page, "#/");
   await expect(attention(page).getByRole("link", { name: /Reducing Coomassie blue/ })).toContainText("Waiting for sign-off");
   await attention(page).getByRole("link", { name: /Reducing Coomassie blue/ }).click();
   await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
@@ -71,7 +71,7 @@ test("full demo: attach the protocol, then the approver signs off submission 1 b
   await expect(built.getByText(/^Approved by Dr Rivera, submission 1, digest [0-9a-f]{12}, /)).toBeVisible();
 
   await viewAs(page, "Researcher");
-  await goTo(page, "#/");
+  await moveTo(page, "#/");
   const row = attention(page).getByRole("link", { name: /Reducing Coomassie blue/ });
   await expect(row).toBeVisible();
   await expect(row).toContainText("Signed off");
@@ -112,13 +112,13 @@ test("only one form is open at a time, and Cancel closes it and returns focus to
 });
 
 test("under a listed rule the name is chosen from the list, and approving works", async ({ page }) => {
-  await page.goto("/#/settings");
+  await goto(page, "/#/settings");
   await page.getByRole("radio", { name: "Only these people" }).check();
   await page.getByLabel("Names, one per line").fill("Dr Rivera");
   await page.getByRole("button", { name: "Save settings" }).click();
   await expect(page.getByText("Settings saved")).toBeVisible();
 
-  await goTo(page, B12);
+  await moveTo(page, B12);
   await expect(page.getByRole("heading", { level: 1, name: "Vitamin B12 absorbance" })).toBeVisible();
   await viewAs(page, "Approver");
   const body = procedure(page);
@@ -195,7 +195,7 @@ test("a blank or whitespace-only name keeps Approve disabled, and a blank reason
 });
 
 test("an earlier submission on show has no sign-off buttons, and they return on the latest", async ({ page }) => {
-  await page.goto(COOMASSIE);
+  await goto(page, COOMASSIE);
   await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
   await attachProtocol(page);
   await viewAs(page, "Approver");
@@ -211,7 +211,7 @@ test("an earlier submission on show has no sign-off buttons, and they return on 
 });
 
 test("a researcher sees no sign-off controls on a submission waiting for sign-off", async ({ page }) => {
-  await page.goto(B12);
+  await goto(page, B12);
   const body = procedure(page);
   await expect(body.getByRole("heading", { level: 2, name: "Submission 1, all checks passed" })).toBeVisible();
   await expect(body.getByText("Waiting for sign-off", { exact: true })).toBeVisible();
@@ -220,7 +220,7 @@ test("a researcher sees no sign-off controls on a submission waiting for sign-of
 
 /** On Coomassie after the attach flow, as approver: fills the approve form for submission 1, ready to confirm. */
 async function readyToApproveCoomassie(page: Page) {
-  await page.goto(COOMASSIE);
+  await goto(page, COOMASSIE);
   await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
   await attachProtocol(page);
   await viewAs(page, "Approver");
@@ -251,8 +251,8 @@ test("a sign-off that goes through after leaving the experiment shows on return,
   await expect(switcher).toContainText("2 items need your attention");
   await confirm.click();
   // Away and straight back, inside the request's pending window, so the sign-off lands on a fresh panel.
-  await goTo(page, B12);
-  await goTo(page, COOMASSIE);
+  await moveTo(page, B12);
+  await moveTo(page, COOMASSIE);
   await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
   await expect(body.getByText(`Signed off by Dr Rivera on ${await today(page)}`, { exact: true })).toBeVisible();
   await expect(body.getByText("Waiting for sign-off", { exact: true })).toHaveCount(0);

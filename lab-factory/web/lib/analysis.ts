@@ -25,9 +25,13 @@ export function readAnalysisResult(value: unknown): AnalysisResult | null {
   return { decay: true, rate_constant_per_s: k, half_life_s: h, a0, a_end: aEnd, rms_error: value.rms_error };
 }
 
-/** `Rate constant {k} per s`, `Half-life {h} s`, `Fit error (RMS) {rms} AU`, or `No decay detected` and the RMS line. */
+/**
+ * `Rate constant {k} per s`, `Half-life {h} s`, `Fit error (RMS) {rms} AU`, or `No decay detected` and the RMS line.
+ * A fit error under 1e-9 is floating-point noise around an exact fit, so it reads as `0 AU`.
+ */
 export function resultLines(result: AnalysisResult): string[] {
-  const rms = `Fit error (RMS) ${sig3(result.rms_error)} AU`;
+  const error = Math.abs(result.rms_error) < 1e-9 ? 0 : result.rms_error;
+  const rms = `Fit error (RMS) ${sig3(error)} AU`;
   if (!result.decay) return ["No decay detected", rms];
   return [`Rate constant ${sig3(result.rate_constant_per_s)} per s`, `Half-life ${sig3(result.half_life_s)} s`, rms];
 }

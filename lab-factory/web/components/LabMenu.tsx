@@ -72,6 +72,8 @@ export function LabMenu() {
     setResetting(true);
     try {
       await client.reset();
+      // A fresh start: the sample data and the role both go back to how the app opens.
+      setRole("researcher");
       refresh();
       navigate({ view: "home" });
       close(true);

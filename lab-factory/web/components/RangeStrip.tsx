@@ -2,7 +2,7 @@
 
 import "./pages.css";
 
-import { markerPosition } from "../lib/range.ts";
+import { markerPosition, spectrumLayer } from "../lib/range.ts";
 import type { CSSProperties } from "react";
 
 export type RangeStripProps = {
@@ -12,24 +12,24 @@ export type RangeStripProps = {
   canonical: { value: number; unit: string; minimum: number; maximum: number };
 };
 
-const SPECTRUM_MIN = 400;
-const SPECTRUM_MAX = 700;
-
-/** For wavelength within the 400 to 700 nm spectrum, shows only the part the instrument covers; any other range gets the plain track. */
-function trackStyle(parameter: string, unit: string, minimum: number, maximum: number): CSSProperties {
-  if (parameter !== "wavelength" || unit !== "nm") return {};
-  if (minimum < SPECTRUM_MIN || maximum > SPECTRUM_MAX) return {};
-  const lo = Math.max(SPECTRUM_MIN, Math.min(SPECTRUM_MAX, minimum));
-  const hi = Math.max(SPECTRUM_MIN, Math.min(SPECTRUM_MAX, maximum));
-  const span = SPECTRUM_MAX - SPECTRUM_MIN;
-  if (!(hi > lo)) return {};
-  const width = (hi - lo) / span;
-  const offset = width >= 1 ? 0 : (lo - SPECTRUM_MIN) / (span - (hi - lo));
+/**
+ * A wavelength track shows the spectrum over the part of its range that lies within 400 to 700 nm,
+ * and the plain track elsewhere; any other parameter gets the plain track.
+ */
+function spectrumStyle(parameter: string, unit: string, minimum: number, maximum: number): CSSProperties | null {
+  if (parameter !== "wavelength" || unit !== "nm") return null;
+  const layer = spectrumLayer(minimum, maximum);
+  if (!layer) return null;
+  const f = (n: number) => `${Number(n.toFixed(3))}%`;
+  // Round only the ends that meet the track's own rounded ends.
+  const leftEnd = layer.left <= 0.001;
+  const rightEnd = layer.left + layer.width >= 99.999;
   return {
-    backgroundImage: "var(--spectrum)",
-    backgroundRepeat: "no-repeat",
-    backgroundSize: `${(100 / width).toFixed(3)}% 100%`,
-    backgroundPosition: `${(offset * 100).toFixed(3)}% 0`,
+    left: f(layer.left),
+    width: f(layer.width),
+    backgroundSize: `${f(layer.sizePercent)} 100%`,
+    backgroundPosition: `${f(layer.positionPercent)} 0`,
+    borderRadius: `${leftEnd ? 4 : 0}px ${rightEnd ? 4 : 0}px ${rightEnd ? 4 : 0}px ${leftEnd ? 4 : 0}px`,
   };
 }
 
@@ -37,6 +37,7 @@ function trackStyle(parameter: string, unit: string, minimum: number, maximum: n
 export function RangeStrip({ parameter, label, display, canonical }: RangeStripProps) {
   const { value, unit, minimum, maximum } = canonical;
   const percent = Number((markerPosition(value, minimum, maximum) * 100).toFixed(2));
+  const spectrum = spectrumStyle(parameter, unit, minimum, maximum);
   return (
     <div
       className="range-strip"
@@ -47,7 +48,8 @@ export function RangeStrip({ parameter, label, display, canonical }: RangeStripP
         <span className="range-label">{label}</span>
         <span className="range-display">{display}</span>
       </div>
-      <div className="range-track" aria-hidden="true" style={trackStyle(parameter, unit, minimum, maximum)}>
+      <div className="range-track" aria-hidden="true">
+        {spectrum && <span className="range-spectrum" style={spectrum} />}
         <span className="range-marker" style={{ left: `${percent}%` }} />
       </div>
       <div className="range-ends" aria-hidden="true">

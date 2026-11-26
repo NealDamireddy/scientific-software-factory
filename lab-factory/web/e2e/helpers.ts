@@ -5,9 +5,23 @@ export const SAMPLE = "Sample data. Nothing here is saved or real.";
 export const COOMASSIE = "/#/projects/coomassie-reduction/experiments/coomassie-run-1";
 export const B12 = "/#/projects/b12-quantification/experiments/b12-vial-a";
 
+/**
+ * Waits until the app has mounted on the client and resolved its first route. The prerendered page
+ * looks like the app before it works, so tests that act right after loading wait for this.
+ */
+export async function ready(page: Page): Promise<void> {
+  await page.locator('[data-ready="true"]').waitFor({ state: "attached" });
+}
+
+/** Loads the app at a hash route (`/#/...`, or `/` for home) and waits until it is ready. */
+export async function goto(page: Page, hash: string): Promise<void> {
+  await page.goto(hash);
+  await ready(page);
+}
+
 /** Starts a new experiment through the lab home's `Describe your experiment` form and waits for its workspace. */
 export async function startExperiment(page: Page, description: string): Promise<void> {
-  await page.goto("/#/");
+  await goto(page, "/#/");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   const field = page.getByLabel("Describe your experiment");
   await field.fill(description);
@@ -39,6 +53,6 @@ export async function viewAs(page: Page, role: "Researcher" | "Approver"): Promi
 }
 
 /** Goes to a hash route inside the page, so the sample data and the chosen role stay. */
-export async function goTo(page: Page, hash: string): Promise<void> {
+export async function moveTo(page: Page, hash: string): Promise<void> {
   await page.evaluate((h) => { window.location.hash = h; }, hash.replace(/^\/?#/, "#"));
 }

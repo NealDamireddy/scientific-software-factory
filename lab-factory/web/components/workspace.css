@@ -528,8 +528,10 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
+  /* A full 40 px target: it overlaps the chip's border rather than growing the chip. */
+  margin: -1px -1px -1px 0;
   border: 0;
   border-radius: 0 8px 8px 0;
   background: none;
@@ -549,6 +551,129 @@
 
 .ws-show svg {
   color: var(--indigo);
+}
+
+.ws-header-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------------------------------------------------------------- experiment context */
+
+/* One small, quiet control in the header row; the context opens inline beneath the header. */
+.ws-context-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--steel);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.ws-context-info {
+  display: none;
+}
+
+.ws-context-toggle:hover,
+.ws-context-toggle[aria-expanded="true"] {
+  color: var(--ink);
+}
+
+.ws-context-toggle:hover {
+  background: var(--ground);
+}
+
+.ws-context {
+  flex: none;
+  max-height: min(60vh, 560px);
+  overflow-y: auto;
+  padding: 20px 24px 24px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--ground);
+  font-size: 0.9375rem;
+}
+
+.ws-context-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px 32px;
+  align-items: start;
+}
+
+.ws-context-part {
+  min-width: 0;
+}
+
+.ws-context h2 {
+  margin: 0 0 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.ws-context h2:not(:first-child) {
+  margin-top: 18px;
+}
+
+.ws-context-goal {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.ws-context-names {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ws-context-names li {
+  padding: 2px 0;
+}
+
+.ws-context .pg-form {
+  gap: 12px;
+}
+
+.ws-context .pg-revisions {
+  margin-top: 8px;
+}
+
+.ws-context-add .pg-form {
+  padding: 4px 0 12px;
+}
+
+/* From 1024 to 1099 px the conversation is narrow, so the toggle shows only its chevron and the
+   breadcrumb keeps the room. */
+@media (min-width: 1024px) and (max-width: 1099px) {
+  .ws-context-toggle-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .ws-context-toggle {
+    width: 40px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .ws-context-chevron {
+    display: none;
+  }
+
+  .ws-context-info {
+    display: block;
+  }
 }
 
 .ws-panel {
@@ -812,20 +937,28 @@
   line-height: 1.6;
 }
 
-/* Sources follow the step text on its line in smaller text, separated by real spaces so the run
-   wraps like words. Each link is its own 40 px tall box: only lines that carry a source grow, and
-   no hit area reaches over a neighbour. Long titles wrap inside their box. */
-.proc-source {
+/* Sources follow the step text in smaller text, as one unit that wraps after the words. Each link
+   has a 40 px hit area from its vertical padding, but the negative margin keeps its layout box to
+   one 18 px line, so lines with a source don't grow and step numbers stay level with the first line.
+   The unit lays links out in rows of whole 40 px boxes, so no two links' hit areas overlap. */
+.proc-sources {
   display: inline-flex;
-  align-items: center;
+  flex-wrap: wrap;
+  column-gap: 8px;
   max-width: 100%;
-  min-height: 40px;
+  margin-block: -11px;
   margin-left: 4px;
+  vertical-align: baseline;
+}
+
+.proc-source {
+  display: inline-block;
+  max-width: 100%;
+  padding-block: 11px;
   color: var(--indigo);
   font-size: 0.8125rem;
-  line-height: 1.4;
+  line-height: 18px;
   overflow-wrap: anywhere;
-  vertical-align: baseline;
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--indigo) 40%, transparent);
   text-underline-offset: 3px;
@@ -930,8 +1063,17 @@
 
 /* ---------------------------------------------------------------- narrow screens */
 
+/* From 1024 to 1099 px the conversation and the panel still sit side by side: the sidebar
+   (app/globals.css) and the panel both narrow. */
+@media (min-width: 1024px) and (max-width: 1099px) {
+  .ws-panel:not([data-open="false"]),
+  .panel {
+    min-width: 380px;
+  }
+}
+
 /* Below this the panel stacks under the conversation and the page scrolls as a whole. */
-@media (max-width: 1099px) {
+@media (max-width: 1023px) {
   .ws {
     flex-direction: column;
     height: auto;
@@ -1164,6 +1306,29 @@
 
 .hist-diff-mark {
   font-weight: 600;
+}
+
+.hist-diff-details {
+  margin: 0 0 2px;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+.hist-diff-details li {
+  position: relative;
+  padding-left: 12px;
+}
+
+.hist-diff-details li::before {
+  content: "";
+  position: absolute;
+  top: 0.65em;
+  left: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--steel);
 }
 
 .hist-diff-step {
@@ -1530,30 +1695,6 @@
 .results-upload-label {
   font-size: 0.875rem;
   font-weight: 500;
-}
-
-.results-file {
-  max-width: 100%;
-  min-height: 40px;
-  color: var(--steel);
-  font: inherit;
-  font-size: 0.875rem;
-}
-
-.results-file::file-selector-button {
-  min-height: 40px;
-  margin-right: 10px;
-  padding: 0 14px;
-  border: 1px solid var(--rule);
-  border-radius: 8px;
-  background: var(--paper);
-  color: var(--ink);
-  font: inherit;
-  cursor: pointer;
-}
-
-.results-file::file-selector-button:hover {
-  background: var(--ground);
 }
 
 .results-sample {

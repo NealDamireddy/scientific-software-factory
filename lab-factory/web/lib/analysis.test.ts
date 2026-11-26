@@ -15,6 +15,12 @@ test("readAnalysisResult accepts the analysis app's answer and refuses anything 
   }
 });
 
+test("a fit error smaller than 1e-9 reads as 0 AU", () => {
+  assert.deepEqual(resultLines({ decay: false, rms_error: 3.2e-17 }), ["No decay detected", "Fit error (RMS) 0 AU"]);
+  assert.equal(resultLines({ ...decay, rms_error: -4e-12 })[2], "Fit error (RMS) 0 AU");
+  assert.equal(resultLines({ ...decay, rms_error: 1e-9 })[2], "Fit error (RMS) 0.00000000100 AU");
+});
+
 test("resultLines reads the result to 3 significant figures", () => {
   assert.deepEqual(resultLines(decay), ["Rate constant 0.00851 per s", "Half-life 81.4 s", "Fit error (RMS) 0.00231 AU"]);
   assert.deepEqual(resultLines({ decay: false, rms_error: 0.0123 }), ["No decay detected", "Fit error (RMS) 0.0123 AU"]);

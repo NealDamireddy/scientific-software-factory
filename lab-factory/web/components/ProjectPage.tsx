@@ -5,7 +5,7 @@ import "./pages.css";
 import { useEffect, useState } from "react";
 
 import { routeHref } from "../lib/route.ts";
-import { statusLine } from "../lib/status.ts";
+import { NO_PROCEDURE, statusLine } from "../lib/status.ts";
 import type { Experiment, Project } from "../lib/types.ts";
 import { AddDocument } from "./AddDocument.tsx";
 import { useClient, useRoute } from "./ClientContext.tsx";
@@ -31,8 +31,8 @@ export function ProjectPage({ projectId }: { projectId: string }) {
         setProject(p);
         setError(null);
         Promise.all(p.experiments.map((e) => client.getWorkspace(e.id).then(
-          (w) => [e.id, w.procedure ? statusLine(w.procedure.order, w.procedure.history) : "No procedure yet"] as const,
-          () => [e.id, "No procedure yet"] as const,
+          (w) => [e.id, w.procedure ? statusLine(w.procedure.order, w.procedure.history) : NO_PROCEDURE] as const,
+          () => [e.id, NO_PROCEDURE] as const,
         ))).then((pairs) => { if (live) setStatuses(Object.fromEntries(pairs)); });
       },
       (e: unknown) => { if (live) setError(errorText(e)); },

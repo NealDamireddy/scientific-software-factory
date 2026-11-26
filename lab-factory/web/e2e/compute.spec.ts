@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "playwright/test";
 import type { Page } from "playwright/test";
 
-import { COOMASSIE } from "./helpers.ts";
+import { COOMASSIE, goto } from "./helpers.ts";
 
 // Pyodide loads in the worker on the first run, so the first computed result gets a long wait.
 const FIRST_RUN = { timeout: 80_000 };
@@ -29,7 +29,7 @@ let requests: string[] = [];
 test.beforeEach(async ({ page }) => {
   requests = [];
   page.on("request", (request) => requests.push(request.url()));
-  await page.goto(COOMASSIE);
+  await goto(page, COOMASSIE);
   await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
 });
 

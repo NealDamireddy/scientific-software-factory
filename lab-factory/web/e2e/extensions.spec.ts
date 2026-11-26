@@ -1,7 +1,8 @@
 import { expect, test } from "playwright/test";
+import { goto } from "./helpers.ts";
 
 test("three skills are listed and a skill that is off says so", async ({ page }) => {
-  await page.goto("/#/skills");
+  await goto(page, "/#/skills");
   await expect(page.getByRole("heading", { name: "Skills", level: 1 })).toBeVisible();
   await expect(page.getByText("Instructions every agent follows when it works for this lab.")).toBeVisible();
   await expect(page.getByText("Skills that are switched on are followed every time the factory builds.")).toBeVisible();
@@ -13,14 +14,14 @@ test("three skills are listed and a skill that is off says so", async ({ page })
   await plotting.click();
   await expect(plotting).toHaveAttribute("aria-checked", "true");
 
-  await page.goto("/#/connectors");
+  await goto(page, "/#/connectors");
   await expect(page.getByRole("heading", { name: "Connectors", level: 1 })).toBeVisible();
-  await page.goto("/#/skills");
+  await goto(page, "/#/skills");
   await expect(page.getByRole("switch", { name: "Plotting conventions enabled" })).toHaveAttribute("aria-checked", "true");
 });
 
 async function createSkill(page: import("playwright/test").Page, title: string, description = "") {
-  await page.goto("/#/skills?skill=new");
+  await goto(page, "/#/skills?skill=new");
   await page.getByLabel("Title").fill(title);
   if (description) await page.getByLabel("Description").fill(description);
   await page.getByLabel("Instructions (Markdown)").fill("- Be brief.");
@@ -39,7 +40,7 @@ test("a skill titled New does not collide with the new-skill route", async ({ pa
 test("a long unbroken skill title does not widen the page", async ({ page }) => {
   await createSkill(page, "x".repeat(300), "y".repeat(300));
   await expect(page.getByText("Saved as revision 1")).toBeVisible();
-  await page.goto("/#/skills");
+  await goto(page, "/#/skills");
   await expect(page.getByRole("list", { name: "Skills" }).getByRole("listitem")).toHaveCount(4);
   const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
   expect(await fits()).toBe(true);
@@ -48,7 +49,7 @@ test("a long unbroken skill title does not widen the page", async ({ page }) => 
 });
 
 test("a new skill is saved as revision 1, then edited into revision 2", async ({ page }) => {
-  await page.goto("/#/skills");
+  await goto(page, "/#/skills");
   await page.getByRole("link", { name: "New skill" }).click();
   await expect(page).toHaveURL(/#\/skills\?skill=new$/);
   await expect(page.getByRole("heading", { name: "New skill", level: 2 })).toBeVisible();
@@ -82,12 +83,12 @@ test("a new skill is saved as revision 1, then edited into revision 2", async ({
 });
 
 test("an unknown skill says it isn't in this lab", async ({ page }) => {
-  await page.goto("/#/skills?skill=nope");
+  await goto(page, "/#/skills?skill=nope");
   await expect(page.getByText("That skill doesn't exist in this lab.")).toBeVisible();
 });
 
 test("Zotero is connected, and its item can be added to a project", async ({ page }) => {
-  await page.goto("/#/connectors");
+  await goto(page, "/#/connectors");
   await expect(page.getByRole("heading", { name: "Connectors", level: 1 })).toBeVisible();
   await expect(page.getByText("Connections here are simulated.")).toBeVisible();
   const zotero = page.getByRole("region", { name: "Zotero" });
@@ -104,13 +105,13 @@ test("Zotero is connected, and its item can be added to a project", async ({ pag
   await zotero.getByRole("button", { name: `Add ${title}` }).click();
   await expect(zotero.getByText(/^Added to Coomassie reduction as revision \d+$/)).toBeVisible();
 
-  await page.goto("/#/projects/coomassie-reduction");
+  await goto(page, "/#/projects/coomassie-reduction");
   const aside = page.getByRole("complementary", { name: "Shared with every experiment in this project" });
   await expect(aside.getByRole("link", { name: title })).toBeVisible();
 });
 
 test("Google Drive can be connected under a name, then disconnected", async ({ page }) => {
-  await page.goto("/#/connectors");
+  await goto(page, "/#/connectors");
   const drive = page.getByRole("region", { name: "Google Drive" });
   await expect(drive.getByText("Not connected")).toBeVisible();
   await expect(drive.getByText("Coomassie dye protocol (sample)")).toHaveCount(0);
@@ -128,7 +129,7 @@ test("Google Drive can be connected under a name, then disconnected", async ({ p
 });
 
 test("a readings item points to the Results tab, and Cancel closes the connect field", async ({ page }) => {
-  await page.goto("/#/connectors");
+  await goto(page, "/#/connectors");
   const folder = page.getByRole("region", { name: "Instrument data folder" });
   await expect(folder.getByText("Connected as uvvis-1 exports")).toBeVisible();
   await expect(folder.getByText("Available in the Results tab.")).toBeVisible();
@@ -142,7 +143,7 @@ test("a readings item points to the Results tab, and Cancel closes the connect f
 
 test("the agent page shows the MCP setup, the skill download and connected agents", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
-  await page.goto("/#/agents");
+  await goto(page, "/#/agents");
   await expect(page.getByRole("heading", { name: "Connect your agent", level: 1 })).toBeVisible();
   for (const name of ["Via MCP", "As a skill", "Connected agents", "What agents can and can't do"]) {
     await expect(page.getByRole("heading", { name, level: 2 })).toBeVisible();
@@ -166,7 +167,7 @@ test("the agent page shows the MCP setup, the skill download and connected agent
 
   const download = page.getByRole("link", { name: "Download SKILL.md" });
   await expect(download).toHaveAttribute("href", "/skills/labfactory-work-orders/SKILL.md");
-  await expect(download).toHaveAttribute("download", "");
+  await expect(download).toHaveAttribute("download", "SKILL.md");
   const response = await page.request.get("/skills/labfactory-work-orders/SKILL.md");
   expect(response.status()).toBe(200);
   expect(await response.text()).toContain("labfactory-work-orders");
@@ -189,13 +190,13 @@ test("copying says so when the clipboard refuses", async ({ page }) => {
       value: { writeText: () => Promise.reject(new Error("denied")) },
     });
   });
-  await page.goto("/#/agents");
+  await goto(page, "/#/agents");
   await page.getByRole("button", { name: "Copy Claude Code" }).click();
   await expect(page.getByText("Couldn't copy. Select the text and copy it yourself.")).toBeVisible();
 });
 
 test("Ctrl+K, plot and Enter open the Plotting conventions editor", async ({ page }) => {
-  await page.goto("/");
+  await goto(page, "/");
   await page.keyboard.press("Control+k");
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("combobox", { name: "Search the lab" }).fill("plot");

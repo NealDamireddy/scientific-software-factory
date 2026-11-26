@@ -151,7 +151,7 @@ export function ConnectorsPage() {
                 </button>
               </form>
             ) : c.connected ? (
-              <button type="button" className="pg-button pg-quiet" aria-label={`Disconnect ${c.name}`}
+              <button type="button" className="pg-button pg-secondary" aria-label={`Disconnect ${c.name}`}
                 disabled={busy !== null} onClick={() => onDisconnect(c)}>
                 Disconnect
               </button>
