@@ -29,6 +29,10 @@ Look for `released: submission 1 by Local reviewer` and the approved artifact’
 
 The browser interface lives in `web/`. See [web/README.md](web/README.md).
 
+## Reviewer API and remote workers
+
+The reviewer HTTP API and authenticated MCP endpoint share the versioned records used by the CLI. A reviewer can connect an uploaded analysis to a released procedure and trace a saved result back to its approved submission, instrument record and SOP revision. Read the [backend setup and analysis workflow](docs/analysis-api.md) for authentication, storage, sample requests and backup requirements.
+
 ## Connect a coding agent
 
 Use absolute paths to the project and the database containing your lab’s work orders. To connect Claude Code to the quickstart database from the same shell, run
@@ -55,4 +59,4 @@ A citation must identify exactly one document across the pinned lab and experime
 
 **What a release certifies.** Against the pinned revisions, every check above passed for the exact artifact whose digest the approval recorded, and a named person approved that submission. It does not certify that the instrument's driver implements a command correctly, which is the instrument agent's job, or that the science is right, which is the reviewer's job.
 
-**Trust assumption.** Agents connected over MCP cannot approve or release work; only `labfactory wo approve` does, and it names the exact submission a person reviewed. The core does not stop an agent that has shell access as your computer user from running that command itself. If that matters for your lab, don't give coding agents a shell on the machine that holds the database. Enforced human-only release comes with the hosted lab deployment.
+**Trust assumption.** Local approval uses the identity supplied to `labfactory wo approve`. A process with shell access as that user can run the command. The hosted API authenticates reviewers and MCP workers separately. Named sign-in is the default. Deployments that explicitly enable public review give every visitor reviewer access under one shared identity.

@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from fractions import Fraction
 import re
 
-from .artifacts import Procedure, ProcedureStep, RunPlan, Setting, format_citation, format_number
+from .artifacts import AnalysisApp, Procedure, ProcedureStep, RunPlan, Setting, format_citation, format_number
 from .context import Command, Experiment, Instrument, Lab
 from .units import UNIT_SPELLINGS, UnitError, convert_exact, is_known_unit
 
@@ -129,7 +129,12 @@ def _procedure_checks(prefix: str, step: ProcedureStep, document_counts: Counter
     return results
 
 
-def check_artifact(artifact: RunPlan | Procedure, lab: Lab, experiment: Experiment) -> list[CheckResult]:
+def check_artifact(artifact: RunPlan | Procedure | AnalysisApp, lab: Lab, experiment: Experiment) -> list[CheckResult]:
+    if isinstance(artifact, AnalysisApp):
+        from .b12_analysis import check_source
+        from .b12_service import calibration_checks
+
+        return [*calibration_checks(lab, experiment), *check_source(artifact.source)]
     if isinstance(artifact, RunPlan):
         instrument, listed = _instrument_check(lab, experiment, artifact.instrument_id, "instrument listed")
         results = [listed]

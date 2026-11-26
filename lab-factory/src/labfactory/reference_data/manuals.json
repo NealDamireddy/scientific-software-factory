@@ -1,0 +1,192 @@
+[
+  {
+    "id": "agilent-cary-60-user-guide",
+    "kind": "manual",
+    "title": "Agilent Cary 60 Spectrophotometer User’s Guide",
+    "publisher": "Agilent Technologies",
+    "year": 2019,
+    "version": "G6860-90001, edition 5",
+    "url": "https://www.agilent.com/Library/usermanuals/Public/G6860-90001.pdf",
+    "locator": "Chapter 5, Instrument Performance Testing and Wavelength Calibration, pp. 33–34.",
+    "summary": "Cary WinUV shows the instrument calibration status in System Information. The guide directs users to the Validate performance tests and explains what to check when a spectral peak shifts.",
+    "scope": "These pages cover instrument performance. The lab must establish the calibration curve and conditions for its analyte separately.",
+    "instrument_ids": [
+      "agilent-cary-60"
+    ],
+    "topics": [
+      "uv-vis",
+      "wavelength",
+      "instrument performance"
+    ],
+    "rights": "Publisher link, bibliographic metadata and original catalog summary.",
+    "techniques": [
+      "uv-vis"
+    ]
+  },
+  {
+    "id": "thermo-genesys-family-user-guide",
+    "kind": "manual",
+    "title": "GENESYS Family Spectrophotometers User Guide",
+    "publisher": "Thermo Fisher Scientific",
+    "year": 2019,
+    "version": "269-331301, revision A, February 2019",
+    "url": "https://assets.thermofisher.com/TFS-Assets/MSD/Product-Guides/genesys-family-uv-visible-spectrophotometers-user-guide-269-331300.pdf",
+    "locator": "Model list, p. 1. Chapter 2, Quant Application, pp. 47–48.",
+    "summary": "The Quant application records known standard concentrations and the chosen curve type. After the standards are measured, it displays the fitted equation and R² and enables sample measurement.",
+    "scope": "This guide covers multiple models. Consult the model list for hardware options and use a separate assay source for the wavelength and standards.",
+    "instrument_ids": [
+      "thermo-genesys-150",
+      "thermo-genesys-50",
+      "thermo-genesys-180",
+      "thermo-biomate-160"
+    ],
+    "topics": [
+      "uv-vis",
+      "absorbance",
+      "calibration curve"
+    ],
+    "rights": "Publisher link, bibliographic metadata and original catalog summary.",
+    "techniques": [
+      "uv-vis"
+    ]
+  },
+  {
+    "id": "thermo-genesys-10s-uv-vis-user-guide",
+    "kind": "manual",
+    "title": "GENESYS 10S UV-Vis User Guide",
+    "publisher": "Thermo Fisher Scientific",
+    "year": 2009,
+    "version": "269-251800, revision A, October 2009",
+    "url": "https://knowledge1.thermofisher.com/Molecular_Spectroscopy/Ultraviolet-Visible_and_Visible_UV-Vis_and_Vis_Spectrophotometry/GENESYS/GENESYS_User_Guides/269-251800_-_Rev_A_-_GENESYS_10S_UV-Vis_User_Guide",
+    "locator": "Chapter 19, Concentration Measurements—Standard Curve Application, pp. 83–85.",
+    "summary": "The Standard Curve application measures known standards, fits a calibration curve and uses it to estimate sample concentration. The operator sets the wavelength, curve fit, units and number of standards.",
+    "scope": "Applies to the GENESYS 10S UV-Vis. Selection of an analyte-specific method and sample preparation requires separate evidence.",
+    "instrument_ids": [
+      "thermo-genesys-10s-uv-vis"
+    ],
+    "topics": [
+      "uv-vis",
+      "absorbance",
+      "calibration curve"
+    ],
+    "rights": "Publisher link, bibliographic metadata and original catalog summary.",
+    "techniques": [
+      "uv-vis"
+    ]
+  },
+  {
+    "id": "mettler-excellence-uv7-uv5-uv5bio-user-manual",
+    "kind": "manual",
+    "title": "UV/VIS Excellence UV7/UV5/UV5Bio User Manual",
+    "publisher": "Mettler-Toledo GmbH",
+    "year": 2017,
+    "version": "30258694D, July 2017",
+    "url": "https://www.mt.com/dam/MT-TW/PDFs/%E5%AF%A6%E9%A9%97%E5%AE%A4%E5%88%86%E6%9E%90%E5%84%80%E5%99%A8%E6%93%8D%E4%BD%9C%E6%89%8B%E5%86%8A/%E7%B4%AB%E5%A4%96%E5%85%89%E8%AD%9C/UV7_UV5_UV5%20Bio_en.pdf",
+    "locator": "Model and firmware coverage, p. 3. Sections 5.4.2 and 5.4.5, pp. 21–22 and 24–25.",
+    "summary": "The fixed-wavelength mode records a blank and sample. In Quant mode the operator defines standards and measures them before evaluating samples.",
+    "scope": "For UV7, UV5 and UV5Bio running firmware 2.0 or higher. Method availability differs by model. Consult the experiment source for analyte-specific settings.",
+    "instrument_ids": [
+      "mettler-toledo-uv7",
+      "mettler-toledo-uv5",
+      "mettler-toledo-uv5bio"
+    ],
+    "topics": [
+      "uv-vis",
+      "fixed wavelength",
+      "absorbance",
+      "calibration curve"
+    ],
+    "rights": "Publisher link, bibliographic metadata and original catalog summary.",
+    "techniques": [
+      "uv-vis"
+    ]
+  },
+  {
+    "id": "mettler-excellence-uv5nano-user-manual",
+    "kind": "manual",
+    "title": "UV/VIS Excellence UV5Nano User Manual",
+    "publisher": "Mettler-Toledo GmbH",
+    "year": 2017,
+    "version": "30258706D, July 2017",
+    "url": "https://www.mt.com/dam/MT-TW/PDFs/%E5%AF%A6%E9%A9%97%E5%AE%A4%E5%88%86%E6%9E%90%E5%84%80%E5%99%A8%E6%93%8D%E4%BD%9C%E6%89%8B%E5%86%8A/%E7%B4%AB%E5%A4%96%E5%85%89%E8%AD%9C/UV5Nano_en.pdf",
+    "locator": "Model and firmware coverage, p. 3. Sections 5.2 and 5.3.1, pp. 14–17. Section 5.3.3, p. 19.",
+    "summary": "The guide distinguishes cuvette and microvolume measurements. It describes measuring a blank and a sample at a selected wavelength, plus a Quant mode with standards.",
+    "scope": "For the UV5Nano running firmware 2.0 or higher. Record the sample holder and optical path when comparing results across configurations.",
+    "instrument_ids": [
+      "mettler-toledo-uv5nano"
+    ],
+    "topics": [
+      "uv-vis",
+      "optical path",
+      "absorbance",
+      "calibration curve"
+    ],
+    "rights": "Publisher link, bibliographic metadata and original catalog summary.",
+    "techniques": [
+      "uv-vis"
+    ]
+  },
+  {
+    "id": "mettler-me-balance-operating-instructions",
+    "kind": "manual",
+    "title": "ME Precision and Analytical Balances Operating Instructions",
+    "publisher": "Mettler-Toledo GmbH",
+    "year": 2016,
+    "version": "30045655D en, November 2016",
+    "url": "https://www.mt.com/dam/product_organizations/laboratory_weighing/basic_weighing/Products/ME/MANUALS/en/OI_ME_Preciosn_and_Analytical_EN.pdf",
+    "locator": "Sections 4.6.2 and 4.8, pp. 16 and 18–19. Section 4.9, p. 21. Section 10.2.1, pp. 62–63.",
+    "summary": "The manual explains leveling, adjustment and taring. Its analytical balance tables identify internal or external adjustment for each model and list weights for routine tests.",
+    "scope": "Use the table for the exact model and suffix. The suitability of a test weight and acceptance limits for the lab’s weighing process need separate evidence.",
+    "instrument_ids": [
+      "mettler-toledo-me54",
+      "mettler-toledo-me104",
+      "mettler-toledo-me204",
+      "mettler-toledo-me54e",
+      "mettler-toledo-me104e",
+      "mettler-toledo-me204e"
+    ],
+    "topics": [
+      "gravimetry",
+      "analytical balance",
+      "weighing",
+      "test weights",
+      "taring"
+    ],
+    "techniques": [
+      "gravimetry"
+    ],
+    "rights": "Publisher link, bibliographic metadata and original catalog summary."
+  },
+  {
+    "id": "thermo-orion-star-a210-user-manual",
+    "kind": "manual",
+    "title": "Orion Star A210 Series Electrochemistry Benchtop Meters User Manual",
+    "publisher": "Thermo Fisher Scientific",
+    "year": 2015,
+    "version": "68X000441, revision A, June 2015",
+    "url": "https://documents.thermofisher.com/TFS-Assets/LED/manuals/Orion-Star-A210-Series-Benchtop-Meter-User-Manual-EN.pdf",
+    "locator": "Meter models and measurement capabilities, p. 19. Chapter 4, pH calibration, pp. 51–52, and conductivity calibration, pp. 59–60.",
+    "summary": "The guide describes pH buffer calibration for A211, A214, A215 and A216. For A212 and A215 it describes calibrating with conductivity standards or entering a certified cell constant.",
+    "scope": "Choose the instructions for the meter’s channel and connected sensor. The lab’s water method determines sampling conditions, check standards and acceptance criteria.",
+    "instrument_ids": [
+      "thermo-orion-star-a211",
+      "thermo-orion-star-a212",
+      "thermo-orion-star-a214",
+      "thermo-orion-star-a215",
+      "thermo-orion-star-a216"
+    ],
+    "topics": [
+      "ph",
+      "conductivity",
+      "water",
+      "calibration",
+      "electrode",
+      "cell constant"
+    ],
+    "techniques": [
+      "ph",
+      "conductivity"
+    ],
+    "rights": "Publisher link, bibliographic metadata and original catalog summary."
+  }
+]

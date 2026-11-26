@@ -80,17 +80,36 @@ class WorkOrders:
             (id, event, actor, submission, note),
         )
 
-    def create(self, experiment_id: str, kind: str, objective: str) -> WorkOrder:
+    def create(self, experiment_id: str, kind: str, objective: str, *, actor: str = "operator",
+               tabular_upload: bool = False) -> WorkOrder:
+        _actor(actor)
         if kind not in KINDS:
             raise WorkOrderError(f"unknown work-order kind {kind}")
         if not isinstance(objective, str) or not objective.strip():
             raise WorkOrderError("work order needs an objective")
         with self.store.transaction():
             exp, exp_rev = self.store.get_experiment(experiment_id)
+            if kind == "run_plan" and not exp.instrument_ids:
+                raise WorkOrderError("Assign an instrument to the experiment before creating a run plan.")
             try:
-                _, lab_rev = self.store.lab_for_experiment(exp)
+                lab, lab_rev = self.store.lab_for_experiment(exp)
             except ContextError as exc:
                 raise WorkOrderError(f"cannot pin context for experiment {exp.id}: {exc}") from exc
+            snapshot = None
+            if kind == "analysis_app":
+                from .b12_service import require_calibration
+                from . import honey_service
+
+                from . import tabular_service
+
+                if exp.id.startswith(tabular_service.PREFIX):
+                    if not tabular_upload:
+                        raise WorkOrderError("Create this analysis from a protocol and readings upload.")
+                elif exp.id == honey_service.EXPERIMENT_ID:
+                    snapshot = honey_service.current_snapshot()
+                    honey_service.require_context(lab, exp, snapshot)
+                else:
+                    require_calibration(lab, exp)
             seq = self.db.execute("SELECT COALESCE(MAX(rowid),0) + 1 FROM work_orders").fetchone()[0]
             id = f"WO-{seq}"
             self.db.execute(
@@ -99,7 +118,10 @@ class WorkOrders:
                    VALUES (?,?,?,?,?,?,?,'open')""",
                 (id, exp.id, exp_rev.number, exp.lab_id, lab_rev.number, kind, objective),
             )
-            self._event(id, "created", "operator")
+            self._event(id, "created", actor)
+            if snapshot is not None:
+                self.db.execute("INSERT INTO reference_briefs(work_order_id,snapshot) VALUES (?,?)",
+                                (id, canonical_json(snapshot)))
             return self.get(id)
 
     def pinned_context(self, id: str) -> tuple[Lab, Experiment]:
@@ -111,7 +133,15 @@ class WorkOrders:
         return lab, experiment
 
     def _check(self, order: WorkOrder, data: dict) -> list[CheckResult]:
-        return check_artifact(parse_artifact(order.kind, data), *self._context_for(order))
+        from . import honey_service
+
+        lab, exp = self._context_for(order)
+        if honey_service.is_honey_order(order):
+            from .honey_analysis import check
+
+            honey_service.require_context(lab, exp, self.store.reference_brief(order.id))
+            return check(data)
+        return check_artifact(parse_artifact(order.kind, data), lab, exp)
 
     def _transition(self, id, expected, status, worker, released=None):
         changed = self.db.execute(
@@ -137,8 +167,15 @@ class WorkOrders:
                 raise WorkOrderError(f"{id} belongs to {order.worker}")
             # Validate and persist the same snapshot, including its original JSON types.
             data = deepcopy(artifact)
-            results = self._check(order, data)
             body = canonical_json(data)
+            fingerprint = canonical_digest(data)
+            from . import tabular_service
+
+            report = None
+            if tabular_service.is_order(order):
+                results, report = tabular_service.submission_checks(self.store, order, data)
+            else:
+                results = self._check(order, data)
             passed = all_passed(results)
             number = self.db.execute(
                 "SELECT COALESCE(MAX(number),0) + 1 FROM submissions WHERE work_order_id=?", (id,)
@@ -146,8 +183,10 @@ class WorkOrders:
             self.db.execute(
                 """INSERT INTO submissions (work_order_id, number, worker, artifact, artifact_digest, results, passed)
                    VALUES (?,?,?,?,?,?,?)""",
-                (id, number, worker, body, canonical_digest(data), json.dumps([asdict(r) for r in results]), passed),
+                (id, number, worker, body, fingerprint, json.dumps([asdict(r) for r in results]), passed),
             )
+            if report is not None:
+                tabular_service.record_report(self.db, id, number, report)
             self._transition(id, "in_progress", "in_review" if passed else "in_progress", worker)
             self._event(id, "submitted", worker, number, "passed" if passed else "failed")
             row = self.db.execute(
@@ -159,6 +198,20 @@ class WorkOrders:
         return [_submission(row) for row in self.db.execute(
             "SELECT * FROM submissions WHERE work_order_id=? ORDER BY number", (id,)
         )]
+
+    def submission(self, id: str, number: int | None = None) -> Submission | None:
+        """Read one immutable submission, or the latest one for this order."""
+        if number is None:
+            row = self.db.execute(
+                "SELECT * FROM submissions WHERE work_order_id=? ORDER BY number DESC LIMIT 1", (id,)
+            ).fetchone()
+        else:
+            row = self.db.execute(
+                "SELECT * FROM submissions WHERE work_order_id=? AND number=?", (id, number)
+            ).fetchone()
+            if row is None:
+                raise NotFound(f"{id} has no submission {number}")
+        return _submission(row) if row is not None else None
 
     def _reviewed(self, id, number):
         order = self.get(id)
@@ -180,9 +233,16 @@ class WorkOrders:
         _actor(person)
         with self.store.transaction():
             order, latest = self._reviewed(id, submission)
+            if latest.artifact_digest != canonical_digest(latest.artifact):
+                raise WorkOrderError(f"submission {submission} does not match its stored artifact digest")
             # A submission can outlive the version of the checker that first reviewed it.
             try:
-                results = self._check(order, latest.artifact)
+                from . import tabular_service
+
+                if tabular_service.is_order(order):
+                    results, _ = tabular_service.submission_checks(self.store, order, latest.artifact, approval=submission)
+                else:
+                    results = self._check(order, latest.artifact)
             except ArtifactError as exc:
                 raise WorkOrderError(f"submission {submission} is invalid under current checks: {exc}") from exc
             if not all_passed(results):

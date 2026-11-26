@@ -1,0 +1,201 @@
+[
+  {
+    "id": "agilent-cary-60",
+    "manufacturer": "Agilent Technologies",
+    "model": "Cary 60",
+    "technique": "uv-vis",
+    "aliases": [
+      "Agilent Cary 60",
+      "Cary 60 UV-Vis"
+    ]
+  },
+  {
+    "id": "thermo-genesys-150",
+    "manufacturer": "Thermo Scientific",
+    "model": "GENESYS 150 UV-Vis",
+    "technique": "uv-vis",
+    "aliases": [
+      "GENESYS 150"
+    ]
+  },
+  {
+    "id": "thermo-genesys-10s-uv-vis",
+    "manufacturer": "Thermo Scientific",
+    "model": "GENESYS 10S UV-Vis",
+    "technique": "uv-vis",
+    "aliases": [
+      "GENESYS 10S UV-Visible"
+    ]
+  },
+  {
+    "id": "mettler-toledo-uv7",
+    "manufacturer": "METTLER TOLEDO",
+    "model": "UV7",
+    "technique": "uv-vis",
+    "aliases": [
+      "UV7 Excellence"
+    ]
+  },
+  {
+    "id": "mettler-toledo-uv5",
+    "manufacturer": "METTLER TOLEDO",
+    "model": "UV5",
+    "technique": "uv-vis",
+    "aliases": [
+      "UV5 Excellence"
+    ]
+  },
+  {
+    "id": "mettler-toledo-uv5bio",
+    "manufacturer": "METTLER TOLEDO",
+    "model": "UV5Bio",
+    "technique": "uv-vis",
+    "aliases": [
+      "UV5 Bio"
+    ]
+  },
+  {
+    "id": "mettler-toledo-uv5nano",
+    "manufacturer": "METTLER TOLEDO",
+    "model": "UV5Nano",
+    "technique": "uv-vis",
+    "aliases": [
+      "UV5 Nano"
+    ]
+  },
+  {
+    "id": "thermo-genesys-50",
+    "manufacturer": "Thermo Scientific",
+    "model": "GENESYS 50 UV-Vis",
+    "technique": "uv-vis",
+    "aliases": [
+      "GENESYS 50"
+    ]
+  },
+  {
+    "id": "thermo-genesys-180",
+    "manufacturer": "Thermo Scientific",
+    "model": "GENESYS 180 UV-Vis",
+    "technique": "uv-vis",
+    "aliases": [
+      "GENESYS 180"
+    ]
+  },
+  {
+    "id": "thermo-biomate-160",
+    "manufacturer": "Thermo Scientific",
+    "model": "BioMate 160",
+    "technique": "uv-vis",
+    "aliases": [
+      "BioMate 160 UV-Vis"
+    ]
+  },
+  {
+    "id": "mettler-toledo-me54",
+    "manufacturer": "METTLER TOLEDO",
+    "model": "ME54",
+    "technique": "gravimetry",
+    "aliases": [
+      "ME54 analytical balance"
+    ]
+  },
+  {
+    "id": "mettler-toledo-me104",
+    "manufacturer": "METTLER TOLEDO",
+    "model": "ME104",
+    "technique": "gravimetry",
+    "aliases": [
+      "ME104 analytical balance"
+    ]
+  },
+  {
+    "id": "mettler-toledo-me204",
+    "manufacturer": "METTLER TOLEDO",
+    "model": "ME204",
+    "technique": "gravimetry",
+    "aliases": [
+      "ME204 analytical balance"
+    ]
+  },
+  {
+    "id": "mettler-toledo-me54e",
+    "manufacturer": "METTLER TOLEDO",
+    "model": "ME54E",
+    "technique": "gravimetry",
+    "aliases": [
+      "ME54E analytical balance"
+    ]
+  },
+  {
+    "id": "mettler-toledo-me104e",
+    "manufacturer": "METTLER TOLEDO",
+    "model": "ME104E",
+    "technique": "gravimetry",
+    "aliases": [
+      "ME104E analytical balance"
+    ]
+  },
+  {
+    "id": "mettler-toledo-me204e",
+    "manufacturer": "METTLER TOLEDO",
+    "model": "ME204E",
+    "technique": "gravimetry",
+    "aliases": [
+      "ME204E analytical balance"
+    ]
+  },
+  {
+    "id": "thermo-orion-star-a211",
+    "manufacturer": "Thermo Scientific",
+    "model": "Orion Star A211",
+    "technique": "ph",
+    "aliases": [
+      "Orion A211",
+      "Orion Star A211 pH"
+    ]
+  },
+  {
+    "id": "thermo-orion-star-a212",
+    "manufacturer": "Thermo Scientific",
+    "model": "Orion Star A212",
+    "technique": "conductivity",
+    "aliases": [
+      "Orion A212",
+      "Orion Star A212 Conductivity"
+    ]
+  },
+  {
+    "id": "thermo-orion-star-a214",
+    "manufacturer": "Thermo Scientific",
+    "model": "Orion Star A214",
+    "technique": "ph",
+    "aliases": [
+      "Orion A214",
+      "Orion Star A214 pH/ISE"
+    ]
+  },
+  {
+    "id": "thermo-orion-star-a215",
+    "manufacturer": "Thermo Scientific",
+    "model": "Orion Star A215",
+    "technique": "ph",
+    "aliases": [
+      "Orion A215",
+      "Orion Star A215 pH/Conductivity"
+    ],
+    "techniques": [
+      "ph",
+      "conductivity"
+    ]
+  },
+  {
+    "id": "thermo-orion-star-a216",
+    "manufacturer": "Thermo Scientific",
+    "model": "Orion Star A216",
+    "technique": "ph",
+    "aliases": [
+      "Orion A216",
+      "Orion Star A216 pH/RDO/DO"
+    ]
+  }
+]

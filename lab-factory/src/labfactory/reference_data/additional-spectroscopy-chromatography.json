@@ -1,0 +1,150 @@
+[
+  {
+    "id": "epa-365-3-phosphate",
+    "kind": "procedure",
+    "title": "Phosphorous, All Forms (Colorimetric, Ascorbic Acid, Two Reagent)",
+    "publisher": "U.S. Environmental Protection Agency",
+    "year": 1978,
+    "version": "Method 365.3, 1978 edition",
+    "url": "https://www.epa.gov/sites/default/files/2015-08/documents/method_365-3_1978.pdf",
+    "locator": "Sections 6.1 and 8.3, photometer, orthophosphate measurement and concentration-dependent cell lengths.",
+    "summary": "This manual colorimetric procedure relates sample absorbance to a phosphorus calibration curve. It distinguishes orthophosphate measurement from preparations that convert other phosphorus fractions.",
+    "scope": "Use the cell length and calibration range specified for the intended fraction. Confirm the instrument accepts the required cell. Section 6.1 lists instrument wavelengths that differ from the reading in §8.3.3. Resolve this against the lab’s adopted procedure. A microvolume pedestal has a different optical path.",
+    "instrument_ids": [],
+    "techniques": [
+      "uv-vis"
+    ],
+    "topics": [
+      "orthophosphate",
+      "phosphate",
+      "phosphorus",
+      "colorimetry",
+      "cuvette"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "murphy-riley-soluble-phosphate",
+    "kind": "paper",
+    "title": "A Single-Solution Method for the Determination of Soluble Phosphate in Sea Water",
+    "publisher": "Journal of the Marine Biological Association of the United Kingdom",
+    "year": 1958,
+    "version": "J. Murphy and J. P. Riley, 37, 9–14. DOI 10.1017/S0025315400014776",
+    "url": "https://doi.org/10.1017/S0025315400014776",
+    "locator": "Publisher’s extract, concentration response and salt effect. In the full paper, Tables 3–4 cover salt and interferents.",
+    "summary": "The authors tested phosphate additions to seawater and investigated the influence of salinity and interfering ions on the colorimetric reading. Their results distinguish calibration response from bias caused by the matrix.",
+    "scope": "This study used a specific single-reagent method. It informs spike and matrix checks for a local phosphate assay. Its numerical corrections apply to the formulation and seawater examined.",
+    "instrument_ids": [],
+    "techniques": [
+      "uv-vis"
+    ],
+    "topics": [
+      "phosphate",
+      "orthophosphate",
+      "seawater",
+      "colorimetry",
+      "matrix effects"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "agilent-ftir-flour-identity",
+    "kind": "procedure",
+    "title": "QA/QC of flours using the Agilent Cary 630 ATR-FTIR analyzer",
+    "publisher": "Agilent Technologies",
+    "year": 2012,
+    "version": "Application note 5991-0785EN, 28 November 2012",
+    "url": "https://www.agilent.com/Library/applications/5991-0785EN_AppNote_630_Flour.pdf",
+    "locator": "Experimental and flour identification procedures, pp. 2–3. Figure 4, example library match.",
+    "summary": "The authors recorded spectra of flour powders with a diamond ATR accessory on a Cary 630. They compared unknown flour with a reference library and show how the matching score was used.",
+    "scope": "Requires a suitable ATR accessory and representative known flour samples. Similarity to a library entry is an identity screen. It does not measure gluten content or establish an allergen threshold.",
+    "instrument_ids": [
+      "agilent-cary-630"
+    ],
+    "techniques": [
+      "ftir"
+    ],
+    "topics": [
+      "flour identity",
+      "flour adulteration",
+      "wheat flour",
+      "spectral matching",
+      "ATR"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "arslan-ftir-flour-adulteration",
+    "kind": "paper",
+    "title": "FT-IR Spectroscopy with chemometrics for rapid detection of wheat flour adulteration with barley flour",
+    "publisher": "Journal of Consumer Protection and Food Safety",
+    "year": 2020,
+    "version": "Arslan et al., 15, 245–261. DOI 10.1007/s00003-019-01267-9",
+    "url": "https://edepot.wur.nl/539790",
+    "locator": "Sections 2.2–2.3, pressed pellets and spectral analysis. Section 3, classification and validation.",
+    "summary": "The team tested 20 pure flours and 120 blends to distinguish wheat flour from mixtures containing barley. They report classification results and cross-validation error for their model.",
+    "scope": "The reported models use KBr pellet transmission spectra from a Perkin-Elmer Spectrum 100. Transfer to diamond ATR on a Cary 630 requires new reference spectra and independent validation mixtures.",
+    "instrument_ids": [],
+    "techniques": [
+      "ftir"
+    ],
+    "topics": [
+      "flour identity",
+      "flour adulteration",
+      "barley flour",
+      "wheat flour",
+      "classification"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "szekelyhidi-beverage-sweeteners",
+    "kind": "paper",
+    "title": "Optimization and validation of HPLC–DAD method for simultaneous analysis of sweeteners, preservatives, and caffeine in sugar-free beverages",
+    "publisher": "European Food Research and Technology",
+    "year": 2023,
+    "version": "Székelyhidi et al., 249, 2797–2805. DOI 10.1007/s00217-023-04328-4",
+    "url": "https://link.springer.com/article/10.1007/s00217-023-04328-4",
+    "locator": "Instrumentation and chromatographic conditions. Tables 2–3, validation. Figure 3, real beverage chromatograms.",
+    "summary": "The study measured sugar-free beverages using a Merck Hitachi LaChrome system with diode-array detection. It reports repeatability, recovery and chromatograms for the target sweeteners and other ingredients.",
+    "scope": "Check separation and recovery on the installed column and detector. The study distinguishes sample preparation for carbonated drinks and fruit nectars. It did not test the Agilent system listed in this catalog.",
+    "instrument_ids": [],
+    "techniques": [
+      "hplc"
+    ],
+    "topics": [
+      "sweeteners",
+      "aspartame",
+      "saccharin",
+      "acesulfame",
+      "diet drinks",
+      "beverages"
+    ],
+    "rights": "Bibliographic record, original summary and link to the source."
+  },
+  {
+    "id": "cereal-science-atr-durum-flour",
+    "kind": "paper",
+    "title": "Rapid detection of common wheat flour addition to durum wheat flour and pasta using spectroscopic methods and chemometrics",
+    "publisher": "Journal of Cereal Science",
+    "year": 2023,
+    "version": "Volume 109, article 103604. DOI 10.1016/j.jcs.2022.103604",
+    "url": "https://avesis.hacettepe.edu.tr/yayin/7dee6c92-d077-4dcd-9ffd-c54a97aae164/rapid-detection-of-common-wheat-flour-addition-to-durum-wheat-flour-and-pasta-using-spectroscopic-methods-and-chemometrics",
+    "locator": "Authors’ university record, abstract, comparison of detection limits and separate flour and pasta prediction results.",
+    "summary": "The researchers compared ATR infrared, near-infrared and fluorescence measurements on common-wheat and durum mixtures. ATR gave the lowest reported detection limits, with separate calibration results for flour and pasta.",
+    "scope": "The measured target was common wheat added to durum wheat. A different grain mixture, sample preparation or spectrometer requires local standards and held-out tests.",
+    "instrument_ids": [],
+    "techniques": [
+      "ftir"
+    ],
+    "topics": [
+      "flour identity",
+      "wheat flour",
+      "durum wheat",
+      "flour adulteration",
+      "ATR",
+      "spectral classification"
+    ],
+    "rights": "Original summary and link to the authors’ university research record."
+  }
+]

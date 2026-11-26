@@ -6,7 +6,13 @@ build-backend = "hatchling.build"
 name = "labfactory"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["mcp>=1,<2"]
+dependencies = [
+    "httpx>=0.28,<1",
+    "mcp>=1,<2",
+    "pyjwt>=2.10,<3",
+    "starlette>=0.49,<2",
+    "turso-serverless==0.1.0",
+]
 
 [project.scripts]
 labfactory = "labfactory.cli:main"
@@ -16,3 +22,7 @@ dev = ["pytest"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/labfactory"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"examples/uvvis-lab.json" = "labfactory/examples/uvvis-lab.json"
+"examples/b12-experiment.json" = "labfactory/examples/b12-experiment.json"

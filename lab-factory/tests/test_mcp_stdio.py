@@ -114,3 +114,23 @@ def test_mcp_stdio_round_trip(tmp_path, capsys, uvvis_lab_dict, b12_experiment_d
     released = cli("wo", "show", "WO-1").out
     assert "released: submission 3 by Neal" in released
     assert fingerprint in released
+
+
+def test_stdio_reference_discovery_and_encoded_search(tmp_path):
+    async def read():
+        async with agent_session(tmp_path / "references.db") as session:
+            resources = await session.list_resources()
+            assert "labfactory://references/catalog" in {str(r.uri) for r in resources.resources}
+            templates = await session.list_resource_templates()
+            assert {t.uriTemplate for t in templates.resourceTemplates} == {
+                "labfactory://references/search/{instrument}/{query}", "labfactory://references/source/{source_id}",
+            }
+            found = await session.read_resource("labfactory://references/search/all/caffeine%20in%20coffee")
+            evidence = json.loads(found.contents[0].text)
+            assert evidence["query"] == "caffeine in coffee"
+            key = "agilent-caffeine-in-coffee-din-20481"
+            assert key in {r["id"] for r in evidence["findings"]}
+            item = await session.read_resource("labfactory://references/source/" + key)
+            assert json.loads(item.contents[0].text)["digest"] == next(
+                r["digest"] for r in evidence["findings"] if r["id"] == key)
+    asyncio.run(read())

@@ -7,6 +7,11 @@ import pytest
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
 
 
+@pytest.fixture(autouse=True)
+def default_reviewer_mode(monkeypatch):
+    monkeypatch.delenv("LABFACTORY_PUBLIC_REVIEW", raising=False)
+
+
 @pytest.fixture
 def uvvis_lab_dict():
     return json.loads((EXAMPLES / "uvvis-lab.json").read_text(encoding="utf-8"))
