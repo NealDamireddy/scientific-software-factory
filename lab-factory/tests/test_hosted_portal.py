@@ -143,6 +143,79 @@ def test_reviewer_password_rotation_revokes_existing_session(client, monkeypatch
     assert client.get("/api/orders").status_code == 401
 
 
+def test_public_review_without_reviewer_credentials_or_cookies(client, monkeypatch):
+    monkeypatch.setenv("LABFACTORY_PUBLIC_REVIEW", "1")
+    monkeypatch.delenv("LABFACTORY_REVIEWERS")
+    monkeypatch.delenv("LABFACTORY_SESSION_KEY")
+    session = client.get("/api/session")
+    assert session.status_code == 200
+    assert session.json()["reviewer"] == "Public reviewer"
+    assert session.json()["access_mode"] == "public"
+    assert SESSION_COOKIE not in session.cookies
+    assert client.get("/api/orders").json() == {"orders": []}
+    login_response = client.post("/api/login", json={"name": "Ada", "password": "unused"})
+    assert login_response.status_code == 200
+    assert login_response.json()["reviewer"] == "Public reviewer"
+    assert SESSION_COOKIE not in login_response.cookies
+    assert client.post("/api/logout", json={}).status_code == 409
+    assert client.get("/api/session").json()["reviewer"] == "Public reviewer"
+    assert client.post("/api/example", json={}, headers={"Origin": "https://another.example"}).status_code == 403
+    del client.headers["Origin"]
+    assert client.post("/api/example", json={}).status_code == 403
+    assert client.get("/api/orders").json() == {"orders": []}
+
+
+def test_public_review_preserves_named_history_and_attributes_numbered_approval(client, monkeypatch):
+    login(client)
+    old_order = client.post("/api/example", json={}).json()["id"]
+    old_path = "/api/orders/" + old_order
+    submit_candidate(old_order, "run_plan", "spectrometer-agent", 550)
+    assert client.post(old_path + "/approve", json={"submission": 1}).status_code == 200
+    old_history = client.get(old_path).json()["history"]
+    assert old_history[-1]["actor"] == "Ada"
+
+    monkeypatch.setenv("LABFACTORY_PUBLIC_REVIEW", "1")
+    assert SESSION_COOKIE in client.cookies
+    assert client.get("/api/session").json()["reviewer"] == "Public reviewer"
+    assert client.get(old_path).json()["history"] == old_history
+    client.cookies.clear()
+    order = client.post("/api/example", json={}).json()["id"]
+    path = "/api/orders/" + order
+    submit_candidate(order, "run_plan", "spectrometer-agent", 550)
+    assert client.post(path + "/reject", json={"submission": 1, "reason": "Revise the setting."}).status_code == 200
+    second = submit_candidate(order, "run_plan", "spectrometer-agent", 550.0004)
+    review = client.get(path, params={"submission": "latest"}).json()["submissions"][0]
+    assert (review["number"], review["artifact_digest"]) == (2, canonical_digest(second))
+    assert client.post(path + "/approve", json={"submission": 1}).status_code == 409
+    assert client.post(path + "/approve", json={"submission": 2, "expected_reviewer": "Ada"}).status_code == 409
+    assert client.post(path + "/approve", json={"submission": 2, "expected_reviewer": "Public reviewer"}).status_code == 200
+    released = client.get(path).json()
+    assert released["order"]["released_submission"] == 2
+    approved = released["history"][-1]
+    assert (approved["event"], approved["actor"], approved["submission"], approved["note"]) == (
+        "approved", "Public reviewer", 2, review["artifact_digest"],
+    )
+    monkeypatch.delenv("LABFACTORY_PUBLIC_REVIEW")
+    assert client.get(path).status_code == 401
+
+
+def test_public_review_keeps_mcp_worker_only(client, monkeypatch):
+    login(client)
+    monkeypatch.setenv("LABFACTORY_PUBLIC_REVIEW", "1")
+    monkeypatch.delenv("LABFACTORY_REVIEWERS")
+    monkeypatch.delenv("LABFACTORY_SESSION_KEY")
+    del client.headers["Origin"]
+    client.headers["Accept"] = "application/json, text/event-stream"
+    rpc = {"jsonrpc": "2.0", "id": 1, "method": "tools/list"}
+    assert client.post("/mcp", json=rpc).status_code == 401
+    assert client.post("/mcp", json=rpc, headers={"Authorization": "Bearer invalid"}).status_code == 401
+    allowed = client.post("/mcp", json=rpc, headers={"Authorization": "Bearer " + AGENT_TOKEN})
+    assert allowed.status_code == 200
+    assert {tool["name"] for tool in allowed.json()["result"]["tools"]} == {
+        "list_work_orders", "get_work_order_context", "claim_work_order", "submit_artifact",
+    }
+
+
 def test_writes_require_same_origin_json_object(client):
     login(client)
     assert client.post("/api/example", headers={"Origin": "https://another.example"}, json={}).status_code == 403

@@ -2,9 +2,15 @@
 
 The Vercel project root is `lab-factory/`. Vercel builds the Python function from `uv.lock`, serves the browser portal from `public/`, and routes the reviewer API and Streamable HTTP MCP through the same application. The existing local CLI and stdio server continue to use the SQLite path supplied on the command line.
 
+## Who can review
+
+The shared Vercel demo uses public reviewer access. Anyone with the URL may read all work orders, download uploaded protocols and readings, inspect numerical control reports, approve or reject a numbered submission, and run an approved analysis. Public reviewers may also submit jobs and supply replacement controls when the workflow allows it. This applies to records uploaded before public review was enabled as well as new uploads. The history keeps prior decisions and attributes new public decisions to a single shared identity.
+
+Other deployments use named reviewer sign-in by default. Set `LABFACTORY_PUBLIC_REVIEW=1` and redeploy to enable public review. To restore named sign-in, configure the reviewer map and session key, remove the flag, and redeploy. MCP workers require their own bearer tokens in both modes.
+
 ## Shared reference collection
 
-The application bundles source metadata, publisher links, evidence locations, original summaries and scope notes. A read-only SQLite index serves the same collection to the signed-in portal and to agents. Search matches indexed terms, handles configured synonyms and ranks findings within the chosen instrument or technique. The evidence brief quotes the collection's summaries and links back to the records. Searches work offline after installation. Opening a publisher's document requires access to that site.
+The application bundles source metadata, publisher links, evidence locations, original summaries and scope notes. A read-only SQLite index serves the same collection to the reviewer portal and to agents. Search matches indexed terms, handles configured synonyms and ranks findings within the chosen instrument or technique. The evidence brief quotes the collection's summaries and links back to the records. Searches work offline after installation. Opening a publisher's document requires access to that site.
 
 Agents can discover the following JSON resources with MCP resources/list and resources/templates/list over HTTP or stdio.
 
@@ -30,7 +36,7 @@ The verifier compares the submitted table with a digest calculated independently
 
 ## B12 source and result records
 
-**Start B12 example** submits the checked-in `src/labfactory/b12_example.py` as a bundled example and runs the verifier for this work order. It reuses source written for this simulation. For a new agent-authored implementation, a signed-in reviewer can send `POST /api/b12/orders` with `{"mode":"agent"}` using the portal’s same-origin JSON session. This opens an ordinary MCP work order. The agent receives the pinned protocol and a function signature, writes its implementation, and submits `{"source":"..."}` through the existing tools. The command below submits a source file in the environment of its issued worker.
+**Start B12 example** submits the checked-in `src/labfactory/b12_example.py` as a bundled example and runs the verifier for this work order. It reuses source written for this simulation. For a new agent-authored implementation, a reviewer can send `POST /api/b12/orders` with `{"mode":"agent"}` using a same-origin JSON request. This opens an ordinary MCP work order. The agent receives the pinned protocol and a function signature, writes its implementation, and submits `{"source":"..."}` through the existing tools. The command below submits a source file in the environment of its issued worker.
 
 ```sh
 uv run --locked python examples/submit_remote_example.py "$order" \
@@ -55,9 +61,10 @@ Link the project directory to the intended Vercel project and connect a **privat
 | Variable | Value |
 | --- | --- |
 | `LABFACTORY_PUBLIC_ORIGIN` | The portal’s HTTPS origin, such as `https://neal-lab-factory.vercel.app` |
-| `LABFACTORY_REVIEWERS` | JSON object mapping reviewer names to salted PBKDF2-SHA256 password verifiers |
+| `LABFACTORY_PUBLIC_REVIEW` | Set to `1` for public review. Leave unset for named reviewer sign-in. |
+| `LABFACTORY_REVIEWERS` | Required for named sign-in. JSON object mapping reviewer names to salted PBKDF2-SHA256 password verifiers. |
 | `LABFACTORY_AGENTS` | JSON object mapping unique worker names to SHA-256 digests of separately issued high-entropy tokens |
-| `LABFACTORY_SESSION_KEY` | Independent random signing secret, at least 32 characters |
+| `LABFACTORY_SESSION_KEY` | Required for named sign-in. Independent random signing secret, at least 32 characters. |
 
 Keep an administrator copy of each verifier map in a password manager or a private directory outside the repository. To add or rotate one credential, generate a random secret in your password manager. From `lab-factory/`, run the matching command below and paste the secret at its hidden prompt. Each command prints only the verifier to place in that identity’s map.
 
@@ -66,6 +73,6 @@ uv run --locked python -c 'from getpass import getpass; from labfactory.hosted_a
 uv run --locked python -c 'from getpass import getpass; from labfactory.hosted_auth import token_digest; print(token_digest(getpass("Random agent token: ")))'
 ```
 
-Preserve the map entries for identities that continue to need access. After changing the production environment, deploy the project again. Restrict or retire previous deployment URLs that still use the old environment. Reviewer sessions expire after eight hours. Changing a reviewer’s verifier or the session signing key invalidates affected sessions on the new deployment.
+Preserve the map entries for identities that continue to need access. After changing the production environment, deploy the project again. Restrict or retire previous deployment URLs that still use the old environment. Named reviewer sessions expire after eight hours. Changing a reviewer’s verifier or the session signing key invalidates affected sessions on the new deployment.
 
-Give each agent only its own bearer token and worker name. The four MCP tools list work, retrieve pinned context, claim and submit. A reviewer uses the separate browser sign-in to approve or reject. The release event identifies the authenticated reviewer, submission number and reviewed artifact digest. The Vercel project and storage administrators are trusted to manage credentials and stored data.
+Give each agent only its own bearer token and worker name. The four MCP tools list work, retrieve pinned context, claim and submit. A reviewer can approve or reject using the portal or the reviewer API. The release event records the reviewer identity, submission number and reviewed artifact digest. The Vercel project and storage administrators are trusted to manage credentials and stored data.

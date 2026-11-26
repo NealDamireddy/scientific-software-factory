@@ -4,13 +4,15 @@ Lab Factory stores immutable revisions of lab and experiment records and pins bo
 
 ## Shared lab on Vercel
 
+The shared demo opens with public reviewer access. Anyone with the URL can download existing and new uploads, inspect control reports, replace a used control when the workflow allows it, approve or reject submissions, and run released analyses. Public decisions use one shared reviewer identity. Use data you can share publicly.
+
 ### Upload a protocol and readings
 
 Use the [general analysis API and reviewer quickstart](docs/analysis-api.md) to submit a protocol and CSV, inspect a worker-written analysis and compare its prediction with a blind control before approval. Caffeine calibration and direct liquid density use the same backend.
 
 ### Find evidence for an experiment
 
-Open the [reference library](https://neal-lab-factory.vercel.app/#references) and sign in. Leave **All instruments** selected if you do not know the model, choose a technique, or filter by a model number. Enter an objective or choose an example such as **Caffeine in coffee** or **Identify a polymer**. Each finding links to its source and identifies the relevant pages, edition, model relationship and limits.
+Open the [reference library](https://neal-lab-factory.vercel.app/#references). Leave **All instruments** selected if you do not know the model, choose a technique, or filter by a model number. Enter an objective or choose an example such as **Caffeine in coffee** or **Identify a polymer**. Each finding links to its source and identifies the relevant pages, edition, model relationship and limits.
 
 After choosing a model, use **Browse experiments** to see objectives with a manual, a published method and primary research. For instance, the Hanna HI96800 offers honey moisture and juice soluble solids. The Olympus CX23 offers honey pollen identification and leaf stomatal density. The Agilent 7890B offers beverage ethanol, vegetable-oil fatty acids and olive-oil aroma. Each guide lists the additional equipment or sample conditions that matter. The selection is saved with the exact references you pin.
 
@@ -26,7 +28,7 @@ uv run --locked python examples/find_references.py --instrument hanna-hi96800 "M
 
 ### Review and run the honey moisture analysis
 
-1. Open [Honey moisture](https://neal-lab-factory.vercel.app/#honey), sign in, and select the order marked **In review**. The submission shows how the agent uses each of four publications, its calculation, its conversion table, and its numerical tests.
+1. Open [Honey moisture](https://neal-lab-factory.vercel.app/#honey) and select an order marked **In review**. The submission shows how the agent uses each of four publications, its calculation, its conversion table, and its numerical tests.
 2. Inspect the numbered submission. The independent checks compare all 61 table entries with the International Honey Commission table and all 601 possible mean readings with the expected one-decimal results. Choose **Approve submission** and then **Approve and release** when you are satisfied.
 3. Enter `1.4914` and `1.4916` as two simulated measurements of the same sample on the Hanna HI96800 nD20 scale at 20 °C. Choose **Calculate honey moisture**. The result is **18.0 g water per 100 g honey**. Reopen the order to see the inputs, result, reviewer and approved artifact digest.
 
@@ -39,7 +41,7 @@ uv run --locked python examples/submit_honey_analysis.py WO-N --worker lab-agent
 
 ### Try the simulated B12 analysis
 
-1. Open [B12 analysis](https://neal-lab-factory.vercel.app/#b12) and sign in as a reviewer. **Start B12 example** opens a fresh review of the bundled Codex-written Python and runs the factory’s independent reference tests. You can also open an analysis order already submitted by a connected agent.
+1. Open [B12 analysis](https://neal-lab-factory.vercel.app/#b12). **Start B12 example** opens a fresh review of the bundled Codex-written Python and runs the factory’s independent reference tests. You can also open an analysis order already submitted by a connected agent.
 2. Enter three simulated absorbance readings in AU. Try `0.1020`, `0.1024`, and `0.1028`. Save the readings. They stay with the order while you review the source.
 3. Inspect the exact Python, worker, numbered submission and reference results. The tests cover both calibration endpoints, unequal readings, a different slope, and a nonzero intercept. Approve the displayed submission and confirm your decision.
 4. Select **Run analysis** on the saved readings. The example returns **16 mg/L**. Try `0.09`, `0.10`, and `0.16` on the same release to see the third replicate put the sample outside the calibrated range. The result and its provenance remain available when you reopen the order.
@@ -48,7 +50,7 @@ The fixture represents absorbance at 550 nm with a fixed simulated slope of 0.00
 
 ### Work orders and agents
 
-Open the [reviewer portal](https://neal-lab-factory.vercel.app/) and sign in with your named reviewer account. The portal shows work orders, numbered submissions, checked instructions, artifacts and decision history. Under **Lab context**, create an example using the UV-visible spectrophotometer, or import your own lab and experiment JSON and create an order in **Work orders**.
+Open the [reviewer portal](https://neal-lab-factory.vercel.app/). The portal shows work orders, numbered submissions, checked instructions, artifacts and decision history. Under **Lab context**, create an example using the UV-visible spectrophotometer, or import your own lab and experiment JSON and create an order in **Work orders**.
 
 To submit a newly created example from this directory, set `LAB_FACTORY_AGENT_TOKEN` to your issued agent token. Supply the open order ID shown in the portal and the worker name assigned to that token.
 
@@ -59,7 +61,7 @@ uv run --locked python examples/submit_remote_example.py "$order" \
   --url https://neal-lab-factory.vercel.app/mcp --worker lab-agent
 ```
 
-The prompt above uses zsh. In the browser, open the order and select **Refresh**. Inspect the instrument, command, wavelength, checks and digest, then approve the numbered submission or reject it with a reason. The portal opens the latest submission first and loads earlier artifacts and history on demand. A rejection reopens the order for an agent. The history records the signed-in reviewer and the digest of each approved artifact.
+The prompt above uses zsh. In the browser, open the order and select **Refresh**. Inspect the instrument, command, wavelength, checks and digest, then approve the numbered submission or reject it with a reason. The portal opens the latest submission first and loads earlier artifacts and history on demand. A rejection reopens the order for an agent. The history records the reviewer identity used for each decision and the digest of each approved artifact.
 
 To connect a Codex agent from a shell that has the token, run
 
@@ -68,7 +70,7 @@ codex mcp add lab-factory --url https://neal-lab-factory.vercel.app/mcp \
   --bearer-token-env-var LAB_FACTORY_AGENT_TOKEN
 ```
 
-Launch the agent from that environment. Its worker name is listed under **Agent access**. Your deployment administrator can issue separate credentials for each worker and reviewer. [Hosted deployment and access management](docs/hosted.md)
+Launch the agent from that environment. Its worker name is listed under **Agent access**. Your deployment administrator issues each worker its own token. [Hosted deployment and access management](docs/hosted.md)
 
 ## Local quickstart
 
@@ -117,6 +119,6 @@ For run plans and procedure actions, checks verify the instrument, command, requ
 
 A citation must identify exactly one document across the pinned lab and experiment. `wo show` displays the checks recorded at submission. Approval runs the current checks against the same pinned revisions, including for submissions awaiting review during an upgrade. If an updated check fails, reject that submission with the reason so the next worker can correct it.
 
-**What a release certifies.** Against the pinned revisions, every check above passed for the exact artifact whose digest the approval recorded, and a named person approved that submission. It does not certify that the instrument's driver implements a command correctly, which is the instrument agent's job, or that the science is right, which is the reviewer's job.
+**What a release certifies.** Against the pinned revisions, every check above passed for the exact artifact whose digest the approval recorded, and the recorded reviewer identity approved that submission. It does not certify that the instrument's driver implements a command correctly, which is the instrument agent's job, or that the science is right, which is the reviewer's job.
 
-**Local trust assumption.** The local approval command names the submission and takes the reviewer name from `--by`. A process with shell access as your computer user can run it. For the shared service, the browser signs in as a named reviewer and agents authenticate separately with their own bearer tokens. Keep reviewer passwords, session cookies and deployment credentials outside the agent’s environment.
+**Local trust assumption.** The local approval command names the submission and takes the reviewer name from `--by`. A process with shell access as your computer user can run it. For hosted deployments, named reviewer sign-in is the default. The public demo enables anonymous review for everyone. Hosted MCP workers authenticate with their own bearer tokens in both modes.

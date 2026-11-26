@@ -17,7 +17,7 @@ from starlette.staticfiles import StaticFiles
 from . import b12_service, honey_service, reference_orders, references, tabular_service
 from .artifacts import render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
-from .hosted_auth import Access, SESSION_COOKIE, SESSION_SECONDS
+from .hosted_auth import Access, PUBLIC_REVIEWER, SESSION_COOKIE, SESSION_SECONDS
 from .hosted_mcp import make_mcp_app
 from .hosted_storage import HostedStorageError, run_store
 from .store import NotFound
@@ -80,6 +80,8 @@ def _reviewer(request: Request) -> str:
 
 def _session_data(access, name):
     data = {"reviewer": name}
+    if access.public_review:
+        data["access_mode"] = "public"
     if name:
         data["agent_names"] = sorted(access.agents)
     return data
@@ -93,6 +95,8 @@ async def session(request):
 async def login(request):
     data = await _json_body(request)
     access = _access()
+    if access.public_review:
+        return _response(_session_data(access, PUBLIC_REVIEWER))
     name = data.get("name")
     if not await run_in_threadpool(access.verify_password, name, data.get("password")):
         raise HTTPException(401, "Incorrect reviewer name or password.")
@@ -104,7 +108,10 @@ async def login(request):
 
 async def logout(request):
     await _json_body(request)
-    res = _response({"reviewer": None})
+    if _access().public_review:
+        res = _response({"error": "Public reviewer access is always active."}, 409)
+    else:
+        res = _response({"reviewer": None})
     res.delete_cookie(SESSION_COOKIE, secure=True, httponly=True, samesite="strict", path="/")
     return res
 

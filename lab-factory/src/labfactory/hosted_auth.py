@@ -15,6 +15,7 @@ from .context import unique_fields
 
 SESSION_COOKIE = "__Host-labfactory-review"
 SESSION_SECONDS = 8 * 60 * 60
+PUBLIC_REVIEWER = "Public reviewer"
 ITERATIONS = 600_000
 _AGENT_DIGEST = re.compile(r"[a-fA-F0-9]{64}")
 _REVIEWER_HASH = re.compile(r"(?:[a-fA-F0-9]{2}){16,}:[a-fA-F0-9]{64}")
@@ -48,17 +49,23 @@ def _identities(variable: str, pattern: re.Pattern[str]) -> dict[str, str]:
 class Access:
     reviewers: dict[str, str]
     agents: dict[str, str]
-    session_key: str
+    session_key: str | None
+
+    @property
+    def public_review(self) -> bool:
+        return self.session_key is None
 
     @classmethod
     def from_env(cls):
+        agents = _identities("LABFACTORY_AGENTS", _AGENT_DIGEST)
+        if len(set(agents.values())) != len(agents):
+            raise ValueError("Each agent must have a distinct token digest")
+        if os.environ.get("LABFACTORY_PUBLIC_REVIEW") == "1":
+            return cls({}, agents, None)
         key = os.environ["LABFACTORY_SESSION_KEY"]
         if len(key) < 32:
             raise ValueError("Session key is too short")
         reviewers = _identities("LABFACTORY_REVIEWERS", _REVIEWER_HASH)
-        agents = _identities("LABFACTORY_AGENTS", _AGENT_DIGEST)
-        if len(set(agents.values())) != len(agents):
-            raise ValueError("Each agent must have a distinct token digest")
         return cls(reviewers, agents, key)
 
     def authenticate_agent(self, headers) -> str | None:
@@ -81,6 +88,8 @@ class Access:
         return hmac.compare_digest(derived, reference) and name in self.reviewers
 
     def session(self, name: str) -> str:
+        if self.session_key is None:
+            raise ValueError("Public review does not issue named sessions")
         now = datetime.now(timezone.utc)
         return jwt.encode(
             {"sub": name, "aud": "labfactory-review", "iat": now, "exp": now + timedelta(seconds=SESSION_SECONDS),
@@ -88,6 +97,8 @@ class Access:
         )
 
     def reviewer(self, cookie: str | None) -> str | None:
+        if self.public_review:
+            return PUBLIC_REVIEWER
         if not cookie:
             return None
         try:

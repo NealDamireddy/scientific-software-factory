@@ -97,17 +97,23 @@ def main():
         parser.error("Use an HTTPS origin, or HTTP on loopback.")
     try:
         method, path, body = command(args)
-        name = args.reviewer or input("Reviewer name: ").strip()
-        password = args.password_file.read_text().strip() if args.password_file else getpass("Reviewer password: ")
         with httpx.Client(base_url=origin, headers={"Origin": origin}, timeout=60) as client:
-            client.post("/api/login", json={"name": name, "password": password}).raise_for_status()
+            session = client.get("/api/session").raise_for_status().json()
+            if not isinstance(session, dict) or "reviewer" not in session:
+                raise ValueError("The lab returned an invalid reviewer session.")
+            public = session.get("access_mode") == "public"
+            if not public:
+                name = args.reviewer or input("Reviewer name: ").strip()
+                password = args.password_file.read_text().strip() if args.password_file else getpass("Reviewer password: ")
+                client.post("/api/login", json={"name": name, "password": password}).raise_for_status()
             try:
                 response = client.request(method, path, json=body) if body is not None else client.get(path)
                 if response.is_error:
                     raise ValueError(f"HTTP {response.status_code}: {response.json().get('error', 'Request failed')}")
                 print(json.dumps(response.json(), indent=2, ensure_ascii=False))
             finally:
-                client.post("/api/logout", json={})
+                if not public:
+                    client.post("/api/logout", json={})
     except (OSError, ValueError, KeyError, httpx.HTTPError) as exc:
         parser.exit(1, f"{exc}\n")
 
