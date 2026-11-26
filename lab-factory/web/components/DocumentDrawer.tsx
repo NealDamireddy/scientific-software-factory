@@ -23,6 +23,7 @@ export function DocumentDrawer() {
   const [result, setResult] = useState<Result | null>(null);
   const heading = useRef<HTMLHeadingElement>(null);
   const opener = useRef<HTMLElement | null>(null);
+  const opened = useRef<Element | null>(null);
 
   useEffect(() => {
     if (!doc) return;
@@ -60,11 +61,18 @@ export function DocumentDrawer() {
     };
   }, [open]);
 
+  // What had focus when this document was asked for; the heading only takes focus if it still does.
+  useEffect(() => {
+    opened.current = document.activeElement;
+  }, [doc]);
+
   const shown = open && result?.key === key ? result : null;
   const ready = shown !== null;
-  // Focus moves to the heading once per opened document.
+  // Focus moves to the heading once per opened document, unless it has gone elsewhere since opening.
   useEffect(() => {
-    if (ready) heading.current?.focus();
+    if (!ready) return;
+    const now = document.activeElement;
+    if (now === opened.current || now === null || now === document.body) heading.current?.focus();
   }, [ready, doc]);
 
   useEffect(() => {
@@ -81,7 +89,7 @@ export function DocumentDrawer() {
     return () => document.removeEventListener("keydown", onKey);
   }, [open, route, navigate]);
 
-  if (!open || !shown) return null;
+  if (!open) return null;
   const close = () => { const { doc: _doc, ...rest } = route; navigate(rest); };
 
   return (
@@ -92,14 +100,15 @@ export function DocumentDrawer() {
           Close
         </button>
       </div>
-      {shown.error && <p role="alert" className="pg-error">{shown.error}</p>}
-      {!shown.error && !shown.found && (
+      {!shown && <p className="pg-note" role="status">Loading</p>}
+      {shown?.error && <p role="alert" className="pg-error">{shown.error}</p>}
+      {shown && !shown.error && !shown.found && (
         <>
           <h2 ref={heading} tabIndex={-1} className="drawer-title">Document</h2>
           <p>That document isn&apos;t here.</p>
         </>
       )}
-      {shown.found && (
+      {shown?.found && (
         <>
           <h2 ref={heading} tabIndex={-1} className="drawer-title">{shown.found.document.title}</h2>
           <dl className="drawer-facts">

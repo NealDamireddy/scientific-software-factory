@@ -95,3 +95,57 @@ test("the sign-off rule is saved and still there after leaving settings", async 
   await expect(page.getByRole("radio", { name: "Only these people" })).toBeChecked();
   await expect(page.getByLabel("Names, one per line")).toHaveValue("Dr Rivera");
 });
+
+test("blank names are refused with a message that goes away when the person edits", async ({ page }) => {
+  await page.goto("/#/settings");
+  await page.getByRole("radio", { name: "Only these people" }).check();
+  await page.getByRole("button", { name: "Save settings" }).click();
+  const form = page.getByRole("form", { name: "Lab settings" });
+  await expect(form.getByRole("alert")).toContainText("Add at least one name");
+  await page.getByLabel("Names, one per line").fill("Dr Rivera");
+  await expect(form.getByRole("alert")).toHaveCount(0);
+
+  // Typed names survive a trip to the other rule and back.
+  await page.getByRole("radio", { name: "Anyone who gives their name" }).check();
+  await page.getByRole("radio", { name: "Only these people" }).check();
+  await expect(page.getByLabel("Names, one per line")).toHaveValue("Dr Rivera");
+});
+
+test("a .md file fills the title and text, and a repeated title is listed twice", async ({ page }) => {
+  await page.goto("/#/projects/coomassie-reduction");
+  const aside = page.getByRole("complementary", { name: "Shared with every experiment in this project" });
+  await aside.getByLabel("Or fill it from a .txt or .md file").setInputFiles({
+    name: "twin-notes.md",
+    mimeType: "text/markdown",
+    buffer: Buffer.from("# Notes\nFirst wording."),
+  });
+  await expect(aside.getByLabel("Title")).toHaveValue("twin-notes");
+  await expect(aside.getByLabel("Text")).toHaveValue("# Notes\nFirst wording.");
+  await aside.getByRole("button", { name: "Add document" }).click();
+  await expect(aside.getByRole("status")).toContainText("Saved as revision");
+  await expect(aside.getByRole("link", { name: "twin-notes" })).toHaveCount(1);
+
+  await aside.getByLabel("Title").fill("twin-notes");
+  await aside.getByLabel("Text").fill("Second wording.");
+  await aside.getByRole("button", { name: "Add document" }).click();
+  await expect(aside.getByRole("link", { name: "twin-notes" })).toHaveCount(2);
+});
+
+test("saving a document again with identical content says it was already saved", async ({ page }) => {
+  await page.goto("/#/projects/coomassie-reduction");
+  const aside = page.getByRole("complementary", { name: "Shared with every experiment in this project" });
+  for (const expected of [/^Saved as revision \d+$/, /^Already saved as revision \d+$/]) {
+    await aside.getByLabel("Title").fill("Same again");
+    await aside.getByLabel("Text").fill("Exactly the same text.");
+    await aside.getByRole("button", { name: "Add document" }).click();
+    await expect(aside.getByRole("status")).toHaveText(expected);
+  }
+});
+
+test("only the wavelength strip is drawn with the spectrum", async ({ page }) => {
+  await page.goto("/#/lab");
+  const wavelength = page.getByRole("img", { name: /^Wavelength / }).first();
+  await expect(wavelength.locator(".range-track")).toHaveCSS("background-image", /linear-gradient/);
+  const temperature = page.getByRole("img", { name: /^Temperature / }).first();
+  await expect(temperature.locator(".range-track")).toHaveCSS("background-image", "none");
+});

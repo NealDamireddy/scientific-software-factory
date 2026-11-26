@@ -23,6 +23,7 @@ export function ProjectPage({ projectId }: { projectId: string }) {
 
   useEffect(() => {
     let live = true;
+    setError(null);
     client.getProject(projectId).then(
       (p) => {
         if (!live) return;

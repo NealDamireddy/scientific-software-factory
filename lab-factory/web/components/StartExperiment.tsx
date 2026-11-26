@@ -17,6 +17,7 @@ export function StartExperiment({ projectId }: { projectId?: string }) {
   const [chosen, setChosen] = useState<string[] | null>(null);
   const [project, setProject] = useState("");
   const [description, setDescription] = useState("");
+  const [loadedProjects, setLoadedProjects] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +28,7 @@ export function StartExperiment({ projectId }: { projectId?: string }) {
       ([lab, rows]) => {
         if (!live) return;
         setInstruments(lab.instruments);
+        setLoadedProjects(true);
         setProjects(rows.map((p) => ({ id: p.id, title: p.title })));
         // The first instrument is checked by default, once; later refreshes keep the person's choice.
         setChosen((c) => c ?? lab.instruments.slice(0, 1).map((i) => i.id));
@@ -38,6 +40,8 @@ export function StartExperiment({ projectId }: { projectId?: string }) {
   }, [client, labId, projectId, version]);
 
   const target = projectId ?? project;
+  const noProject = projectId === undefined && loadedProjects && projects.length === 0;
+  const noInstrument = (chosen ?? []).length === 0;
 
   function toggle(id: string, on: boolean) {
     setChosen((c) => {
@@ -48,7 +52,7 @@ export function StartExperiment({ projectId }: { projectId?: string }) {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (pending || target === "") return;
+    if (pending || target === "" || noInstrument) return;
     setPending(true);
     setError(null);
     try {
@@ -90,10 +94,12 @@ export function StartExperiment({ projectId }: { projectId?: string }) {
           </select>
         </label>
       )}
+      {noProject && <p className="pg-note">Create a project first.</p>}
       <div className="pg-actions">
-        <button type="submit" className="pg-button" disabled={pending || description.trim() === "" || target === ""}>
+        <button type="submit" className="pg-button" disabled={pending || description.trim() === "" || target === "" || noInstrument}>
           Start experiment
         </button>
+        {noInstrument && loadedProjects && <span className="pg-note">Choose at least one instrument.</span>}
       </div>
       {error && <p role="alert" className="pg-error">{error}</p>}
     </form>

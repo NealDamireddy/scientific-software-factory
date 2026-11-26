@@ -36,6 +36,7 @@ export function SettingsPage() {
   function edit(change: () => void) {
     dirty.current = true;
     setSaved(false);
+    setError(null);
     change();
   }
 

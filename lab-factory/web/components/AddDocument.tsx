@@ -17,7 +17,7 @@ export function AddDocument({ target }: { target: DocumentTarget }) {
   const [text, setText] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState<number | null>(null);
+  const [saved, setSaved] = useState<{ number: number; same: boolean } | null>(null);
 
   async function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -41,8 +41,11 @@ export function AddDocument({ target }: { target: DocumentTarget }) {
     setError(null);
     setSaved(null);
     try {
+      const before = await client.listRevisions(target.kind, target.id).catch(() => []);
+      const latest = before[before.length - 1]?.number;
       const revision = await client.addDocument(target, { title: title.trim(), kind, text });
-      setSaved(revision.number);
+      // Identical title and text comes back as the revision that was already latest.
+      setSaved({ number: revision.number, same: revision.number === latest });
       setTitle("");
       setText("");
       refresh();
@@ -76,7 +79,7 @@ export function AddDocument({ target }: { target: DocumentTarget }) {
       </div>
       <div className="pg-actions">
         <button type="submit" className="pg-button" disabled={!ready || pending}>Add document</button>
-        {saved !== null && <span role="status" className="pg-note">Saved as revision {saved}</span>}
+        {saved !== null && <span role="status" className="pg-note">{saved.same ? `Already saved as revision ${saved.number}` : `Saved as revision ${saved.number}`}</span>}
       </div>
       {error && <p role="alert" className="pg-error">{error}</p>}
     </form>

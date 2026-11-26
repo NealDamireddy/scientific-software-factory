@@ -15,9 +15,10 @@ export type RangeStripProps = {
 const SPECTRUM_MIN = 400;
 const SPECTRUM_MAX = 700;
 
-/** For wavelength, shows only the part of the 400 to 700 nm spectrum the instrument covers. */
+/** For wavelength within the 400 to 700 nm spectrum, shows only the part the instrument covers; any other range gets the plain track. */
 function trackStyle(parameter: string, unit: string, minimum: number, maximum: number): CSSProperties {
   if (parameter !== "wavelength" || unit !== "nm") return {};
+  if (minimum < SPECTRUM_MIN || maximum > SPECTRUM_MAX) return {};
   const lo = Math.max(SPECTRUM_MIN, Math.min(SPECTRUM_MAX, minimum));
   const hi = Math.max(SPECTRUM_MIN, Math.min(SPECTRUM_MAX, maximum));
   const span = SPECTRUM_MAX - SPECTRUM_MIN;
