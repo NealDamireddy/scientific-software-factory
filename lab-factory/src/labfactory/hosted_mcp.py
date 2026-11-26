@@ -14,6 +14,7 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route, Router
 from starlette.types import ASGIApp, Receive, Scope, Send
 
+from . import reference_resources
 from .agent import AgentTools
 
 
@@ -114,6 +115,7 @@ def _agent_server(run_store, agent_name: str, security: TransportSecuritySetting
             return {"error": error}
         return await stored(lambda agent: agent.submit_artifact(work_order_id, worker, artifact), write=True)
 
+    reference_resources.register(server)
     return server
 
 

@@ -65,6 +65,12 @@ _SCHEMA = {
     )
     """,
     "events_by_order": "CREATE INDEX IF NOT EXISTS events_by_order ON events(work_order_id)",
+    "reference_briefs": """
+    CREATE TABLE IF NOT EXISTS reference_briefs (
+        work_order_id TEXT PRIMARY KEY REFERENCES work_orders(id),
+        snapshot TEXT NOT NULL
+    )
+    """,
     "b12_readings": """
     CREATE TABLE IF NOT EXISTS b12_readings (
         id INTEGER PRIMARY KEY, work_order_id TEXT NOT NULL REFERENCES work_orders(id),
@@ -145,6 +151,12 @@ class Store:
     def close(self) -> None:
         self.connection.close()
 
+    def reference_brief(self, work_order_id: str) -> dict | None:
+        row = self.connection.execute(
+            "SELECT snapshot FROM reference_briefs WHERE work_order_id=?", (work_order_id,)
+        ).fetchone()
+        return json.loads(row["snapshot"]) if row is not None else None
+
     @contextmanager
     def transaction(self) -> Iterator[sqlite3.Connection]:
         if self.connection.in_transaction:
@@ -216,8 +228,8 @@ class Store:
                 raise ContextError(f"unknown instrument {instrument_id} in lab {lab.id} revision {revision.number}")
         return lab, revision
 
-    def put_experiment(self, exp: Experiment) -> Revision:
-        validated = experiment_from_dict(_record_data(exp))
+    def put_experiment(self, exp: Experiment, *, allow_unassigned: bool = False) -> Revision:
+        validated = experiment_from_dict(_record_data(exp), allow_unassigned=allow_unassigned)
         with self.transaction():
             self.lab_for_experiment(validated)
             return self._append_revision("experiment", validated.id, to_dict(validated))
@@ -226,4 +238,5 @@ class Store:
         self, experiment_id: str, number: int | None = None,
     ) -> tuple[Experiment, Revision]:
         data, revision = self._read_revision("experiment", experiment_id, number)
-        return experiment_from_dict(data), revision
+        # Validated at insertion. A reference-planning experiment may have no assigned device.
+        return experiment_from_dict(data, allow_unassigned=True), revision

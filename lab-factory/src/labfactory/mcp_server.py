@@ -2,6 +2,7 @@
 
 from mcp.server.fastmcp import FastMCP
 
+from . import reference_resources
 from .agent import AgentTools
 from .store import Store
 
@@ -33,4 +34,5 @@ def build_server(db_path: str) -> FastMCP:
         with Store(db_path) as store:
             return AgentTools(store).submit_artifact(work_order_id, worker, artifact)
 
+    reference_resources.register(server)
     return server

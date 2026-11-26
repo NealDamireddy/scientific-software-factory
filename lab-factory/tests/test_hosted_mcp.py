@@ -150,3 +150,15 @@ def test_hosted_submission_size_limits_before_core(hosted):
             assert result["passed"] and result["submission"] == 1
 
     asyncio.run(run())
+
+
+def test_remote_agent_can_discover_the_same_library_as_the_reviewer(hosted):
+    from labfactory import references
+
+    async def read():
+        async with agent(hosted, "example-token-B") as session:
+            result = await session.read_resource("labfactory://references/catalog")
+            assert json.loads(result.contents[0].text) == references.catalog()
+            result = await session.read_resource("labfactory://references/search/other-ftir/polymer%20identification")
+            assert json.loads(result.contents[0].text) == references.search("other-ftir", "polymer identification")
+    asyncio.run(read())

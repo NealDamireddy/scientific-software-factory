@@ -188,11 +188,11 @@ def lab_from_dict(d: dict) -> Lab:
     return Lab(**_strings(d, ("id", "name")), instruments=instruments, documents=_documents(d))
 
 
-def experiment_from_dict(d: dict) -> Experiment:
+def experiment_from_dict(d: dict, *, allow_unassigned: bool = False) -> Experiment:
     fields = ("id", "lab_id", "title", "goal")
     _object(d, "experiment", (*fields, "instrument_ids", "documents"))
     ids = _items(d, "instrument_ids", lambda v: _identifier(v, "instrument id"))
-    if not ids:
+    if not ids and not allow_unassigned:
         raise ContextError("instrument_ids must contain at least one instrument")
     _unique(ids, "instrument id")
     return Experiment(**_strings(d, fields), instrument_ids=ids, documents=_documents(d))

@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse, StreamingResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from . import b12_service
+from . import b12_service, reference_orders, references
 from .artifacts import render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
 from .hosted_auth import Access, SESSION_COOKIE, SESSION_SECONDS
@@ -129,6 +129,7 @@ def _details(store, id, submission=None, before_event=None):
     page = {}
     with store.read_transaction():
         order = orders.get(id)
+        brief = store.reference_brief(id)
         if before_event is not None:
             submissions = []
             history, page["before_event"] = _history_page(store, id, before_event)
@@ -144,6 +145,8 @@ def _details(store, id, submission=None, before_event=None):
     for sub in submissions:
         rendered = render_artifact(order.kind, sub.artifact)
         values.append({**asdict(sub), "rendered": rendered})
+    if brief is not None:
+        page["reference_brief"] = brief
     return {"order": asdict(order), "submissions": values, "history": history, **page}
 
 
@@ -227,6 +230,27 @@ async def example(request):
 async def b12_catalog(request):
     _reviewer(request)
     return _response(await run_in_threadpool(run_store, b12_service.catalog))
+
+
+async def reference_catalog(request):
+    _reviewer(request)
+    return _response(await run_in_threadpool(references.catalog))
+
+
+async def reference_search(request):
+    _reviewer(request)
+    instrument = request.query_params.get("instrument", "all")
+    objective = request.query_params.get("q", "")
+    return _response(await run_in_threadpool(references.search, instrument, objective))
+
+
+async def reference_order(request):
+    reviewer = _reviewer(request)
+    data = await _json_body(request)
+    created = await run_in_threadpool(
+        run_store, lambda store: reference_orders.create_order(store, reviewer, data), write=True,
+    )
+    return _response(created, 201)
 
 
 async def b12_order(request):
@@ -319,6 +343,8 @@ portal = Starlette(routes=[
     Route("/api/logout", logout, methods=["POST"]), Route("/api/orders", order_list, methods=["GET", "POST"]),
     Route("/api/orders/{id}", order_detail), Route("/api/orders/{id}/{action}", decide, methods=["POST"]),
     Route("/api/context/{kind}", context_put, methods=["POST"]), Route("/api/example", example, methods=["POST"]),
+    Route("/api/references", reference_catalog), Route("/api/references/search", reference_search),
+    Route("/api/references/orders", reference_order, methods=["POST"]),
     Route("/api/b12", b12_catalog), Route("/api/b12/orders", b12_order, methods=["POST"]),
     Route("/api/b12/orders/{id}/readings", b12_readings, methods=["GET", "POST"]),
     Route("/api/b12/orders/{id}/readings/{reading_id}/run", b12_run, methods=["POST"]),

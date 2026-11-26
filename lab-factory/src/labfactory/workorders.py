@@ -88,6 +88,8 @@ class WorkOrders:
             raise WorkOrderError("work order needs an objective")
         with self.store.transaction():
             exp, exp_rev = self.store.get_experiment(experiment_id)
+            if kind == "run_plan" and not exp.instrument_ids:
+                raise WorkOrderError("Assign an instrument to the experiment before creating a run plan.")
             try:
                 lab, lab_rev = self.store.lab_for_experiment(exp)
             except ContextError as exc:

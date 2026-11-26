@@ -57,7 +57,7 @@ class AgentTools:
         with self._store.read_transaction():
             order = self._orders.get(work_order_id)
             lab, experiment = self._orders.pinned_context(work_order_id)
-            return {
+            context = {
                 "work_order": asdict(order),
                 "lab": to_dict(lab),
                 "experiment": to_dict(experiment),
@@ -65,6 +65,19 @@ class AgentTools:
                 "instructions": B12_INSTRUCTIONS if order.kind == "analysis_app" else INSTRUCTIONS,
                 "previous_rejection": self._orders.latest_rejection(work_order_id),
             }
+            brief = self._store.reference_brief(work_order_id)
+            if brief is not None:
+                context["reference_brief"] = brief
+                context["instructions"] += (
+                    " This is a reference-planning order. Use the selected sources and their stated "
+                    "limits to write a cited procedure for review. Identify method transfer and any "
+                    "details the lab must establish. No local instrument commands have been registered."
+                )
+                context["artifact_example"] = {"steps": [{
+                    "text": "Review the cited source and record which conditions apply to the sample.",
+                    "citations": [brief["findings"][0]["id"]],
+                }]}
+            return context
 
     @_return_domain_errors
     def claim_work_order(self, work_order_id: str, worker: str) -> dict:
