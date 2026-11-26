@@ -661,6 +661,220 @@
   line-height: 1.35;
 }
 
+/* ---------------------------------------------------------------- submission header */
+
+.sub-header {
+  margin: 0 0 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.sub-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.sub-icon {
+  flex: none;
+  color: var(--indigo);
+}
+
+.sub-summary[data-failed="true"] {
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 12px 4px 8px;
+  border-radius: 6px;
+  background: var(--fail-bg);
+  color: var(--fail);
+}
+
+.sub-summary[data-failed="true"] .sub-icon {
+  color: var(--fail);
+}
+
+.sub-status {
+  margin: 6px 0 0;
+  color: var(--steel);
+  font-size: 0.9375rem;
+}
+
+.sub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ---------------------------------------------------------------- procedure and run plan */
+
+.proc-scope {
+  margin: 0 0 8px;
+  color: var(--steel);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.proc-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One continuous list: numbers in a gutter, steps divided by a hairline rule, no cards. */
+.proc-step {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  column-gap: 12px;
+  padding: 18px 0;
+}
+
+.proc-step + .proc-step {
+  border-top: 1px solid var(--rule);
+}
+
+.proc-num {
+  color: var(--steel);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  line-height: 1.6;
+  text-align: right;
+}
+
+.proc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.proc-text {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Sources follow the step text on its line in smaller text, separated by real spaces so the run
+   wraps like words. Each link is its own 40 px tall box: only lines that carry a source grow, and
+   no hit area reaches over a neighbour. Long titles wrap inside their box. */
+.proc-source {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  min-height: 40px;
+  margin-left: 4px;
+  color: var(--indigo);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  vertical-align: baseline;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--indigo) 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+.proc-source:hover {
+  text-decoration-color: currentColor;
+}
+
+.proc-command {
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  white-space: pre;
+}
+
+.proc-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 440px;
+  padding: 2px 0 2px;
+}
+
+.proc-settings .range-head {
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+}
+
+.proc-settings .range-ends {
+  margin-top: 6px;
+  font-size: 0.75rem;
+}
+
+.proc-unchecked-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.proc-unchecked {
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: var(--sand);
+  color: var(--sand-ink);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.proc-failures {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.proc-fail {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--fail);
+  border-radius: 0 4px 4px 0;
+  background: var(--fail-bg);
+  color: var(--fail);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.proc-fail-icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+.proc-unplaced {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.proc-unplaced-head {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.proc-send {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 0 0 8px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.proc-send-note {
+  flex: 1 1 220px;
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
 /* ---------------------------------------------------------------- narrow screens */
 
 /* Below this the panel stacks under the conversation and the page scrolls as a whole. */

@@ -1,8 +1,19 @@
 "use client";
 
+import { shownSubmission, unplacedFailures } from "../../lib/status.ts";
 import type { Workspace } from "../../lib/types.ts";
+import { RunPlanView } from "../RunPlanView.tsx";
+import { SubmissionHeader } from "../SubmissionHeader.tsx";
 
-/** The Run plan tab's body. Task 12 fills it with the run plan view and its submission header. */
-export function RunPlanTab(_props: { workspace: Workspace }) {
-  return <h2 className="panel-heading">Run plan</h2>;
+/** The Run plan tab: the shown submission's header and its command lines. */
+export function RunPlanTab({ workspace }: { workspace: Workspace }) {
+  const view = workspace.run_plan;
+  if (!view) return <h2 className="panel-heading">Run plan</h2>;
+  const submission = shownSubmission(view);
+  return (
+    <>
+      <SubmissionHeader order={view.order} submission={submission} history={view.history} />
+      {submission && <RunPlanView steps={view.steps} unplaced={unplacedFailures(submission.results, view.steps)} />}
+    </>
+  );
 }
