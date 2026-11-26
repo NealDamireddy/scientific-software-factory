@@ -1,0 +1,16 @@
+[
+  {
+    "id": "eppendorf-research-plus-200",
+    "manufacturer": "Eppendorf",
+    "model": "Research plus single-channel 20–200 µL",
+    "technique": "pipetting",
+    "aliases": ["Research plus P200", "Research plus 20-200 uL", "3123000055"]
+  },
+  {
+    "id": "eppendorf-research-plus-1000",
+    "manufacturer": "Eppendorf",
+    "model": "Research plus single-channel 100–1,000 µL",
+    "technique": "pipetting",
+    "aliases": ["Research plus P1000", "Research plus 100-1000 uL", "3123000063"]
+  }
+]

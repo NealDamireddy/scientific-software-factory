@@ -7,12 +7,19 @@ from math import isfinite
 import re
 from typing import TypeVar
 
+from .b12_analysis import MAX_SOURCE_CHARS
+
 
 class ArtifactError(ValueError):
     """The submitted JSON does not have the shape of its work-order kind."""
 
 
-KINDS = ("procedure", "run_plan")
+KINDS = ("procedure", "run_plan", "analysis_app")
+
+
+@dataclass(frozen=True)
+class AnalysisApp:
+    source: str
 
 
 @dataclass(frozen=True)
@@ -136,9 +143,18 @@ def _procedure_step(value: object) -> ProcedureStep:
     )
 
 
-def parse_artifact(kind: str, data: dict) -> RunPlan | Procedure:
+def parse_artifact(kind: str, data: dict) -> RunPlan | Procedure | AnalysisApp:
     if kind not in KINDS:
         raise ArtifactError(f"unknown artifact kind {kind!r}")
+    if kind == "analysis_app":
+        source = _fields(data, ("source",))["source"]
+        if not isinstance(source, str) or not source.strip():
+            raise ArtifactError("source must contain the analysis function")
+        # Limit the exact text both here and at the evaluator entry point.
+        display_text = source.replace("\r\n", "\n")
+        if len(source) > MAX_SOURCE_CHARS or not all(c.isprintable() or c in "\n\t" for c in display_text):
+            raise ArtifactError(f"source must be printable Python of at most {MAX_SOURCE_CHARS} characters")
+        return AnalysisApp(source)
     fields = ("steps", "instrument_id") if kind == "run_plan" else ("steps",)
     data = _fields(data, fields)
     if data["steps"] == []:
@@ -200,7 +216,26 @@ def render_run_plan(plan: RunPlan) -> str:
     return "\n\n".join(sections)
 
 
+def render_artifact(kind: str, data: dict, *, experiment_id: str | None = None) -> str:
+    if kind == "analysis_app":
+        from .honey_service import EXPERIMENT_ID
+
+        from .tabular_service import PREFIX
+
+        if experiment_id == EXPERIMENT_ID or (experiment_id or "").startswith(PREFIX):
+            # Failed submissions also need an exact, printable representation for review.
+            return json.dumps(data, ensure_ascii=True, indent=2)
+    artifact = parse_artifact(kind, data)
+    if isinstance(artifact, AnalysisApp):
+        return artifact.source
+    if isinstance(artifact, Procedure):
+        return render_procedure(artifact)
+    return render_run_plan(artifact)
+
+
 ARTIFACT_EXAMPLES: dict[str, dict] = {
+    # A signature for the worker. The factory verifies the worker's actual implementation.
+    "analysis_app": {"source": "def analyze(readings, slope, intercept):\n    # Implement the pinned calibration.\n    pass\n"},
     "run_plan": {
         "instrument_id": "uvvis-1",
         "steps": [{

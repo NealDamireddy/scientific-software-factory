@@ -1,0 +1,9 @@
+sample,role,area,concentration,dilution
+S0,standard,40,0,1
+S5,standard,1040,5,1
+S10,standard,2040,10,1
+S20,standard,4040,20,1
+S30,standard,6040,30,1
+QC-A,control,1640,,2
+Coffee A,unknown,2440,,2
+Coffee B,unknown,3040,,3

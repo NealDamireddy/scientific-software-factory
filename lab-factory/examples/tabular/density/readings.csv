@@ -1,0 +1,4 @@
+specimen,kind,mass_g,reference_density,volume_ml
+Check liquid,control,7.2,,8
+Liquid A,unknown,13.5,,12.5
+Liquid B,unknown,6,,7.5

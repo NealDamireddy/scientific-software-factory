@@ -1,0 +1,9 @@
+[
+  {
+    "id": "agilent-7890b",
+    "manufacturer": "Agilent Technologies",
+    "model": "7890B Gas Chromatograph",
+    "technique": "gc",
+    "aliases": ["Agilent 7890B", "7890B GC"]
+  }
+]

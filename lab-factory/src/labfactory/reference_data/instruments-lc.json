@@ -1,0 +1,9 @@
+[
+  {
+    "id": "agilent-1260-infinity-binary-lc",
+    "manufacturer": "Agilent Technologies",
+    "model": "1260 Infinity Binary LC",
+    "technique": "hplc",
+    "aliases": ["Agilent 1260 Infinity Binary LC System", "1260 Infinity Binary HPLC"]
+  }
+]
