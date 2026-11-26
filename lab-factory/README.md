@@ -25,6 +25,10 @@ uv run --locked labfactory --db "$db" wo show WO-1
 
 Look for `released: submission 1 by Local reviewer` and the approved artifact’s SHA-256 digest in the history. To run the tests, use `uv run --locked pytest -v`.
 
+## Web UI
+
+The browser interface lives in `web/`. See [web/README.md](web/README.md).
+
 ## Reviewer API and remote workers
 
 The reviewer HTTP API and authenticated MCP endpoint share the versioned records used by the CLI. A reviewer can connect an uploaded analysis to a released procedure and trace a saved result back to its approved submission, instrument record and SOP revision. Read the [backend setup and analysis workflow](docs/analysis-api.md) for authentication, storage, sample requests and backup requirements.
