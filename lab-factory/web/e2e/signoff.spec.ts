@@ -217,3 +217,75 @@ test("a researcher sees no sign-off controls on a submission waiting for sign-of
   await expect(body.getByText("Waiting for sign-off", { exact: true })).toBeVisible();
   await expect(body.getByRole("button", { name: /^(Approve|Reject)/ })).toHaveCount(0);
 });
+
+/** On Coomassie after the attach flow, as approver: fills the approve form for submission 1, ready to confirm. */
+async function readyToApproveCoomassie(page: Page) {
+  await page.goto(COOMASSIE);
+  await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
+  await attachProtocol(page);
+  await viewAs(page, "Approver");
+  const body = procedure(page);
+  await body.getByRole("button", { name: "Approve submission 1", exact: true }).click();
+  await body.getByLabel("Your name").fill("Dr Rivera");
+  const confirm = body.getByRole("button", { name: "Approve", exact: true });
+  await expect(confirm).toBeEnabled();
+  return { body, confirm };
+}
+
+test("while a sign-off is pending the picker and Compare are disabled, and the sign-off shows once it goes through", async ({ page }) => {
+  const { body, confirm } = await readyToApproveCoomassie(page);
+  const picker = body.getByLabel("Submission", { exact: true });
+  await confirm.click();
+  await expect(picker).toBeDisabled();
+  await expect(body.getByRole("button", { name: "Compare", exact: true })).toBeDisabled();
+  await expect(body.getByText(`Signed off by Dr Rivera on ${await today(page)}`, { exact: true })).toBeVisible();
+  await expect(picker).toBeEnabled();
+  await expect(body.getByRole("button", { name: "Compare", exact: true })).toBeEnabled();
+  await expect(body.getByRole("button", { name: /^(Approve|Reject)( submission \d+)?$/ })).toHaveCount(0);
+});
+
+test("a sign-off that goes through after leaving the experiment shows on return, and the lab menu counts it", async ({ page }) => {
+  const { body, confirm } = await readyToApproveCoomassie(page);
+  // The lab menu only refetches when the workspace refreshes, so it shows whether the sign-off refreshed it.
+  const switcher = page.getByRole("navigation", { name: "Lab" }).getByRole("button", { name: /Emory Biophysics/ });
+  await expect(switcher).toContainText("2 items need your attention");
+  await confirm.click();
+  // Away and straight back, inside the request's pending window, so the sign-off lands on a fresh panel.
+  await goTo(page, B12);
+  await goTo(page, COOMASSIE);
+  await expect(page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" })).toBeVisible();
+  await expect(body.getByText(`Signed off by Dr Rivera on ${await today(page)}`, { exact: true })).toBeVisible();
+  await expect(body.getByText("Waiting for sign-off", { exact: true })).toHaveCount(0);
+  await expect(body.getByRole("button", { name: /^(Approve|Reject)( submission \d+)?$/ })).toHaveCount(0);
+  await expect(switcher).toContainText("1 item needs your attention");
+});
+
+test("a long unbroken rejection reason wraps inside the panel", async ({ page }) => {
+  await page.setViewportSize({ width: 1100, height: 800 });
+  const body = await openB12AsApprover(page);
+  const reason = "x".repeat(200);
+  await body.getByRole("button", { name: "Reject submission 1", exact: true }).click();
+  await body.getByLabel("Your name").fill("Dr Rivera");
+  await body.getByLabel("Reason").fill(reason);
+  await body.getByRole("button", { name: "Reject", exact: true }).click();
+  await expect(body.getByText(`Rejected by Dr Rivera: ${reason}`, { exact: true })).toBeVisible();
+  await expect.poll(() => body.evaluate((panel) => panel.scrollWidth - panel.clientWidth)).toBeLessThanOrEqual(0);
+  const status = body.getByText(`Rejected by Dr Rivera: ${reason}`, { exact: true });
+  const panelBox = await body.boundingBox();
+  const statusBox = await status.boundingBox();
+  expect(statusBox!.x + statusBox!.width).toBeLessThanOrEqual(panelBox!.x + panelBox!.width);
+});
+
+test("switching to researcher closes an open sign-off form, so switching back starts with both closed", async ({ page }) => {
+  const body = await openB12AsApprover(page);
+  const reject = body.getByRole("button", { name: "Reject submission 1", exact: true });
+  await reject.click();
+  await expect(body.getByRole("form", { name: "Reject submission 1" })).toBeVisible();
+  await viewAs(page, "Researcher");
+  await expect(body.getByRole("button", { name: /^(Approve|Reject)/ })).toHaveCount(0);
+  await viewAs(page, "Approver");
+  await expect(reject).toBeVisible();
+  await expect(reject).toHaveAttribute("aria-expanded", "false");
+  await expect(body.getByRole("button", { name: "Approve submission 1", exact: true })).toHaveAttribute("aria-expanded", "false");
+  await expect(body.getByRole("form")).toHaveCount(0);
+});

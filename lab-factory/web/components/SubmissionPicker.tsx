@@ -12,17 +12,19 @@ export type SubmissionPickerProps = {
   onChange: (key: string) => void;
   /** When the newest order has nothing submitted yet, the label of an entry standing for it. */
   pending?: string;
+  /** Holds the choice while something that names the shown submission is in progress. */
+  disabled?: boolean;
 };
 
 /** A `<select>` labelled `Submission`: `{order id} submission {n}, {summary}`, newest first. */
 export const SubmissionPicker = forwardRef<HTMLSelectElement, SubmissionPickerProps>(function SubmissionPicker(
-  { options, value, onChange, pending }, ref,
+  { options, value, onChange, pending, disabled }, ref,
 ) {
   const id = useId();
   return (
     <span className="hist-field">
       <label htmlFor={id} className="hist-label">Submission</label>
-      <select ref={ref} id={id} className="hist-select" value={value} onChange={(e) => onChange(e.target.value)}>
+      <select ref={ref} id={id} className="hist-select" value={value} disabled={disabled} onChange={(e) => onChange(e.target.value)}>
         {pending !== undefined && <option value={value} disabled>{pending}</option>}
         {options.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
       </select>

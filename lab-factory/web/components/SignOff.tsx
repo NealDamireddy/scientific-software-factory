@@ -3,7 +3,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 
-import { canConfirm, nameChoices, signOffMessage } from "../lib/signoff.ts";
+import { canConfirm, nameChoices, signOffMessage, singleFlight } from "../lib/signoff.ts";
 import type { SignOffKind } from "../lib/signoff.ts";
 import type { LabSettings, Submission, WorkOrder } from "../lib/types.ts";
 import { useClient } from "./ClientContext.tsx";
@@ -14,6 +14,8 @@ export type SignOffProps = {
   submission: Submission;
   /** Called once a sign-off goes through, to move focus to the submission summary. */
   onDone?: () => void;
+  /** Told when a sign-off request starts and when it ends, whether or not this is still mounted. */
+  onPendingChange?: (pending: boolean) => void;
 };
 
 /**
@@ -22,7 +24,7 @@ export type SignOffProps = {
  * sign-off rule and refuses a stale submission; a refusal shows in the form, which stays open.
  * Mount it keyed by the order and submission, so a new submission starts with closed forms.
  */
-export function SignOff({ order, submission, onDone }: SignOffProps) {
+export function SignOff({ order, submission, onDone, onPendingChange }: SignOffProps) {
   const { client, labId, role, version, refresh } = useClient();
   const uid = useId();
   const [open, setOpen] = useState<SignOffKind | null>(null);
@@ -34,8 +36,9 @@ export function SignOff({ order, submission, onDone }: SignOffProps) {
   const attempts = useRef(0);
   const [done, setDone] = useState(false);
   const [settings, setSettings] = useState<LabSettings | null>(null);
-  // Set before the request starts, so a second click in the same moment finds it taken.
-  const inFlight = useRef(false);
+  // Taken before the request starts, so a second submit in the same moment finds it running.
+  const [flight] = useState(() => singleFlight((send: () => Promise<void>) => send()));
+  const [seenRole, setSeenRole] = useState(role);
   const mounted = useRef(true);
   const approveButton = useRef<HTMLButtonElement>(null);
   const rejectButton = useRef<HTMLButtonElement>(null);
@@ -58,6 +61,15 @@ export function SignOff({ order, submission, onDone }: SignOffProps) {
     return () => { live = false; };
   }, [client, labId, version]);
 
+  // Leaving the approver role closes the form, so coming back starts with both closed.
+  if (role !== seenRole) {
+    setSeenRole(role);
+    if (role !== "approver") {
+      setOpen(null);
+      setError(null);
+    }
+  }
+
   useEffect(() => {
     if (!focusField.current) return;
     focusField.current = false;
@@ -74,41 +86,45 @@ export function SignOff({ order, submission, onDone }: SignOffProps) {
   const formId = `${uid}-form`;
 
   function reveal(kind: SignOffKind) {
-    if (inFlight.current) return;
+    if (flight.busy()) return;
     setError(null);
     focusField.current = open !== kind;
     setOpen((current) => (current === kind ? null : kind));
   }
 
   function cancel() {
-    if (inFlight.current) return;
+    if (flight.busy()) return;
     const button = open === "reject" ? rejectButton.current : approveButton.current;
     setOpen(null);
     setError(null);
     button?.focus();
   }
 
-  async function confirm(event: FormEvent<HTMLFormElement>) {
+  function confirm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const kind = open;
-    if (kind === null || inFlight.current || !canConfirm(kind, { name: nameValue, reason })) return;
-    inFlight.current = true;
-    setPending(true);
-    setError(null);
-    try {
-      if (kind === "approve") await client.approve(order.id, n, nameValue);
-      else await client.reject(order.id, n, nameValue, reason);
-      if (!mounted.current) return;
-      setDone(true);
-      setOpen(null);
-      refresh();
-      onDone?.();
-    } catch (e) {
-      if (mounted.current) setError({ message: signOffMessage(e), attempt: ++attempts.current });
-    } finally {
-      inFlight.current = false;
-      if (mounted.current) setPending(false);
-    }
+    if (kind === null || !canConfirm(kind, { name: nameValue, reason })) return;
+    // A submit while one is running joins it rather than sending again.
+    void flight(async () => {
+      setPending(true);
+      onPendingChange?.(true);
+      setError(null);
+      try {
+        if (kind === "approve") await client.approve(order.id, n, nameValue);
+        else await client.reject(order.id, n, nameValue, reason);
+        // The order changed whether or not this is still on screen, so the workspace refetches either way.
+        refresh();
+        if (!mounted.current) return;
+        setDone(true);
+        setOpen(null);
+        onDone?.();
+      } catch (e) {
+        if (mounted.current) setError({ message: signOffMessage(e), attempt: ++attempts.current });
+      } finally {
+        onPendingChange?.(false);
+        if (mounted.current) setPending(false);
+      }
+    });
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLFormElement>) {

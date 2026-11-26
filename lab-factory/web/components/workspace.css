@@ -698,10 +698,12 @@
   color: var(--fail);
 }
 
+/* A rejection quotes its reason here, which can be one long unbroken word. */
 .sub-status {
   margin: 6px 0 0;
   color: var(--steel);
   font-size: 0.9375rem;
+  overflow-wrap: anywhere;
 }
 
 .sub-actions {
@@ -750,6 +752,10 @@
 .signoff-field select {
   color: var(--ink);
   font: inherit;
+}
+
+.signoff-error {
+  overflow-wrap: anywhere;
 }
 
 .signoff-form-actions {
@@ -1017,6 +1023,12 @@
   color: var(--ink);
   font: inherit;
   font-size: 0.875rem;
+}
+
+.hist-select:disabled {
+  background: var(--ground);
+  color: var(--steel);
+  cursor: default;
 }
 
 .hist-quiet {
@@ -1291,6 +1303,7 @@
 .hist-built-none,
 .hist-built-approval {
   margin: 0;
+  overflow-wrap: anywhere;
 }
 
 .hist-built-doclist .hist-doc {

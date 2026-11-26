@@ -21,3 +21,28 @@ const FALLBACK = "The sign-off didn't go through. Try again.";
 export function signOffMessage(error: unknown): string {
   return error instanceof Error && error.message ? error.message : FALLBACK;
 }
+
+/** A function guarded by `singleFlight`, and whether its last call is still running. */
+export type SingleFlight<A extends unknown[], R> = ((...args: A) => Promise<R>) & { busy: () => boolean };
+
+/**
+ * Guards `fn` so only one call runs at a time. A call made while one is running does not call `fn`;
+ * it gets the running call's promise, so every caller sees the same outcome, value or rejection.
+ * The guard is taken before `fn` starts and released once it settles, either way.
+ */
+export function singleFlight<A extends unknown[], R>(fn: (...args: A) => Promise<R>): SingleFlight<A, R> {
+  let running: Promise<R> | null = null;
+  const guarded = (...args: A): Promise<R> => {
+    if (running) return running;
+    let started: Promise<R>;
+    try {
+      started = fn(...args);
+    } catch (e) {
+      started = Promise.reject(e);
+    }
+    const current = started.finally(() => { if (running === current) running = null; });
+    running = current;
+    return current;
+  };
+  return Object.assign(guarded, { busy: () => running !== null });
+}

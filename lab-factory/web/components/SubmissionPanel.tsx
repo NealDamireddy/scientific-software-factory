@@ -62,6 +62,8 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
   const [skillTitles, setSkillTitles] = useState<ReadonlyMap<string, string> | null>(null);
   const [skillError, setSkillError] = useState<string | null>(null);
   const [consumed, setConsumed] = useState<number | null>(null);
+  // While a sign-off is in progress the shown submission stays put.
+  const [signing, setSigning] = useState(false);
 
   const options = submissionOptions(view);
   const latest = latestChoice(view);
@@ -141,7 +143,7 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
   const earlier = !isLatest && shown ? (
     <p className="hist-earlier">
       <span>You&apos;re viewing an earlier submission.</span>
-      <button type="button" className="ws-button hist-quiet" onClick={backToLatest}>Back to the latest</button>
+      <button type="button" className="ws-button hist-quiet" onClick={backToLatest} disabled={signing}>Back to the latest</button>
     </p>
   ) : null;
   const note = hint || earlier ? <>{hint}{earlier}</> : undefined;
@@ -164,6 +166,7 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
                 value={chosenKey}
                 onChange={choose}
                 pending={shown ? undefined : `${view.order.id}, nothing submitted yet`}
+                disabled={signing}
               />
               <button
                 ref={compareButton}
@@ -172,7 +175,7 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
                 aria-expanded={canCompare ? comparing : undefined}
                 aria-controls={canCompare ? diffId : undefined}
                 aria-describedby={canCompare ? undefined : hintId}
-                disabled={!canCompare}
+                disabled={!canCompare || signing}
                 onClick={() => setComparing((open) => !open)}
               >
                 Compare
@@ -180,7 +183,13 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
             </span>
             {/* Sign-off only ever names the latest submission of the newest order. */}
             {isLatest && shown && (
-              <SignOff key={shown.key} order={shown.record.order} submission={shown.submission} onDone={() => summary.current?.focus()} />
+              <SignOff
+                key={shown.key}
+                order={shown.record.order}
+                submission={shown.submission}
+                onDone={() => summary.current?.focus()}
+                onPendingChange={setSigning}
+              />
             )}
           </>
         )}

@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { createSampleClient } from "./sample/client.ts";
-import { canConfirm, nameChoices, signOffMessage } from "./signoff.ts";
+import { canConfirm, nameChoices, signOffMessage, singleFlight } from "./signoff.ts";
 
 test("confirm needs a name, and a reason to reject; whitespace counts as blank", () => {
   assert.equal(canConfirm("approve", { name: "", reason: "" }), false);
@@ -37,4 +37,68 @@ test("signOffMessage falls back to plain words for an error that carries none", 
   assert.equal(signOffMessage(new Error("Network down")), "Network down");
   assert.equal(signOffMessage("nope"), "The sign-off didn't go through. Try again.");
   assert.equal(signOffMessage(new Error("")), "The sign-off didn't go through. Try again.");
+});
+
+/** A stub that counts its calls and hands back a promise the test settles. */
+function deferredStub<T>() {
+  let calls = 0;
+  let settle: { resolve: (value: T) => void; reject: (error: unknown) => void } | null = null;
+  const fn = () => {
+    calls += 1;
+    return new Promise<T>((resolve, reject) => { settle = { resolve, reject }; });
+  };
+  return {
+    fn,
+    calls: () => calls,
+    resolve: (value: T) => settle?.resolve(value),
+    reject: (error: unknown) => settle?.reject(error),
+  };
+}
+
+test("singleFlight runs once for three calls in the same tick, and every caller gets the same outcome", async () => {
+  const stub = deferredStub<string>();
+  const guarded = singleFlight(stub.fn);
+  const calls = [guarded(), guarded(), guarded()];
+  assert.equal(stub.calls(), 1);
+  assert.equal(guarded.busy(), true);
+  stub.resolve("signed");
+  assert.deepEqual(await Promise.all(calls), ["signed", "signed", "signed"]);
+  assert.equal(guarded.busy(), false);
+});
+
+test("singleFlight lets a new call through once the last one has settled", async () => {
+  const stub = deferredStub<number>();
+  const guarded = singleFlight(stub.fn);
+  const first = guarded();
+  stub.resolve(1);
+  assert.equal(await first, 1);
+  const second = guarded();
+  assert.equal(stub.calls(), 2);
+  stub.resolve(2);
+  assert.equal(await second, 2);
+});
+
+test("singleFlight passes a rejection to every caller and releases the guard", async () => {
+  const stub = deferredStub<void>();
+  const guarded = singleFlight(stub.fn);
+  const calls = [guarded(), guarded()];
+  const refused = new Error("Submission 2 is not the latest. Review submission 1.");
+  stub.reject(refused);
+  for (const call of calls) await assert.rejects(call, (e) => e === refused);
+  assert.equal(guarded.busy(), false);
+  const again = guarded();
+  assert.equal(stub.calls(), 2);
+  stub.resolve();
+  await again;
+});
+
+test("singleFlight turns a synchronous throw into a rejection and releases the guard", async () => {
+  let calls = 0;
+  const guarded = singleFlight((): Promise<void> => {
+    calls += 1;
+    throw new Error("boom");
+  });
+  await assert.rejects(guarded(), /boom/);
+  await assert.rejects(guarded(), /boom/);
+  assert.equal(calls, 2);
 });
