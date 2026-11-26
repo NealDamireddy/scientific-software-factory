@@ -60,6 +60,15 @@ test("projects, experiments and orders have the planned ids and statuses", async
   assert.equal(s.projects[0].documents[0].id, "coomassie-dye-prep");
   assert.equal(s.projects[0].documents[0].title, "Dye stock preparation");
   assert.deepEqual(s.projects[1].documents, []);
+  assert.equal(s.projects[0].goals, "Follow the reduction of Coomassie blue's central carbon by the loss of its blue absorbance.");
+  assert.equal(s.projects[1].goals, "Measure vitamin B12 in reference solutions.");
+  assert.equal(s.projects[0].documents[0].kind, "note");
+  assert.equal(s.projects[0].documents[0].text, "Dissolve the dye in the buffer named in the lab notebook and filter before use.");
+  const run1 = s.experiments[0];
+  assert.equal(run1.title, "Reducing Coomassie blue");
+  assert.equal(run1.goal, "Reduce the central carbon of Coomassie blue and follow it on the spectrophotometer.");
+  assert.deepEqual(run1.instrument_ids, ["uvvis-1"]);
+  assert.deepEqual(run1.documents, []);
   assert.deepEqual(s.experiments.map((e) => e.id), ["coomassie-run-1", "b12-vial-a"]);
   const orders = Object.fromEntries(s.orders.map((o) => [o.id, o]));
   assert.deepEqual(Object.keys(orders), ["WO-1", "WO-B12", "WO-B12-RP"]);
@@ -123,6 +132,10 @@ test("WO-1 submission 1 has the planned steps and exactly one failing result", a
     citations: ["coomassie-dye-prep"],
     amounts: [{ what: "dye solution", value: 1, unit: "mL" }],
   });
+  assert.deepEqual([steps[1].text, steps[1].citations], ["Blank the spectrophotometer with solvent only.", ["sop-cuvette"]]);
+  assert.deepEqual([steps[2].text, steps[2].citations], ["Bring the cuvette to temperature.", ["sop-cuvette"]]);
+  assert.deepEqual([steps[3].text], ["Add the reducing agent and mix."]);
+  assert.deepEqual([steps[4].text, steps[4].citations], ["Record absorbance as the blue fades.", ["coomassie-dye-prep"]]);
   assert.deepEqual(steps[2].action, {
     instrument_id: "uvvis-1", command: "set_temperature",
     settings: [{ parameter: "temperature", value: 298.15, unit: "K" }],
@@ -233,6 +246,7 @@ test("messages for coomassie-run-1 and b12-vial-a", async () => {
     ["Ran 3 reference cases", "info"],
     ["Wrote simulation", "done"],
   ]);
+  assert.deepEqual(m[2].activity?.[3].detail, "step 4: citations: no citation");
   assert.deepEqual(m[2].output_refs?.map((r) => [r.kind, r.work_order_id]), [
     ["procedure", "WO-1"], ["analysis_app", undefined], ["simulation", undefined],
   ]);
@@ -252,9 +266,16 @@ test("the analysis app and simulation", async () => {
     summary: "Turns absorbance over time into a rate constant and half-life.",
     code: ANALYSIS_CODE,
     entry: "analyze",
-    reference_cases: REFERENCE_CASES,
+    reference_cases: [
+      { name: "Clean decay", input: { k: 0.01, a0: 0.8, a_end: 0.05, noise: 0, seed: 1 },
+        expect: { decay: true, rate_constant_per_s: 0.01 }, rel_tol: 0.01 },
+      { name: "Noisy decay", input: { k: 0.01, a0: 0.8, a_end: 0.05, noise: 0.005, seed: 2 },
+        expect: { decay: true, rate_constant_per_s: 0.01 }, rel_tol: 0.05 },
+      { name: "No reaction", input: { k: 0, a0: 0.6, a_end: 0.6, noise: 0.003, seed: 3 },
+        expect: { decay: false }, rel_tol: 0.05 },
+    ],
   });
-  assert.deepEqual(REFERENCE_CASES.map((c) => c.name), ["Clean decay", "Noisy decay", "No reaction"]);
+  assert.deepEqual(REFERENCE_CASES, s.apps["coomassie-run-1"].reference_cases);
   assert.deepEqual(s.simulations["coomassie-run-1"], {
     title: "Fading curves for three amounts of reducing agent",
     summary: "Predicted absorbance at the blue peak if the rate scales with the amount of reducing agent.",
@@ -271,6 +292,19 @@ test("skills and connectors", async () => {
     ["procedure-style", "How we write procedures", true],
     ["reporting-units", "Units we report in", true],
     ["plot-style", "Plotting conventions", false],
+  ]);
+  assert.deepEqual(s.skills.map((k) => k.description), [
+    "Short instructions with a source for every step.",
+    "Concentrations in mg/L, rates per second.",
+    "Units on every axis, points for data, lines for fits.",
+  ]);
+  assert.equal(s.skills[2].body, "- Label every axis with its unit.\n- Show measured data as points and fitted curves as lines.");
+  assert.deepEqual(s.connectors.map((c) => [c.name, c.provides]), [
+    ["Google Drive", "Protocols and papers"],
+    ["Zotero", "Papers"],
+    ["Lab notebook (Benchling and others)", "Notebook entries and protocols"],
+    ["Instrument data folder", "Readings exported by your instruments"],
+    ["GitHub", "Existing analysis code"],
   ]);
   assert.equal(s.skills[0].body, [
     "- Write each step as one short instruction.",

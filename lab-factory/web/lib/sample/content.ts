@@ -1,6 +1,7 @@
 // Sample content: the example lab, reference cases, step and run-plan templates
 // that work for any instrument, check helpers shaped like the backend's
 // checks.py, and the view builders. Pure data and functions, no DOM.
+import { ClientError } from "../types.ts";
 import type {
   Action, CheckResult, Command, Document, Experiment, Instrument, Lab, Parameter, ReferenceCase,
   RunPlan, RunStep, RunStepView, Setting, SettingView, StepView, ProcedureStep,
@@ -114,7 +115,8 @@ function words(name: string): string {
  * cites one of the given citations (rotating through them).
  */
 export function procedureTemplate(instrument: Instrument, citations: string[]): ProcedureStep[] {
-  const cite = (index: number): string[] => (citations.length === 0 ? [] : [citations[index % citations.length]]);
+  if (citations.length === 0) throw new ClientError("invalid", "A procedure needs at least one document to cite.");
+  const cite = (index: number): string[] => [citations[index % citations.length]];
   const steps: ProcedureStep[] = [
     {
       text: "Prepare the sample as described in the cited source.",
@@ -147,8 +149,11 @@ export function runPlanTemplate(instrument: Instrument): RunPlan {
 
 const TEXT_VALUE = /\d+(\.\d+)?\s*(nm|mL|uL|s|min|h|K|degC|°C)\b/g;
 
-const KNOWN_AMOUNT_UNITS = ["mL", "uL", "L", "mg", "g", "ug", "mM", "uM", "M", "mg/L"];
+// Exactly the units the backend knows (UNIT_SPELLINGS in units.py), case-sensitive.
+const KNOWN_AMOUNT_UNITS = ["nm", "um", "mL", "uL", "L", "s", "ms", "min", "h", "K", "degC", "mT", "G", "T", "AU"];
 
+// Sample checks compare each setting's value in the parameter's own unit and do no unit
+// conversion (a unit other than the parameter's is a failure). The live backend converts.
 function commandResults(
   prefix: string, instrumentId: string, instruments: Instrument[], commandName: string,
   settings: Setting[], thorough: boolean,
@@ -279,8 +284,13 @@ function settingViews(instrumentId: string, settings: Setting[], instruments: In
   });
 }
 
-function failuresFor(prefix: string, results: CheckResult[]): CheckResult[] {
-  return results.filter((r) => !r.passed && r.name.startsWith(prefix)).map((r) => ({ ...r }));
+// A step's failures are the failing results named `step N: ...`. Failing results without a
+// step prefix (such as `instrument listed`) are attached to step 1 so they are never silent.
+function failuresFor(number: number, results: CheckResult[]): CheckResult[] {
+  const prefix = `step ${number}: `;
+  return results
+    .filter((r) => !r.passed && (r.name.startsWith(prefix) || (number === 1 && !/^step \d+: /.test(r.name))))
+    .map((r) => ({ ...r }));
 }
 
 /** Step views for a procedure. `documents` are the lab, project and experiment documents; unresolvable citations are left out of `sources`. */
@@ -300,11 +310,12 @@ export function procedureViews(
       sources,
       settings: step.action ? settingViews(step.action.instrument_id, step.action.settings, instruments) : [],
       unchecked: (step.amounts ?? []).map((a) => `${a.what} ${a.value} ${a.unit}`),
-      failures: failuresFor(`step ${number}: `, results),
+      failures: failuresFor(number, results),
     };
   });
 }
 
+/** Run plan step views; failing results without a step prefix go on step 1. */
 export function runPlanViews(plan: RunPlan, results: CheckResult[], instruments: Instrument[]): RunStepView[] {
   return plan.steps.map((step, index) => {
     const number = index + 1;
@@ -313,7 +324,7 @@ export function runPlanViews(plan: RunPlan, results: CheckResult[], instruments:
       instrument_id: plan.instrument_id,
       command: step.command,
       settings: settingViews(plan.instrument_id, step.settings, instruments),
-      failures: failuresFor(`step ${number}: `, results),
+      failures: failuresFor(number, results),
     };
   });
 }

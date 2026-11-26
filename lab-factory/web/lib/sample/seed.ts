@@ -262,7 +262,7 @@ export async function createSeed(now: Date): Promise<SampleState> {
   };
 
   const failedCount = wo1Results.filter((r) => !r.passed).length;
-  const history = (id: string, claimer: string, created: number, claimed: number, submitted: number, note: string): HistoryEvent[] => [
+  const history = (claimer: string, created: number, claimed: number, submitted: number, note: string): HistoryEvent[] => [
     { event: "created", actor: "factory", submission: null, note: "", at: ago(created) },
     { event: "claimed", actor: claimer, submission: null, note: "", at: ago(claimed) },
     { event: "submitted", actor: claimer, submission: 1, note, at: ago(submitted) },
@@ -299,7 +299,7 @@ export async function createSeed(now: Date): Promise<SampleState> {
           { id: "a1", label: "Read lab context (revision 1)", outcome: "done" },
           { id: "a2", label: "Read project context (revision 1)", outcome: "done" },
           { id: "a3", label: "Wrote procedure", outcome: "done" },
-          { id: "a4", label: `Ran ${wo1Results.length} checks: ${failedCount} failed`, outcome: "failed", detail: "step 4: citations, no citation" },
+          { id: "a4", label: `Ran ${wo1Results.length} checks: ${failedCount} failed`, outcome: "failed", detail: "step 4: citations: no citation" },
           { id: "a5", label: "Wrote analysis app", outcome: "done" },
           { id: "a6", label: `Ran ${app.reference_cases.length} reference cases`, outcome: "info" },
           { id: "a7", label: "Wrote simulation", outcome: "done" },
@@ -334,9 +334,9 @@ export async function createSeed(now: Date): Promise<SampleState> {
     submissions,
     views,
     history: {
-      "WO-1": history("WO-1", "factory", 88, 87, 80, "failed"),
-      "WO-B12": history("WO-B12", "codex on lab-pc", 199, 190, 180, "passed"),
-      "WO-B12-RP": history("WO-B12-RP", "codex on lab-pc", 199, 185, 175, "failed"),
+      "WO-1": history("factory", 88, 87, 80, "failed"),
+      "WO-B12": history("codex on lab-pc", 199, 190, 180, "passed"),
+      "WO-B12-RP": history("codex on lab-pc", 199, 185, 175, "failed"),
     },
     messages,
     apps: { "coomassie-run-1": app },
