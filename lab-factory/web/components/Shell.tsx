@@ -21,7 +21,7 @@ import { SkillsPage } from "./SkillsPage.tsx";
 import { ConnectorsPage } from "./ConnectorsPage.tsx";
 import { AgentsPage } from "./AgentsPage.tsx";
 // Task 11 views
-import { Workspace } from "./placeholders.tsx";
+import { Workspace } from "./Workspace.tsx";
 
 /** Each route maps to exactly one view. */
 function View({ route }: { route: Route }) {
