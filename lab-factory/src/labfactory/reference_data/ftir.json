@@ -1,0 +1,47 @@
+[
+  {
+    "id": "agilent-cary-630-ftir-guide",
+    "kind": "manual",
+    "title": "Agilent Cary 630 FTIR Spectrometer User’s Guide",
+    "publisher": "Agilent Technologies",
+    "year": 2024,
+    "version": "G8043-90001, edition 7, June 2024",
+    "url": "https://www.agilent.com/cs/library/usermanuals/public/G8043-90001_Cary_630_FTIR_UG_EN.pdf",
+    "locator": "Chapter 3, pp. 21–26, sampling accessories and diamond ATR.",
+    "summary": "The guide identifies the sampling accessories and explains how to collect the background and sample spectra for the installed accessory.",
+    "scope": "Confirm which accessory is installed. Identifying a polymer additionally requires reference spectra. Microscopy in a published method can require different optics.",
+    "instrument_ids": ["agilent-cary-630"], "techniques": ["ftir"],
+    "topics": ["infrared spectroscopy", "attenuated total reflection", "background spectrum", "ATR", "sampling accessory"],
+    "rights": "Publisher link and original summary."
+  },
+  {
+    "id": "california-swb-mp1",
+    "kind": "procedure",
+    "title": "Standard Operating Procedures for Extraction and Measurement by Infrared Spectroscopy of Microplastic Particles in Drinking Water",
+    "publisher": "California State Water Resources Control Board",
+    "year": 2022,
+    "version": "SWB-MP1-rev1, May 2022",
+    "url": "https://www.waterboards.ca.gov/drinking_water/certlic/drinkingwater/documents/microplastics/swb-mp1-rev1.pdf",
+    "locator": "Sections 1.1 and 1.3, scope and size limits. Sections 11.4.3–11.4.4, spectral acquisition and library matching.",
+    "summary": "The method identifies particles by comparing infrared spectra with reference materials. It distinguishes single-particle measurements from imaging and describes how to evaluate candidate matches.",
+    "scope": "Applies to treated drinking water. Visual microscopy counts particles and infrared spectra identify them. The reliable lower size is 50 µm and the upper sieve limit is 5,000 µm. Confirm that the available optics cover the target sizes.",
+    "instrument_ids": [], "techniques": ["ftir"],
+    "topics": ["microplastics", "polymer identification", "drinking water", "infrared microscopy", "spectral matching"],
+    "rights": "Public agency source link and original summary."
+  },
+  {
+    "id": "primpke-2018-ftir-polymers",
+    "kind": "paper",
+    "title": "Reference database design for the automated analysis of microplastic samples based on Fourier transform infrared (FTIR) spectroscopy",
+    "publisher": "Analytical and Bioanalytical Chemistry, Springer Nature",
+    "year": 2018,
+    "version": "Primpke et al., volume 410, pp. 5131–5141. DOI 10.1007/s00216-018-1156-x",
+    "url": "https://link.springer.com/article/10.1007/s00216-018-1156-x",
+    "locator": "Materials and methods, FTIR measurements and Spectral database design.",
+    "summary": "Primpke and colleagues collected spectra of known polymers, recorded their measurement conditions and tested how reference-library design affects classification of microplastics.",
+    "scope": "The authors used a Bruker Tensor 27 with diamond ATR and a Hyperion 3000 microscope for imaging. Matching performance on a different instrument, accessory or material needs its own evaluation.",
+    "instrument_ids": [], "techniques": ["ftir"],
+    "topics": ["microplastics", "polymer identification", "spectral library", "ATR", "infrared microscopy"],
+    "rights": "Original summary and link to the authors’ open-access article."
+  }
+]

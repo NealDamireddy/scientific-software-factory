@@ -1,0 +1,154 @@
+{
+  "aliases": {
+    "b12": [
+      "vitamin b12",
+      "vitamin b-12",
+      "vitamin b 12",
+      "b-12",
+      "cyanocobalamin"
+    ],
+    "ftir": [
+      "ft-ir",
+      "ft ir",
+      "fourier transform infrared"
+    ],
+    "uvvis": [
+      "uv-vis",
+      "uv vis",
+      "uv/vis",
+      "uv visible",
+      "ultraviolet visible"
+    ],
+    "ph": [
+      "acidity"
+    ],
+    "gravimetry": [
+      "gravimetric",
+      "weighing"
+    ],
+    "conductivity": [
+      "conductance"
+    ],
+    "polymer": [
+      "polymers",
+      "plastic",
+      "plastics"
+    ],
+    "microplastic": [
+      "microplastics"
+    ],
+    "hplc": [
+      "high performance liquid chromatography",
+      "liquid chromatography"
+    ],
+    "calibration": [
+      "calibrate",
+      "calibrating"
+    ],
+    "vitamina": [
+      "vitamin a"
+    ],
+    "vitaminc": [
+      "vitamin c"
+    ],
+    "vitamind": [
+      "vitamin d"
+    ],
+    "vitamine": [
+      "vitamin e"
+    ],
+    "vitamink": [
+      "vitamin k"
+    ],
+    "b6": [
+      "vitamin b6",
+      "vitamin b-6",
+      "vitamin b 6"
+    ]
+  },
+  "technique_names": {
+    "uv-vis": "UV–Vis spectroscopy",
+    "gravimetry": "Gravimetry",
+    "ph": "pH measurement",
+    "conductivity": "Conductivity",
+    "ftir": "FTIR spectroscopy",
+    "hplc": "High-performance liquid chromatography"
+  },
+  "examples": [
+    {
+      "label": "Caffeine in coffee",
+      "instrument": "agilent-1260-infinity-binary-lc",
+      "q": "Measure caffeine in coffee"
+    },
+    {
+      "label": "Identify a polymer",
+      "instrument": "agilent-cary-630",
+      "q": "Identify a polymer using infrared spectra"
+    },
+    {
+      "label": "Measure water pH",
+      "instrument": "thermo-orion-star-a211",
+      "q": "Measure the pH of water"
+    },
+    {
+      "label": "Weigh suspended solids",
+      "instrument": "other-gravimetry",
+      "q": "Determine suspended solids in water by gravimetry"
+    },
+    {
+      "label": "Check conductivity",
+      "instrument": "other-conductivity",
+      "q": "Check water conductivity against a standard"
+    }
+  ],
+  "context_terms": [
+    "water",
+    "aqueous",
+    "solution",
+    "concentration",
+    "determine",
+    "calculate",
+    "measuring",
+    "measured",
+    "analysis",
+    "testing",
+    "test",
+    "quantify",
+    "quantification",
+    "standards",
+    "standard",
+    "samples",
+    "sample",
+    "material",
+    "experiment",
+    "against",
+    "from",
+    "use",
+    "unknown",
+    "field",
+    "laboratory",
+    "lab",
+    "drinking",
+    "tap",
+    "distilled",
+    "dissolved",
+    "concentration",
+    "content",
+    "tablets",
+    "calibration",
+    "analysis",
+    "standard",
+    "reference",
+    "local",
+    "verify",
+    "absorbance",
+    "spectrum",
+    "spectral",
+    "visible",
+    "record",
+    "spectra",
+    "readings",
+    "reading",
+    "spectroscopy"
+  ]
+}
