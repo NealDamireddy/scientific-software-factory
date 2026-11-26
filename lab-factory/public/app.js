@@ -273,10 +273,11 @@ function submissionView(order, submission, latest) {
 }
 
 function showOrder(data, assay) {
-  const {order, submissions, history} = data;
+  const {order, submissions, history, reference_brief: brief} = data;
   const back = element("div", undefined, "nav-back");
-  const link = element("a", assay ? "← B12 analysis" : "← Work orders");
-  link.href = assay ? "#b12" : "#orders";
+  const link = element("a", brief ? "← Reference library" : assay ? "← B12 analysis" : "← Work orders");
+  link.href = brief ? "#references?" + new URLSearchParams({instrument: brief.instrument.id, q: brief.query}) :
+    assay ? "#b12" : "#orders";
   back.append(link);
   const statusLine = element("div", undefined, "order-title");
   statusLine.append(element("span", order.id), status(statuses[order.status], order.status));
@@ -286,6 +287,7 @@ function showOrder(data, assay) {
   definition(meta, "Lab", order.lab_id + " · revision " + order.lab_revision);
   definition(meta, "Worker", order.worker || "Unclaimed");
   workspace.replaceChildren(back, statusLine, heading(order.objective, refreshButton()), meta);
+  if (brief) workspace.append(referenceBrief(brief));
   if (assay) {
     workspace.append(readingEntry(order, assay));
     if (order.status === "released") workspace.append(readingResults(order, assay.readings));
@@ -383,8 +385,282 @@ function showB12(data) {
   } else {
     list.append(element("p", "Start the B12 example to open your first analysis order.", "empty"));
   }
-  workspace.replaceChildren(heading("Vitamin B12 analysis", refreshButton(), create),
+  const references = element("a", "Find B12 references");
+  references.href = "#references?q=B12";
+  workspace.replaceChildren(heading("Vitamin B12 analysis", references, refreshButton(), create),
     element("p", "Start a fresh review of the agent-written Python, or reopen an existing order. Each new example tests the source again before you approve it and calculate a concentration from simulated readings.", "assay-intro"), list);
+}
+
+const sourceTypes = {manual: "Instrument manuals", procedure: "Published procedures", paper: "Research papers"};
+const matchTypes = {instrument_manual: "Manual for this model", same_model_study: "Uses this model", related_method: "Related method",
+  catalog_manual: "Catalog manual", technique_manual: "Manual for this technique"};
+
+function modelName(instrument) {
+  return [instrument.manufacturer, instrument.model].filter(Boolean).join(" ");
+}
+
+function modelSearchKey(value) {
+  return value.toLowerCase().normalize("NFKD").replace(/[^\p{Letter}\p{Number}]/gu, "");
+}
+
+function sourceCard(source, number, choose) {
+  const article = element("article", undefined, "source-card");
+  article.id = "source-" + source.id;
+  article.tabIndex = -1;
+  const caption = element("div", undefined, "source-caption");
+  caption.append(element("span", "Source " + number, "source-number"),
+    element("span", matchTypes[source.match] || "Related evidence", "source-match"));
+  article.append(caption);
+  const title = element("h3");
+  const url = new URL(source.url);
+  if (url.protocol === "https:") {
+    const link = element("a", source.title);
+    link.href = url.href;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    title.append(link);
+  } else title.textContent = source.title;
+  if (choose) {
+    const head = element("div", undefined, "source-choice");
+    const check = element("input");
+    check.type = "checkbox";
+    check.setAttribute("aria-label", "Select " + source.title);
+    check.addEventListener("change", () => choose(source, check.checked));
+    head.append(check, title);
+    article.append(head);
+  } else article.append(title);
+  article.append(element("p", [source.publisher, source.year].filter(Boolean).join(" · "), "source-publisher"),
+    element("p", source.summary, "source-summary"));
+  const record = element("dl", undefined, "source-info");
+  definition(record, "Why it matches", source.reason);
+  definition(record, "Applicability", source.scope);
+  definition(record, "Where to look", source.locator);
+  article.append(record);
+  const details = element("details", undefined, "source-version");
+  const metadata = element("dl", undefined, "source-info");
+  definition(metadata, "Edition or identifier", source.version);
+  definition(metadata, "Source access", source.rights);
+  definition(metadata, "Library record SHA-256", source.digest, "mono");
+  details.append(element("summary", "Source details"), metadata);
+  article.append(details);
+  return article;
+}
+
+function sourceGroups(findings, choose) {
+  const fragment = document.createDocumentFragment();
+  for (const [kind, label] of Object.entries(sourceTypes)) {
+    const sources = findings.filter(source => source.kind === kind);
+    if (!sources.length) continue;
+    const group = panel(label);
+    group.classList.add("source-group");
+    group.dataset.kind = kind;
+    const grid = element("div", undefined, "source-grid");
+    for (const source of sources) grid.append(sourceCard(source, findings.indexOf(source) + 1, choose));
+    group.append(grid);
+    fragment.append(group);
+  }
+  return fragment;
+}
+
+function evidenceBrief(brief, revealAll) {
+  const section = element("section", undefined, "evidence-brief");
+  section.append(element("h3", "Evidence brief"));
+  const items = element("dl");
+  for (const item of brief.brief || []) {
+    const line = element("div");
+    const body = element("dd", item.text);
+    for (const id of item.source_ids) {
+      const index = brief.findings.findIndex(f => f.id === id);
+      if (index === -1) continue;
+      const source = brief.findings[index];
+      const cite = button("[" + (index + 1) + "]", "source-citation", () => {
+        if (revealAll) revealAll();
+        byId("source-" + id)?.focus();
+      });
+      cite.title = source.title;
+      cite.setAttribute("aria-label", "View source " + (index + 1) + ", " + source.title);
+      body.append(" ", cite);
+    }
+    line.append(element("dt", item.label), body);
+    items.append(line);
+  }
+  section.append(items);
+  return section;
+}
+
+function referenceBrief(brief) {
+  const block = element("section", undefined, "reference-brief");
+  block.append(element("h2", "Pinned references"),
+    element("p", modelName(brief.instrument) + " · " + brief.query, "brief-query"),
+    element("p", brief.overview, "muted"));
+  if (brief.brief?.length) block.append(evidenceBrief(brief));
+  if (brief.catalog_digest) {
+    const provenance = element("details", undefined, "source-version");
+    const metadata = element("dl", undefined, "source-info");
+    definition(metadata, "Catalog SHA-256", brief.catalog_digest, "mono");
+    provenance.append(element("summary", "Catalog version used for this order"), metadata);
+    block.append(provenance);
+  }
+  block.append(sourceGroups(brief.findings));
+  return block;
+}
+
+function showReferenceLibrary(catalog, initial) {
+  const page = generation;
+  let request = 0;
+  const form = element("form", undefined, "library-search");
+  const filterLabel = element("label", "Filter models");
+  const filterInput = element("input");
+  filterInput.type = "search";
+  filterInput.placeholder = "Model, maker or technique";
+  filterLabel.append(filterInput);
+  const modelLabel = element("label", "Instrument or technique");
+  const select = element("select");
+  select.name = "instrument";
+  const techniqueLabel = id => catalog.technique_names?.[id] || id;
+  function fillModels(chosen) {
+    const terms = filterInput.value.trim().split(/\s+/).map(modelSearchKey).filter(Boolean);
+    select.replaceChildren();
+    const groups = new Map();
+    for (const item of catalog.instruments) {
+      const techniques = item.techniques?.length ? item.techniques : [item.technique];
+      const fields = [modelName(item), ...techniques, ...techniques.map(techniqueLabel), ...(item.aliases || [])];
+      const haystack = modelSearchKey(fields.join(" "));
+      if (!terms.every(term => haystack.includes(term))) continue;
+      const option = element("option", modelName(item));
+      option.value = item.id;
+      if (item.id === "all") select.append(option);
+      else {
+        const matched = techniques.find(id => terms.some(term => modelSearchKey(techniqueLabel(id)).includes(term)));
+        const family = techniqueLabel(matched || item.technique);
+        if (!groups.has(family)) {
+          const group = element("optgroup"); group.label = family;
+          groups.set(family, group); select.append(group);
+        }
+        groups.get(family).append(option);
+      }
+    }
+    if ([...select.options].some(option => option.value === chosen)) select.value = chosen;
+  }
+  const initialModel = initial.get("instrument") || "all";
+  fillModels(initialModel);
+  if (select.value !== initialModel) select.selectedIndex = -1;
+  const queryLabel = element("label", "Experiment objective", "query-field");
+  const query = element("input");
+  query.type = "search";
+  query.name = "q";
+  query.maxLength = 300;
+  query.value = initial.get("q") || "";
+  query.placeholder = "What do you want to measure?";
+  const submit = element("button", "Find sources", "primary");
+  submit.type = "submit";
+  modelLabel.append(select); queryLabel.append(query);
+  form.append(filterLabel, modelLabel, queryLabel, submit);
+  const results = element("section", undefined, "library-results");
+  results.setAttribute("aria-label", "Search results");
+  const counts = catalog.counts;
+  const collection = element("p", "Curated collection · " + counts.manual + " manuals · " +
+    counts.procedure + " published procedures · " + counts.paper + " papers", "library-counts");
+  const examples = element("div", undefined, "library-examples");
+  if (catalog.examples?.length) {
+    examples.append(element("span", "Example searches"));
+    for (const example of catalog.examples) {
+      examples.append(button(example.label, "query-example", () => {
+        filterInput.value = ""; fillModels(example.instrument || "all"); query.value = example.q; search();
+      }));
+    }
+  }
+  workspace.replaceChildren(heading("Reference library"), collection, form, examples, results);
+
+  async function search() {
+    const revision = ++request;
+    if (!select.value) {
+      results.replaceChildren(element("p", "No instrument matches that filter. Try its manufacturer or technique.", "muted"));
+      results.removeAttribute("aria-busy");
+      return;
+    }
+    notify("");
+    results.replaceChildren(element("p", "Finding sources…", "muted"));
+    results.setAttribute("aria-busy", "true");
+    try {
+      const params = new URLSearchParams({instrument: select.value, q: query.value.trim()});
+      const data = await api("references/search?" + params);
+      if (generation !== page || revision !== request) return;
+      history.replaceState(history.state, "", "#references?" + params);
+      results.replaceChildren(element("h2", "Findings for " + modelName(data.instrument)));
+      if (!data.findings.length) {
+        results.append(element("p", "No matching sources. Try another experiment, topic or instrument.", "muted"));
+        return;
+      }
+      results.append(element("p", data.overview, "findings-overview"));
+      const selected = new Map();
+      const bar = element("div", undefined, "selection-bar");
+      const typeFilter = element("select");
+      typeFilter.setAttribute("aria-label", "Filter source type");
+      for (const [value, label] of Object.entries({all: "All source types", ...sourceTypes})) {
+        if (value !== "all" && !data.findings.some(f => f.kind === value)) continue;
+        const option = element("option", label); option.value = value; typeFilter.append(option);
+      }
+      function applyFilter() {
+        for (const group of results.querySelectorAll(".source-group")) {
+          group.hidden = typeFilter.value !== "all" && group.dataset.kind !== typeFilter.value;
+        }
+      }
+      typeFilter.addEventListener("change", applyFilter);
+      if (data.brief?.length) results.append(evidenceBrief(data, () => {
+        typeFilter.value = "all"; applyFilter();
+      }));
+      const canPin = Boolean(data.query?.trim());
+      const count = element("span", canPin ? "0 sources selected" : "Search an objective to create an order.");
+      count.setAttribute("role", "status");
+      const pin = button("Create order with sources", "primary", async () => {
+        if (pin.disabled) return;
+        pin.disabled = true;
+        for (const input of form.elements) input.disabled = true;
+        for (const control of examples.querySelectorAll("button")) control.disabled = true;
+        for (const check of results.querySelectorAll("input")) check.disabled = true;
+        try {
+          const order = await post("references/orders", {instrument: data.instrument.id, q: data.query,
+            catalog_digest: data.catalog_digest, selections: Array.from(selected, ([id, digest]) => ({id, digest}))});
+          if (generation === page && request === revision) openOrder(order.id);
+        } catch (error) {
+          if (generation === page && request === revision) notify(error.message, true);
+        } finally {
+          for (const input of form.elements) input.disabled = false;
+          for (const control of examples.querySelectorAll("button")) control.disabled = false;
+          for (const check of results.querySelectorAll("input")) check.disabled = false;
+          pin.disabled = !canPin || selected.size === 0;
+        }
+      });
+      pin.disabled = true;
+      bar.append(typeFilter, count, pin);
+      results.append(bar, sourceGroups(data.findings, canPin ? (source, checked) => {
+        if (checked) selected.set(source.id, source.digest);
+        else selected.delete(source.id);
+        count.textContent = selected.size + (selected.size === 1 ? " source selected" : " sources selected");
+        pin.disabled = selected.size === 0;
+      } : null));
+    } catch (error) {
+      if (generation === page && revision === request) {
+        results.replaceChildren(element("p", error.message, "form-error"));
+      }
+    } finally {
+      if (revision === request) results.removeAttribute("aria-busy");
+    }
+  }
+  form.addEventListener("submit", event => { event.preventDefault(); search(); });
+  select.addEventListener("change", search);
+  filterInput.addEventListener("input", () => {
+    const chosen = select.value;
+    fillModels(chosen);
+    if (chosen !== select.value) search();
+  });
+  query.addEventListener("input", () => {
+    request++;
+    results.removeAttribute("aria-busy");
+    results.replaceChildren(element("p", "Select Find sources to search this objective.", "muted"));
+  });
+  search();
 }
 
 function readingEntry(order, assay) {
@@ -590,8 +866,9 @@ async function navigate() {
   const request = ++generation;
   for (const modal of document.querySelectorAll("dialog[open]")) modal.close();
   const hash = location.hash.slice(1);
+  const route = hash.split("?")[0];
   const isOrder = hash.startsWith("order/");
-  const tab = ["context","agents","b12"].includes(hash) ? hash : "orders";
+  const tab = ["context","agents","b12","references"].includes(route) ? route : "orders";
   function selectTab(active) {
     for (const link of byId("nav").querySelectorAll("a")) {
       if (link.dataset.tab === active) link.setAttribute("aria-current", "page");
@@ -600,7 +877,7 @@ async function navigate() {
   }
   selectTab(tab);
   notify("");
-  const page = {orders:"Work orders",context:"Lab context",agents:"Agent access",b12:"Vitamin B12 analysis"}[tab];
+  const page = {orders:"Work orders",context:"Lab context",agents:"Agent access",b12:"Vitamin B12 analysis",references:"Reference library"}[tab];
   document.title = page + " · Lab Factory";
   workspace.setAttribute("aria-busy","true");
   try {
@@ -613,6 +890,7 @@ async function navigate() {
         const assay = data.order.kind === "analysis_app" ? await api("b12/orders/" + encodeURIComponent(id) + "/readings") : null;
         if (generation !== request) return;
         if (assay) selectTab("b12");
+        else if (data.reference_brief) selectTab("references");
         showOrder(data, assay); document.title = data.order.id + " · Lab Factory";
       }
       else showOrders(data.orders);
@@ -620,6 +898,10 @@ async function navigate() {
       workspace.replaceChildren(element("p", "Loading analysis orders…", "muted"));
       const data = await api("b12");
       if (generation === request) showB12(data);
+    } else if (tab === "references") {
+      workspace.replaceChildren(element("p", "Opening the reference library…", "muted"));
+      const catalog = await api("references");
+      if (generation === request) showReferenceLibrary(catalog, new URLSearchParams(hash.slice("references?".length)));
     } else if (tab === "context") showContext();
     else showAgents();
   } catch (error) {

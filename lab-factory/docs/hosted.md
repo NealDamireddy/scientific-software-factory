@@ -2,6 +2,22 @@
 
 The Vercel project root is `lab-factory/`. Vercel builds the Python function from `uv.lock`, serves the browser portal from `public/`, and routes the reviewer API and Streamable HTTP MCP through the same application. The existing local CLI and stdio server continue to use the SQLite path supplied on the command line.
 
+## Shared reference collection
+
+The application bundles source metadata, publisher links, evidence locations, original summaries and scope notes. A read-only SQLite index serves the same collection to the signed-in portal and to agents. Search matches indexed terms, handles configured synonyms and ranks findings within the chosen instrument or technique. The evidence brief quotes the collection's summaries and links back to the records. Searches work offline after installation. Opening a publisher's document requires access to that site.
+
+Agents can discover the following JSON resources with MCP resources/list and resources/templates/list over HTTP or stdio.
+
+| Resource URI | Contents |
+| --- | --- |
+| `labfactory://references/catalog` | Exact model IDs, technique scopes, example queries and source counts |
+| `labfactory://references/search/{instrument}/{query}` | Matches, limitations and citations for a URL-encoded objective. Use `all` for a cross-instrument search. |
+| `labfactory://references/source/{source_id}` | One current curated record with its publisher link and digest |
+
+Creating a reference work order snapshots only the selected records in the lab's private database. The agent reads that snapshot through `get_work_order_context`. Its document IDs are available for citations. Published procedures enter the work order as external references. Selecting a model supplies planning context. Local firmware, accessories, performance and executable commands still need to be established by the lab. The SHA-256 digest identifies the curated record. The publisher hosts the underlying document.
+
+To expand coverage, add a model to an `instruments*.json` array and records to a source JSON array in `src/labfactory/reference_data/`. Record the publisher, stable URL, edition or DOI, precise locator, scope, technique and search topics. Give each record a unique ID. Link a model only when the manufacturer documents it or the authors say they used it. Technique labels, synonyms and example searches live in `search.json`. Run the suite and check a supported objective and an unsupported one before deploying the edition.
+
 ## B12 source and result records
 
 **Start B12 example** submits the checked-in `src/labfactory/b12_example.py` as a bundled example and runs the verifier for this work order. It reuses source written for this simulation. For a new agent-authored implementation, a signed-in reviewer can send `POST /api/b12/orders` with `{"mode":"agent"}` using the portal’s same-origin JSON session. This opens an ordinary MCP work order. The agent receives the pinned protocol and a function signature, writes its implementation, and submits `{"source":"..."}` through the existing tools. The command below submits a source file in the environment of its issued worker.
