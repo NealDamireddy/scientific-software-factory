@@ -1,6 +1,6 @@
 # Lab Factory Web UI — Design
 
-Status: draft for review · 2026-11-26
+Status: approved · 2026-11-26
 
 Mockups: the "Lab Factory UI mockups" canvas (private to the owner). Screen **I · Decluttered** is the reference layout. **H · Workspace, calmer** shows the procedure panel at a larger size. Earlier screens (A–G) are history, not targets.
 
@@ -113,6 +113,7 @@ These carry over from the Lab Factory architecture. Breaking any of them is a fa
 
 This is the most important screen. It renders a `Procedure` exactly as Lab Factory defines it: steps with `text`, `citations`, an optional `action` (instrument, command, settings) and optional `amounts`.
 
+- **One line at the top of every procedure says what is checked:** "Only settings shown on a range are checked against your instruments. The rest is written for you and your approver to judge." Step text stays in normal type with no per-step tag. This satisfies the "labeled as not checked by code" rule for step prose, which the backend's `render_step` labels "Notes, not checked by code". *(Owner's decision, 2026-11-26.)*
 - **Steps** are one continuous numbered list, not cards. Each step shows its title (the step text), with its sources on the same line in smaller text, resolved to document titles.
 - **Checked settings** are rendered from the step's `action`: the parameter name, the value and unit, and a **range strip** for the instrument's limit with a marker at the value.
   - The strip for **wavelength** is a muted visible spectrum over the instrument's own range. Other parameters get a plain track.
