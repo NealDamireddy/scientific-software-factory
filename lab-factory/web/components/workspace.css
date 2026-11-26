@@ -953,6 +953,7 @@
 
 .proc-source {
   display: inline-block;
+  min-width: 40px;
   max-width: 100%;
   padding-block: 11px;
   color: var(--indigo);
@@ -1069,6 +1070,11 @@
   .ws-panel:not([data-open="false"]),
   .panel {
     min-width: 380px;
+  }
+
+  .panel-tab {
+    padding: 0 6px;
+    font-size: 0.875rem;
   }
 }
 

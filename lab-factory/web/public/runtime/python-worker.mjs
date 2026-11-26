@@ -5,7 +5,7 @@
 // Request:  { id, code, entry, args }
 // Replies:  { id, ok: true, value }        the entry's return value as plain JS
 //           { id, ok: false, error }       a Python exception, as str(e)
-//           { id, ok: false, load_error }  Pyodide failed to load, with the reason
+//           { id, ok: false, load_error }  Pyodide failed to load, or stopped with a fatal error
 // The code runs in a fresh namespace each time. The entry is called as entry(**args) when
 // args is an object, otherwise as entry(args).
 //
@@ -39,11 +39,20 @@ function reason(error) {
 }
 
 const NO_NETWORK = "Network access is not available to analysis code.";
-// Each can send a request, or start a context (a nested worker) that could.
+// Each can send a request, or start a context (a nested worker) that could. Fonts fetch the url()
+// sources they are given, so a FontFace and the worker's font set are on the list too.
 const NETWORK_NAMES = [
   "fetch", "XMLHttpRequest", "WebSocket", "WebSocketStream", "EventSource", "WebTransport", "importScripts",
-  "Worker", "SharedWorker", "caches", "sendBeacon",
+  "Worker", "SharedWorker", "caches", "sendBeacon", "FontFace", "fonts",
 ];
+// `fonts` is an object, not a function, so reading it is what is refused.
+const REFUSED_READS = new Set(["fonts"]);
+
+function refusal(name) {
+  return REFUSED_READS.has(name)
+    ? { get: refuse, set: refuse, configurable: false, enumerable: false }
+    : { value: refuse, writable: false, configurable: false, enumerable: false };
+}
 
 function refuse() {
   throw new Error(NO_NETWORK);
@@ -54,16 +63,16 @@ function disarm(target) {
   for (let object = target; object && object !== Object.prototype; object = Object.getPrototypeOf(object)) {
     for (const name of NETWORK_NAMES) {
       if (!Object.prototype.hasOwnProperty.call(object, name)) continue;
-      Object.defineProperty(object, name, { value: refuse, writable: false, configurable: false, enumerable: false });
+      Object.defineProperty(object, name, refusal(name));
     }
   }
   // The global itself gets the refusal too, even where the name was never defined, so a lookup can't
   // fall through to anything restored later.
   for (const name of NETWORK_NAMES) {
     const own = Object.getOwnPropertyDescriptor(target, name);
-    if (!own || own.configurable || own.value !== refuse) {
+    if (!own || own.configurable || (own.value !== refuse && own.get !== refuse)) {
       try {
-        Object.defineProperty(target, name, { value: refuse, writable: false, configurable: false, enumerable: false });
+        Object.defineProperty(target, name, refusal(name));
       } catch {
         // A property the platform won't let go of stays as the loop above left it.
       }
@@ -135,6 +144,12 @@ self.addEventListener("message", async (event) => {
     const reply = result.toJs({ dict_converter: Object.fromEntries, create_pyproxies: false });
     self.postMessage(reply.ok ? { id, ok: true, value: reply.value } : { id, ok: false, error: reply.error });
   } catch (error) {
+    if (/fatal error/i.test(reason(error))) {
+      // Pyodide can't run anything after a fatal error, so later calls would hang. Replying with a
+      // load error makes the runner reject now and start a fresh worker on the next run.
+      self.postMessage({ id, ok: false, load_error: "the Python runtime stopped; reload to try again" });
+      return;
+    }
     self.postMessage({ id, ok: false, error: `The result couldn't be returned: ${reason(error)}` });
   } finally {
     result?.destroy?.();

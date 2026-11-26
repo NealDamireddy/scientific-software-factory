@@ -127,7 +127,7 @@ export function changeDetails(field: StepField, before: Step, after: Step, title
       if (!a.action) lines.push(`Instrument action added: “${b.action?.command ?? ""}”`);
       else if (!b.action) lines.push(`Instrument action removed, was “${a.action.command}”`);
       else {
-        if (a.action.instrument_id !== b.action.instrument_id) lines.push(`Instrument: was ${a.action.instrument_id}`);
+        if (a.action.instrument_id !== b.action.instrument_id) lines.push(`Instrument: was ${a.action.instrument_id}; now ${b.action.instrument_id}`);
         if (a.action.command !== b.action.command) lines.push(`Command: was “${a.action.command}”`);
       }
       return [...lines, ...settingDetails(a.action?.settings ?? [], b.action?.settings ?? [])];

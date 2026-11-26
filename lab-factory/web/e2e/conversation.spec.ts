@@ -263,6 +263,27 @@ for (const width of [1024, 1100, 1280]) {
   });
 }
 
+for (const width of [1024, 1099]) {
+  test(`the four panel tabs share one row at ${width} px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: 800 });
+    await goto(page, COOMASSIE);
+    await expect.poll(() => tabNames(page)).toEqual(["Procedure", "Analysis app", "Results", "Simulation"]);
+    const tops: number[] = [];
+    for (const tab of await panel(page).getByRole("tab").all()) tops.push((await tab.boundingBox())!.y);
+    expect(new Set(tops).size).toBe(1);
+  });
+}
+
+test("at 1024 px a long sidebar link is fully visible and the workspace title has a title", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 700 });
+  await goto(page, COOMASSIE);
+  const label = page.getByRole("navigation", { name: "Lab" }).getByRole("link", { name: "Lab instruments and documents" })
+    .locator(".sidebar-item-label");
+  expect(await label.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  const heading = page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" });
+  await expect(heading).toHaveAttribute("title", "Reducing Coomassie blue");
+});
+
 test("removing the last chip moves focus to the attach control", async ({ page }) => {
   await goto(page, COOMASSIE);
   await page.getByLabel("Attach files").setInputFiles([

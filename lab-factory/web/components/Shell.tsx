@@ -73,7 +73,12 @@ function KnownIds({ projectId, experimentId, onResolved, children }: {
   if (result === "checking") return null;
   if (result === "missing") return <NotFound />;
   if (result !== "found") {
-    return <div className="page"><p role="alert">Couldn&apos;t open this page: {result.error}</p></div>;
+    return (
+      <div className="page">
+        <h1>Something went wrong</h1>
+        <p role="alert">Couldn&apos;t open this page: {result.error}</p>
+      </div>
+    );
   }
   return <>{children}</>;
 }
@@ -117,7 +122,10 @@ export function Shell() {
     <div className={mode === "sample" ? "shell shell-sample" : "shell"} data-ready={mounted && resolved ? "true" : "false"}>
       {/* While the palette is open, everything behind it is inert. */}
       <Sidebar onSearch={openPalette} inert={paletteOpen || !mounted} />
-      <main className="content" inert={paletteOpen}>{mounted ? view : null}</main>
+      <main className="content" inert={paletteOpen}>
+        <noscript><p className="noscript">Lab Factory needs JavaScript to run.</p></noscript>
+        {mounted ? view : null}
+      </main>
 
       <DocumentDrawer />
 

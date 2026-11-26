@@ -169,7 +169,7 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
           <div className="ws-crumbs">
             <a className="ws-crumb-project" href={routeHref({ view: "project", projectId })}>{data.project.title}</a>
             <span className="ws-crumb-sep">/</span>
-            <h1 className="ws-title">{data.experiment.title}</h1>
+            <h1 className="ws-title" title={data.experiment.title}>{data.experiment.title}</h1>
           </div>
           <div className="ws-header-actions">
             <ExperimentContextToggle open={contextOpen} controls={contextId} onToggle={() => setContextOpen((o) => !o)} />

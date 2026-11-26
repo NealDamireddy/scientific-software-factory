@@ -27,8 +27,8 @@ The export is written to `out/` and works from any static file server, served
 at the root of an origin (it loads its scripts and the Python runtime from
 `/_next/` and `/runtime/`, so it can't live under a sub-path). Open
 `http://127.0.0.1:4190/`. The host should send
-`Content-Security-Policy: connect-src 'self'` (plus the backend's origin in
-live mode); see "Analysis code never reaches the network" in [API.md](API.md).
+`Content-Security-Policy: connect-src 'self'; font-src 'self'` (plus the
+backend's origin in `connect-src` in live mode); see "Analysis code never reaches the network" in [API.md](API.md).
 
 ## Sample mode and live mode
 

@@ -113,11 +113,14 @@ separated by `\n`, written as the work happens.
   leave the browser. Once the Python runtime has loaded, the worker removes
   every way the code has to make a request (`fetch`, `XMLHttpRequest`,
   `WebSocket`, `EventSource`, `importScripts`, `sendBeacon`, nested workers,
+  fonts (`FontFace` and `self.fonts`, which fetch their `url()` sources),
   and running strings as code, which would reach dynamic `import()`), so
   Python's `js` module finds them refused with `Network access is not
   available to analysis code.` The host serving the app should also send
-  `Content-Security-Policy: connect-src 'self'` (plus the service's origin in
-  live mode), so the browser itself enforces the same boundary.
+  `Content-Security-Policy: connect-src 'self'; font-src 'self'` (plus the
+  service's origin in `connect-src` in live mode), so the browser itself
+  enforces the same boundary. The block inside the worker is defence in
+  depth; the header is what enforces the boundary.
 - **Digests.** A digest is SHA-256 over canonical JSON (`sort_keys`, compact
   separators, ASCII-escaped). The backend must not emit whole-valued floats
   (for example `550.0`) in digested records, because JSON parsers in the

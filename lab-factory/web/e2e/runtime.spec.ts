@@ -177,6 +177,9 @@ test("analysis code can't send readings out of the browser, and later runs still
         await attempt("import js\ndef attempt():\n    js.importScripts('/leak?import=1')\n    return 'sent'"),
         await attempt("import js\ndef attempt():\n    js.Object.getPrototypeOf(js).fetch('/leak?proto=1')\n    return 'sent'"),
         await attempt("import js\ndef attempt():\n    js.Worker.new('/leak?worker=1')\n    return 'sent'"),
+        // Fonts fetch their url() sources, so a FontFace load and the font set are both refused.
+        await attempt("import js\ndef attempt():\n    js.FontFace.new('x', \"url('/leak?font=1')\").load()\n    return 'sent'"),
+        await attempt("import js\ndef attempt():\n    js.self.fonts.add(js.self.fonts)\n    return 'sent'"),
         // Code built from a string could reach dynamic import(), which requests a module from any URL.
         await attempt("import js\ndef attempt():\n    js.eval(\"import('/leak?eval=1')\")\n    return 'sent'"),
         await attempt("import js\ndef attempt():\n    js.Function.new(\"return import('/leak?function=1')\")()\n    return 'sent'"),

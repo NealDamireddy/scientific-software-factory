@@ -132,6 +132,12 @@ textarea {
   padding: 32px 40px 48px;
 }
 
+.noscript {
+  margin: 0;
+  padding: 32px 40px;
+  color: var(--ink);
+}
+
 .page h1 {
   margin: 0 0 16px;
   font-size: 1.5rem;
@@ -205,6 +211,13 @@ textarea {
 @media (min-width: 1024px) and (max-width: 1099px) {
   .shell {
     grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  /* The bottom links wrap rather than truncate, so their full text can be read. */
+  .sidebar-link .sidebar-item-label {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
   }
 }
 

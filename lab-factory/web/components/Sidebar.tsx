@@ -156,7 +156,7 @@ export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boo
                             aria-current={currentExperiment === e.id && currentProject === p.id ? "page" : undefined}
                           >
                             <span className={dotClass(status)} aria-hidden="true" />
-                            <span className="sidebar-item-label">{e.title}</span>
+                            <span className="sidebar-item-label" title={e.title}>{e.title}</span>
                             {status !== undefined && (
                               <span className="visually-hidden">, {statusWord(status)}</span>
                             )}
@@ -182,7 +182,7 @@ export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boo
           {bottomLinks.map(([label, target]) => (
             <li key={label}>
               <a
-                className="sidebar-item"
+                className="sidebar-item sidebar-link"
                 href={routeHref(target)}
                 aria-current={route.view === target.view ? "page" : undefined}
               >

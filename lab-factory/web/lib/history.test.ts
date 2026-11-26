@@ -183,3 +183,11 @@ test("a changed run step command or wording says what it was", async () => {
   assert.deepEqual(changeDetails("text", { text: "Old.", citations: [] }, { text: "New.", citations: [] }, new Map()), ["was “Old.”"]);
   assert.deepEqual(changeDetails("command", { command: "a", settings: [] }, { command: "b", settings: [] }, new Map()), ["was “a”"]);
 });
+
+test("a changed instrument says both the old and the new one", async () => {
+  const { changeDetails } = await import("./history.ts");
+  const step = (instrument_id: string): ProcedureStep => ({
+    text: "Read.", citations: [], action: { instrument_id, command: "read_absorbance", settings: [] },
+  });
+  assert.deepEqual(changeDetails("action", step("uvvis-1"), step("uvvis-2"), new Map()), ["Instrument: was uvvis-1; now uvvis-2"]);
+});

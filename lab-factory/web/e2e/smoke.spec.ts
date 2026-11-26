@@ -7,6 +7,11 @@ test("the page loads with its title and main region", async ({ page }) => {
   await expect(page.getByRole("main")).toBeVisible();
 });
 
+test("the prerendered page says what to do without JavaScript", async ({ page }) => {
+  const html = await (await page.request.get("/")).text();
+  expect(html).toContain("Lab Factory needs JavaScript to run.");
+});
+
 test("the Python runtime is served from this origin", async ({ request }) => {
   const response = await request.get("/runtime/pyodide.mjs");
   expect(response.status()).toBe(200);
