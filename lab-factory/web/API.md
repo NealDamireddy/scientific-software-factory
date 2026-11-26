@@ -108,6 +108,10 @@ separated by `\n`, written as the work happens.
   digest of its canonical JSON, as `store.py` does today. If the new content's
   digest equals the latest revision's digest, no revision is appended and the
   latest revision is returned unchanged.
+- **Digests.** A digest is SHA-256 over canonical JSON (`sort_keys`, compact
+  separators, ASCII-escaped). The backend must not emit whole-valued floats
+  (for example `550.0`) in digested records, because JSON parsers in the
+  browser cannot tell them from integers.
 
 ## Endpoints
 
@@ -260,13 +264,13 @@ separated by `\n`, written as the work happens.
 { "submission": 2, "person": "Dr Rivera", "reason": "Use the 1 cm cuvette from the lab SOP." }
 ```
 
-- Response `200`: `WorkOrder`, back to `open` with no worker.
+- Response `200`: `WorkOrder`, back to `open`.
 - The service appends a `rejected` event with the reason as its note, and a
-  factory message to the experiment's conversation that acknowledges the
-  reason. `get_work_order_context` returns the reason as
-  `previous_rejection` to the next agent that claims the order.
-- Refusals are the same as for approve, plus `422` if `reason` is blank after
-  trimming. A reason is always required to reject.
+  factory message to the experiment's conversation with exactly the copy
+  `Thanks. I’ll revise this to address: {reason}`. `get_work_order_context`
+  returns the reason as `previous_rejection.reason` to the next agent that claims the order.
+- Refusals are rules 1-4 of approve (not the re-check in rule 5), plus `422`
+  if `reason` is blank after trimming. A reason is always required to reject.
 
 ### Needs your attention
 
@@ -396,7 +400,8 @@ The client maps `Pin["kind"]` to the path: `lab` to `labs`, `project` to
 
 `POST /labs/{lab}/connectors/{id}/disconnect`, with no body.
 
-- Response `200`: `Connector`, with `connected: false` and `account: null`.
+- Response `200`: `Connector`, with `connected: false`, `account: null` and
+  `"items": []`.
 
 `POST /labs/{lab}/connectors/{id}/items/{item}/import`
 

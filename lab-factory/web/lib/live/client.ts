@@ -68,7 +68,9 @@ async function readStream(response: Response, onActivity?: OnActivity): Promise<
     }
     if (event === null || typeof event !== "object") throw statusError(response.status);
     if (event.type === "activity") {
-      onActivity?.(event.item as ActivityItem);
+      // An activity line without an object item is ignored. If onActivity throws, the
+      // catch below cancels the reader and the callback's error propagates unchanged.
+      if (event.item !== null && typeof event.item === "object") onActivity?.(event.item as ActivityItem);
     } else if (event.type === "messages" && Array.isArray(event.messages)) {
       messages = event.messages as Message[];
     } else if (event.type === "error") {

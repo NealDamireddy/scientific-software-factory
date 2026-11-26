@@ -160,6 +160,52 @@ test("a final messages line without a trailing newline still resolves", async ()
   assert.deepEqual(await createLiveClient(BASE, { fetch }).confirmPlan("exp-1", "m2", ["procedure"]), [MESSAGE]);
 });
 
+test("activity is delivered before the rest of the stream arrives", async () => {
+  const encoder = new TextEncoder();
+  let controller!: ReadableStreamDefaultController<Uint8Array>;
+  const body = new ReadableStream<Uint8Array>({ start(c) { controller = c; } });
+  const { fetch } = stub(() => new Response(body, { status: 200 }));
+  const seen: ActivityItem[] = [];
+  const pending = createLiveClient(BASE, { fetch }).confirmPlan("exp-1", "m2", ["procedure"], (item) => seen.push(item));
+  controller.enqueue(encoder.encode(JSON.stringify({ type: "activity", item: ACTIVITY_1 }) + "\n"));
+  for (let i = 0; i < 50 && seen.length === 0; i++) await new Promise((resolve) => setTimeout(resolve, 2));
+  assert.deepEqual(seen, [ACTIVITY_1], "the first activity must fire before the final chunk is enqueued");
+  controller.enqueue(encoder.encode(JSON.stringify({ type: "messages", messages: [MESSAGE] }) + "\n"));
+  controller.close();
+  assert.deepEqual(await pending, [MESSAGE]);
+});
+
+test("an activity line whose item is not an object is ignored", async () => {
+  const { fetch } = stub(() => ndjson([
+    JSON.stringify({ type: "activity" }) + "\n",
+    JSON.stringify({ type: "activity", item: "oops" }) + "\n",
+    JSON.stringify({ type: "activity", item: null }) + "\n",
+    JSON.stringify({ type: "activity", item: ACTIVITY_1 }) + "\n",
+    JSON.stringify({ type: "messages", messages: [MESSAGE] }) + "\n",
+  ]));
+  const seen: ActivityItem[] = [];
+  await createLiveClient(BASE, { fetch }).confirmPlan("exp-1", "m2", ["procedure"], (item) => seen.push(item));
+  assert.deepEqual(seen, [ACTIVITY_1]);
+});
+
+test("an onActivity that throws cancels the reader and its error propagates unchanged", async () => {
+  const encoder = new TextEncoder();
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(encoder.encode(JSON.stringify({ type: "activity", item: ACTIVITY_1 }) + "\n"));
+    },
+    cancel() { cancelled = true; },
+  });
+  const { fetch } = stub(() => new Response(body, { status: 200 }));
+  const boom = new Error("boom");
+  await assert.rejects(
+    createLiveClient(BASE, { fetch }).confirmPlan("exp-1", "m2", ["procedure"], () => { throw boom; }),
+    (error: unknown) => error === boom,
+  );
+  assert.equal(cancelled, true);
+});
+
 test("a stream that ends without a messages line is refused", async () => {
   const { fetch } = stub(() => ndjson([JSON.stringify({ type: "activity", item: ACTIVITY_1 }) + "\n"]));
   const seen: ActivityItem[] = [];
