@@ -7,7 +7,7 @@ from dataclasses import asdict, dataclass
 import json
 import sqlite3
 
-from .artifacts import KINDS, parse_artifact
+from .artifacts import ArtifactError, KINDS, parse_artifact
 from .checks import CheckResult, all_passed, check_artifact
 from .context import ContextError, Experiment, Lab, canonical_digest, canonical_json
 from .store import NotFound, Store
@@ -103,10 +103,15 @@ class WorkOrders:
             return self.get(id)
 
     def pinned_context(self, id: str) -> tuple[Lab, Experiment]:
-        order = self.get(id)
+        return self._context_for(self.get(id))
+
+    def _context_for(self, order: WorkOrder) -> tuple[Lab, Experiment]:
         lab, _ = self.store.get_lab(order.lab_id, order.lab_revision)
         experiment, _ = self.store.get_experiment(order.experiment_id, order.experiment_revision)
         return lab, experiment
+
+    def _check(self, order: WorkOrder, data: dict) -> list[CheckResult]:
+        return check_artifact(parse_artifact(order.kind, data), *self._context_for(order))
 
     def _transition(self, id, expected, status, worker, released=None):
         changed = self.db.execute(
@@ -132,9 +137,8 @@ class WorkOrders:
                 raise WorkOrderError(f"{id} belongs to {order.worker}")
             # Validate and persist the same snapshot, including its original JSON types.
             data = deepcopy(artifact)
-            parsed = parse_artifact(order.kind, data)
+            results = self._check(order, data)
             body = canonical_json(data)
-            results = check_artifact(parsed, *self.pinned_context(id))
             passed = all_passed(results)
             number = self.db.execute(
                 "SELECT COALESCE(MAX(number),0) + 1 FROM submissions WHERE work_order_id=?", (id,)
@@ -170,12 +174,20 @@ class WorkOrders:
         latest = _submission(row)
         if not latest.passed or not all_passed(latest.results):
             raise WorkOrderError(f"submission {number} has not passed its checks")
-        return latest
+        return order, latest
 
     def approve(self, id: str, person: str, submission: int) -> WorkOrder:
         _actor(person)
         with self.store.transaction():
-            latest = self._reviewed(id, submission)
+            order, latest = self._reviewed(id, submission)
+            # A submission can outlive the version of the checker that first reviewed it.
+            try:
+                results = self._check(order, latest.artifact)
+            except ArtifactError as exc:
+                raise WorkOrderError(f"submission {submission} is invalid under current checks: {exc}") from exc
+            if not all_passed(results):
+                failures = ", ".join(f"{r.name}: {r.detail}" for r in results if not r.passed)
+                raise WorkOrderError(f"submission {submission} fails current checks: {failures}")
             self._transition(id, "in_review", "released", latest.worker, submission)
             self._event(id, "approved", person, submission, latest.artifact_digest)
             return self.get(id)

@@ -47,6 +47,8 @@ The four agent tools are `list_work_orders`, `claim_work_order`, `get_work_order
 
 For run plans and procedure actions, checks verify the instrument, command, required and allowed settings, units, and inclusive limits. Procedure checks also resolve each step’s citations, verify that hand-measured amounts have known units, and flag numeric unit expressions such as `550nm` and `5 minutes` in notes. The structured action supplies the checked instruction. The matcher covers the expressions listed in the core plan. Free-text notes and hand-measured amounts still require human judgment.
 
+A citation must identify exactly one document across the pinned lab and experiment. `wo show` displays the checks recorded at submission. Approval runs the current checks against the same pinned revisions, including for submissions awaiting review during an upgrade. If an updated check fails, reject that submission with the reason so the next worker can correct it.
+
 **What a release certifies.** Against the pinned revisions, every check above passed for the exact artifact whose digest the approval recorded, and a named person approved that submission. It does not certify that the instrument's driver implements a command correctly, which is the instrument agent's job, or that the science is right, which is the reviewer's job.
 
 **Trust assumption.** Agents connected over MCP cannot approve or release work; only `labfactory wo approve` does, and it names the exact submission a person reviewed. The core does not stop an agent that has shell access as your computer user from running that command itself. If that matters for your lab, don't give coding agents a shell on the machine that holds the database. Enforced human-only release comes with the hosted lab deployment.

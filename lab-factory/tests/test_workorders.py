@@ -6,6 +6,7 @@ import pytest
 
 from labfactory.agent import AgentTools
 from labfactory.artifacts import ARTIFACT_EXAMPLES, ArtifactError
+from labfactory.checks import CheckResult
 from labfactory.context import canonical_digest, experiment_from_dict, lab_from_dict
 from labfactory.store import Store
 from labfactory.workorders import WorkOrder, WorkOrderError, WorkOrders
@@ -194,3 +195,32 @@ def test_only_one_claim_wins_across_connections(tmp_path, uvvis_lab_dict, b12_ex
         winners = [r.worker for r in results if isinstance(r, WorkOrder)]
         assert len(winners) == sum(isinstance(r, WorkOrderError) for r in results) == 1
         assert [e["actor"] for e in orders.history(id) if e["event"] == "claimed"] == winners
+
+
+def test_approval_rechecks_legacy_submission_against_original_pins(
+    orders, store, b12_experiment_dict, monkeypatch
+):
+    unique = deepcopy(b12_experiment_dict)
+    b12_experiment_dict["documents"].append(dict(unique["documents"][0], id="sop-cuvette"))
+    store.put_experiment(experiment_from_dict(b12_experiment_dict))
+    order = orders.create("b12-vial-a", "procedure", "Review sample")
+    orders.claim(order.id, "worker")
+    artifact = {"steps": [{"text": "Review the protocol.", "citations": ["sop-cuvette"]}]}
+    # Model the results persisted by the former checker, which accepted either source.
+    with monkeypatch.context() as old:
+        old.setattr("labfactory.workorders.check_artifact", lambda *_: [
+            CheckResult("step 1: citations", True, "sop-cuvette"),
+            CheckResult("step 1: text values", True, "no matching numeric unit expressions"),
+        ])
+        submitted = orders.submit(order.id, "worker", artifact)
+    store.put_experiment(experiment_from_dict(unique))
+    with pytest.raises(WorkOrderError, match="ambiguous document sop-cuvette"):
+        orders.approve(order.id, "reviewer", 1)
+    assert orders.get(order.id).status == "in_review"
+    assert orders.submissions(order.id) == [submitted]
+    assert [e["event"] for e in orders.history(order.id)] == ["created", "claimed", "submitted"]
+    orders.reject(order.id, "reviewer", 1, "Use the unique experiment protocol")
+    orders.claim(order.id, "next-worker")
+    artifact["steps"][0]["citations"] = ["b12-protocol"]
+    assert orders.submit(order.id, "next-worker", artifact).passed
+    assert orders.approve(order.id, "reviewer", 2).released_submission == 2
