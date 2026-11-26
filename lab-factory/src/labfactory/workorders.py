@@ -80,7 +80,8 @@ class WorkOrders:
             (id, event, actor, submission, note),
         )
 
-    def create(self, experiment_id: str, kind: str, objective: str) -> WorkOrder:
+    def create(self, experiment_id: str, kind: str, objective: str, *, actor: str = "operator") -> WorkOrder:
+        _actor(actor)
         if kind not in KINDS:
             raise WorkOrderError(f"unknown work-order kind {kind}")
         if not isinstance(objective, str) or not objective.strip():
@@ -99,7 +100,7 @@ class WorkOrders:
                    VALUES (?,?,?,?,?,?,?,'open')""",
                 (id, exp.id, exp_rev.number, exp.lab_id, lab_rev.number, kind, objective),
             )
-            self._event(id, "created", "operator")
+            self._event(id, "created", actor)
             return self.get(id)
 
     def pinned_context(self, id: str) -> tuple[Lab, Experiment]:
@@ -159,6 +160,20 @@ class WorkOrders:
         return [_submission(row) for row in self.db.execute(
             "SELECT * FROM submissions WHERE work_order_id=? ORDER BY number", (id,)
         )]
+
+    def submission(self, id: str, number: int | None = None) -> Submission | None:
+        """Read one immutable submission, or the latest one for this order."""
+        if number is None:
+            row = self.db.execute(
+                "SELECT * FROM submissions WHERE work_order_id=? ORDER BY number DESC LIMIT 1", (id,)
+            ).fetchone()
+        else:
+            row = self.db.execute(
+                "SELECT * FROM submissions WHERE work_order_id=? AND number=?", (id, number)
+            ).fetchone()
+            if row is None:
+                raise NotFound(f"{id} has no submission {number}")
+        return _submission(row) if row is not None else None
 
     def _reviewed(self, id, number):
         order = self.get(id)

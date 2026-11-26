@@ -26,7 +26,7 @@ async def call(session, name, arguments):
     return items if name == "list_work_orders" else items[0]
 
 
-async def submit_order(session: ClientSession, order_id: str) -> int:
+async def submit_order(session: ClientSession, order_id: str, worker: str = "example-agent") -> int:
     await session.initialize()
     tools = await session.list_tools()
     print("MCP tools:", ", ".join(tool.name for tool in tools.tools))
@@ -34,7 +34,7 @@ async def submit_order(session: ClientSession, order_id: str) -> int:
     if not any(order["id"] == order_id for order in orders):
         raise ExampleError(f"{order_id} is not open")
     ids = {"work_order_id": order_id}
-    claim = {**ids, "worker": "example-agent"}
+    claim = {**ids, "worker": worker}
     await call(session, "claim_work_order", claim)
     context = await call(session, "get_work_order_context", ids)
     submission = await call(session, "submit_artifact", {

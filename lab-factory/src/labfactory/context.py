@@ -213,3 +213,12 @@ def canonical_digest(data: dict) -> str:
 
 def digest(record) -> str:
     return canonical_digest(to_dict(record))
+
+
+def unique_fields(pairs: list[tuple[str, object]]) -> dict:
+    fields = {}
+    for key, value in pairs:
+        if key in fields:
+            raise ContextError(f"duplicate JSON field {key!r}")
+        fields[key] = value
+    return fields

@@ -80,18 +80,21 @@ class Store:
         self.connection = sqlite3.connect(path, isolation_level=None, timeout=5.0)
         self.connection.row_factory = sqlite3.Row
         try:
-            self.connection.execute("PRAGMA foreign_keys = ON")
-            existing = {row["name"] for row in self.connection.execute(
-                "SELECT name FROM sqlite_master WHERE type IN ('table', 'index')"
-            )}
-            if not _SCHEMA.keys() <= existing:
-                # Concurrent first opens serialize here. Every statement is idempotent.
-                with self.transaction() as connection:
-                    for statement in _SCHEMA.values():
-                        connection.execute(statement)
+            self._initialize_schema()
         except BaseException:
             self.close()
             raise
+
+    def _initialize_schema(self) -> None:
+        self.connection.execute("PRAGMA foreign_keys = ON")
+        existing = {row["name"] for row in self.connection.execute(
+            "SELECT name FROM sqlite_master WHERE type IN ('table', 'index')"
+        )}
+        if not _SCHEMA.keys() <= existing:
+            # Concurrent first opens serialize here. Every statement is idempotent.
+            with self.transaction() as connection:
+                for statement in _SCHEMA.values():
+                    connection.execute(statement)
 
     def __enter__(self) -> "Store":
         return self
