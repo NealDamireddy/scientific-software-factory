@@ -4,6 +4,10 @@ Lab Factory stores immutable revisions of lab and experiment records and pins bo
 
 ## Shared lab on Vercel
 
+### Upload a protocol and readings
+
+Use the [general analysis API and reviewer quickstart](docs/analysis-api.md) to submit a protocol and CSV, inspect a worker-written analysis and compare its prediction with a blind control before approval. Caffeine calibration and direct liquid density use the same backend.
+
 ### Find evidence for an experiment
 
 Open the [reference library](https://neal-lab-factory.vercel.app/#references) and sign in. Leave **All instruments** selected if you do not know the model, choose a technique, or filter by a model number. Enter an objective or choose an example such as **Caffeine in coffee** or **Identify a polymer**. Each finding links to its source and identifies the relevant pages, edition, model relationship and limits.
