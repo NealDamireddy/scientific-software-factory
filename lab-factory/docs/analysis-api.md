@@ -39,6 +39,17 @@ Setting `LABFACTORY_PUBLIC_REVIEW=1` gives anyone who can reach the service revi
 
 The link records which procedure the reviewer selected. Physical acquisition and sample identity require evidence from the lab.
 
+## Analysis methods and reference selection
+
+The Lab Factory package implements the analysis-app output described in its [architecture design](specs/2026-11-25-lab-factory-architecture-design.md). Its work orders, storage and releases are separate from EVOLVE's B12 assay at the repository root. Within Lab Factory, an `analysis_app` uses the method bound to its experiment. Each method has its own input validation, verifier and execution endpoint.
+
+| Reviewer workflow | Backend contract |
+| --- | --- |
+| Simulated B12 | Create an order at `POST /api/b12/orders`, attach simulated readings and run a released analysis on an identified reading. The run records the approved source and pinned calibration. |
+| Simulated honey moisture | Create an order at `POST /api/honey/orders`. The work order pins the refractometer and the source editions used for the conversion. The verifier checks the submitted operations and numerical cases. Only a reviewed release can run at `POST /api/honey/orders/{id}/run`. |
+| Uploaded tabular data | Create an order at `POST /api/analysis/orders`. Map the columns, provide an independent control and review the submitted calculation. The run verifies the batch control before returning estimates. |
+| Published references for a procedure | Browse `GET /api/references` and `GET /api/references/search`, then send the selected records to `POST /api/references/orders`. The order retains the selected editions, publisher links and scope notes. The reviewer and worker can reopen the same citations after a catalog update. |
+
 ## Upload and run an analysis
 
 The client requires an explicit service origin. The two example datasets use simulated caffeine measurements and liquid density. For a named deployment it prompts for credentials or reads the reviewer name and password-file path from `LAB_FACTORY_REVIEWER` and `LAB_FACTORY_REVIEWER_PASSWORD_FILE`.
