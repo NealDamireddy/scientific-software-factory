@@ -1632,6 +1632,16 @@
   stroke-linecap: round;
 }
 
+.plot-note {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.plot-table-note {
+  padding: 8px 12px 0;
+}
+
 .ws-button.plot-toggle {
   align-self: flex-start;
   padding: 0 12px;

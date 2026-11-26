@@ -11,7 +11,7 @@ import { runError, useRunner } from "./RunnerContext.tsx";
 
 const UNREADABLE = "The simulation returned something that isn't a set of curves.";
 
-type Outcome = { state: "running" } | { state: "done"; series: SimulatedSeries[] } | { state: "error"; message: string };
+type Outcome = { state: "running" } | { state: "done"; series: SimulatedSeries[] } | { state: "error"; message: string; run: number };
 
 /** The simulation extra: what it is, its code, and `Run simulation`, which runs it here and plots its curves. */
 export function SimulationView({ simulation }: { simulation: Simulation }) {
@@ -28,9 +28,9 @@ export function SimulationView({ simulation }: { simulation: Simulation }) {
       const value = await run(simulation.code, simulation.entry, {});
       if (mine !== seq.current) return;
       const series = readSimulation(value);
-      setOutcome(series ? { state: "done", series } : { state: "error", message: UNREADABLE });
+      setOutcome(series ? { state: "done", series } : { state: "error", message: UNREADABLE, run: mine });
     } catch (e) {
-      if (mine === seq.current) setOutcome({ state: "error", message: runError(e) });
+      if (mine === seq.current) setOutcome({ state: "error", message: runError(e), run: mine });
     }
   }
 
@@ -46,9 +46,9 @@ export function SimulationView({ simulation }: { simulation: Simulation }) {
         <button type="button" className="ws-button sim-button" disabled={busy} onClick={() => void simulate()}>
           Run simulation
         </button>
-        <p role="status" className="compute-status">{busy ? "Running in your browser…" : ""}</p>
+        <p role="status" className="compute-status">{busy ? "Running in your browser…" : outcome?.state === "done" ? "Simulation done." : ""}</p>
       </div>
-      {outcome?.state === "error" && <p role="alert" className="pg-error compute-alert">{outcome.message}</p>}
+      {outcome?.state === "error" && <p key={outcome.run} role="alert" className="pg-error compute-alert">{outcome.message}</p>}
       {outcome?.state === "done" && (
         <Plot
           title={simulation.title}

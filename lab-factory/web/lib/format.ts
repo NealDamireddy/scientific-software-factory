@@ -1,16 +1,20 @@
 // Numbers as the interface shows them: plain decimals, never exponent notation.
 
-/** Writes a finite number with `digits` significant figures, in plain decimals. */
+/**
+ * Writes a finite number with `digits` significant figures, in plain decimals,
+ * however big or small: the figures come from toExponential (which rounds, so 9.996 becomes 10.0)
+ * and are then placed by hand, never left in exponent form.
+ */
 function significant(n: number, digits: number): string {
   if (n === 0) return "0";
-  // Round first, so 9.996 becomes 10.0 rather than 9.996 written to 3 decimals.
-  const rounded = Number(n.toPrecision(digits));
-  if (rounded === 0) return "0";
-  const magnitude = Math.floor(Math.log10(Math.abs(rounded)));
-  const decimals = digits - 1 - magnitude;
-  if (decimals >= 0) return rounded.toFixed(Math.min(decimals, 100));
-  const step = 10 ** -decimals;
-  return String(Math.round(rounded / step) * step);
+  const [mantissa, exponent] = Math.abs(n).toExponential(digits - 1).split("e");
+  const figures = mantissa.replace(".", "");
+  const e = Number(exponent);
+  let body: string;
+  if (e >= figures.length - 1) body = figures + "0".repeat(e - figures.length + 1);
+  else if (e >= 0) body = `${figures.slice(0, e + 1)}.${figures.slice(e + 1)}`;
+  else body = `0.${"0".repeat(-e - 1)}${figures}`;
+  return n < 0 ? `-${body}` : body;
 }
 
 /** 3 significant figures as a plain decimal, keeping trailing zeros: `0.00851`, `81.4`, `0.0100`. */

@@ -19,9 +19,24 @@ test("sig3 gives 3 significant figures as plain decimals", () => {
   for (const n of [1e-7, 3.21e-6, 12345678]) assert.doesNotMatch(sig3(n), /e/i);
 });
 
+test("sig3 never writes exponent notation, however big or small", () => {
+  assert.equal(sig3(1e25), "10000000000000000000000000");
+  assert.equal(sig3(-1.2345e22), "-12300000000000000000000");
+  assert.equal(sig3(1e21), "1000000000000000000000");
+  assert.equal(sig3(-0), "0");
+  assert.equal(sig3(-1234.5), "-1230");
+  assert.equal(sig3(-0.000012345), "-0.0000123");
+  assert.equal(sig3(1.5e-150), `0.${"0".repeat(149)}150`);
+  for (const n of [Number.MAX_VALUE, -Number.MAX_VALUE, Number.MIN_VALUE, 1e100, -1e-100, 123456789012345680000]) {
+    assert.doesNotMatch(sig3(n), /e/i, String(n));
+    assert.match(sig3(n), /^-?\d+(\.\d+)?$/, String(n));
+  }
+});
+
 test("sig3 shows a value that isn't finite in words", () => {
   assert.equal(sig3(Number.NaN), "not a number");
   assert.equal(sig3(Number.POSITIVE_INFINITY), "not a number");
+  assert.equal(sig3(Number.NEGATIVE_INFINITY), "not a number");
 });
 
 test("plainNumber keeps 4 significant figures and drops trailing zeros", () => {

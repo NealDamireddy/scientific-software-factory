@@ -3,10 +3,20 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
 
 import { plainNumber } from "../lib/format.ts";
-import { dataRows, linearScale, plotAxes, seriesSummary, tickLabel } from "../lib/plot.ts";
-import type { PlotSeries } from "../lib/plot.ts";
+import { DRAW_LIMIT, TABLE_LIMIT, dataRows, drawnPoints, linearScale, plotAxes, samplingNote, seriesSummary, tableNote, tickLabel } from "../lib/plot.ts";
+import type { DataRow, PlotSeries } from "../lib/plot.ts";
 
-export type PlotProps = { title: string; xLabel: string; yLabel: string; series: PlotSeries[] };
+/**
+ * `table` replaces the data table built from the series: its `columns` follow the x column, and
+ * each row's values line up with them (the Results tab gives one row per reading with its fitted value).
+ */
+export type PlotProps = {
+  title: string;
+  xLabel: string;
+  yLabel: string;
+  series: PlotSeries[];
+  table?: { columns: string[]; rows: DataRow[] };
+};
 
 // Lines differ by dash as well as colour, so the legend never depends on colour alone.
 const DASHES = [undefined, "7 4", "2 3", "9 3 2 3"];
@@ -44,7 +54,7 @@ function Swatch({ style, index, dash }: { style: PlotSeries["style"]; index: num
  * An SVG plot of points and lines on nice-tick axes, with a legend, a summary for screen readers and
  * a `Show data` table. It takes its container's width, so text stays at its size in a narrow panel.
  */
-export function Plot({ title, xLabel, yLabel, series }: PlotProps) {
+export function Plot({ title, xLabel, yLabel, series, table }: PlotProps) {
   const uid = useId();
   const box = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
@@ -67,7 +77,10 @@ export function Plot({ title, xLabel, yLabel, series }: PlotProps) {
   const bottom = HEIGHT - MARGIN.bottom;
   const x = linearScale(axes.x.domain, [left, right]);
   const y = linearScale(axes.y.domain, [bottom, top]);
-  const rows = dataRows(series);
+  const columns = table ? table.columns : series.map((s) => s.label);
+  const rows = table ? table.rows : dataRows(series);
+  // A long points series is drawn as an even sample; the axes still cover every point.
+  const sampled = series.find((s) => s.style === "points" && s.points.length > DRAW_LIMIT);
   const dash = dashes(series);
   // Lines first, then points on top, so every reading stays visible.
   const order = series.map((s, i) => ({ s, i })).sort((a, b) => Number(a.s.style === "points") - Number(b.s.style === "points"));
@@ -126,11 +139,12 @@ export function Plot({ title, xLabel, yLabel, series }: PlotProps) {
             />
           ) : (
             <g key={`s${i}`} className="plot-points" fill={colour(i)}>
-              {s.points.map(([px, py], j) => <circle key={j} cx={x(px)} cy={y(py)} r="3" />)}
+              {drawnPoints(s.points).map(([px, py], j) => <circle key={j} cx={x(px)} cy={y(py)} r="3" />)}
             </g>
           ))}
         </svg>
       </div>
+      {sampled && <p className="plot-note">{samplingNote(sampled.points.length)}</p>}
       <button
         type="button"
         className="ws-button plot-toggle"
@@ -141,18 +155,19 @@ export function Plot({ title, xLabel, yLabel, series }: PlotProps) {
         Show data
       </button>
       <div id={`${uid}-data`} className="plot-data" hidden={!showData} role="region" tabIndex={showData ? 0 : -1} aria-label={`${title} data`}>
+        {showData && rows.length > TABLE_LIMIT && <p className="plot-note plot-table-note">{tableNote(rows.length)}</p>}
         {showData && (
           <table className="plot-table">
             <caption>{title}</caption>
             <thead>
               <tr>
                 <th scope="col">{xLabel}</th>
-                {series.map((s, i) => <th key={i} scope="col">{s.label}</th>)}
+                {columns.map((label, i) => <th key={i} scope="col">{label}</th>)}
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
-                <tr key={row.x}>
+              {rows.slice(0, TABLE_LIMIT).map((row, r) => (
+                <tr key={r}>
                   <th scope="row">{plainNumber(row.x)}</th>
                   {row.values.map((v, i) => <td key={i}>{v === null ? "" : plainNumber(v)}</td>)}
                 </tr>

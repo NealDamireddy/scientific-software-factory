@@ -60,6 +60,13 @@ export function AnalysisAppView({ app }: { app: AnalysisApp }) {
     return () => { attempt.current += 1; };
   }, []);
 
+  const finished = found.every((r) => r !== null);
+  const passedCount = app.reference_cases.filter((c, i) => {
+    const result = found[i];
+    return result !== null && referencePassed(c, result);
+  }).length;
+  const doneLine = finished && found.length > 0 ? `Reference cases done: ${passedCount} of ${found.length} passed.` : "";
+
   return (
     <div className="compute">
       <h2 className="panel-heading">Analysis app</h2>
@@ -68,7 +75,7 @@ export function AnalysisAppView({ app }: { app: AnalysisApp }) {
       <section className="compute-section" aria-labelledby={`${uid}-title`}>
         <h3 id={`${uid}-title`} className="compute-subhead">Reference cases</h3>
         <p className="compute-note">Each case runs this code in your browser on readings made for it.</p>
-        <p role="status" className="compute-status">{running ? "Running in your browser…" : ""}</p>
+        <p role="status" className="compute-status">{running ? "Running in your browser…" : doneLine}</p>
         {error && (
           <div className="compute-error">
             <p role="alert" className="pg-error">{error}</p>

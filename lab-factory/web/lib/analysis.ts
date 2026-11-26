@@ -39,6 +39,46 @@ export function fittedPoints(result: AnalysisResult, times: number[]): [number, 
   return times.map((t) => [t, aEnd + (a0 - aEnd) * Math.exp(-k * t)]);
 }
 
+/** How many points the drawn fit line has. */
+export const FIT_LINE_POINTS = 200;
+
+/**
+ * The app's fitted curve as a line to draw: 200 evenly spaced times from the earliest reading to the
+ * latest, in order, from the returned a0, a_end and rate alone. None when no decay was found.
+ */
+export function fitLine(result: AnalysisResult, times: number[]): [number, number][] {
+  if (!result.decay || times.length === 0) return [];
+  let low = Infinity;
+  let high = -Infinity;
+  for (const t of times) {
+    if (t < low) low = t;
+    if (t > high) high = t;
+  }
+  const grid = Array.from({ length: FIT_LINE_POINTS }, (_, i) =>
+    i === FIT_LINE_POINTS - 1 ? high : low + ((high - low) * i) / (FIT_LINE_POINTS - 1));
+  return fittedPoints(result, grid);
+}
+
+/** The data table's rows: one per reading, in file order: time, absorbance and (when there's a fit) the fitted value. */
+export function readingRows(readings: { time_s: number[]; absorbance: number[] }, result: AnalysisResult): { x: number; values: (number | null)[] }[] {
+  const fit = fittedPoints(result, readings.time_s);
+  return readings.time_s.map((t, i) => ({ x: t, values: result.decay ? [readings.absorbance[i], fit[i][1]] : [readings.absorbance[i]] }));
+}
+
+/** The status line when an analysis finishes: `Analyzed {file}. Rate constant {k} per s.` or `Analyzed {file}. No decay detected.` */
+export function completionLine(file: string, result: AnalysisResult): string {
+  if (!result.decay) return `Analyzed ${file}. No decay detected.`;
+  return `Analyzed ${file}. Rate constant ${sig3(result.rate_constant_per_s)} per s.`;
+}
+
+const ALL_TIMES_EQUAL = "time_s must increase.";
+
+/** The analysis app's error as the Results tab shows it: the all-times-equal error reworded, others as they are. */
+export function analysisMessage(message: string): string {
+  if (message === ALL_TIMES_EQUAL) return "The time_s values are all the same. The analysis needs readings at different times.";
+  return message;
+}
+
 export type SimulatedSeries = { label: string; points: [number, number][] };
 
 /** The simulation's `{ series: [{ label, points }] }`, or null when it isn't that. */

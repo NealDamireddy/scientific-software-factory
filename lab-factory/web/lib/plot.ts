@@ -13,9 +13,10 @@ export function linearScale(domain: [number, number], range: [number, number]): 
   return (value) => r0 + ((value - d0) / (d1 - d0)) * (r1 - r0);
 }
 
-function axis(values: number[], count: number): Axis {
-  let low = values.length > 0 ? Math.min(...values) : 0;
-  let high = values.length > 0 ? Math.max(...values) : 1;
+/** Draws an axis over [low, high], or over 0 to 1 when there's nothing to cover (low > high). */
+function axis(min: number, max: number, count: number): Axis {
+  let low = min <= max ? min : 0;
+  let high = min <= max ? max : 1;
   if (low === high) {
     const pad = low === 0 ? 1 : Math.abs(low) * 0.1;
     low -= pad;
@@ -27,8 +28,20 @@ function axis(values: number[], count: number): Axis {
 
 /** Axes that cover every series' points, ending on ticks. */
 export function plotAxes(series: PlotSeries[], counts: { x: number; y: number } = { x: 6, y: 5 }): { x: Axis; y: Axis } {
-  const points = series.flatMap((s) => s.points);
-  return { x: axis(points.map((p) => p[0]), counts.x), y: axis(points.map((p) => p[1]), counts.y) };
+  // Loops, not Math.min(...values): spreading a long series overflows the call stack.
+  let x0 = Infinity;
+  let x1 = -Infinity;
+  let y0 = Infinity;
+  let y1 = -Infinity;
+  for (const s of series) {
+    for (const [px, py] of s.points) {
+      if (px < x0) x0 = px;
+      if (px > x1) x1 = px;
+      if (py < y0) y0 = py;
+      if (py > y1) y1 = py;
+    }
+  }
+  return { x: axis(x0, x1, counts.x), y: axis(y0, y1, counts.y) };
 }
 
 function decimalsOf(step: number): number {
@@ -42,7 +55,7 @@ function decimalsOf(step: number): number {
 /** A tick written with as many decimals as the tick step needs, so the labels line up: 0.05, 0.10. */
 export function tickLabel(value: number, ticks: number[]): string {
   const step = ticks.length > 1 ? Math.abs(ticks[1] - ticks[0]) : Math.abs(value) || 1;
-  const text = value.toFixed(decimalsOf(step));
+  const text = (value === 0 ? 0 : value).toFixed(decimalsOf(step));
   return /^-0(\.0+)?$/.test(text) ? text.slice(1) : text;
 }
 
@@ -58,9 +71,52 @@ export function seriesSummary(title: string, series: PlotSeries[]): string {
 
 export type DataRow = { x: number; values: (number | null)[] };
 
-/** One row per x value, in order, with each series' y at that x (null where it has none). */
+function sharesGrid(series: PlotSeries[]): boolean {
+  const first = series[0].points;
+  return series.every((s) => s.points.length === first.length && s.points.every((p, i) => p[0] === first[i][0]));
+}
+
+/**
+ * The rows of a plot's data table. Series on one shared x grid (the simulation's curves) are joined
+ * by index, one row per grid point. Otherwise every point gets its own row, in order, series by
+ * series, so readings that share a time are all kept.
+ */
 export function dataRows(series: PlotSeries[]): DataRow[] {
-  const xs = [...new Set(series.flatMap((s) => s.points.map((p) => p[0])))].sort((a, b) => a - b);
-  const lookups = series.map((s) => new Map(s.points.map((p) => [p[0], p[1]])));
-  return xs.map((x) => ({ x, values: lookups.map((m) => m.get(x) ?? null) }));
+  if (series.length === 0) return [];
+  if (sharesGrid(series)) {
+    return series[0].points.map((p, i) => ({ x: p[0], values: series.map((s) => s.points[i][1]) }));
+  }
+  const rows: DataRow[] = [];
+  series.forEach((s, j) => {
+    for (const [x, y] of s.points) rows.push({ x, values: series.map((_, k) => (k === j ? y : null)) });
+  });
+  return rows;
+}
+
+/** The most points a points series draws; more are sampled down to this. */
+export const DRAW_LIMIT = 2000;
+/** The most rows a data table shows. */
+export const TABLE_LIMIT = 2000;
+
+/** The points to draw: all of them up to `limit`, else `limit` evenly spaced ones, first and last included. */
+export function drawnPoints<T>(points: T[], limit: number = DRAW_LIMIT): T[] {
+  if (points.length <= limit) return points;
+  const drawn: T[] = [];
+  const last = points.length - 1;
+  for (let i = 0; i < limit; i += 1) drawn.push(points[Math.round((i * last) / (limit - 1))]);
+  return drawn;
+}
+
+function count(n: number): string {
+  return n.toLocaleString("en-GB");
+}
+
+/** `Showing 2,000 of {n} readings. The analysis used all of them.` */
+export function samplingNote(total: number): string {
+  return `Showing ${count(DRAW_LIMIT)} of ${count(total)} readings. The analysis used all of them.`;
+}
+
+/** `Showing the first 2,000 of {n} rows.` */
+export function tableNote(total: number): string {
+  return `Showing the first ${count(TABLE_LIMIT)} of ${count(total)} rows.`;
 }
