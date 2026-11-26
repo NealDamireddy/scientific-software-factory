@@ -183,7 +183,7 @@ export function ConnectorsPage() {
                         <label className="pg-field">
                           <span>Add to</span>
                           <select
-                            aria-label={`Add ${item.title} to`}
+                            aria-label={`Add to, ${item.title}`}
                             value={state.target ?? targets[0].value}
                             onChange={(e) => patchItem(key, { target: e.target.value, result: undefined, error: undefined })}
                           >

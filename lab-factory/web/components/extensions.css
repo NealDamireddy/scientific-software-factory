@@ -412,3 +412,22 @@
 .copy-field + .ext-note {
   margin-top: 16px;
 }
+
+/* Long unbroken text wraps instead of widening the page. */
+.ext-skill-title,
+.ext-skill-description,
+.ext-status,
+.ext-connector h2,
+.ext-connector > p,
+.ext-item-title,
+.ext-agent-name,
+.ext-result,
+.ext-error {
+  overflow-wrap: anywhere;
+}
+
+.ext-connector,
+.ext-agent,
+.ext-item-add {
+  min-width: 0;
+}

@@ -409,3 +409,12 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* Long unbroken text wraps instead of widening the page. */
+.pg-list > li,
+.pg-row,
+.pg-row > *,
+.drawer-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

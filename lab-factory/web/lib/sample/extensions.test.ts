@@ -83,6 +83,14 @@ test("creating a skill slugs its title, enables it and records revision 1", asyn
   assert.equal((await c.listSkills(LAB)).length, 5);
 });
 
+test("the id new is reserved: a skill titled New gets new-2", async () => {
+  const c = fresh();
+  const created = await c.saveSkill(LAB, { title: "New", description: "", body: "- x" });
+  assert.equal(created.id, "new-2");
+  const again = await c.saveSkill(LAB, { title: "New", description: "", body: "- y" });
+  assert.equal(again.id, "new-3");
+});
+
 test("saveSkill rejects blank fields and unknown ids", async () => {
   const c = fresh();
   await rejects(c.saveSkill(LAB, { title: "  ", description: "", body: "- x" }), "invalid");

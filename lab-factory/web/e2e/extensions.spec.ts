@@ -12,6 +12,39 @@ test("three skills are listed and a skill that is off says so", async ({ page })
 
   await plotting.click();
   await expect(plotting).toHaveAttribute("aria-checked", "true");
+
+  await page.goto("/#/connectors");
+  await expect(page.getByRole("heading", { name: "Connectors", level: 1 })).toBeVisible();
+  await page.goto("/#/skills");
+  await expect(page.getByRole("switch", { name: "Plotting conventions enabled" })).toHaveAttribute("aria-checked", "true");
+});
+
+async function createSkill(page: import("playwright/test").Page, title: string, description = "") {
+  await page.goto("/#/skills?skill=new");
+  await page.getByLabel("Title").fill(title);
+  if (description) await page.getByLabel("Description").fill(description);
+  await page.getByLabel("Instructions (Markdown)").fill("- Be brief.");
+  await page.getByRole("button", { name: "Save skill" }).click();
+}
+
+test("a skill titled New does not collide with the new-skill route", async ({ page }) => {
+  await createSkill(page, "New");
+  await expect(page.getByText("Saved as revision 1")).toBeVisible();
+  await expect(page).toHaveURL(/#\/skills\?skill=new-2$/);
+  await expect(page.getByRole("heading", { name: "Edit skill", level: 2 })).toBeVisible();
+  await page.getByText("Revision history").click();
+  await expect(page.getByRole("list", { name: "Revisions" }).getByRole("listitem")).toHaveCount(1);
+});
+
+test("a long unbroken skill title does not widen the page", async ({ page }) => {
+  await createSkill(page, "x".repeat(300), "y".repeat(300));
+  await expect(page.getByText("Saved as revision 1")).toBeVisible();
+  await page.goto("/#/skills");
+  await expect(page.getByRole("list", { name: "Skills" }).getByRole("listitem")).toHaveCount(4);
+  const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+  expect(await fits()).toBe(true);
+  await page.setViewportSize({ width: 390, height: 800 });
+  expect(await fits()).toBe(true);
 });
 
 test("a new skill is saved as revision 1, then edited into revision 2", async ({ page }) => {
@@ -65,7 +98,7 @@ test("Zotero is connected, and its item can be added to a project", async ({ pag
   await expect(page.getByRole("main").getByRole("heading", { level: 2 }).first()).toHaveText("Zotero");
 
   const title = "Reduction of triarylmethane dyes (sample)";
-  const select = zotero.getByRole("combobox", { name: `Add ${title} to` });
+  const select = zotero.getByRole("combobox", { name: `Add to, ${title}` });
   await expect(select.locator("optgroup")).toHaveCount(2);
   await select.selectOption({ label: "Project: Coomassie reduction" });
   await zotero.getByRole("button", { name: `Add ${title}` }).click();
