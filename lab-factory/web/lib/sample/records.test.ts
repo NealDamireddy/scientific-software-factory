@@ -279,7 +279,7 @@ test("createProject validates, slugs with a counter and starts at revision 1", a
   assert.equal((await c.listProjects("emory-biophys")).length, 4);
 });
 
-test("createExperiment creates revision 1 and an empty conversation", async () => {
+test("createExperiment creates revision 1 and opens the conversation", async () => {
   const c = fresh();
   await rejects(c.createExperiment("nope", "Do it", ["uvvis-1"]), "not_found");
   await rejects(c.createExperiment("b12-quantification", "   ", ["uvvis-1"]), "invalid");
@@ -296,7 +296,7 @@ test("createExperiment creates revision 1 and an empty conversation", async () =
   assert.deepEqual(e.documents, []);
   const { project_id: _p, ...record } = e;
   assert.deepEqual(await c.listRevisions("experiment", e.id), [{ number: 1, digest: await canonicalDigest(record), at: NOW.toISOString(), note: "Created" }]);
-  assert.deepEqual((await c.getWorkspace(e.id)).messages, []);
+  assert.deepEqual((await c.getWorkspace(e.id)).messages.map((m) => m.from), ["person", "factory"]);
   const again = await c.createExperiment("b12-quantification", long, []);
   assert.equal(again.id, `${e.id}-2`);
   const short = await c.createExperiment("b12-quantification", "Short one", ["uvvis-1"]);
@@ -356,12 +356,6 @@ test("concurrent first calls seed once, and delayMs is awaited", async () => {
   const started = Date.now();
   await slow.getLab("emory-biophys");
   assert.ok(Date.now() - started >= 25);
-});
-
-test("methods that later tasks add refuse for now", async () => {
-  const c = fresh();
-  await rejects(c.sendMessage("coomassie-run-1", "hi", []), "refused", "Not available yet.");
-  await rejects(c.confirmPlan("coomassie-run-1", "coomassie-run-1-m2", ["procedure"]), "refused", "Not available yet.");
 });
 
 test("slugify folds accents to ASCII", () => {

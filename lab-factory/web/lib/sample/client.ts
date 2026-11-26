@@ -1,7 +1,7 @@
 // The sample LabFactoryClient: an in-memory lab seeded by createSeed. All logic lives in
-// records.ts, extensions.ts (and the file Task 7 adds); this file only wires it to the interface.
-import { ClientError } from "../types.ts";
+// records.ts, extensions.ts and conversation.ts; this file only wires it to the interface.
 import type { LabFactoryClient } from "../types.ts";
+import * as conversation from "./conversation.ts";
 import * as extensions from "./extensions.ts";
 import * as records from "./records.ts";
 import type { SampleContext } from "./records.ts";
@@ -13,7 +13,7 @@ export type SampleClientOptions = { delayMs?: number; stepMs?: number; now?: () 
 export function createSampleClient(options: SampleClientOptions = {}): LabFactoryClient & { reset(): Promise<void> } {
   const delayMs = options.delayMs ?? 0;
   const now = options.now ?? (() => new Date());
-  // stepMs (between activity items) is used by the conversation engine in Task 7.
+  const stepMs = options.stepMs ?? 0;
   let loading: Promise<SampleState> | null = null;
   // A seed that fails is forgotten, so the next call tries again.
   const load = (): Promise<SampleState> => {
@@ -32,11 +32,6 @@ export function createSampleClient(options: SampleClientOptions = {}): LabFactor
     return { state: await load(), now };
   }
   const run = async <T>(fn: (ctx: SampleContext) => T | Promise<T>): Promise<T> => fn(await context());
-  // Placeholder for a method a later task wires in.
-  const later = async <T>(): Promise<T> => {
-    await context();
-    throw new ClientError("refused", "Not available yet.");
-  };
 
   return {
     async reset() {
@@ -49,7 +44,7 @@ export function createSampleClient(options: SampleClientOptions = {}): LabFactor
     getProject: (id) => run((c) => records.getProject(c, id)),
     createProject: (labId, title, goals) => run((c) => records.createProject(c, labId, title, goals)),
     createExperiment: (projectId, description, instrumentIds) =>
-      run((c) => records.createExperiment(c, projectId, description, instrumentIds)),
+      run((c) => conversation.createExperiment(c, projectId, description, instrumentIds)),
     getWorkspace: (id) => run((c) => records.getWorkspace(c, id)),
     getSubmissionView: (id, n) => run((c) => records.getSubmissionView(c, id, n)),
     approve: (id, n, person) => run((c) => records.approve(c, id, n, person)),
@@ -61,9 +56,10 @@ export function createSampleClient(options: SampleClientOptions = {}): LabFactor
     updateSettings: (labId, settings) => run((c) => records.updateSettings(c, labId, settings)),
     search: (labId, query) => run((c) => records.search(c, labId, query)),
 
-    // Task 7 (conversation engine) replaces these two.
-    sendMessage: () => later(),
-    confirmPlan: () => later(),
+    sendMessage: (id, text, files, onActivity) =>
+      run((c) => conversation.sendMessage(c, id, text, files, { onActivity, stepMs })),
+    confirmPlan: (id, messageId, outputs, onActivity) =>
+      run((c) => conversation.confirmPlan(c, id, messageId, outputs, { onActivity, stepMs })),
     listSkills: (labId) => run((c) => extensions.listSkills(c, labId)),
     saveSkill: (labId, skill) => run((c) => extensions.saveSkill(c, labId, skill)),
     setSkillEnabled: (labId, id, enabled) => run((c) => extensions.setSkillEnabled(c, labId, id, enabled)),
