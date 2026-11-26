@@ -5,6 +5,8 @@ import { parseRoute, routeHref } from "./route.ts";
 import type { Route } from "./route.ts";
 
 const forms: [string, Route][] = [
+  ["#/projects/p/experiments/e?order=run%20%231",
+    { view: "experiment", projectId: "p", experimentId: "e", orderId: "run #1" }],
   ["#/", { view: "home" }],
   ["#/lab", { view: "lab" }],
   ["#/settings", { view: "settings" }],

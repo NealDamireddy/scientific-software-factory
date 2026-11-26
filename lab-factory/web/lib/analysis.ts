@@ -3,7 +3,7 @@
 import { sig3 } from "./format.ts";
 
 export type AnalysisResult =
-  | { decay: true; rate_constant_per_s: number; half_life_s: number; a0: number; a_end: number; rms_error: number }
+  | { decay: true; rate_constant_per_s: number; half_life_s: number; a0: number; a_end: number; time_origin_s?: number; rms_error: number }
   | { decay: false; rms_error: number };
 
 type Json = Record<string, unknown>;
@@ -22,7 +22,9 @@ export function readAnalysisResult(value: unknown): AnalysisResult | null {
   if (!value.decay) return { decay: false, rms_error: value.rms_error };
   const { rate_constant_per_s: k, half_life_s: h, a0, a_end: aEnd } = value;
   if (!isNumber(k) || !isNumber(h) || !isNumber(a0) || !isNumber(aEnd)) return null;
-  return { decay: true, rate_constant_per_s: k, half_life_s: h, a0, a_end: aEnd, rms_error: value.rms_error };
+  const result = { decay: true as const, rate_constant_per_s: k, half_life_s: h, a0, a_end: aEnd, rms_error: value.rms_error };
+  if (value.time_origin_s === undefined) return result;
+  return isNumber(value.time_origin_s) ? { ...result, time_origin_s: value.time_origin_s } : null;
 }
 
 /**
@@ -36,11 +38,11 @@ export function resultLines(result: AnalysisResult): string[] {
   return [`Rate constant ${sig3(result.rate_constant_per_s)} per s`, `Half-life ${sig3(result.half_life_s)} s`, rms];
 }
 
-/** The app's fitted curve, a_end + (a0 − a_end)·exp(−k·t), at the given times; none when no decay was found. */
+/** The curve is anchored at the app's time origin. Older apps assume t = 0. */
 export function fittedPoints(result: AnalysisResult, times: number[]): [number, number][] {
   if (!result.decay) return [];
-  const { a0, a_end: aEnd, rate_constant_per_s: k } = result;
-  return times.map((t) => [t, aEnd + (a0 - aEnd) * Math.exp(-k * t)]);
+  const { a0, a_end: aEnd, rate_constant_per_s: k, time_origin_s: origin = 0 } = result;
+  return times.map((t) => [t, aEnd + (a0 - aEnd) * Math.exp(-k * (t - origin))]);
 }
 
 /** How many points the drawn fit line has. */
@@ -48,7 +50,7 @@ export const FIT_LINE_POINTS = 200;
 
 /**
  * The app's fitted curve as a line to draw: 200 evenly spaced times from the earliest reading to the
- * latest, in order, from the returned a0, a_end and rate alone. None when no decay was found.
+ * latest, in order. None when no decay was found.
  */
 export function fitLine(result: AnalysisResult, times: number[]): [number, number][] {
   if (!result.decay || times.length === 0) return [];

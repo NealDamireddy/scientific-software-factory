@@ -54,9 +54,48 @@ export function toCsv(r: Readings): string {
 
 const NUMBER = /^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/;
 
-function cell(value: string | undefined): string {
-  const trimmed = (value ?? "").trim();
-  return trimmed.length >= 2 && trimmed.startsWith('"') && trimmed.endsWith('"') ? trimmed.slice(1, -1).trim() : trimmed;
+/** Read logical records, retaining the starting physical line for errors on multiline fields. */
+function* csvRows(text: string) {
+  const input = text.replace(/^\uFEFF/, "").replace(/\r\n?/g, "\n") + "\n";
+  let row = 1;
+  let line = 1;
+  let cells: string[] = [];
+  let field = "";
+  let quoted = false;
+  let closed = false;
+  for (let i = 0; i < input.length; i += 1) {
+    const c = input[i];
+    if (quoted) {
+      if (c === '"' && input[i + 1] === '"') {
+        field += '"';
+        i += 1;
+      } else if (c === '"') {
+        quoted = false;
+        closed = true;
+      } else {
+        field += c;
+        if (c === "\n") line += 1;
+      }
+    } else if (c === "," || c === "\n") {
+      cells.push(field.trim());
+      field = "";
+      closed = false;
+      if (c === "\n") {
+        if (cells.some((value) => value !== "")) yield { cells, row };
+        cells = [];
+        line += 1;
+        row = line;
+      }
+    } else if (!closed && c === '"' && field.trim() === "") {
+      quoted = true;
+      field = "";
+    } else if (c === '"' || (closed && c.trim() !== "")) {
+      throw new ClientError("invalid", `Row ${row} has an invalid quoted field.`);
+    } else {
+      field += c;
+    }
+  }
+  if (quoted) throw new ClientError("invalid", `Row ${row} has an unclosed quoted field.`);
 }
 
 /**
@@ -64,20 +103,24 @@ function cell(value: string | undefined): string {
  * empty are skipped. Row numbers are physical line numbers (the header is row 1 when no blank lines precede it). Throws ClientError("invalid") with the exact copy.
  */
 export function parseReadingsCsv(text: string): Readings {
-  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n|\r/);
-  const rows = lines
-    .map((line, i) => ({ line, row: i + 1 }))
-    .filter(({ line }) => line.split(",").some((value) => cell(value) !== ""));
-  const header = (rows[0]?.line ?? "").split(",").map((name) => cell(name).toLowerCase());
+  const rows = csvRows(text);
+  const first = rows.next();
+  if (first.done) throw new ClientError("invalid", MISSING_COLUMNS_MESSAGE);
+  const header = first.value.cells.map((name) => name.toLowerCase());
   const ti = header.indexOf("time_s");
   const ai = header.indexOf("absorbance");
   if (ti < 0 || ai < 0) throw new ClientError("invalid", MISSING_COLUMNS_MESSAGE);
+  if (ti !== header.lastIndexOf("time_s") || ai !== header.lastIndexOf("absorbance")) {
+    throw new ClientError("invalid", "The file needs exactly one time_s column and one absorbance column.");
+  }
   const time_s: number[] = [];
   const absorbance: number[] = [];
-  rows.slice(1).forEach(({ line, row }) => {
-    const cells = line.split(",");
-    const t = cell(cells[ti]);
-    const a = cell(cells[ai]);
+  for (const { cells, row } of rows) {
+    if (cells.length !== header.length) {
+      throw new ClientError("invalid", `Row ${row} has ${cells.length} fields. The header has ${header.length}.`);
+    }
+    const t = cells[ti];
+    const a = cells[ai];
     const tn = Number(t);
     const an = Number(a);
     if (!NUMBER.test(t) || !NUMBER.test(a) || !Number.isFinite(tn) || !Number.isFinite(an)) {
@@ -85,7 +128,7 @@ export function parseReadingsCsv(text: string): Readings {
     }
     time_s.push(tn);
     absorbance.push(an);
-  });
+  }
   if (time_s.length < MIN_READINGS) throw new ClientError("invalid", TOO_FEW_READINGS_MESSAGE);
   return { time_s, absorbance };
 }

@@ -3,7 +3,7 @@ import { test } from "node:test";
 
 import { createSampleClient } from "./sample/client.ts";
 import {
-  NO_PROCEDURE, attentionText, errorText, outputLabel, statusLine, statusWord, submissionFailed, submissionSummary, unplacedFailures,
+  NO_PROCEDURE, attentionText, errorText, outputLabel, statusLine, statusWord, submissionStatusLine, submissionFailed, submissionSummary, unplacedFailures,
 } from "./status.ts";
 import type { CheckResult, HistoryEvent, StepView, Submission, WorkOrder, WorkOrderStatus } from "./types.ts";
 
@@ -147,4 +147,14 @@ test("with no steps every failure is left over, and passing checks never are", (
   const b = fail("step 1: citations", "no citation");
   assert.deepEqual(unplacedFailures([ok("x"), a, b], []), [a, b]);
   assert.deepEqual(unplacedFailures([ok("x")], []), []);
+});
+
+test("an earlier submission never inherits another submission's sign-off or rejection", () => {
+  const released = { ...order("released"), released_submission: 2 };
+  const history = [event("submitted", "factory", "failed", undefined, 1), event("approved", "Olga", "", undefined, 2)];
+  assert.equal(submissionStatusLine(released, history, 1, 2), "Superseded by submission 2");
+  assert.match(submissionStatusLine(released, history, 2, 2), /^Signed off by Olga/);
+  assert.equal(submissionStatusLine(released, history, 3, 3), "Signed off submission: 2");
+  assert.equal(submissionStatusLine(order("in_review"), [event("rejected", "Li", "Check the units", undefined, 1)], 1, 2),
+    "Rejected by Li: Check the units");
 });

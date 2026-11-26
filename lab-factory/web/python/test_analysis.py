@@ -46,6 +46,33 @@ class AnalyzeTest(unittest.TestCase):
         self.assertTrue(result["decay"])
         self.assertAlmostEqual(result["rate_constant_per_s"] / 0.01, 1, delta=0.05)
 
+    def test_time_offsets_preserve_the_fit(self):
+        times = list(range(0, 601, 10))
+        values = [0.05 + 0.75 * math.exp(-0.0085 * t) for t in times]
+        for origin in (-3600, 0, 3600, 1_700_000_000):
+            with self.subTest(origin=origin):
+                result = analyze({"time_s": [origin + t for t in times], "absorbance": values})
+                self.assertEqual(result["time_origin_s"], origin)
+                self.assertAlmostEqual(result["half_life_s"], math.log(2) / 0.0085)
+                self.assertAlmostEqual(result["a0"], values[0])
+                self.assertAlmostEqual(result["rms_error"], 0)
+
+    def test_extending_the_plateau_preserves_a_fast_rate(self):
+        for duration in (120, 600):
+            with self.subTest(duration=duration):
+                times = list(range(duration + 1))
+                values = [0.05 + 0.75 * math.exp(-0.2 * t) for t in times]
+                result = analyze({"time_s": times, "absorbance": values})
+                self.assertAlmostEqual(result["rate_constant_per_s"], 0.2)
+
+    def test_unresolved_fits_report_why_a_half_life_cannot_be_given(self):
+        times = [0, 1, 2, 3, 4]
+        for values in ([5, 4, 3, 2, 1], [1, 0, 0, 0, 0]):
+            with self.subTest(values=values), self.assertRaisesRegex(ValueError, "do not resolve a half-life"):
+                analyze({"time_s": times, "absorbance": values})
+        with self.assertRaisesRegex(ValueError, "three or more different times"):
+            analyze({"time_s": [0, 0, 0, 1, 1], "absorbance": [1, 1, 1, 0.5, 0.5]})
+
     def test_flat_readings_show_no_decay(self):
         result = analyze(synthetic_readings(k=0, a0=0.5, a_end=0.5, noise=0.002, seed=5))
         self.assertFalse(result["decay"])

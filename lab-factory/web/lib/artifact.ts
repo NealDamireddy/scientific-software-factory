@@ -78,9 +78,13 @@ export function procedureSteps(artifact: unknown): ProcedureStep[] | null {
   return stepsOf(artifact, procedureStep);
 }
 
+export function runPlanInstrumentId(artifact: unknown): string | null {
+  return isObject(artifact) && typeof artifact.instrument_id === "string" ? artifact.instrument_id : null;
+}
+
 /** A run plan artifact's steps, or `null` when the artifact is malformed. */
 export function runPlanSteps(artifact: unknown): RunStep[] | null {
-  if (!isObject(artifact) || typeof artifact.instrument_id !== "string") return null;
+  if (runPlanInstrumentId(artifact) === null) return null;
   return stepsOf(artifact, runStep);
 }
 

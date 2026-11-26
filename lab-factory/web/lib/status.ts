@@ -77,7 +77,7 @@ export function statusLine(order: WorkOrder, history: HistoryEvent[]): string {
     case "in_review":
       return STATUS_WORDS[order.status];
     case "released": {
-      const approved = [...history].reverse().find((h) => h.event === "approved");
+      const approved = history.findLast((h) => h.event === "approved" && (order.released_submission === null || h.submission === order.released_submission));
       return approved ? `Signed off by ${approved.actor} on ${formatDate(approved.at)}` : STATUS_WORDS.released;
     }
     case "open": {
@@ -86,6 +86,17 @@ export function statusLine(order: WorkOrder, history: HistoryEvent[]): string {
       return STATUS_WORDS.open;
     }
   }
+}
+
+/** Each history picker entry has its own review state. Older entries can have a rejection of
+ * their own, or simply have been superseded by another submission of the same order. */
+export function submissionStatusLine(order: WorkOrder, history: HistoryEvent[], number: number, latest: number): string {
+  if (order.status === "released" && order.released_submission !== null) {
+    if (number === order.released_submission) return statusLine(order, history);
+    if (number === latest) return `Signed off submission: ${order.released_submission}`;
+  } else if (number === latest) return statusLine(order, history);
+  const rejected = history.findLast((event) => event.event === "rejected" && event.submission === number);
+  return rejected ? `Rejected by ${rejected.actor}: ${rejected.note}` : `Superseded by submission ${latest}`;
 }
 
 /** An error's message as the interface shows it. */

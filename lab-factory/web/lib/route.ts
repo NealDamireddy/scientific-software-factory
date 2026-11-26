@@ -10,7 +10,7 @@ export type Route = Doc & (
   | { view: "connectors" }
   | { view: "agents" }
   | { view: "project"; projectId: string }
-  | { view: "experiment"; projectId: string; experimentId: string }
+  | { view: "experiment"; projectId: string; experimentId: string; orderId?: string }
 );
 
 const SIMPLE = ["lab", "settings", "skills", "connectors", "agents"] as const;
@@ -59,6 +59,8 @@ export function parseRoute(hash: string): Route {
   const params = readQuery(query);
   const skill = params.get("skill");
   if (route.view === "skills" && skill) route.skill = skill;
+  const orderId = params.get("order");
+  if (route.view === "experiment" && orderId) route.orderId = orderId;
   const doc = params.get("doc");
   if (doc) route.doc = doc;
   return route;
@@ -75,6 +77,7 @@ export function routeHref(route: Route): string {
   }
   const query: string[] = [];
   if (route.view === "skills" && route.skill) query.push(`skill=${enc(route.skill)}`);
+  if (route.view === "experiment" && route.orderId) query.push(`order=${enc(route.orderId)}`);
   if (route.doc) query.push(`doc=${enc(route.doc)}`);
   return "#" + path + (query.length > 0 ? "?" + query.join("&") : "");
 }

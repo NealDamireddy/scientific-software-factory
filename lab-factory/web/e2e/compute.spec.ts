@@ -181,6 +181,21 @@ test("20,000 readings are analyzed, drawn as a sample and listed in part, and th
   await expect(body.getByRole("table", { name: "Readings and fit" }).locator("tbody tr")).toHaveCount(2000);
 });
 
+test("an instrument export with quoted labels and a clock offset keeps its half-life and plotted values", async ({ page }) => {
+  const body = await openTab(page, "Results");
+  const lines = ["sample,replicate,time_s,absorbance"];
+  for (let i = 0; i <= 60; i += 1) {
+    const elapsed = i * 10;
+    lines.push(`"batch,A",${i + 1},${3600 + elapsed},${0.05 + 0.75 * Math.exp(-0.0085 * elapsed)}`);
+  }
+  await body.getByLabel("Upload readings (CSV)").setInputFiles(csv("instrument.csv", lines.join("\n")));
+  await expect(body.getByText("Half-life 81.5 s", { exact: true })).toBeVisible(FIRST_RUN);
+  await body.getByRole("button", { name: "Show data" }).click();
+  const first = body.getByRole("table", { name: "Readings and fit" }).locator("tbody tr").first();
+  await expect(first.getByRole("rowheader")).toHaveText("3600");
+  await expect(first.getByRole("cell")).toHaveText(["0.8", "0.8"]);
+});
+
 test("the simulation runs and plots three fading curves", async ({ page }) => {
   const body = await openTab(page, "Simulation");
   await expect(body.getByRole("heading", { level: 2, name: "Extra: simulation" })).toBeVisible();
@@ -214,4 +229,23 @@ test("when the runtime can't load, the exact error shows, the page stays usable 
   await again.getByRole("button", { name: "Try again" }).click();
   await expect(again.locator("tbody tr").filter({ hasText: "Passed" })).toHaveCount(3, FIRST_RUN);
   await expect(again.getByRole("alert")).toHaveCount(0);
+});
+
+test("a completed run survives a project visit and clears on sample reset", async ({ page }) => {
+  const body = await openTab(page, "Results");
+  await body.getByRole("button", { name: "Analyze coomassie-run-1.csv" }).click();
+  const result = body.getByRole("heading", { name: "Analyzed coomassie-run-1.csv" });
+  await expect(result).toBeVisible(FIRST_RUN);
+  await page.locator(".ws-crumb-project").click();
+  await expect(page.getByRole("heading", { level: 1, name: "Coomassie reduction" })).toBeVisible();
+  await page.goBack();
+  await openTab(page, "Results");
+  await expect(result).toBeVisible();
+  await page.getByRole("button", { name: /Emory Biophysics/ }).click();
+  await page.getByRole("button", { name: "Reset sample data" }).click();
+  await expect(page.getByRole("heading", { name: "What are you working on?" })).toBeVisible();
+  await page.getByRole("button", { name: "Coomassie reduction" }).click();
+  await page.getByRole("link", { name: /Reducing Coomassie blue/ }).click();
+  await openTab(page, "Results");
+  await expect(result).toHaveCount(0);
 });

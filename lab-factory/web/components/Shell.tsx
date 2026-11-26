@@ -30,7 +30,7 @@ function View({ route }: { route: Route }) {
     case "connectors": return <ConnectorsPage />;
     case "agents": return <AgentsPage />;
     case "project": return <ProjectPage projectId={route.projectId} />;
-    case "experiment": return <Workspace projectId={route.projectId} experimentId={route.experimentId} />;
+    case "experiment": return <Workspace projectId={route.projectId} experimentId={route.experimentId} orderId={route.orderId} />;
   }
 }
 

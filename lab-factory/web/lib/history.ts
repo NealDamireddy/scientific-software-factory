@@ -1,6 +1,6 @@
 // Submission history for an output: every submission across the experiment's orders of one kind,
 // and the rows a step comparison shows. Pure, so it runs under node --test.
-import { artifactSteps } from "./artifact.ts";
+import { artifactSteps, runPlanInstrumentId } from "./artifact.ts";
 import { diffSteps } from "./diff.ts";
 import type { StepChange, StepField } from "./diff.ts";
 import { plainNumber } from "./format.ts";
@@ -128,7 +128,7 @@ export function changeDetails(field: StepField, before: Step, after: Step, title
       else if (!b.action) lines.push(`Instrument action removed, was “${a.action.command}”`);
       else {
         if (a.action.instrument_id !== b.action.instrument_id) lines.push(`Instrument: was ${a.action.instrument_id}; now ${b.action.instrument_id}`);
-        if (a.action.command !== b.action.command) lines.push(`Command: was “${a.action.command}”`);
+        if (a.action.command !== b.action.command) lines.push(`Command: was “${a.action.command}”; now “${b.action.command}”`);
       }
       return [...lines, ...settingDetails(a.action?.settings ?? [], b.action?.settings ?? [])];
     }
@@ -188,6 +188,11 @@ export function diffRows(
   }
   const changes = diffSteps(a, b);
   const rows = changes.map((c) => rowFor(c, a, b, titles)).filter((r): r is DiffRow => r !== null);
+  if (kind === "run_plan") {
+    const from = runPlanInstrumentId(before.artifact);
+    const to = runPlanInstrumentId(after.artifact);
+    if (from !== to) rows.unshift({ change: "changed", mark: "Changed: instrument", step: "Run plan", text: `${from} → ${to}`, details: [] });
+  }
   const same = changes.filter((c) => c.change === "same").length;
   if (same > 0) rows.push({ change: "unchanged", mark: unchangedLabel(same) });
   return { readable: true, rows };
@@ -225,7 +230,7 @@ export function citedSources(steps: { sources?: { id: string; title: string }[] 
  */
 export function approvalLine(order: WorkOrder, submission: Submission, history: HistoryEvent[]): string | null {
   if (order.status !== "released" || order.released_submission !== submission.number) return null;
-  const approved = [...history].reverse().find((h) => h.event === "approved");
+  const approved = history.findLast((h) => h.event === "approved" && h.submission === submission.number);
   if (!approved) return null;
   return `Approved by ${approved.actor}, submission ${submission.number}, digest ${shortDigest(submission.artifact_digest)}, ${formatDate(approved.at)}`;
 }

@@ -5,6 +5,10 @@ import { useEffect, useId, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { errorText } from "../lib/status.ts";
 
+type Draft = { text: string; files: File[] };
+type FailedSend = { id: number; draft: Draft; error: string };
+type Editor = { draft: Draft; error: string | null; failed: FailedSend[] };
+
 /**
  * The message box under the conversation: text, attached files as removable chips, and Send.
  * Enter sends and Shift+Enter starts a new line. While the factory works, sending waits.
@@ -12,12 +16,12 @@ import { errorText } from "../lib/status.ts";
 export function Composer({ busy, onSend }: {
   /** A send or a build is in flight. */
   busy: boolean;
-  /** Sends the message. Rejects with the client's error, and the draft is put back. */
+  /** Sends the message. A rejected send can be retried with its original files. */
   onSend: (text: string, files: File[]) => Promise<void>;
 }) {
-  const [text, setText] = useState("");
-  const [files, setFiles] = useState<File[]>([]);
-  const [error, setError] = useState<string | null>(null);
+  const [editor, setEditor] = useState<Editor>({ draft: { text: "", files: [] }, error: null, failed: [] });
+  const { draft: { text, files }, error } = editor;
+  const attempt = useRef(0);
   const inFlight = useRef(false);
   const fieldId = useId();
   const attachInput = useRef<HTMLInputElement>(null);
@@ -37,19 +41,32 @@ export function Composer({ busy, onSend }: {
   const empty = text.trim() === "" && files.length === 0;
   const disabled = empty || busy;
 
-  async function send() {
-    if (inFlight.current || busy || empty) return;
+  function editDraft(update: (draft: Draft) => Draft) {
+    setEditor((current) => ({ ...current, error: null, draft: update(current.draft) }));
+  }
+
+  function discardFailure(id: number) {
+    setEditor((current) => ({ ...current, failed: current.failed.filter((item) => item.id !== id) }));
+  }
+
+  async function send(retry?: FailedSend) {
+    if (inFlight.current || busy || (!retry && empty)) return;
     inFlight.current = true;
-    const draft = { text, files };
-    setError(null);
-    setText("");
-    setFiles([]);
+    const sent = retry?.draft ?? editor.draft;
+    const id = retry?.id ?? ++attempt.current;
+    const cleared = { text: "", files: [] };
+    if (!retry) setEditor((current) => ({ ...current, draft: cleared, error: null }));
     try {
-      await onSend(draft.text, draft.files);
+      await onSend(sent.text, sent.files);
+      if (retry) discardFailure(id);
     } catch (e) {
-      setText(draft.text);
-      setFiles(draft.files);
-      setError(errorText(e));
+      const error = errorText(e);
+      setEditor((current) => {
+        // Restore an untouched editor. Any intervening edit creates a different draft.
+        if (!retry && current.draft === cleared) return { ...current, draft: sent, error };
+        const failed = current.failed.filter((item) => item.id !== id);
+        return { ...current, failed: [...failed, { id, draft: sent, error }] };
+      });
     } finally {
       inFlight.current = false;
     }
@@ -71,7 +88,7 @@ export function Composer({ busy, onSend }: {
   function addFiles(list: FileList | null) {
     if (!list || list.length === 0) return;
     const added = Array.from(list);
-    setFiles((current) => [...current, ...added]);
+    editDraft((draft) => ({ ...draft, files: [...draft.files, ...added] }));
   }
 
   return (
@@ -84,7 +101,10 @@ export function Composer({ busy, onSend }: {
           rows={2}
           placeholder="Ask a question or attach a protocol"
           value={text}
-          onChange={(e) => setText(e.currentTarget.value)}
+          onChange={(e) => {
+            const value = e.currentTarget.value;
+            editDraft((draft) => ({ ...draft, text: value }));
+          }}
           onKeyDown={onKeyDown}
         />
         {files.length > 0 ? (
@@ -98,7 +118,7 @@ export function Composer({ busy, onSend }: {
                   aria-label={`Remove ${file.name}`}
                   onClick={() => {
                     focusAfterRemove.current = index;
-                    setFiles((current) => current.filter((_, i) => i !== index));
+                    editDraft((draft) => ({ ...draft, files: draft.files.filter((_, i) => i !== index) }));
                   }}
                 >
                   <X size={14} aria-hidden="true" />
@@ -131,6 +151,13 @@ export function Composer({ busy, onSend }: {
         </div>
       </div>
       {error ? <p className="ws-error" role="alert">{error}</p> : null}
+      {editor.failed.map((failed) => (
+        <div className="ws-error" key={failed.id}>
+          <p role="alert">Couldn’t send {failed.draft.text || failed.draft.files.map((file) => file.name).join(", ")}. {failed.error}</p>
+          <button type="button" className="ws-button" disabled={busy} onClick={() => void send(failed)}>Retry message</button>
+          <button type="button" className="ws-button" disabled={busy} onClick={() => discardFailure(failed.id)}>Dismiss</button>
+        </div>
+      ))}
     </form>
   );
 }

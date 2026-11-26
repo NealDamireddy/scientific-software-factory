@@ -76,6 +76,7 @@ test.describe("on a narrow screen", () => {
 
   test("the sample indicator stays in the viewport after scrolling and covers nothing", async ({ page }) => {
     await goto(page, "/");
+    await sidebar(page).getByRole("button", { name: "Navigation" }).click();
     for (const name of ["Coomassie reduction", "B12 quantification"]) {
       await sidebar(page).getByRole("button", { name }).click();
     }
@@ -427,4 +428,29 @@ test.describe("on a short screen, the sidebar's New links", () => {
     await expect(page.getByRole("main").getByLabel("Describe your experiment")).toBeFocused();
     await expect(page.getByRole("main").getByLabel("Describe your experiment")).toBeInViewport();
   });
+});
+
+test("the desktop experiment title stays readable across the sidebar breakpoint", async ({ page }) => {
+  await goto(page, "/#/projects/coomassie-reduction/experiments/coomassie-run-1");
+  const title = page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" });
+  for (const width of [1099, 1100, 1120]) {
+    await page.setViewportSize({ width, height: 720 });
+    await expect(title).toBeVisible();
+    await expect.poll(() => title.evaluate((el) => el.clientWidth / el.scrollWidth)).toBeGreaterThan(0.95);
+  }
+});
+
+test("on a phone the workspace opens above the fold and navigation remains accessible", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 800 });
+  await goto(page, "/#/projects/coomassie-reduction/experiments/coomassie-run-1");
+  const title = page.getByRole("heading", { level: 1, name: "Reducing Coomassie blue" });
+  await expect(title).toBeInViewport();
+  expect((await title.boundingBox())!.y).toBeLessThan(150);
+  const nav = sidebar(page);
+  const menu = nav.getByRole("button", { name: "Navigation" });
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
+  await menu.click();
+  await nav.getByRole("link", { name: "Skills" }).click();
+  await expect(page.getByRole("heading", { name: "Skills", level: 1 })).toBeVisible();
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
 });

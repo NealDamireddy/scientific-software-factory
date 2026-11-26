@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronRight, FolderPlus, Plus, Search } from "lucide-react";
+import { ChevronDown, ChevronRight, FolderPlus, Menu, Plus, Search } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import type { MouseEvent } from "react";
 
@@ -46,6 +46,8 @@ export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boo
   const shortcut = useSyncExternalStore(noSubscription, () => (onApple() ? "⌘K" : "Ctrl K"), () => "Ctrl K");
   const { client, labId, version } = useClient();
   const [route] = useRoute();
+  const [mobileMenuRoute, setMobileMenuRoute] = useState<Route | null>(null);
+  const mobileOpen = mobileMenuRoute === route;
   const [projects, setProjects] = useState<ProjectRow[] | null>(null);
   const [statuses, setStatuses] = useState<Statuses>({});
   const [error, setError] = useState<string | null>(null);
@@ -93,9 +95,17 @@ export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boo
   ];
 
   return (
-    <nav className="sidebar" aria-label="Lab" inert={inert}>
+    <nav className="sidebar" aria-label="Lab" inert={inert} data-expanded={mobileOpen}
+      onClick={(event) => {
+        if (mobileOpen && event.target instanceof Element && event.target.closest("a[href]")) setMobileMenuRoute(null);
+      }}>
       <LabMenu />
-      <div className="sidebar-actions">
+      <button type="button" className="mobile-nav-toggle" aria-expanded={mobileOpen}
+        aria-controls="lab-navigation-actions lab-navigation-projects lab-navigation-links"
+        onClick={() => setMobileMenuRoute(mobileOpen ? null : route)}>
+        <Menu size={18} aria-hidden="true" /> Navigation
+      </button>
+      <div id="lab-navigation-actions" className="sidebar-actions">
         <button
           type="button"
           className="sidebar-item"
@@ -114,7 +124,7 @@ export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boo
         </a>
       </div>
 
-      <section className="sidebar-projects" aria-labelledby="sidebar-projects-heading">
+      <section id="lab-navigation-projects" className="sidebar-projects" aria-labelledby="sidebar-projects-heading">
         <h2 id="sidebar-projects-heading" className="sidebar-heading">Projects</h2>
         {error && <p className="sidebar-note" role="alert">Couldn&apos;t load projects: {error}</p>}
         {!projects && !error && <p className="sidebar-note">Loading projects</p>}
@@ -178,7 +188,7 @@ export function Sidebar({ onSearch, inert }: { onSearch: () => void; inert?: boo
       </section>
 
       <div className="sidebar-bottom">
-        <ul className="sidebar-links">
+        <ul id="lab-navigation-links" className="sidebar-links">
           {bottomLinks.map(([label, target]) => (
             <li key={label}>
               <a

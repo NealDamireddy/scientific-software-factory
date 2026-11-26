@@ -34,6 +34,20 @@ test("fittedPoints draws the app's own curve at the readings' times", () => {
   assert.deepEqual(fittedPoints({ decay: false, rms_error: 0 }, [0, 100]), []);
 });
 
+test("a time-shifted result uses the same origin for the plotted fit and the data table", () => {
+  const answer = { ...decay, rate_constant_per_s: 0.01, time_origin_s: 3600 };
+  const result = readAnalysisResult(answer);
+  assert.ok(result);
+  assert.deepEqual(result, answer);
+  const times = [3700, 3600];
+  const values = [0.05 + 0.75 * Math.exp(-1), 0.8];
+  assert.deepEqual(readingRows({ time_s: times, absorbance: values }, result).map((row) => row.values[1]), values);
+  const line = fitLine(result, times);
+  assert.deepEqual(line[0], [3600, 0.8]);
+  assert.deepEqual(line.at(-1), [3700, values[0]]);
+  assert.equal(readAnalysisResult({ ...answer, time_origin_s: "3600" }), null);
+});
+
 test("readSimulation reads labelled series of points", () => {
   const value = { series: [{ label: "0.5 mM", points: [[0, 0.8], [10, 0.7]] }] };
   assert.deepEqual(readSimulation(value), [{ label: "0.5 mM", points: [[0, 0.8], [10, 0.7]] }]);

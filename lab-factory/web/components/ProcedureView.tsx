@@ -36,7 +36,7 @@ export function StepFailures({ failures }: { failures: CheckResult[] }) {
   return (
     <div className="proc-failures">
       {failures.map((f, i) => (
-        <div key={`${f.name}-${i}`} role="note" className="proc-fail">
+        <div key={`${f.name}-${i}`} role="note" tabIndex={-1} data-check-failure="" className="proc-fail">
           <CircleX className="proc-fail-icon" size={16} aria-hidden="true" />
           <span>{f.name}: {f.detail}</span>
         </div>

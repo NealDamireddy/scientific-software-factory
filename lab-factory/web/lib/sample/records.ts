@@ -411,7 +411,7 @@ export function needsAttention(ctx: SampleContext, labId: string, role: Role): A
     else if (order.status === "open" && lastEvent?.event === "rejected") kind = "rejected";
     if (!kind) continue;
     const experiment = findExperiment(state, order.experiment_id);
-    items.push({ kind, work_order_id: order.id, experiment_id: experiment.id, project_id: experiment.project_id, title: experiment.title });
+    items.push({ kind, work_order_id: order.id, work_order_kind: order.kind, experiment_id: experiment.id, project_id: experiment.project_id, title: experiment.title });
   }
   return items;
 }

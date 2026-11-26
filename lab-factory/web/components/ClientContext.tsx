@@ -3,6 +3,8 @@
 import { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
 
+import type { AnalysisResult } from "../lib/analysis.ts";
+import type { Readings } from "../lib/readings.ts";
 import { createLiveClient } from "../lib/live/client.ts";
 import { parseRoute, routeHref } from "../lib/route.ts";
 import type { Route } from "../lib/route.ts";
@@ -14,7 +16,18 @@ export type ClientMode = "sample" | "live";
 /** The sample client also has reset(); the live client does not. */
 export type AppClient = LabFactoryClient & { reset?: () => Promise<void> };
 
+export type CompletedAnalysis = {
+  state: "done";
+  name: string;
+  readings: Readings;
+  result: AnalysisResult;
+};
+
+type AnalysisHistory = Map<string, { code: string; entry: string; outcome: CompletedAnalysis }>;
+
 export type ClientValue = {
+  analysisHistory: AnalysisHistory;
+  resetSample: () => Promise<void>;
   client: AppClient;
   mode: ClientMode;
   labId: string;
@@ -72,6 +85,7 @@ function subscribeTheme(listener: () => void): () => void {
 
 export function ClientProvider({ children }: { children: ReactNode }) {
   const [chosen] = useState(chooseClient);
+  const [analysisHistory, setAnalysisHistory] = useState<AnalysisHistory>(() => new Map());
   const [role, setRole] = useState<Role>("researcher");
   const [version, setVersion] = useState(0);
   const theme = useSyncExternalStore(subscribeTheme, storedTheme, () => "system" as Theme);
@@ -90,9 +104,17 @@ export function ClientProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(() => setVersion((v) => v + 1), []);
 
+  const resetSample = useCallback(async () => {
+    if (!chosen.client.reset) return;
+    await chosen.client.reset();
+    setAnalysisHistory(new Map());
+    setRole("researcher");
+    refresh();
+  }, [chosen, refresh]);
+
   const value = useMemo<ClientValue>(
-    () => ({ ...chosen, role, setRole, theme, setTheme, version, refresh }),
-    [chosen, role, theme, setTheme, version, refresh],
+    () => ({ ...chosen, analysisHistory, resetSample, role, setRole, theme, setTheme, version, refresh }),
+    [chosen, analysisHistory, resetSample, role, theme, setTheme, version, refresh],
   );
   return <ClientContext.Provider value={value}>{children}</ClientContext.Provider>;
 }

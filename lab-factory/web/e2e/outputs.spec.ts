@@ -203,3 +203,12 @@ for (const [name, url] of [["Coomassie", COOMASSIE], ["B12", B12]] as const) {
     }
   });
 }
+
+test("the failed summary takes keyboard focus to the failed check", async ({ page }) => {
+  await goto(page, COOMASSIE);
+  const body = tabBody(page, "Procedure");
+  const jump = body.getByRole("button", { name: "Submission 1, 1 check failed" });
+  await jump.focus();
+  await page.keyboard.press("Enter");
+  await expect(body.getByRole("note").filter({ hasText: "step 4: citations: no citation" })).toBeFocused();
+});

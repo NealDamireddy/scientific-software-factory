@@ -322,7 +322,8 @@ separated by `\n`, written as the work happens.
 `GET /labs/{lab}/attention?role={role}` where `role` is `researcher` or
 `approver`.
 
-- Response `200`: `AttentionItem[]`.
+- Response `200`: `AttentionItem[]`. Each item identifies its work order with `work_order_id`. The optional
+  `work_order_kind` (`procedure` or `run_plan`) names the output in the attention list.
   - `approver`: one `sign_off` item per `in_review` order.
   - `researcher`: one `signed_off` item per `released` order, and one
     `rejected` item per `open` order whose latest event is `rejected`.

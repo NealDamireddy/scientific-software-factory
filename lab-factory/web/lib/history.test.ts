@@ -96,6 +96,15 @@ test("diffRows reads run plan commands, and an empty step list compares as no st
   assert.equal(unchangedLabel(1), "1 unchanged step");
 });
 
+test("a run-plan instrument change remains visible when every command is identical", () => {
+  const steps = [{ command: "read", settings: [] }];
+  const make = (id: string) => ({ ...sub("WO-RP", 1, []), artifact: { instrument_id: id, steps } });
+  assert.deepEqual(rowsOf(diffRows("run_plan", make("meter-a"), make("meter-b"))), [
+    { change: "changed", mark: "Changed: instrument", step: "Run plan", text: "meter-a → meter-b", details: [] },
+    { change: "unchanged", mark: "1 unchanged step" },
+  ]);
+});
+
 test("diffRows refuses to compare a malformed artifact and names the side it couldn't read", () => {
   const good = sub("WO-2", 1, steps);
   const broken = { ...sub("WO-1", 1, []), artifact: "broken" };
@@ -162,7 +171,7 @@ test("action setting details say what each setting was, and which were added or 
     { parameter: "wavelength", value: 595, unit: "nm" }, { parameter: "averages", value: 3, unit: "" }], "scan") }];
   const rows = rowsOf(diffRows("procedure", sub("WO-1", 1, before), sub("WO-1", 2, after)));
   assert.deepEqual(rows[0].change === "changed" && rows[0].details, [
-    "Command: was “read_absorbance”",
+    "Command: was “read_absorbance”; now “scan”",
     "Wavelength 595 nm, was 600 nm",
     "Averages 3, added",
     "Integration time 100 ms, removed",

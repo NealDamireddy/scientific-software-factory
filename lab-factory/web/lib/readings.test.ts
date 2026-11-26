@@ -40,6 +40,23 @@ test("the CSV round-trips", () => {
   assert.deepEqual(parseReadingsCsv(csv), SAMPLE_READINGS);
 });
 
+test("quoted metadata, escapes and multiline fields preserve numeric column positions", () => {
+  const text = '"sample,label",replicate,"time_s","absorbance"\r\n'
+    + '"batch,A",1,10,0.7\r\n"batch ""B""",2," 20 ","0.6"\r\n'
+    + '"batch\r\nC",3,30,0.5\r\nplain,4,40,0.4\r\n"batch,E",5,50,0.3';
+  assert.deepEqual(parseReadingsCsv(text), { time_s: [10, 20, 30, 40, 50], absorbance: [0.7, 0.6, 0.5, 0.4, 0.3] });
+  assert.throws(() => parseReadingsCsv(text + "\nplain,6,bad,0.2"), invalid("Row 8 has a value that isn't a number."));
+});
+
+test("inconsistent widths, duplicate numeric columns and malformed quotes are rejected", () => {
+  const header = "sample,time_s,absorbance\n";
+  assert.throws(() => parseReadingsCsv(header + "batch,A,10,0.7"), invalid("Row 2 has 4 fields. The header has 3."));
+  assert.throws(() => parseReadingsCsv(header + "batch,10"), invalid("Row 2 has 2 fields. The header has 3."));
+  assert.throws(() => parseReadingsCsv(header + '"batch,10,0.7'), invalid("Row 2 has an unclosed quoted field."));
+  assert.throws(() => parseReadingsCsv(header + '"batch"x,10,0.7'), invalid("Row 2 has an invalid quoted field."));
+  assert.throws(() => parseReadingsCsv("time_s,absorbance,time_s"), invalid("The file needs exactly one time_s column and one absorbance column."));
+});
+
 test("a missing column gives the column error", () => {
   assert.throws(
     () => parseReadingsCsv("time_s,signal\n0,1\n10,2\n20,3\n30,4\n40,5\n"),

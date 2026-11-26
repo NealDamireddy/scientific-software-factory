@@ -53,7 +53,10 @@ export function AgentsPage() {
         const experiments = projects.flatMap((p) => p.experiments.map((e) => ({ projectId: p.id, ...e })));
         await Promise.all(experiments.map((e) => client.getWorkspace(e.id).then((w) => {
           for (const view of [w.procedure, w.run_plan]) {
-            if (view) orders[view.order.id] = { projectId: e.projectId, experimentId: e.id, title: e.title };
+            if (!view) continue;
+            for (const record of [view, ...(view.earlier ?? [])]) {
+              orders[record.order.id] = { projectId: e.projectId, experimentId: e.id, title: e.title };
+            }
           }
         }, () => undefined)));
       }
@@ -122,7 +125,7 @@ export function AgentsPage() {
                         return (
                           <li key={id}>
                             {place
-                              ? <a href={routeHref({ view: "experiment", projectId: place.projectId, experimentId: place.experimentId })}
+                              ? <a href={routeHref({ view: "experiment", projectId: place.projectId, experimentId: place.experimentId, orderId: id })}
                                   title={place.title}>{id}</a>
                               : <span>{id}</span>}
                           </li>

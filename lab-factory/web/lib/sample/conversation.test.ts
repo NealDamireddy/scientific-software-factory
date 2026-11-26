@@ -13,7 +13,7 @@ const LAB = "emory-biophys";
 const fresh = (options: { delayMs?: number; stepMs?: number } = {}) => createSampleClient({ now: () => NOW, ...options });
 
 const PROPOSAL = "Here’s what I’d build for this experiment. Switch anything off you don’t need, then confirm.";
-const BUILT = "Built. Everything passed its checks and is waiting for sign-off.";
+const BUILT = "Built. Procedure passed its checks and is waiting for sign-off.";
 const SAMPLE_REPLY = "This is sample data, so the factory can’t act on that here. In the live app it would answer and update the outputs.";
 const COOMASSIE_REPLY = "I added reduction-protocol.txt to this experiment and rewrote the procedure. Every check passes, and it’s waiting for sign-off.";
 
@@ -164,7 +164,8 @@ test("an analysis app and a simulation are stored per experiment", async () => {
   const { e, proposal } = await newExperiment(c, "Measure the rate of fading and simulate it");
   const seen: ActivityItem[] = [];
   const [built] = await c.confirmPlan(e.id, proposal.id, ["procedure", "analysis_app"], (a) => seen.push(a));
-  assert.deepEqual(seen.slice(-2).map((a) => [a.label, a.outcome]), [["Wrote analysis app", "done"], ["Ran 3 reference cases", "info"]]);
+  assert.deepEqual(seen.slice(-2).map((a) => [a.label, a.outcome]), [["Wrote analysis app", "done"], ["Prepared 3 reference cases", "info"]]);
+  assert.equal(built.text, "Built. Procedure passed its checks and is waiting for sign-off. Open the analysis app to run its reference cases.");
   assert.deepEqual(built.output_refs!.map((r) => [r.kind, r.summary]), [
     ["procedure", "Submission 1, all checks passed"], ["analysis_app", "Turns absorbance over time into a rate constant and half-life."],
   ]);
@@ -177,12 +178,22 @@ test("an analysis app and a simulation are stored per experiment", async () => {
   const other = await newExperiment(c, "Simulate the fading");
   const [sim] = await c.confirmPlan(other.e.id, other.proposal.id, ["simulation"]);
   assert.deepEqual(sim.activity!.map((a) => a.label).slice(-1), ["Wrote simulation"]);
+  assert.equal(sim.text, "Built. The simulation is ready to run.");
   assert.equal(sim.output_refs!.length, 1);
   assert.equal(sim.output_refs![0].kind, "simulation");
   assert.equal(sim.output_refs![0].work_order_id, undefined);
   const ws = await c.getWorkspace(other.e.id);
   assert.equal(ws.simulation!.entry, "simulate");
   assert.equal(ws.procedure, undefined);
+});
+
+test("an analysis-only build prepares reference cases and creates no sign-off task", async () => {
+  const c = fresh();
+  const { e, proposal } = await newExperiment(c, "Measure the rate of fading");
+  const [built] = await c.confirmPlan(e.id, proposal.id, ["analysis_app"]);
+  assert.equal(built.text, "Built. Open the analysis app to run its reference cases.");
+  assert.equal(built.activity!.at(-1)?.label, "Prepared 3 reference cases");
+  assert.equal((await c.needsAttention(LAB, "approver")).some((item) => item.experiment_id === e.id), false);
 });
 
 test("a run plan proposal builds a passing run plan after the procedure", async () => {
@@ -294,6 +305,35 @@ test("attaching a protocol to Coomassie makes revision 2 and a passing WO-2", as
   assert.equal(again.activity, undefined);
   assert.equal((await c.listRevisions("experiment", "coomassie-run-1")).length, 3);
   assert.equal((await c.getWorkspace("coomassie-run-1")).procedure!.order.id, "WO-2");
+});
+
+test("the rewritten order pins the revision containing every attachment", async () => {
+  const c = fresh();
+  const id = "coomassie-run-1";
+  const [person, reply] = await c.sendMessage(id, "Protocol and notes", [protocol(), new File(["Batch B."], "notes.txt")]);
+  assert.deepEqual(person.attachments, ["reduction-protocol.txt", "notes.txt"]);
+  assert.match(reply.text, /added reduction-protocol.txt and notes.txt/);
+  const workspace = await c.getWorkspace(id);
+  assert.deepEqual(workspace.experiment.documents.map((doc) => doc.title), person.attachments);
+  assert.equal(workspace.procedure!.steps[3].sources[0].title, "reduction-protocol.txt");
+  const revision = (await c.listRevisions("experiment", id)).at(-1)!;
+  const pin = workspace.procedure!.order.pins.find((p) => p.kind === "experiment")!;
+  assert.equal(revision.number, 3);
+  assert.equal(pin.revision, revision.number);
+  assert.equal(pin.digest, revision.digest);
+});
+
+test("an unreadable file leaves the entire attachment batch available for retry", async () => {
+  const c = fresh();
+  const id = "coomassie-run-1";
+  const before = await c.getWorkspace(id);
+  const unreadable = new File(["Notes"], "notes.txt");
+  unreadable.text = async () => { throw new Error("File read failed."); };
+  await assert.rejects(c.sendMessage(id, "Protocol and notes", [protocol(), unreadable]), /File read failed/);
+  const after = await c.getWorkspace(id);
+  assert.deepEqual(after.messages, before.messages);
+  assert.deepEqual(after.experiment, before.experiment);
+  assert.equal(after.procedure!.order.id, before.procedure!.order.id);
 });
 
 test("two overlapping Coomassie attachments rewrite once", async () => {

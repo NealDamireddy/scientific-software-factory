@@ -13,6 +13,7 @@
 .ws-main {
   display: flex;
   flex: 1 1 auto;
+  container: conversation / inline-size;
   flex-direction: column;
   min-width: 0;
 }
@@ -648,9 +649,23 @@
   padding: 4px 0 12px;
 }
 
-/* From 1024 to 1099 px the conversation is narrow, so the toggle shows only its chevron and the
-   breadcrumb keeps the room. */
-@media (min-width: 1024px) and (max-width: 1099px) {
+/* Reserve the header for the experiment name when its own column is narrow. */
+@container conversation (max-width: 570px) {
+  .ws-crumb-project {
+    display: block;
+    flex: 0 1 auto;
+    max-width: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 40px;
+  }
+
+  .ws-title {
+    flex: 0 0 auto;
+    max-width: 70%;
+  }
+
   .ws-context-toggle-label {
     position: absolute;
     width: 1px;
@@ -802,6 +817,24 @@
   font-size: 1.125rem;
   font-weight: 600;
   line-height: 1.35;
+}
+
+.sub-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sub-jump:hover {
+  text-decoration: underline;
 }
 
 .sub-icon {

@@ -3,7 +3,7 @@
 // everything that validates and claims (a proposal's `accepted`, an order id) does so in
 // one synchronous block; only hashing, file reads and the pauses between activity items await.
 import { canonicalDigest } from "../digest.ts";
-import { submissionSummary } from "../status.ts";
+import { outputLabel, submissionSummary } from "../status.ts";
 import { ClientError } from "../types.ts";
 import type {
   ActivityItem, AnalysisApp, CheckResult, Experiment, HistoryEvent, Instrument, Message, OnActivity, OutputKind,
@@ -24,8 +24,6 @@ import type { SampleState } from "./seed.ts";
 export type ActivityOptions = { onActivity?: OnActivity; stepMs?: number };
 
 export const PROPOSAL_TEXT = "Here’s what I’d build for this experiment. Switch anything off you don’t need, then confirm.";
-export const BUILT_TEXT = "Built. Everything passed its checks and is waiting for sign-off.";
-const BUILT_WITH_FAILURES_TEXT = "Built. Some checks failed, so nothing is waiting for sign-off yet.";
 export const SAMPLE_REPLY = "This is sample data, so the factory can’t act on that here. In the live app it would answer and update the outputs.";
 export const ATTACHED_SOURCE = "Attached in the conversation";
 const ATTACHMENT_LIMIT = 20_000;
@@ -231,7 +229,7 @@ export async function confirmPlan(
 
   const log = activityLog(messageId, options);
   const refs: OutputRef[] = [];
-  let allPassed = true;
+  const completion = ["Built."];
   await log.emit({ label: `Read lab context (revision ${labRevision})`, outcome: "done" });
   await log.emit({ label: `Read project context (revision ${projectRevision})`, outcome: "done" });
   for (const skill of enabledSkills(state)) await log.emit({ label: `Used skill: ${skill.title}`, outcome: "info" });
@@ -241,24 +239,29 @@ export async function confirmPlan(
       const { order, submission } = await storeOrder(ctx, draft);
       await log.emit({ label: kind === "procedure" ? "Wrote procedure" : "Wrote run plan", outcome: "done" });
       await log.emit(checksItem(submission.results));
-      allPassed &&= submission.passed;
+      const label = outputLabel(kind);
+      completion.push(submission.passed
+        ? `${label} passed its checks and is waiting for sign-off.`
+        : `${label} needs revision before sign-off.`);
       refs.push({ kind, work_order_id: order.id, summary: submissionSummary(submission) });
     } else if (kind === "analysis_app") {
       const app = analysisApp();
       state.apps[experimentId] = app;
       await log.emit({ label: "Wrote analysis app", outcome: "done" });
-      await log.emit({ label: `Ran ${app.reference_cases.length} reference cases`, outcome: "info" });
+      await log.emit({ label: `Prepared ${app.reference_cases.length} reference cases`, outcome: "info" });
+      completion.push("Open the analysis app to run its reference cases.");
       // The browser runs the reference cases when the tab opens, so the card claims no result yet.
       refs.push({ kind, summary: app.summary });
     } else {
       const sim = simulation();
       state.simulations[experimentId] = sim;
+      completion.push("The simulation is ready to run.");
       await log.emit({ label: "Wrote simulation", outcome: "done" });
       refs.push({ kind, summary: sim.title });
     }
   }
   const built = appendMessage(ctx, experimentId, {
-    from: "factory", text: allPassed ? BUILT_TEXT : BUILT_WITH_FAILURES_TEXT, activity: log.items, output_refs: refs,
+    from: "factory", text: completion.join(" "), activity: log.items, output_refs: refs,
   });
   return [copy(built)];
 }
@@ -281,8 +284,7 @@ async function attachmentText(file: File): Promise<string> {
 }
 
 /** Adds a file as an experiment document and returns the stored document's id. */
-async function attach(ctx: SampleContext, experimentId: string, file: File): Promise<string> {
-  const doc = { title: attachmentTitle(file), kind: "paper" as const, text: await attachmentText(file) };
+async function attach(ctx: SampleContext, experimentId: string, doc: { title: string; kind: "paper"; text: string }): Promise<string> {
   await addDocumentTo(ctx.state, { kind: "experiment", id: experimentId }, doc, ATTACHED_SOURCE, ctx.now);
   const stored = findExperiment(ctx.state, experimentId).documents.find((d) => d.title === doc.title && d.text === doc.text);
   return stored!.id;
@@ -294,11 +296,9 @@ function newestProcedure(state: SampleState, experimentId: string): WorkOrder | 
 
 /** The Coomassie demo: the attachment becomes step 4's source in a new order, WO-2. */
 async function rewriteCoomassie(
-  ctx: SampleContext, file: File, log: ReturnType<typeof activityLog>,
+  ctx: SampleContext, docId: string, log: ReturnType<typeof activityLog>,
 ): Promise<{ ref: OutputRef; passed: boolean }> {
   const { state } = ctx;
-  const docId = await attach(ctx, COOMASSIE, file);
-  await log.emit({ label: "Read your attachment", outcome: "done" });
 
   const experiment = findExperiment(state, COOMASSIE);
   const previous = state.orders.find((o) => o.id === COOMASSIE_ORDER)!;
@@ -322,8 +322,8 @@ async function rewriteCoomassie(
 }
 
 /**
- * Appends the person's message (before anything awaits, so it is never lost), then the
- * factory's scripted reply. Returns both new messages.
+ * Reads the complete batch before recording the message so an unreadable file can be retried
+ * without duplicating messages or partially importing documents.
  */
 export async function sendMessage(
   ctx: SampleContext, experimentId: string, text: string, files: File[], options: ActivityOptions = {},
@@ -332,8 +332,12 @@ export async function sendMessage(
   findExperiment(state, experimentId);
   const body = text.trim();
   if (body === "" && files.length === 0) throw new ClientError("invalid", "Write a message or attach a file.");
+  const documents = await Promise.all(files.map(async (file) => ({
+    title: attachmentTitle(file), kind: "paper" as const, text: await attachmentText(file),
+  })));
+  const names = documents.map((doc) => doc.title);
   const person = appendMessage(ctx, experimentId, {
-    from: "person", text: body, ...(files.length > 0 ? { attachments: files.map(attachmentTitle) } : {}),
+    from: "person", text: body, ...(names.length > 0 ? { attachments: names } : {}),
   });
 
   if (files.length === 0) {
@@ -345,28 +349,28 @@ export async function sendMessage(
   rewriting.set(state, inFlight);
   const scripted = experimentId === COOMASSIE && !inFlight.has(COOMASSIE)
     && newestProcedure(state, COOMASSIE)?.id === COOMASSIE_ORDER;
-  if (scripted) {
-    inFlight.add(COOMASSIE);
-    try {
+  if (scripted) inFlight.add(COOMASSIE);
+  try {
+    const docIds: string[] = [];
+    for (const doc of documents) docIds.push(await attach(ctx, experimentId, doc));
+    const added = `I added ${listNames(names)} to this experiment`;
+    if (scripted) {
       const log = activityLog(person.id, options);
-      const { ref, passed } = await rewriteCoomassie(ctx, files[0], log);
+      await log.emit({ label: names.length === 1 ? "Read your attachment" : `Read your ${names.length} attachments`, outcome: "done" });
+      // The first attachment is the scripted source for step 4. The order pins the full batch.
+      const { ref, passed } = await rewriteCoomassie(ctx, docIds[0], log);
+      const status = passed ? "Every check passes, and it’s waiting for sign-off." : "Some checks failed, so it needs revision.";
       const reply = appendMessage(ctx, experimentId, {
-        from: "factory",
-        text: passed
-          ? `I added ${attachmentTitle(files[0])} to this experiment and rewrote the procedure. Every check passes, and it’s waiting for sign-off.`
-          : `I added ${attachmentTitle(files[0])} to this experiment and rewrote the procedure. Some checks failed, so nothing is waiting for sign-off yet.`,
+        from: "factory", text: `${added} and rewrote the procedure. ${status}`,
         activity: log.items, output_refs: [ref],
       });
       return [copy(person), copy(reply)];
-    } finally {
-      inFlight.delete(COOMASSIE);
     }
+    const reply = appendMessage(ctx, experimentId, {
+      from: "factory", text: `${added}. Tell me what to change and I’ll rebuild.`,
+    });
+    return [copy(person), copy(reply)];
+  } finally {
+    if (scripted) inFlight.delete(COOMASSIE);
   }
-
-  for (const file of files) await attach(ctx, experimentId, file);
-  const reply = appendMessage(ctx, experimentId, {
-    from: "factory",
-    text: `I added ${listNames(files.map(attachmentTitle))} to this experiment. Tell me what to change and I’ll rebuild.`,
-  });
-  return [copy(person), copy(reply)];
 }

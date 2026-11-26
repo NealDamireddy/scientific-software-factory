@@ -17,7 +17,7 @@ function attentionLabel(n: number): string {
 
 /** The lab switcher at the top of the sidebar and the popover it opens. */
 export function LabMenu() {
-  const { client, mode, labId, role, setRole, theme, setTheme, version, refresh } = useClient();
+  const { client, mode, labId, role, setRole, theme, setTheme, version, resetSample } = useClient();
   const [, navigate] = useRoute();
   const [lab, setLab] = useState<Lab | null>(null);
   const [attention, setAttention] = useState(0);
@@ -68,13 +68,10 @@ export function LabMenu() {
   }, [open]);
 
   const reset = async () => {
-    if (!client.reset || resetting) return;
+    if (mode !== "sample" || resetting) return;
     setResetting(true);
     try {
-      await client.reset();
-      // A fresh start: the sample data and the role both go back to how the app opens.
-      setRole("researcher");
-      refresh();
+      await resetSample();
       navigate({ view: "home" });
       close(true);
     } finally {

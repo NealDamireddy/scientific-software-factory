@@ -8,5 +8,5 @@ export function AnalysisAppTab({ workspace }: { workspace: Workspace }) {
   const app = workspace.analysis_app;
   if (!app) return <h2 className="panel-heading">Analysis app</h2>;
   // Keyed by the app, so another app's cases never show this one's answers.
-  return <AnalysisAppView key={`${app.code}\n${JSON.stringify(app.reference_cases)}`} app={app} />;
+  return <AnalysisAppView key={JSON.stringify([app.entry, app.code, app.reference_cases])} app={app} />;
 }

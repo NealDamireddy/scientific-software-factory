@@ -301,7 +301,7 @@ export async function createSeed(now: Date): Promise<SampleState> {
           { id: "a3", label: "Wrote procedure", outcome: "done" },
           { id: "a4", label: `Ran ${wo1Results.length} checks: ${failedCount} failed`, outcome: "failed", detail: "step 4: citations: no citation" },
           { id: "a5", label: "Wrote analysis app", outcome: "done" },
-          { id: "a6", label: `Ran ${app.reference_cases.length} reference cases`, outcome: "info" },
+          { id: "a6", label: `Prepared ${app.reference_cases.length} reference cases`, outcome: "info" },
           { id: "a7", label: "Wrote simulation", outcome: "done" },
         ],
         output_refs: [

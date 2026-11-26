@@ -61,9 +61,9 @@ test("the drawer says when a document isn't there, and Close removes it from the
 
 test("the lab page shows range strips, commands and lab documents", async ({ page }) => {
   await goto(page, "/#/lab");
-  const strip = page.getByRole("img", { name: "Wavelength 400–700 nm, allowed 400 to 700 nm" });
+  const strip = page.getByRole("img", { name: "Wavelength, allowed 400 to 700 nm" });
   await expect(strip).toBeVisible();
-  await expect(strip.locator(".range-marker")).toHaveAttribute("style", /left: 50%/);
+  await expect(strip.locator(".range-marker")).toHaveCount(0);
   await expect(page.getByText("Needs wavelength. Optional: integration time.")).toBeVisible();
   await expect(page.getByText("Revision history")).toBeVisible();
 });

@@ -11,7 +11,7 @@ import { SAMPLE_READINGS, parseReadingsCsv, toCsv } from "../lib/readings.ts";
 import type { Readings } from "../lib/readings.ts";
 import type { AnalysisApp, ConnectorItem } from "../lib/types.ts";
 import { ClientError } from "../lib/types.ts";
-import { useClient } from "./ClientContext.tsx";
+import { useClient, type CompletedAnalysis } from "./ClientContext.tsx";
 import { Plot } from "./Plot.tsx";
 import { runError, useRunner } from "./RunnerContext.tsx";
 import { errorText } from "../lib/status.ts";
@@ -21,7 +21,7 @@ const UNREADABLE = "The analysis app returned something that isn't a result.";
 
 type Outcome =
   | { state: "running"; name: string }
-  | { state: "done"; name: string; readings: Readings; result: AnalysisResult }
+  | CompletedAnalysis
   | { state: "error"; message: string; run: number };
 
 function plotSeries(readings: Readings, result: AnalysisResult): PlotSeries[] {
@@ -52,11 +52,14 @@ function downloadSample() {
  * data folder), and the app runs on this computer. Shows the result lines and a plot of the readings
  * with the app's fitted curve. Readings never leave the browser.
  */
-export function ResultsView({ app }: { app: AnalysisApp }) {
-  const { client, labId, mode, version } = useClient();
+export function ResultsView({ app, experimentId }: { app: AnalysisApp; experimentId: string }) {
+  const { client, labId, mode, version, analysisHistory } = useClient();
   const run = useRunner();
   const uid = useId();
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [outcome, setOutcome] = useState<Outcome | null>(() => {
+    const previous = analysisHistory.get(experimentId);
+    return previous?.code === app.code && previous.entry === app.entry ? previous.outcome : null;
+  });
   const [folder, setFolder] = useState<ConnectorItem[] | null>(null);
   const [folderError, setFolderError] = useState<string | null>(null);
   const seq = useRef(0);
@@ -79,8 +82,7 @@ export function ResultsView({ app }: { app: AnalysisApp }) {
     return () => { live = false; };
   }, [client, labId, version]);
 
-  async function analyze(name: string, text: string) {
-    const mine = ++seq.current;
+  async function analyze(name: string, text: string, mine: number) {
     let readings: Readings;
     try {
       readings = parseReadingsCsv(text);
@@ -93,7 +95,13 @@ export function ResultsView({ app }: { app: AnalysisApp }) {
       const value = await run(app.code, app.entry, { readings });
       if (mine !== seq.current) return;
       const result = readAnalysisResult(value);
-      setOutcome(result ? { state: "done", name, readings, result } : { state: "error", message: UNREADABLE, run: mine });
+      if (!result) {
+        setOutcome({ state: "error", message: UNREADABLE, run: mine });
+        return;
+      }
+      const completed: CompletedAnalysis = { state: "done", name, readings, result };
+      analysisHistory.set(experimentId, { code: app.code, entry: app.entry, outcome: completed });
+      setOutcome(completed);
     } catch (e) {
       if (mine === seq.current) setOutcome({ state: "error", message: analysisMessage(runError(e)), run: mine });
     }
@@ -105,14 +113,15 @@ export function ResultsView({ app }: { app: AnalysisApp }) {
     // Cleared, so choosing the same file again runs it again.
     input.value = "";
     if (!file) return;
+    const mine = ++seq.current;
     let text: string;
     try {
       text = await file.text();
     } catch {
-      setOutcome({ state: "error", message: `Couldn't read ${file.name}.`, run: ++seq.current });
+      if (mine === seq.current) setOutcome({ state: "error", message: `Couldn't read ${file.name}.`, run: mine });
       return;
     }
-    await analyze(file.name, text);
+    if (mine === seq.current) await analyze(file.name, text, mine);
   }
 
   const busy = outcome?.state === "running";
@@ -140,7 +149,7 @@ export function ResultsView({ app }: { app: AnalysisApp }) {
           <ul className="results-folder-list" role="list">
             {folder.map((item) => (
               <li key={item.id}>
-                <button type="button" className="ws-button hist-quiet results-analyze" onClick={() => void analyze(item.title, item.text)}>
+                <button type="button" className="ws-button hist-quiet results-analyze" onClick={() => void analyze(item.title, item.text, ++seq.current)}>
                   Analyze {item.title}
                 </button>
               </li>

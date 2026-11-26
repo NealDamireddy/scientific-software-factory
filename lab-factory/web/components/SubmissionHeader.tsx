@@ -3,7 +3,7 @@
 import { CircleCheck, CircleX } from "lucide-react";
 import type { ReactNode, Ref } from "react";
 
-import { statusLine, submissionFailed, submissionSummary } from "../lib/status.ts";
+import { statusLine, submissionFailed, submissionStatusLine, submissionSummary } from "../lib/status.ts";
 import type { HistoryEvent, Submission, WorkOrder } from "../lib/types.ts";
 
 export type SubmissionHeaderProps = {
@@ -11,6 +11,8 @@ export type SubmissionHeaderProps = {
   /** The submission on show; undefined when nothing has been submitted yet. */
   submission: Submission | undefined;
   history: HistoryEvent[];
+  latestNumber: number;
+  onJumpToFailure?: () => void;
   /** Actions for the shown submission: the submission picker and compare (Task 13), sign-off (Task 15). */
   children?: ReactNode;
   /** A quiet line under the actions, such as the note that an earlier submission is shown. */
@@ -23,7 +25,7 @@ export type SubmissionHeaderProps = {
  * The tab's heading: the shown submission's check summary, then the order's status as people read it.
  * A failing summary is styled as a failure, but its words carry it on their own.
  */
-export function SubmissionHeader({ order, submission, history, children, note, headingRef }: SubmissionHeaderProps) {
+export function SubmissionHeader({ order, submission, history, latestNumber, onJumpToFailure, children, note, headingRef }: SubmissionHeaderProps) {
   const failed = submission ? submissionFailed(submission) : false;
   return (
     <header className="sub-header">
@@ -32,12 +34,16 @@ export function SubmissionHeader({ order, submission, history, children, note, h
           {failed
             ? <CircleX className="sub-icon" size={18} aria-hidden="true" />
             : <CircleCheck className="sub-icon" size={18} aria-hidden="true" />}
-          <span>{submissionSummary(submission)}</span>
+          {failed && onJumpToFailure ? (
+            <button type="button" className="sub-jump" onClick={onJumpToFailure} title="Go to the first failed check">
+              {submissionSummary(submission)}
+            </button>
+          ) : <span>{submissionSummary(submission)}</span>}
         </h2>
       ) : (
         <h2 ref={headingRef} tabIndex={-1} className="sub-summary">No submissions yet</h2>
       )}
-      <p className="sub-status">{statusLine(order, history)}</p>
+      <p className="sub-status">{submission ? submissionStatusLine(order, history, submission.number, latestNumber) : statusLine(order, history)}</p>
       {children !== undefined && children !== null && children !== false && <div className="sub-actions">{children}</div>}
       {note}
     </header>

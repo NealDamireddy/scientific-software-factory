@@ -68,7 +68,7 @@ export function LabPage() {
                   parameter={p.name}
                   label={sentenceCase(p.name)}
                   display={`${p.minimum}–${p.maximum} ${p.unit}`}
-                  canonical={{ value: (p.minimum + p.maximum) / 2, unit: p.unit, minimum: p.minimum, maximum: p.maximum }}
+                  canonical={p}
                 />
               ))}
             </div>

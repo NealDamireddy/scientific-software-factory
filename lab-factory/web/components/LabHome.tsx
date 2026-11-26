@@ -8,7 +8,7 @@ import { routeHref } from "../lib/route.ts";
 import type { AttentionItem } from "../lib/types.ts";
 import { useClient } from "./ClientContext.tsx";
 import { NewProject } from "./NewProject.tsx";
-import { attentionText } from "../lib/status.ts";
+import { attentionText, outputLabel } from "../lib/status.ts";
 import { errorText } from "./pages-status.ts";
 import { StartExperiment } from "./StartExperiment.tsx";
 
@@ -41,10 +41,10 @@ export function LabHome() {
               <li key={`${item.work_order_id}-${item.kind}`}>
                 <a
                   className="pg-row"
-                  href={routeHref({ view: "experiment", projectId: item.project_id, experimentId: item.experiment_id })}
+                  href={routeHref({ view: "experiment", projectId: item.project_id, experimentId: item.experiment_id, orderId: item.work_order_id })}
                 >
                   <span className="pg-row-title">{item.title}</span>{" "}
-                  <span className="pg-note">{attentionText(item.kind)}</span>
+                  <span className="pg-note">{item.work_order_kind && `${outputLabel(item.work_order_kind)} `}{item.work_order_id} · {attentionText(item.kind)}</span>
                 </a>
               </li>
             ))}

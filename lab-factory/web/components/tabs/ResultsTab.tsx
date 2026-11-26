@@ -7,5 +7,5 @@ import { ResultsView } from "../ResultsView.tsx";
 export function ResultsTab({ workspace }: { workspace: Workspace }) {
   const app = workspace.analysis_app;
   if (!app) return <h2 className="panel-heading">Results</h2>;
-  return <ResultsView app={app} />;
+  return <ResultsView key={JSON.stringify([workspace.experiment.id, app.entry, app.code])} experimentId={workspace.experiment.id} app={app} />;
 }

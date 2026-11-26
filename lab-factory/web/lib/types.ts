@@ -80,7 +80,7 @@ export type AgentSetup = { claude_code: string; codex_toml: string; cursor_json:
 export type AgentConnection = { worker: string; last_seen: string; work_order_ids: string[] };
 
 export type Role = "researcher" | "approver";
-export type AttentionItem = { kind: "sign_off" | "signed_off" | "rejected"; work_order_id: string;
+export type AttentionItem = { kind: "sign_off" | "signed_off" | "rejected"; work_order_id: string; work_order_kind?: WorkOrder["kind"];
                               experiment_id: string; project_id: string; title: string };
 export type DocumentTarget = { kind: "project" | "experiment"; id: string };
 export type NewDocument = { title: string; kind: Document["kind"]; text: string };

@@ -243,7 +243,7 @@ test("messages for coomassie-run-1 and b12-vial-a", async () => {
     ["Wrote procedure", "done"],
     ["Ran 10 checks: 1 failed", "failed"],
     ["Wrote analysis app", "done"],
-    ["Ran 3 reference cases", "info"],
+    ["Prepared 3 reference cases", "info"],
     ["Wrote simulation", "done"],
   ]);
   assert.deepEqual(m[2].activity?.[3].detail, "step 4: citations: no citation");

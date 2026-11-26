@@ -1,7 +1,7 @@
 import { expect, test } from "playwright/test";
 import type { Page } from "playwright/test";
 
-import { B12, COOMASSIE, attachProtocol, moveTo, viewAs, goto } from "./helpers.ts";
+import { B12, COOMASSIE, attachProtocol, startExperiment, moveTo, viewAs, goto } from "./helpers.ts";
 
 function procedure(page: Page) {
   return page.getByRole("region", { name: "Outputs" }).getByRole("tabpanel", { name: "Procedure" });
@@ -288,4 +288,36 @@ test("switching to researcher closes an open sign-off form, so switching back st
   await expect(reject).toHaveAttribute("aria-expanded", "false");
   await expect(body.getByRole("button", { name: "Approve submission 1", exact: true })).toHaveAttribute("aria-expanded", "false");
   await expect(body.getByRole("form")).toHaveCount(0);
+});
+
+test("attention opens the named order and Back restores that order", async ({ page }) => {
+  const title = "Automate cuvette readings";
+  await startExperiment(page, title);
+  await page.getByRole("button", { name: "Build these" }).click();
+  await expect(page.getByRole("tab", { name: "Run plan" })).toBeVisible({ timeout: 20_000 });
+  await viewAs(page, "Approver");
+  await moveTo(page, "#/");
+  const list = attention(page);
+  const procedureLink = list.getByRole("link", { name: new RegExp(title + ".*Procedure") });
+  const planLink = list.getByRole("link", { name: new RegExp(title + ".*Run plan") });
+  await expect(planLink).toBeVisible();
+  const planUrl = await planLink.getAttribute("href");
+  const procedureUrl = await procedureLink.getAttribute("href");
+  expect(planUrl).not.toBe(procedureUrl);
+  await planLink.click();
+  const plan = page.getByRole("tabpanel", { name: "Run plan" });
+  await expect(plan.getByLabel("Submission", { exact: true })).toHaveValue("WO-3#1");
+  await moveTo(page, procedureUrl!);
+  await expect(procedure(page).getByLabel("Submission", { exact: true })).toHaveValue("WO-2#1");
+  await page.goBack();
+  await expect(plan.getByRole("button", { name: "Approve submission 1", exact: true })).toBeVisible();
+  await expect(plan.getByLabel("Submission", { exact: true })).toHaveValue("WO-3#1");
+});
+
+test("a missing linked order cannot offer sign-off for a different output", async ({ page }) => {
+  await goto(page, B12 + "?order=removed-order");
+  await expect(page.getByRole("alert")).toContainText("removed-order");
+  await expect(page.getByRole("tab", { name: "Procedure" })).toHaveCount(0);
+  await page.getByRole("link", { name: "Open experiment" }).click();
+  await expect(page.getByRole("tabpanel", { name: "Procedure" })).toBeVisible();
 });

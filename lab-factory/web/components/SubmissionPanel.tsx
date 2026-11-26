@@ -64,6 +64,7 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
   const picker = useRef<HTMLSelectElement>(null);
   const compareButton = useRef<HTMLButtonElement>(null);
   const summary = useRef<HTMLHeadingElement>(null);
+  const stepArea = useRef<HTMLDivElement>(null);
   const [picked, setPicked] = useState<Picked | null>(null);
   const [comparing, setComparing] = useState(false);
   const [loaded, setLoaded] = useState<Loaded<S> | null>(null);
@@ -155,6 +156,9 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
       <button type="button" className="ws-button hist-quiet" onClick={backToLatest} disabled={signing}>Back to the latest</button>
     </p>
   ) : null;
+  const latestInOrder = shown ? shown.record.submissions.reduce((latest, s) => Math.max(latest, s.number), 0) : view.shown;
+  const hasFailure = steps && shown && (shown.submission.results.some((result) => !result.passed)
+    || steps.some((step) => step.failures.length > 0));
   const note = hint || earlier ? <>{hint}{earlier}</> : undefined;
 
   return (
@@ -162,6 +166,8 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
       <SubmissionHeader
         order={shown ? shown.record.order : view.order}
         submission={shown?.submission}
+        latestNumber={latestInOrder}
+        onJumpToFailure={hasFailure ? () => stepArea.current?.querySelector<HTMLElement>("[data-check-failure]")?.focus() : undefined}
         history={shown ? shown.record.history : view.history}
         note={note}
         headingRef={summary}
@@ -190,8 +196,8 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
                 Compare
               </button>
             </span>
-            {/* Sign-off only ever names the latest submission of the newest order. */}
-            {isLatest && shown && (
+            {/* Review always targets the latest submission of this specific order, after its steps load. */}
+            {shown && steps && shown.submission.number === latestInOrder && (
               <SignOff
                 key={shown.key}
                 order={shown.record.order}
@@ -212,7 +218,7 @@ export function SubmissionPanel<S extends StepView | RunStepView>({ kind, experi
         {loading && shown ? `Loading ${shown.record.order.id} submission ${shown.submission.number}…` : ""}
       </p>
       {shown && onScreen && !loadError && (
-        <div className="hist-steps" data-stale={loading ? "true" : "false"}>
+        <div ref={stepArea} className="hist-steps" data-stale={loading ? "true" : "false"}>
           {renderSteps(onScreen.steps, unplacedFailures(onScreen.results, onScreen.steps))}
         </div>
       )}

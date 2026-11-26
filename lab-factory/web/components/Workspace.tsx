@@ -18,13 +18,15 @@ import { RunnerProvider } from "./RunnerContext.tsx";
 import type { PanelTab } from "./OutputPanel.tsx";
 import type { ShowOrderRequest } from "./SubmissionPanel.tsx";
 
+type WorkspaceProps = { projectId: string; experimentId: string; orderId?: string };
+
 /** One experiment: its conversation with the factory, and the outputs it built beside it. */
-export function Workspace({ projectId, experimentId }: { projectId: string; experimentId: string }) {
+export function Workspace({ projectId, experimentId, orderId }: WorkspaceProps) {
   // Keyed, so moving to another experiment starts from a clean slate (panel, drafts, live activity).
   // The Python runner sits above the key: its loaded runtime serves every experiment visited.
   return (
     <RunnerProvider>
-      <ExperimentWorkspace key={experimentId} projectId={projectId} experimentId={experimentId} />
+      <ExperimentWorkspace key={experimentId} projectId={projectId} experimentId={experimentId} orderId={orderId} />
     </RunnerProvider>
   );
 }
@@ -51,7 +53,7 @@ function subscribe(listener: () => void): () => void {
   return () => { listeners.delete(listener); };
 }
 
-function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; experimentId: string }) {
+function ExperimentWorkspace({ projectId, experimentId, orderId }: WorkspaceProps) {
   const { client, version, refresh } = useClient();
   const [data, setData] = useState<WorkspaceData | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -64,6 +66,7 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
     () => NO_ENTRY,
   );
 
+  const [lastLinkedOrder, setLastLinkedOrder] = useState<{ id: string; newest: string } | null>(null);
   const [closed, setClosed] = useState(false);
   const [contextOpen, setContextOpen] = useState(false);
   const contextId = useId();
@@ -87,6 +90,20 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
   }, [client, experimentId, version]);
 
   const tabs = data ? availableTabs(data) : [];
+  const linkedView = data && orderId ? [data.procedure, data.run_plan].find((view) =>
+    view?.order.id === orderId || view?.earlier?.some((record) => record.order.id === orderId)) : undefined;
+  // Apply a linked order once, including Back/Forward within this experiment. Refreshes and
+  // opening a cited document keep the user's current tab and selected submission.
+  const linkedOrderChanged = linkedView && (lastLinkedOrder?.id !== orderId || lastLinkedOrder?.newest !== linkedView.order.id);
+  if (data && (linkedOrderChanged || (!orderId && lastLinkedOrder))) {
+    setLastLinkedOrder(orderId && linkedView ? { id: orderId, newest: linkedView.order.id } : null);
+    const order = linkedView?.order ?? (orderId ? undefined : (data.procedure ?? data.run_plan)?.order);
+    setTab(order?.kind ?? null);
+    if (order) {
+      setClosed(false);
+      setOrderRequest((last) => ({ kind: order.kind, workOrderId: orderId ?? order.id, nonce: (last?.nonce ?? 0) + 1 }));
+    }
+  }
   const hasOutputs = tabs.length > 0;
   const open = hasOutputs && !closed;
   const shownTab = tab && tabs.includes(tab) ? tab : tabs[0];
@@ -158,6 +175,16 @@ function ExperimentWorkspace({ projectId, experimentId }: { projectId: string; e
   if (!data) {
     if (loadError) return <div className="page"><p role="alert">Couldn&apos;t open this experiment: {loadError}</p></div>;
     return null;
+  }
+
+  if (orderId && !linkedView) {
+    return (
+      <div className="page">
+        <h1>Work order unavailable</h1>
+        <p role="alert">This experiment does not contain work order {orderId}.</p>
+        <a href={routeHref({ view: "experiment", projectId, experimentId })}>Open experiment</a>
+      </div>
+    );
   }
 
   const messages = inFlight ? data.messages.slice(0, inFlight.cutoff) : data.messages;

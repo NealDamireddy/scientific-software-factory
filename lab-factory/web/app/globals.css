@@ -192,6 +192,10 @@ textarea {
   background: var(--paper);
 }
 
+.mobile-nav-toggle {
+  display: none;
+}
+
 .sidebar {
   position: sticky;
   top: 0;
@@ -227,11 +231,44 @@ textarea {
   }
 
   .sidebar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 0 8px;
     position: static;
     height: auto;
     overflow: visible;
     border-right: 0;
     border-bottom: 1px solid var(--rule);
+  }
+
+  .mobile-nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+  }
+
+  .sidebar-actions, .sidebar-projects, .sidebar-bottom {
+    grid-column: 1 / -1;
+  }
+
+  .sidebar[data-expanded="true"] {
+    row-gap: 12px;
+  }
+
+  .sidebar[data-expanded="false"] :is(.sidebar-actions, .sidebar-projects, .sidebar-links) {
+    display: none;
+  }
+
+  .sidebar[data-expanded="false"] .sidebar-bottom {
+    display: contents;
   }
 
   .page {

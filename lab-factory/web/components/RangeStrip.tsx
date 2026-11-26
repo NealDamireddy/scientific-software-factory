@@ -9,7 +9,7 @@ export type RangeStripProps = {
   parameter: string;
   label: string;
   display: string;
-  canonical: { value: number; unit: string; minimum: number; maximum: number };
+  canonical: { value?: number; unit: string; minimum: number; maximum: number };
 };
 
 /**
@@ -36,13 +36,13 @@ function spectrumStyle(parameter: string, unit: string, minimum: number, maximum
 /** Shows where a value sits in the range an instrument allows. It never decides pass or fail. */
 export function RangeStrip({ parameter, label, display, canonical }: RangeStripProps) {
   const { value, unit, minimum, maximum } = canonical;
-  const percent = Number((markerPosition(value, minimum, maximum) * 100).toFixed(2));
+  const percent = value === undefined ? null : Number((markerPosition(value, minimum, maximum) * 100).toFixed(2));
   const spectrum = spectrumStyle(parameter, unit, minimum, maximum);
   return (
     <div
       className="range-strip"
       role="img"
-      aria-label={`${label} ${display}, allowed ${minimum} to ${maximum} ${unit}`}
+      aria-label={value === undefined ? `${label}, allowed ${minimum} to ${maximum} ${unit}` : `${label} ${display}, allowed ${minimum} to ${maximum} ${unit}`}
     >
       <div className="range-head" aria-hidden="true">
         <span className="range-label">{label}</span>
@@ -50,7 +50,7 @@ export function RangeStrip({ parameter, label, display, canonical }: RangeStripP
       </div>
       <div className="range-track" aria-hidden="true">
         {spectrum && <span className="range-spectrum" style={spectrum} />}
-        <span className="range-marker" style={{ left: `${percent}%` }} />
+        {percent !== null && <span className="range-marker" style={{ left: `${percent}%` }} />}
       </div>
       <div className="range-ends" aria-hidden="true">
         <span>{minimum} {unit}</span>

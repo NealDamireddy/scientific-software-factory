@@ -10,7 +10,7 @@ import { useClient } from "./ClientContext.tsx";
 
 export type SignOffProps = {
   order: WorkOrder;
-  /** The submission on show. Mount this only while it is the latest of the newest order. */
+  /** The submission on show. Mount this only while it is the latest submission of its order. */
   submission: Submission;
   /** Called once a sign-off goes through, to move focus to the submission summary. */
   onDone?: () => void;

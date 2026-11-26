@@ -7,5 +7,5 @@ import { SimulationView } from "../SimulationView.tsx";
 export function SimulationTab({ workspace }: { workspace: Workspace }) {
   const simulation = workspace.simulation;
   if (!simulation) return <h2 className="panel-heading">Extra: simulation</h2>;
-  return <SimulationView simulation={simulation} />;
+  return <SimulationView key={JSON.stringify([simulation.entry, simulation.code])} simulation={simulation} />;
 }

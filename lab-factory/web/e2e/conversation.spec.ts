@@ -58,11 +58,11 @@ test.describe("a new experiment", () => {
     // The lines arrive one at a time: the first is there while the last is not yet.
     const log = activity(page);
     await expect(log.getByText("Read lab context (revision 1)")).toBeVisible();
-    await expect(log.getByText("Ran 3 reference cases")).toHaveCount(0);
+    await expect(log.getByText("Prepared 3 reference cases")).toHaveCount(0);
     // While the build is in flight the card says what is being built.
     await expect(page.getByText("Building: Procedure, Analysis app", { exact: true })).toBeVisible();
     await expect(page.getByText(SAMPLE)).toBeInViewport();
-    await expect(log.getByRole("listitem").last()).toContainText("Ran 3 reference cases", { timeout: BUILD_MS });
+    await expect(log.getByRole("listitem").last()).toContainText("Prepared 3 reference cases", { timeout: BUILD_MS });
     await expect(log.getByText("Wrote simulation")).toHaveCount(0);
 
     await expect(panel(page)).toBeVisible();
@@ -226,6 +226,41 @@ test.describe("the Coomassie workspace", () => {
     const lines = await page.getByText("Rewrote procedure").count();
     expect(lines).toBe(1);
   });
+});
+
+test("retrying a failed attachment preserves the next draft and its files", async ({ page }) => {
+  await goto(page, B12);
+  await page.evaluate(() => {
+    const read = File.prototype.text;
+    File.prototype.text = function () {
+      if (this.name !== "first.txt") return read.call(this);
+      File.prototype.text = read;
+      return new Promise<string>((_resolve, reject) => {
+        window.addEventListener("fail-attachment-read", () => reject(new Error("File read failed.")), { once: true });
+        document.documentElement.dataset.readPending = "yes";
+      });
+    };
+  });
+  const box = page.getByRole("textbox", { name: "Message the factory" });
+  const attach = page.getByLabel("Attach files");
+  await box.fill("First message");
+  await attach.setInputFiles({ name: "first.txt", mimeType: "text/plain", buffer: Buffer.from("First file") });
+  await page.getByRole("button", { name: "Send", exact: true }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-read-pending", "yes");
+  await box.fill("Next message");
+  await attach.setInputFiles({ name: "next.txt", mimeType: "text/plain", buffer: Buffer.from("Next file") });
+  await page.evaluate(() => window.dispatchEvent(new Event("fail-attachment-read")));
+
+  const retry = page.getByRole("button", { name: "Retry message" });
+  await expect(retry).toBeEnabled();
+  await expect(box).toHaveValue("Next message");
+  await expect(page.getByRole("button", { name: "Remove next.txt" })).toBeVisible();
+  await retry.click();
+  await expect(conversation(page).getByText("First message", { exact: true })).toHaveCount(1);
+  await expect(conversation(page).getByText("I added first.txt to this experiment.", { exact: false })).toBeVisible();
+  await expect(retry).toHaveCount(0);
+  await expect(box).toHaveValue("Next message");
+  await expect(page.getByRole("button", { name: "Remove next.txt" })).toBeVisible();
 });
 
 test("at a 1024 by 700 window the conversation and the panel sit side by side, with nothing scrolled", async ({ page }) => {
