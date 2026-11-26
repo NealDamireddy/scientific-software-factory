@@ -3,6 +3,7 @@
 // createSeed builds a completely fresh object graph on every call.
 import { canonicalDigest } from "../digest.ts";
 import { SAMPLE_READINGS, toCsv } from "../readings.ts";
+import { submissionSummary } from "../status.ts";
 import type {
   AnalysisApp, Connector, Document, Experiment, HistoryEvent, Lab, LabSettings, Message, Pin,
   ProcedureStep, Project, Revision, RunPlan, RunStepView, Simulation, Skill, StepView, Submission,
@@ -250,11 +251,10 @@ export async function createSeed(now: Date): Promise<SampleState> {
   };
   const rpResults = runPlanResults(rpArtifact, instruments);
 
-  const submissions = [
-    await submit("WO-1", wo1Artifact, wo1Results, 80),
-    await submit("WO-B12", b12Artifact, b12Results, 180),
-    await submit("WO-B12-RP", rpArtifact, rpResults, 175),
-  ];
+  const wo1Submission = await submit("WO-1", wo1Artifact, wo1Results, 80);
+  const b12Submission = await submit("WO-B12", b12Artifact, b12Results, 180);
+  const rpSubmission = await submit("WO-B12-RP", rpArtifact, rpResults, 175);
+  const submissions = [wo1Submission, b12Submission, rpSubmission];
   const views: SampleState["views"] = {
     "WO-1#1": procedureViews(wo1Artifact.steps, wo1Results, docsFor("coomassie-run-1"), instruments),
     "WO-B12#1": procedureViews(b12Artifact.steps, b12Results, docsFor("b12-vial-a"), instruments),
@@ -305,7 +305,7 @@ export async function createSeed(now: Date): Promise<SampleState> {
           { id: "a7", label: "Wrote simulation", outcome: "done" },
         ],
         output_refs: [
-          { kind: "procedure", work_order_id: "WO-1", summary: "Procedure with 5 steps, 1 check failed" },
+          { kind: "procedure", work_order_id: "WO-1", summary: submissionSummary(wo1Submission) },
           { kind: "analysis_app", summary: app.summary },
           { kind: "simulation", summary: simulation.title },
         ],
@@ -317,8 +317,8 @@ export async function createSeed(now: Date): Promise<SampleState> {
         id: "b12-vial-a-m2", from: "factory", at: ago(170),
         text: "Built a procedure, which is waiting for sign-off, and a run plan, which fails one check.",
         output_refs: [
-          { kind: "procedure", work_order_id: "WO-B12", summary: "Procedure with 3 steps, all checks passed" },
-          { kind: "run_plan", work_order_id: "WO-B12-RP", summary: "Run plan with 1 step, 1 check failed" },
+          { kind: "procedure", work_order_id: "WO-B12", summary: submissionSummary(b12Submission) },
+          { kind: "run_plan", work_order_id: "WO-B12-RP", summary: submissionSummary(rpSubmission) },
         ],
       },
     ],

@@ -250,6 +250,11 @@ test("messages for coomassie-run-1 and b12-vial-a", async () => {
   assert.deepEqual(m[2].output_refs?.map((r) => [r.kind, r.work_order_id]), [
     ["procedure", "WO-1"], ["analysis_app", undefined], ["simulation", undefined],
   ]);
+  assert.deepEqual(m[2].output_refs?.map((r) => r.summary), [
+    "Submission 1, 1 check failed",
+    "Turns absorbance over time into a rate constant and half-life.",
+    "Fading curves for three amounts of reducing agent",
+  ]);
   const times = m.map((x) => Date.parse(x.at));
   assert.deepEqual([...times].sort((a, b) => a - b), times);
   assert.ok(times.every((t) => t < NOW.getTime()));
@@ -257,6 +262,7 @@ test("messages for coomassie-run-1 and b12-vial-a", async () => {
   assert.equal(b.length, 2);
   assert.equal(b[0].text, "Measure absorbance of the reference solution in vial A.");
   assert.deepEqual(b[1].output_refs?.map((r) => [r.kind, r.work_order_id]), [["procedure", "WO-B12"], ["run_plan", "WO-B12-RP"]]);
+  assert.deepEqual(b[1].output_refs?.map((r) => r.summary), ["Submission 1, all checks passed", "Submission 1, 1 check failed"]);
 });
 
 test("the analysis app and simulation", async () => {
