@@ -56,7 +56,7 @@
 - [ ] **Step 1: Create `pyproject.toml`.**
   - name `labfactory`, version `0.1.0`
   - hatchling with the src layout
-  - `requires-python = ">=3.11"` and `dependencies = ["mcp"]`
+  - `requires-python = ">=3.11"` and `dependencies = ["mcp>=1,<2"]` for the specified FastMCP v1 import
   - dev dependency group `["pytest"]`
   - `[project.scripts] labfactory = "labfactory.cli:main"`
 
