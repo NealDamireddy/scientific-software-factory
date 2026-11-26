@@ -20,7 +20,7 @@ def _run(code, entry, args):
         function = namespace[entry]
         value = function(**args) if isinstance(args, dict) else function(args)
         return {"ok": True, "value": value}
-    except Exception as e:
+    except BaseException as e:
         return {"ok": False, "error": str(e) or type(e).__name__}
 
 _run

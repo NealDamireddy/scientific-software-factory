@@ -95,6 +95,7 @@ export function createPythonRunner(options: { workerUrl?: string; timeoutMs?: nu
         }
       });
     },
+    /** Terminates the worker and rejects pending runs; a later run() starts a fresh worker (intended reuse). */
     dispose() {
       fail(new Error("The analysis runtime was closed."));
     },

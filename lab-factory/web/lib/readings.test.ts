@@ -62,9 +62,45 @@ test("four rows are too few", () => {
 });
 
 test("a BOM, reversed columns, CRLF and blank lines are accepted", () => {
-  const text = "﻿absorbance,time_s\r\n0.8,0\r\n\r\n0.7,10\n0.6,20\n0.5,30\n0.4,40\n\n";
+  const text = "\uFEFFabsorbance,time_s\r\n0.8,0\r\n\r\n0.7,10\n0.6,20\n0.5,30\n0.4,40\n\n";
   assert.deepEqual(parseReadingsCsv(text), {
     time_s: [0, 10, 20, 30, 40],
     absorbance: [0.8, 0.7, 0.6, 0.5, 0.4],
   });
+});
+
+test("a value that overflows to Infinity is rejected", () => {
+  assert.throws(
+    () => parseReadingsCsv("time_s,absorbance\n0,1e999\n"),
+    invalid("Row 2 has a value that isn't a number."),
+  );
+});
+
+test("rows whose cells are all empty are skipped like blank lines", () => {
+  const text = "time_s,absorbance\n0,0.8\n,\n10,0.7\n20,0.6\n,,\n30,0.5\n40,0.4\n,\n";
+  assert.deepEqual(parseReadingsCsv(text), {
+    time_s: [0, 10, 20, 30, 40],
+    absorbance: [0.8, 0.7, 0.6, 0.5, 0.4],
+  });
+});
+
+test("row numbers are physical line numbers, blank lines included", () => {
+  assert.throws(
+    () => parseReadingsCsv("time_s,absorbance\n\n0,0.8\nx,1"),
+    invalid("Row 4 has a value that isn't a number."),
+  );
+  assert.throws(() => parseReadingsCsv("time_s,absorbance\n0,abc"), invalid("Row 2 has a value that isn't a number."));
+});
+
+test("the seeded generator is pinned (mulberry32 golden values)", () => {
+  assert.deepEqual(SAMPLE_READINGS.absorbance.slice(0, 4), [0.7961, 0.7354, 0.6866, 0.6328]);
+});
+
+test("invalid step or duration is rejected, duration 0 gives one point", () => {
+  const base = { k: 0.01, a0: 0.8, a_end: 0.05, noise: 0, seed: 1 };
+  const message = "The readings step and duration must be positive numbers.";
+  for (const bad of [{ step_s: 0 }, { step_s: -5 }, { duration_s: -1 }, { step_s: NaN }, { duration_s: Infinity }]) {
+    assert.throws(() => syntheticReadings({ ...base, ...bad }), invalid(message));
+  }
+  assert.equal(syntheticReadings({ ...base, duration_s: 0 }).time_s.length, 1);
 });
