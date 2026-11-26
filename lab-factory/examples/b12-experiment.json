@@ -1,0 +1,18 @@
+{
+  "id": "b12-vial-a",
+  "lab_id": "emory-biophys",
+  "title": "Vitamin B12 absorbance",
+  "goal": "Measure absorbance of the reference solution in vial A.",
+  "instrument_ids": [
+    "uvvis-1"
+  ],
+  "documents": [
+    {
+      "id": "b12-protocol",
+      "kind": "sop",
+      "title": "Vial A protocol",
+      "source": "Experiment notebook",
+      "text": "Use the labeled reference solution in vial A."
+    }
+  ]
+}
