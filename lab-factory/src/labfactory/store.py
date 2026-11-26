@@ -35,6 +35,36 @@ _SCHEMA = (
         PRIMARY KEY (kind, id, number)
     )
     """,
+    """
+    CREATE TABLE IF NOT EXISTS work_orders (
+        id TEXT NOT NULL PRIMARY KEY,
+        experiment_id TEXT NOT NULL, experiment_revision INTEGER NOT NULL,
+        lab_id TEXT NOT NULL, lab_revision INTEGER NOT NULL,
+        kind TEXT NOT NULL CHECK (kind IN ('procedure','run_plan')),
+        objective TEXT NOT NULL,
+        status TEXT NOT NULL CHECK (status IN ('open','in_progress','in_review','released')),
+        worker TEXT, released_submission INTEGER,
+        FOREIGN KEY (id, released_submission) REFERENCES submissions(work_order_id, number)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS submissions (
+        work_order_id TEXT NOT NULL REFERENCES work_orders(id), number INTEGER NOT NULL,
+        worker TEXT NOT NULL, artifact TEXT NOT NULL, artifact_digest TEXT NOT NULL,
+        results TEXT NOT NULL, passed INTEGER NOT NULL CHECK (passed IN (0,1)),
+        submitted_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (work_order_id, number)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS events (
+        work_order_id TEXT NOT NULL REFERENCES work_orders(id), event TEXT NOT NULL,
+        actor TEXT NOT NULL, at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        submission INTEGER, note TEXT NOT NULL,
+        FOREIGN KEY (work_order_id, submission) REFERENCES submissions(work_order_id, number)
+    )
+    """,
+    "CREATE INDEX IF NOT EXISTS events_by_order ON events(work_order_id)",
 )
 
 
