@@ -27,7 +27,11 @@ _run
 `;
 
 function reason(error) {
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === "object" && typeof error.message === "string" && error.message) return error.message;
+  const text = String(error);
+  // Some download failures reject with a bare event or response, which has nothing to say.
+  return text === "" || text === "[object Object]" || text.startsWith("[object ") ? "a runtime file didn't download" : text;
 }
 
 const ready = loadPyodide({ indexURL: "/runtime/" }).then((pyodide) => ({

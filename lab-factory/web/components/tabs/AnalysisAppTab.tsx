@@ -1,8 +1,12 @@
 "use client";
 
 import type { Workspace } from "../../lib/types.ts";
+import { AnalysisAppView } from "../AnalysisAppView.tsx";
 
-/** The Analysis app tab's body. Task 14 fills it with the summary, the code and the reference cases. */
-export function AnalysisAppTab(_props: { workspace: Workspace }) {
-  return <h2 className="panel-heading">Analysis app</h2>;
+/** The Analysis app tab: the summary, the code and the reference cases, run in the browser. */
+export function AnalysisAppTab({ workspace }: { workspace: Workspace }) {
+  const app = workspace.analysis_app;
+  if (!app) return <h2 className="panel-heading">Analysis app</h2>;
+  // Keyed by the app, so another app's cases never show this one's answers.
+  return <AnalysisAppView key={`${app.code}\n${JSON.stringify(app.reference_cases)}`} app={app} />;
 }
