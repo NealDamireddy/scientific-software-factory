@@ -1,0 +1,13 @@
+comparison,choice,reason
+01,R,Checking the distributed copy and giving its version to the investigator verifies that the correction reached the file where the discrepancy was observed.
+02,R,"It directs the reviewer to obtain the instrument inputs and limits the spreadsheet comparison to water samples, clarifying where to verify the two disputed flags."
+03,T,"Both retain the estimates, require sample-linked confirmation of receipt pH below 2, and reconcile the memo, table and text for the samples supported."
+04,T,Both reinstate the memo qualifiers pending receipt-pH evidence and limit later revisions to the samples covered by that evidence.
+05,R,"It identifies bottle-level instrument records as the source needed to verify the disputed fields, avoiding reliance on the November water-sample workbook."
+06,T,Both retain and qualify the recorded assignments and trace the same three samples from bottle closure through labeling to laboratory results before changing a depth.
+07,R,Identifying the exact distributed file and checking the published replacement closes the version discrepancy for the investigator who reported the high values.
+08,T,"Both trace the same three cells across replacement files, decode the flags independently and issue a versioned correction using the documented value."
+09,T,"Both trace the three sample identities through draw and firing records, qualify the recorded assignments and require an identified source before reassignment."
+10,L,"It directs a station, cast and bottle comparison with the instrument records. The November workbook alone is documented only as a water-sample source."
+11,T,Both preserve the disputed assignments and require a trace from the laboratory sample back to a specific closure and pressure before changing them.
+12,T,Both restore unsupported memo qualifiers and require sample-linked evidence of receipt pH below 2 before updating any of the three records.

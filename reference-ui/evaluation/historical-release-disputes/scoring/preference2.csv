@@ -1,0 +1,13 @@
+comparison,choice,reason
+01,R,Checking the distributed copy and sending its version lets the investigator verify that the correction reached the file where the discrepancy appeared.
+02,R,It directs the investigator to obtain the instrument inputs to the bottle file and identifies which fields the November workbook can verify.
+03,T,Both reinstate estimates where receipt pH lacks sample-linked confirmation and reconcile all three records for any supported exceptions.
+04,T,Both correct the memo now and restrict later qualifier removal to samples with documented receipt pH below 2.
+05,R,It identifies the source bottle-level instrument QC records needed to resolve the oxygen and salinity flags.
+06,R,"It asks the sampler and laboratory to confirm the mapping across their handoff, a concrete follow-up if their records disagree."
+07,L,"It requires checking for an authorized later nitrite revision before restoring the older value, which prevents overwriting a legitimate update."
+08,T,"Both trace the same three rows across versions, check their flags separately and issue a documented correction."
+09,T,"Both preserve the reported assignments pending a trace between the laboratory result and the fired bottle, with the depth under review."
+10,L,"It calls for matching bottle rows by station, cast and bottle to the instrument records needed to verify the disputed instrument flags."
+11,T,Both trace sample identifiers between collection and analysis and require reconciliation with a bottle closure and pressure before reassignment.
+12,T,Both restore unsupported qualifications and limit any subsequent removal to samples with documented adequate preservation on receipt.
