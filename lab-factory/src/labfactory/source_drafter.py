@@ -88,7 +88,7 @@ def _acquire(store, order_id, token):
         """UPDATE procedure_author_jobs SET token=?, expires=unixepoch()+?
            WHERE work_order_id=? AND (token IS NULL OR expires < unixepoch())
            AND NOT EXISTS (SELECT 1 FROM submissions WHERE work_order_id=?)""",
-        (token, TIMEOUT * 9 + 60, order_id, order_id))
+        (token, TIMEOUT * 12 + 60, order_id, order_id))
     if changed.rowcount != 1:
         return None
     orders = WorkOrders(store)
@@ -128,6 +128,18 @@ def _problems(candidate, lab, exp, context):
         return [str(exc)]
 
 
+def _prepare(lab, exp, context):
+    # A fresh assessment on an answered order gets one repair attempt before
+    # requesting further evidence. A service outage is not a researcher decision.
+    attempts = 2 if context["answer_document_id"] else 1
+    for attempt in range(attempts):
+        try:
+            return decision_evidence.prepare(lab, exp, context, TIMEOUT)
+        except decision_evidence.InvalidDecision as exc:
+            if attempt + 1 == attempts:
+                return [decision_evidence.recovery_gap(lab, exp, context, 1, exc.topic)]
+
+
 def complete(run_store, pending):
     """Call the author outside the database transaction and commit one verified result."""
     from .first_draft import detail
@@ -141,7 +153,7 @@ def complete(run_store, pending):
     lab, exp, context = work
     try:
         try:
-            plan = decision_evidence.prepare(lab, exp, context, TIMEOUT)
+            plan = _prepare(lab, exp, context)
         except (OSError, RuntimeError, subprocess.TimeoutExpired, ValueError, TypeError, KeyError) as exc:
             raise DraftUnavailable("Decision evidence could not be verified. Retry the same request.") from exc
         context = decision_evidence.author_context(context, plan, lab, exp)
@@ -152,6 +164,7 @@ def complete(run_store, pending):
         paper_ids = paper_review.paper_ids(lab, exp)
         papers = [p for p in passages(lab, exp) if p["document"] in paper_ids]
         for _ in range(2):
+            rejected_decision = None
             candidate = {"needs_input": gap["question"]} if gap else generate(context, feedback)
             input_kind = gap["status"] if gap else candidate.pop("question_kind", None)
             problems = _problems(candidate, lab, exp, context)
@@ -159,6 +172,8 @@ def complete(run_store, pending):
                 try:
                     assessed = decision_evidence.assess_late_question(
                         lab, exp, context, candidate["needs_input"], input_kind, len(plan) + 1, TIMEOUT)
+                except decision_evidence.InvalidDecision as exc:
+                    assessed = decision_evidence.recovery_gap(lab, exp, context, len(plan) + 1, exc.topic)
                 except (OSError, RuntimeError, subprocess.TimeoutExpired, ValueError, TypeError, KeyError) as exc:
                     raise DraftUnavailable("The proposed question could not be verified. Retry the same request.") from exc
                 plan.append(assessed)
@@ -196,6 +211,8 @@ def complete(run_store, pending):
                     reviewed = decision_evidence.checks(candidate, plan, decision_report)
                 except (OSError, RuntimeError, subprocess.TimeoutExpired, ValueError, TypeError, KeyError) as exc:
                     raise DraftUnavailable("The independent decision review was unavailable. Retry the same request.") from exc
+                decisions = [d for d in plan if d["status"] == "resolved"]
+                rejected_decision = next((d for d, r in zip(decisions, reviewed) if not r.passed), None)
                 problems.extend(f"{r.name}: {r.detail}" for r in reviewed if not r.passed)
             if not problems:
                 break
@@ -203,7 +220,13 @@ def complete(run_store, pending):
                 corrections.append(problems)
             feedback = {"candidate": candidate, "failures": problems}
         else:
-            raise DraftUnavailable("The source drafter failed verification twice. Retry the same request.")
+            if rejected_decision is None:
+                raise DraftUnavailable("The source drafter failed verification twice. Retry the same request.")
+            gap = decision_evidence.recovery_gap(lab, exp, context, len(plan) + 1, rejected_decision["search"],
+                                                 confirm_setting=False)
+            plan.append(gap)
+            candidate, input_kind = {"needs_input": gap["question"]}, gap["status"]
+            report = decision_report = None
         def commit(store):
             row = store.connection.execute("SELECT token FROM procedure_author_jobs WHERE work_order_id=?",
                                            (order_id,)).fetchone()

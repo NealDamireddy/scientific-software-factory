@@ -14,7 +14,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "procedure_drafts" / "filters.jso
 
 
 @pytest.mark.parametrize("outcome", ["resolved", "researcher_choice", "missing_method_detail", "bad_quote",
-                                     "irrelevant_search", "late_question"])
+                                     "irrelevant_search", "late_question", "failed_decision_review"])
 def test_decision_retrieval_and_gates(tmp_path, monkeypatch, outcome):
     body = json.loads(FIXTURE.read_text())
     docs = body["lab"]["documents"]
@@ -49,7 +49,7 @@ def test_decision_retrieval_and_gates(tmp_path, monkeypatch, outcome):
                                    "question": "Which source or choice applies?" if outcome in decision_evidence.GAPS else ""}]}
         # Simulate a procedure with the signed comparison reversed on its first submission.
         text = data["draft"]["steps"][0]["text"]
-        return {"review": [{"index": data["indices"][0], "steps": [1], "passed": "A minus B" in text,
+        return {"review": [{"index": data["indices"][0], "steps": [1], "passed": outcome != "failed_decision_review" and "A minus B" in text,
                             "reason": "Report A minus B."}]}
 
     def author(context, feedback):
@@ -74,11 +74,19 @@ def test_decision_retrieval_and_gates(tmp_path, monkeypatch, outcome):
         response = api.post(PATH, json=body)
         result = response.json()
         if bad:
-            assert response.status_code == 503 and not draft_calls
-            assert api.get(PATH+"/"+result["order_id"]).json()["submission"] is None
+            assert response.status_code == 201 and not draft_calls
+            assert result["state"] == "needs_input" and result["input_kind"] == "missing_method_detail"
+            assert "wavelength (nm)" in result["question"] and "method passage" in result["question"]
+            assert set(result["submission"]["artifact"]) == {"needs_input"}
+            assert "invented text" not in json.dumps(result)
+            assert result == api.post(PATH, json=body).json()
             return
         assert response.status_code == 201 and result == api.post(PATH, json=body).json()
         assert any(d["search"] == query for d in result["decision_evidence"])
+        if outcome == "failed_decision_review":
+            assert len(draft_calls) == 2 and result["state"] == "needs_input"
+            assert set(result["submission"]["artifact"]) == {"needs_input"} and not result["submission"]["passed"]
+            return
         if outcome == "irrelevant_search":
             assert result["decision_evidence"][0]["status"] == "out_of_scope"
         if outcome in decision_evidence.GAPS:
@@ -107,3 +115,60 @@ def test_model_manual_on_instrument_step():
     assert not failed.passed and "guide, passage 3" in failed.detail
     artifact["steps"][1]["evidence"].append(manual)
     assert all(c.passed for c in decision_evidence.checks(artifact, plan, reviewed))
+
+
+@pytest.mark.parametrize("failure_stage", ["planning", "late_question", "outage"])
+def test_verification_recovery_can_be_answered(tmp_path, monkeypatch, failure_stage):
+    body = json.loads(FIXTURE.read_text())
+    db = str(tmp_path/"recovery.sqlite")
+    monkeypatch.setenv("LABFACTORY_LOCAL_DB", db)
+    monkeypatch.setenv("LABFACTORY_PUBLIC_REVIEW", "1")
+    monkeypatch.setenv("LABFACTORY_AGENTS", "{}")
+
+    def prepare(lab, experiment, context, timeout):
+        answer_id = context["answer_document_id"]
+        if failure_stage == "outage":
+            raise RuntimeError("Worker unavailable")
+        if not answer_id and failure_stage == "planning":
+            raise decision_evidence.InvalidDecision("Unverified evidence in decision assessment")
+        d = experiment.documents[-1]
+        return [{"index": 1, "search": "study wavelength", "status": "resolved", "question": "",
+                 "goal_quote": "", "finding": d.text,
+                 "hits": [[d.id, 1]], "evidence": [{"document": d.id, "passage": 1, "quote": d.text}],
+                 "instrument_manuals": []}]
+
+    def author(context, feedback):
+        if not context["answer_document_id"]:
+            return {"needs_input": "Does the retired setting apply?", "question_kind": "missing_method_detail"}
+        ref, = context["decisions"][0]["evidence"]
+        return {"steps": [{"text": "Measure each filter at the selected channel.", "citations": [ref["document"]],
+                           "evidence": [ref], "action": {"instrument_id": "photometer-1", "command": "read_transmittance",
+                                                        "settings": [{"parameter": "wavelength", "value": 520, "unit": "nm"}]}}]}
+
+    def late(*args):
+        raise decision_evidence.InvalidDecision("Unverified goal excerpt")
+
+    monkeypatch.setattr(decision_evidence, "prepare", prepare)
+    monkeypatch.setattr(decision_evidence, "assess_late_question", late)
+    monkeypatch.setattr(source_drafter, "generate", author)
+    monkeypatch.setattr(decision_evidence, "review", lambda *_: [
+        {"index": 1, "steps": [1], "passed": True, "reason": "Uses the prescribed channel."}])
+    with TestClient(application, base_url="http://localhost", headers={"Origin": "http://localhost"}) as api:
+        res = api.post(PATH, json=body)
+        start = res.json()
+        if failure_stage == "outage":
+            assert res.status_code == 503 and start["state"] == "drafting"
+            assert api.get(PATH+"/"+start["order_id"]).json()["submission"] is None
+            return
+        assert res.status_code == 201 and start["state"] == "needs_input"
+        assert start["input_kind"] == "missing_method_detail" and "wavelength (nm)" in start["question"]
+        assert "retired" not in start["question"] and "520" not in start["question"]
+        assert start == api.post(PATH, json=body).json()
+        assert not start["submission"]["passed"] and set(start["submission"]["artifact"]) == {"needs_input"}
+        parent = start["order"]["id"]
+        answer = {"request_id": "addendum", "title": "Approved study channel", "text": "Use 520 nm."}
+        url = f"{PATH}/{parent}/answers"
+        response = api.post(url, json=answer)
+        final = response.json()
+        assert response.status_code == 201 and final["state"] == "in_review" and final["previous_order"] == parent
+        assert final["submission"]["passed"] and final == api.post(url, json=answer).json()

@@ -26,6 +26,46 @@ _DECISION = obj(index=INT, status={"type": "string", "enum": list(KINDS)}, findi
 _REVIEW = obj(index=INT, steps=array(INT), passed={"type": "boolean"}, reason=TEXT)
 
 
+class InvalidDecision(ValueError):
+    """The worker responded, but its decision could not be grounded in pinned data."""
+
+    topic = ""
+
+
+def recovery_gap(lab, experiment, context, index, topic, *, confirm_setting=True):
+    """Build a question, never a method value, from the assigned action and study records."""
+    study_ids = {d.id for d in experiment.documents}
+    study = [p for p in passages(lab, experiment) if p["document"] in study_ids]
+    evidence = []
+    # On a follow-up the answer has already been supplied. Ask for its supporting
+    # method passage only after an internal repair, rather than repeating the value question.
+    required = {}
+    for device in lab.instruments:
+        if device.id not in experiment.instrument_ids:
+            continue
+        for cmd in device.commands:
+            for name in cmd.required:
+                label = name.replace("_", " ")
+                term = re.compile(r"(?<!\w)" + re.escape(label) + r"(?!\w)", re.I)
+                refs = [p for p in study if term.search(p["text"])]
+                if refs or term.search(experiment.goal):
+                    required[device.id, name] = (device, label, device.parameter(name).unit, refs)
+    if confirm_setting and len(required) == 1 and not context["answer_document_id"]:
+        device, label, unit, refs = next(iter(required.values()))
+        topic = f"{device.model} {label}"
+        question = (f"Which project-authorized {label} ({unit}) applies to the {device.model} measurement? "
+                    "Please supply the setting or the method passage that specifies it.")
+        evidence = [{"document": p["document"], "passage": p["passage"], "quote": p["text"]} for p in refs[:1]]
+    else:
+        # Do not echo a rejected model finding, value, or proposed question as fact.
+        subject = topic or experiment.title
+        question = (f"Which project method passage should be used to verify {subject}? "
+                    "Please provide the source title and the applicable instruction.")
+    return {"index": index, "search": topic or experiment.title, "hits": [[e["document"], e["passage"]] for e in evidence],
+            "status": "missing_method_detail", "question": " ".join(question.split()), "goal_quote": "",
+            "finding": "The available evidence could not be verified.", "evidence": evidence, "instrument_manuals": []}
+
+
 def ask(prompt, data, schema, timeout):
     return run_worker(prompt + "\nPinned data:\n" + json.dumps(data, ensure_ascii=False),
                       json.dumps(schema), timeout=timeout, temp_prefix="procedure-evidence-",
@@ -43,7 +83,7 @@ def prepare(lab, experiment, context, timeout):
         "with likely terms and model names. Do not invent settings or ask the researcher yet.",
         {"brief": brief, "catalog": catalog}, obj(searches=array(TEXT)), timeout)["searches"]
     if not 1 <= len(queries) <= 12 or not all(q.strip() for q in queries):
-        raise ValueError("Invalid decision searches")
+        raise InvalidDecision("Invalid decision searches")
     selected = {}
     matches = []
     # Keep the researcher's latest answer available even when its wording differs from a query.
@@ -78,12 +118,16 @@ def prepare(lab, experiment, context, timeout):
         by_index = _confirm_gaps(brief, pending, list(selected.values()), timeout)
         ordered = [by_index.get(d["index"], d) for d in ordered]
     if all(d["status"] == "out_of_scope" for d in ordered):
-        raise ValueError("No applicable study decisions")
+        raise InvalidDecision("No applicable study decisions")
     manual_ids = {d.id for d in docs if d.kind == "manual"}
     for entry, match in zip(ordered, matches):
         entry["search"] = match["search"]
         entry["hits"] = match["hits"]
-        _validate(entry, selected, context, manual_ids)
+        try:
+            _validate(entry, selected, context, manual_ids)
+        except InvalidDecision as exc:
+            exc.topic = match["search"]
+            raise
     return ordered
 
 
@@ -106,21 +150,21 @@ def _confirm_gaps(brief, pending, candidates, timeout):
 def _validate(entry, selected, context, manual_ids):
     entry["instrument_manuals"] = []
     if entry["status"] not in KINDS or not entry["finding"].strip():
-        raise ValueError("Incomplete evidence assessment")
+        raise InvalidDecision("Incomplete evidence assessment")
     if entry["goal_quote"] and not _intact_quote(entry["goal_quote"], context["goal"]):
-        raise ValueError("Unverified goal excerpt")
+        raise InvalidDecision("Unverified goal excerpt")
     if entry["status"] == "resolved" and not (entry["evidence"] or entry["goal_quote"].strip()):
-        raise ValueError("Resolved decision without supporting evidence")
+        raise InvalidDecision("Resolved decision without supporting evidence")
     question = entry["question"]
     if entry["status"] == "researcher_choice" and not (entry["evidence"] or entry["goal_quote"].strip()):
-        raise ValueError("Researcher choice without a study basis")
+        raise InvalidDecision("Researcher choice without a study basis")
     if (entry["status"] not in GAPS and question) or (entry["status"] in GAPS and
             (not question.strip() or not question.isprintable())):
-        raise ValueError("Invalid decision question")
+        raise InvalidDecision("Invalid decision question")
     for ref in entry["evidence"]:
         passage = selected.get((ref["document"], ref["passage"]))
         if not passage or not ref["quote"].strip() or not _intact_quote(ref["quote"], passage["text"]):
-            raise ValueError("Unverified evidence in decision assessment")
+            raise InvalidDecision("Unverified evidence in decision assessment")
         if ref["document"] in manual_ids:
             for instrument in context["instruments"]:
                 model = r"(?<!\w)" + re.escape(instrument["model"]) + r"(?!\w)"
@@ -142,7 +186,7 @@ def assess_late_question(lab, experiment, context, question, kind, index, timeou
 
 def _indexed(entries, indices):
     if sorted(e["index"] for e in entries) != sorted(indices):
-        raise ValueError("Each decision needs exactly one assessment")
+        raise InvalidDecision("Each decision needs exactly one assessment")
     return sorted(entries, key=lambda e: e["index"])
 
 
