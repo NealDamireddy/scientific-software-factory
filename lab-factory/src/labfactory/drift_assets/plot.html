@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stage drift across runs</title>
+<style>
+:root { font: 16px/1.5 system-ui, sans-serif; color: #172831; background: #f3f6f7; }
+body { margin: 0; }
+main { max-width: 960px; margin: auto; padding: 1rem; }
+h1 { margin: 0; font-size: clamp(1.65rem, 5vw, 2.4rem); }
+p { margin: .4rem 0 .8rem; }
+section { background: white; border: 1px solid #c6d2d8; border-radius: .6rem; margin: 1rem 0; padding: 1rem; }
+form, label { display: grid; gap: .35rem; }
+form { gap: .8rem; }
+label { font-weight: 600; }
+input, select, button { font: inherit; box-sizing: border-box; max-width: 100%; padding: .42rem; }
+button { justify-self: start; background: #14536c; color: white; border: 1px solid #14536c; border-radius: .3rem; cursor: pointer; }
+button:disabled { opacity: .55; cursor: default; }
+[hidden] { display: none !important; }
+#status { margin: 0; }
+.error { color: #a1251d; }
+canvas { display: block; width: 100%; height: 360px; }
+#runs { padding-left: 1.3rem; margin-bottom: 0; }
+#runs li { margin: .5rem 0; overflow-wrap: anywhere; }
+#runs button { margin-left: .6rem; color: #14536c; background: white; }
+</style>
+</head>
+<body>
+<main>
+<h1>Stage drift across runs</h1>
+<p>Signed displacement is stage position in millimetres minus the confirmed project origin. CSV files stay on this device.</p>
+<section>
+<p id="summary"></p>
+<details><summary>Inspect confirmed settings and provenance</summary><pre id="recipe" style="white-space:pre-wrap;overflow-wrap:anywhere"></pre></details>
+<label>Add run CSV files <input id="file" type="file" accept=".csv,text/csv" multiple></label>
+<p id="status" role="status"></p>
+</section>
+<section aria-label="Drift plot">
+<p id="empty">Choose run files to plot the measured traces.</p>
+<canvas id="plot" role="img" hidden></canvas><ul id="runs"></ul>
+<button id="figure" disabled>Save plot PNG</button>
+<button id="export" disabled>Save run record and plotted coordinates</button>
+</section></main><script>
+'use strict';
+const manifest = /*PLOT_MANIFEST*/null;
+const get = id => document.getElementById(id);
+const file = get('file'), canvas = get('plot'), legend = get('runs');
+const runs = [];
+let nextRun = 1;
+get('summary').textContent = manifest.plot.summary;
+get('recipe').textContent = JSON.stringify(manifest, null, 2);
+const colors = ['#00528c', '#9e301d', '#08714d', '#733182', '#875000', '#00646a'];
+const dashes = [[], [7, 4], [2, 3], [10, 3, 2, 3]];
+function showStatus(message, error = false) {
+  get('status').textContent = message;
+  get('status').classList.toggle('error', error);
+}
+function parseCSV(source) {
+  const text = source.replace(/^\uFEFF/, '');
+  const rows = [];
+  let row = [];
+  let value = '';
+  let state = 'start';
+  function finishField() {
+    row.push(value);
+    value = '';
+    state = 'start';
+  }
+  function finishRow() {
+    if (row.length || value.trim() || state === 'closed') {
+      finishField();
+      rows.push(row);
+    }
+    row = [];
+    value = '';
+    state = 'start';
+  }
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (state === 'quoted') {
+      if (ch !== '"') value += ch;
+      else if (text[i + 1] === '"') { value += '"'; i++; }
+      else state = 'closed';
+    } else if (ch === ',') {
+      finishField();
+    } else if (ch === '\r' || ch === '\n') {
+      finishRow();
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+    } else if (ch === '"' && state === 'start') {
+      state = 'quoted';
+    } else if (state === 'closed' || ch === '"') {
+      throw new Error(`Fix malformed quoting in CSV record ${rows.length + 1}.`);
+    } else {
+      state = 'plain';
+      value += ch;
+    }
+  }
+  if (state === 'quoted') throw new Error(`Close the quoted field in CSV record ${rows.length + 1}.`);
+  finishRow();
+  return rows;
+}
+
+function pointsFor(text, recipe) {
+  const [headers, ...rows] = parseCSV(text);
+  if (!headers || !rows.length) throw Error('Provide a header and at least one data row.');
+  const names = headers.map(name => name.trim());
+  function column(name) {
+    if (!name) return -1;
+    const index = names.indexOf(name);
+    if (index < 0 || index !== names.lastIndexOf(name)) throw Error('Expected one column named ' + name);
+    return index;
+  }
+  function numeric(cell, field, i) {
+    const value = cell.trim();
+    if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value) || !Number.isFinite(Number(value)))
+      throw Error('Invalid ' + field + ' in data row ' + (i + 1));
+    return Number(value);
+  }
+  const reading = column(recipe.reading_column), role = column(recipe.role_column), time = column(recipe.timestamp_column);
+  const seconds = {s:1,ms:0.001,us:0.000001,ns:1e-9,min:60,h:3600}[recipe.timestamp_unit];
+  const points = [];
+  let first, previous = -Infinity;
+  rows.forEach((row, i) => {
+    if (row.length !== headers.length) throw Error('Wrong column count in data row ' + (i + 1));
+    const coordinate = time < 0 ? i : numeric(row[time], 'timestamp', i);
+    if (coordinate <= previous) throw Error('Timestamps must increase in acquisition order at data row ' + (i + 1));
+    previous = coordinate;
+    if (role >= 0 && row[role].trim() !== recipe.role_value) return;
+    if (first === undefined) first = coordinate;
+    const x = manifest.plot.axis === 'order' ? i + 1 : (coordinate - first) * (seconds || recipe.interval_seconds);
+    const y = numeric(row[reading], 'position', i) / recipe.ticks_per_mm - recipe.origin_mm;
+    if (!Number.isFinite(x) || !Number.isFinite(y) || (points.length && x <= points[points.length-1].x))
+      throw Error('Coordinate exceeds numeric precision in data row ' + (i + 1));
+    points.push({row:i + 1, x, y});
+  });
+  if (!points.length) throw Error('No rows match the confirmed role selection.');
+  return points;
+}
+
+file.addEventListener('change', async () => {
+  const selected = Array.from(file.files), pending = [];
+  file.disabled = true;
+  try {
+    for (const input of selected) {
+      const recipe = manifest.plot.runs.find(r => r.filename === input.name || r.filename === '*');
+      if (!recipe) throw Error('No confirmed configuration for ' + input.name);
+      const bytes = await input.arrayBuffer();
+      const points = pointsFor(new TextDecoder('utf-8', {fatal:true}).decode(bytes), recipe);
+      const hash = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)), b => b.toString(16).padStart(2,'0')).join('');
+      pending.push({name:input.name, sha256:hash, recipe, points, summary:recipe.origin_mm + ' mm origin · ' + recipe.reading_unit});
+    }
+    for (const run of pending) runs.push({...run, id:nextRun++});
+    render(); showStatus('Added ' + pending.length + ' run(s).');
+  } catch(error) { showStatus(error.message, true); }
+  finally { file.value = ''; file.disabled = false; }
+});
+function saveBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a'); link.href = url; link.download = filename;
+  link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+get('export').addEventListener('click', () => {
+  saveBlob(new Blob([JSON.stringify({manifest,runs},null,2)], {type:'application/json'}), 'drift-run-record.json');
+});
+get('figure').addEventListener('click', () => {
+  const image = document.createElement('canvas');
+  const scale = window.devicePixelRatio || 1;
+  image.width = canvas.width;
+  image.height = canvas.height + Math.ceil((runs.length * 24 + 16) * scale);
+  const ctx = image.getContext('2d');
+  ctx.fillStyle = 'white'; ctx.fillRect(0,0,image.width,image.height);
+  ctx.drawImage(canvas,0,0); ctx.scale(scale,scale); ctx.font = '14px system-ui';
+  runs.forEach((run,i) => {
+    const y = canvas.height / scale + 19 + i * 24;
+    ctx.strokeStyle = runColor(run); ctx.lineWidth = 2; ctx.setLineDash(dashes[(run.id-1) % dashes.length]);
+    ctx.beginPath(); ctx.moveTo(8,y-4); ctx.lineTo(36,y-4); ctx.stroke();
+    ctx.fillStyle = '#172831'; ctx.fillText(run.name + ' · ' + run.summary,44,y,image.width / scale - 52);
+  });
+  image.toBlob(blob => { if (blob) saveBlob(blob,'stage-drift.png'); },'image/png');
+});
+function runColor(run) { return colors[(run.id - 1) % colors.length]; }
+function render() {
+  legend.replaceChildren();
+  for (const run of runs) {
+    const item = document.createElement('li');
+    const label = document.createElement('strong');
+    label.style.color = runColor(run);
+    label.textContent = `Run ${run.id}`;
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.textContent = 'Remove';
+    remove.setAttribute('aria-label', `Remove run ${run.id}, ${run.name}`);
+    remove.addEventListener('click', () => {
+      runs.splice(runs.indexOf(run), 1);
+      render();
+      showStatus(`Removed run ${run.id}.`);
+      (legend.querySelector('button') ?? file).focus();
+    });
+    item.append(label, ` · ${run.name} · ${run.summary} · ${run.points.length} plotted`, remove);
+    legend.append(item);
+  }
+  canvas.hidden = !runs.length;
+  get('empty').hidden = runs.length > 0;
+  get('export').disabled = !runs.length;
+  get('figure').disabled = !runs.length;
+  draw();
+}
+function draw() {
+  if (!runs.length) return;
+  const elapsed = manifest.plot.axis === 'elapsed';
+  const xTitle = elapsed ? 'Elapsed time (s)' : 'Acquisition order (CSV data row)';
+  canvas.setAttribute('aria-label', `Signed displacement in millimetres by ${xTitle.toLowerCase()}`);
+  const {width, height} = canvas.getBoundingClientRect();
+  if (width < 125) return;
+  const scale = window.devicePixelRatio || 1;
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.font = '12px system-ui';
+  ctx.fillStyle = '#172831';
+  const minX = elapsed ? 0 : 1;
+  let maxX = minX;
+  let minY = 0;
+  let maxY = 0;
+  for (const run of runs) {
+    for (const point of run.points) {
+      maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y);
+      maxY = Math.max(maxY, point.y);
+    }
+  }
+  if (minY === maxY) { minY = -1; maxY = 1; }
+  const magnitude = Math.max(Math.abs(minY), Math.abs(maxY));
+  const lo = minY / magnitude;
+  const hi = maxY / magnitude;
+  const left = 73;
+  const right = width - 26;
+  const top = 34;
+  const bottom = height - 52;
+  const x = value => maxX === minX ? (left + right) / 2 : left + (value - minX) / (maxX - minX) * (right - left);
+  const y = normalized => bottom - (normalized - lo) / (hi - lo) * (bottom - top);
+  const format = value => value === 0 ? '0' : Math.abs(value) < .001 || Math.abs(value) >= 10000 ? value.toExponential(2) : String(Number(value.toPrecision(4)));
+  function line(x1, y1, x2, y2, color) {
+    ctx.strokeStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+  }
+  ctx.textAlign = 'left';
+  ctx.fillText('Signed displacement (mm)', 0, 17);
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 4; i++) {
+    const value = (1 - i / 4) * lo + i / 4 * hi;
+    line(left, y(value), right, y(value), '#d6e0e5');
+    ctx.fillText(format(value * magnitude), left - 7, y(value) + 4);
+  }
+  line(left, y(0), right, y(0), '#758692');
+  line(left, top, left, bottom, '#758692');
+  line(left, bottom, right, bottom, '#758692');
+  ctx.textAlign = 'center';
+  const divisions = Math.max(1, Math.floor((right - left) / 75));
+  const steps = elapsed && maxX > 0 ? divisions : Math.min(divisions, maxX - minX);
+  for (let i = 0; i <= steps; i++) {
+    let value = steps ? minX + (i / steps) * (maxX - minX) : minX;
+    if (!elapsed) value = Math.round(value);
+    line(x(value), bottom, x(value), bottom + 4, '#758692');
+    ctx.fillText(format(value), x(value), bottom + 18);
+  }
+  ctx.fillText(xTitle, (left + right) / 2, height - 10, right - left + 30);
+  for (const run of runs) {
+    ctx.strokeStyle = runColor(run);
+    ctx.fillStyle = runColor(run);
+    ctx.lineWidth = 2;
+    ctx.setLineDash(dashes[(run.id - 1) % dashes.length]);
+    ctx.beginPath();
+    run.points.forEach((point, i) => {
+      const px = x(point.x);
+      const py = y(point.y / magnitude);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (run.points.length <= 100) {
+      ctx.beginPath();
+      for (const point of run.points) {
+        const px = x(point.x);
+        const py = y(point.y / magnitude);
+        ctx.moveTo(px + 3, py);
+        ctx.arc(px, py, 3, 0, 2 * Math.PI);
+      }
+      ctx.fill();
+    }
+  }
+}
+window.addEventListener('resize', draw);
+render();
+</script>
+</body>
+</html>

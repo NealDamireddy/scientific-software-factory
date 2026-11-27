@@ -1,0 +1,322 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; frame-src 'self'; form-action 'none'; base-uri 'none'"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Lab Factory analysis app</title><style>html,body,iframe{width:100%;height:100%;margin:0;border:0;display:block}</style></head><body><iframe title="Generated analysis app" sandbox="allow-scripts allow-downloads" srcdoc="&lt;!doctype html&gt;
+&lt;html lang=&quot;en&quot;&gt;
+&lt;head&gt;
+&lt;meta charset=&quot;utf-8&quot;&gt;
+&lt;meta name=&quot;viewport&quot; content=&quot;width=device-width, initial-scale=1&quot;&gt;
+&lt;meta name=&quot;color-scheme&quot; content=&quot;light&quot;&gt;
+&lt;title&gt;Repeat spectra analysis&lt;/title&gt;
+&lt;style&gt;
+:root { font-family: system-ui, sans-serif; color: #162c33; background: #edf3f3; line-height: 1.5; }
+body { margin: 0; }
+main { max-width: 66rem; margin: auto; padding: clamp(1rem, 4vw, 3rem); }
+h1 { margin: 0; font-size: clamp(1.9rem, 5vw, 3rem); letter-spacing: -.04em; }
+h2 { margin: 0 0 .75rem; font-size: 1.2rem; }
+header p { color: #39545b; margin: .4rem 0 1.5rem; }
+section { margin: 1rem 0; background: white; border: 1px solid #c9dada; border-radius: .8rem; padding: clamp(.9rem, 3vw, 1.6rem); }
+label { display: block; margin-bottom: .45rem; font-weight: 650; }
+input { max-width: 100%; font: inherit; }
+button { background: #125b56; color: white; border: 0; border-radius: .45rem; padding: .55rem .85rem; font: inherit; font-weight: 650; cursor: pointer; }
+:focus-visible { outline: 3px solid #117e76; outline-offset: 3px; }
+#status { margin: .8rem 0 0; overflow-wrap: anywhere; }
+#status[data-error=&quot;true&quot;] { color: #962b2b; }
+.result-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .6rem; }
+figure { margin: .75rem 0 1rem; }
+canvas { display: block; width: 100%; height: clamp(18rem, 46vw, 28rem); }
+figcaption { color: #39545b; margin-top: .4rem; }
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; text-align: left; }
+th, td { border-bottom: 1px solid #d7e4e4; padding: .45rem .6rem; overflow-wrap: anywhere; }
+th { background: #eef5f4; }
+details { margin-top: 1rem; }
+summary { cursor: pointer; font-weight: 650; }
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;main&gt;
+&lt;header&gt;&lt;h1&gt;Repeat spectra&lt;/h1&gt;&lt;p&gt;Align scans to their elastic-line markers and combine detector and monitor counts on the shared energy grid.&lt;/p&gt;&lt;/header&gt;
+&lt;section aria-labelledby=&quot;input-title&quot;&gt;
+&lt;h2 id=&quot;input-title&quot;&gt;Scan files&lt;/h2&gt;
+&lt;label for=&quot;files&quot;&gt;Select UTF-8 CSV files&lt;/label&gt;
+&lt;input id=&quot;files&quot; type=&quot;file&quot; accept=&quot;.csv,text/csv&quot; multiple aria-describedby=&quot;requirements&quot;&gt;
+&lt;p id=&quot;requirements&quot;&gt;Required columns are &lt;code&gt;energy_eV&lt;/code&gt;, &lt;code&gt;marker_eV&lt;/code&gt;, &lt;code&gt;det_ct&lt;/code&gt;, and &lt;code&gt;mon_ct&lt;/code&gt;. Corrected grids must agree within 1e-8 eV.&lt;/p&gt;
+&lt;p id=&quot;status&quot; role=&quot;status&quot; aria-live=&quot;polite&quot;&gt;Select files to calculate the combined profile.&lt;/p&gt;
+&lt;/section&gt;
+&lt;section id=&quot;result&quot; aria-labelledby=&quot;result-title&quot; hidden&gt;
+&lt;div class=&quot;result-header&quot;&gt;&lt;h2 id=&quot;result-title&quot;&gt;Combined profile&lt;/h2&gt;&lt;button id=&quot;download&quot; type=&quot;button&quot;&gt;Download CSV&lt;/button&gt;&lt;/div&gt;
+&lt;figure&gt;&lt;canvas id=&quot;plot&quot; role=&quot;img&quot; aria-label=&quot;Combined intensity versus corrected energy&quot;&gt;&lt;/canvas&gt;&lt;figcaption id=&quot;caption&quot;&gt;&lt;/figcaption&gt;&lt;/figure&gt;
+&lt;h2&gt;Contributing files&lt;/h2&gt;
+&lt;div class=&quot;table-wrap&quot;&gt;&lt;table&gt;&lt;thead&gt;&lt;tr&gt;&lt;th scope=&quot;col&quot;&gt;Selection order&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;File&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;Marker (eV)&lt;/th&gt;&lt;th scope=&quot;col&quot;&gt;Rows&lt;/th&gt;&lt;/tr&gt;&lt;/thead&gt;&lt;tbody id=&quot;contributors&quot;&gt;&lt;/tbody&gt;&lt;/table&gt;&lt;/div&gt;
+&lt;details&gt;&lt;summary&gt;Analysis method&lt;/summary&gt;&lt;p&gt;Subtract each file’s marker from its laboratory energies and sort the corrected points. Pair rows by sorted position and require the largest and smallest corrected energy in each bin to differ by at most 1e-8 eV. Plot and export the corrected coordinates from the first file listed above. Divide summed detector counts by summed incident-monitor counts for each bin.&lt;/p&gt;&lt;/details&gt;
+&lt;/section&gt;
+&lt;/main&gt;
+&lt;script&gt;
+&#x27;use strict&#x27;;
+const files = document.getElementById(&#x27;files&#x27;);
+const result = document.getElementById(&#x27;result&#x27;);
+const status = document.getElementById(&#x27;status&#x27;);
+const plot = document.getElementById(&#x27;plot&#x27;);
+const contributors = document.getElementById(&#x27;contributors&#x27;);
+const caption = document.getElementById(&#x27;caption&#x27;);
+const download = document.getElementById(&#x27;download&#x27;);
+const tolerance = 1e-8;
+const required = [&#x27;energy_eV&#x27;, &#x27;marker_eV&#x27;, &#x27;det_ct&#x27;, &#x27;mon_ct&#x27;];
+const numberPattern = /^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/;
+let generation = 0;
+let profile = [];
+
+// Parse quoted CSV fields, preserving physical line numbers for diagnostics.
+function* csvRows(text) {
+  let cells = [];
+  let field = &#x27;&#x27;;
+  let state = &#x27;start&#x27;;
+  let line = 1;
+  let rowLine = 1;
+  let touched = false;
+  for (let i = 0; i &lt; text.length; i += 1) {
+    const ch = text[i];
+    const newline = ch === &#x27;\r&#x27; || ch === &#x27;\n&#x27;;
+    if (state === &#x27;quoted&#x27;) {
+      if (ch === &#x27;&quot;&#x27;) {
+        if (text[i + 1] === &#x27;&quot;&#x27;) { field += &#x27;&quot;&#x27;; i += 1; }
+        else state = &#x27;closed&#x27;;
+      } else if (newline) {
+        if (ch === &#x27;\r&#x27; &amp;&amp; text[i + 1] === &#x27;\n&#x27;) i += 1;
+        field += &#x27;\n&#x27;;
+        line += 1;
+      } else field += ch;
+      continue;
+    }
+    if (newline) {
+      if (touched) yield { cells: [...cells, field], line: rowLine };
+      if (ch === &#x27;\r&#x27; &amp;&amp; text[i + 1] === &#x27;\n&#x27;) i += 1;
+      line += 1;
+      rowLine = line;
+      cells = [];
+      field = &#x27;&#x27;;
+      state = &#x27;start&#x27;;
+      touched = false;
+      continue;
+    }
+    touched = true;
+    if (ch === &#x27;,&#x27;) {
+      cells.push(field);
+      field = &#x27;&#x27;;
+      state = &#x27;start&#x27;;
+    } else if (ch === &#x27;&quot;&#x27; &amp;&amp; state === &#x27;start&#x27;) {
+      state = &#x27;quoted&#x27;;
+    } else {
+      if (ch === &#x27;&quot;&#x27; || state === &#x27;closed&#x27;) throw new Error(`line ${line}: malformed CSV quoting.`);
+      field += ch;
+      state = &#x27;plain&#x27;;
+    }
+  }
+  if (state === &#x27;quoted&#x27;) throw new Error(`line ${rowLine}: unterminated quoted field.`);
+  if (touched) yield { cells: [...cells, field], line: rowLine };
+}
+
+async function readScan(file, index) {
+  try {
+    const text = new TextDecoder(&#x27;utf-8&#x27;, { fatal: true }).decode(await file.arrayBuffer());
+    const rows = csvRows(text);
+    const headerRow = rows.next().value;
+    if (!headerRow) throw new Error(&#x27;empty file.&#x27;);
+    const headers = headerRow.cells.map(cell =&gt; cell.trim());
+    const columns = required.map(name =&gt; {
+      const matches = headers.filter(header =&gt; header === name).length;
+      if (matches !== 1) throw new Error(`expected exactly one ${name} column.`);
+      return headers.indexOf(name);
+    });
+    const points = [];
+    let marker;
+    for (const row of rows) {
+      if (row.cells.length !== headers.length) throw new Error(`line ${row.line}: expected ${headers.length} columns, found ${row.cells.length}.`);
+      const [energy, observed, detector, monitor] = columns.map((column, position) =&gt; {
+        const token = row.cells[column].trim();
+        const value = Number(token);
+        if (!numberPattern.test(token) || !Number.isFinite(value)) {
+          throw new Error(`line ${row.line}: ${required[position]} must be a finite decimal number.`);
+        }
+        return value;
+      });
+      if (marker === undefined) marker = observed;
+      if (observed !== marker) throw new Error(`line ${row.line}: marker_eV differs from the first data row.`);
+      if (detector &lt; 0) throw new Error(`line ${row.line}: det_ct must be nonnegative.`);
+      if (monitor &lt;= 0) throw new Error(`line ${row.line}: mon_ct must be positive.`);
+      const corrected = energy - marker;
+      if (!Number.isFinite(corrected)) throw new Error(`line ${row.line}: corrected energy exceeds the numeric range.`);
+      points.push({ corrected, detector, monitor, line: row.line });
+    }
+    if (!points.length) throw new Error(&#x27;no data rows.&#x27;);
+    points.sort((a, b) =&gt; a.corrected - b.corrected);
+    for (let i = 1; i &lt; points.length; i += 1) {
+      if (points[i].corrected === points[i - 1].corrected) {
+        throw new Error(`lines ${points[i - 1].line} and ${points[i].line}: duplicate corrected energy ${points[i].corrected} eV.`);
+      }
+    }
+    return { file, index, marker, points };
+  } catch (error) {
+    throw new Error(`File ${index + 1} (${file.name}): ${error.message}`);
+  }
+}
+
+function combine(scans) {
+  const reference = scans[0];
+  for (const scan of scans) {
+    if (scan.points.length !== reference.points.length) {
+      throw new Error(`Grid mismatch: file ${scan.index + 1} (${scan.file.name}) has ${scan.points.length} rows and file 1 (${reference.file.name}) has ${reference.points.length}.`);
+    }
+  }
+  return reference.points.map((referencePoint, bin) =&gt; {
+    let low = referencePoint.corrected;
+    let high = low;
+    let lowScan = reference;
+    let highScan = reference;
+    let countScale = 0;
+    for (const scan of scans) {
+      const point = scan.points[bin];
+      if (point.corrected &lt; low) { low = point.corrected; lowScan = scan; }
+      if (point.corrected &gt; high) { high = point.corrected; highScan = scan; }
+      countScale = Math.max(countScale, point.detector, point.monitor);
+    }
+    if (high - low &gt; tolerance) {
+      throw new Error(`Grid mismatch at sorted bin ${bin + 1}: file ${lowScan.index + 1} (${lowScan.file.name}) has ${low} eV and file ${highScan.index + 1} (${highScan.file.name}) has ${high} eV. The limit is 1e-8 eV.`);
+    }
+    let detector = 0;
+    let monitor = 0;
+    for (const scan of scans) {
+      const point = scan.points[bin];
+      detector += point.detector / countScale;
+      monitor += point.monitor / countScale;
+    }
+    const intensity = detector / monitor;
+    if (!Number.isFinite(intensity)) throw new Error(`Sorted bin ${bin + 1}: normalized intensity exceeds the numeric range.`);
+    return { energy: referencePoint.corrected, intensity };
+  });
+}
+
+function draw() {
+  if (result.hidden || !profile.length) return;
+  const { width, height } = plot.getBoundingClientRect();
+  if (width &lt; 150 || height &lt; 100) return;
+  const ratio = window.devicePixelRatio || 1;
+  plot.width = Math.round(width * ratio);
+  plot.height = Math.round(height * ratio);
+  const ctx = plot.getContext(&#x27;2d&#x27;);
+  ctx.scale(plot.width / width, plot.height / height);
+  const left = 86;
+  const right = width - 19;
+  const top = 16;
+  const bottom = height - 58;
+  const low = profile[0].energy;
+  const high = profile[profile.length - 1].energy;
+  const energyScale = Math.max(Math.abs(low), Math.abs(high)) || 1;
+  const lowScaled = low / energyScale;
+  const highScaled = high / energyScale;
+  const span = high - low;
+  let peak = 0;
+  for (const point of profile) peak = Math.max(peak, point.intensity);
+  const yMax = peak || 1;
+  const mapX = energy =&gt; low === high ? (left + right) / 2 : left + (right - left) * (Number.isFinite(span) ? (energy - low) / span : (energy / energyScale - lowScaled) / (highScaled - lowScaled));
+  const mapY = intensity =&gt; bottom - (bottom - top) * (intensity / yMax);
+  const format = value =&gt; Number(value.toPrecision(5)).toString();
+  ctx.font = &#x27;12px system-ui&#x27;;
+  ctx.lineWidth = 1;
+  ctx.textBaseline = &#x27;middle&#x27;;
+  for (let i = 0; i &lt;= 4; i += 1) {
+    const fraction = i / 4;
+    const y = bottom - (bottom - top) * fraction;
+    ctx.strokeStyle = &#x27;#d8e6e5&#x27;;
+    ctx.beginPath(); ctx.moveTo(left, y); ctx.lineTo(right, y); ctx.stroke();
+    ctx.fillStyle = &#x27;#39545b&#x27;;
+    ctx.textAlign = &#x27;right&#x27;;
+    ctx.fillText(format(yMax * fraction), left - 8, y, left - 33);
+  }
+  ctx.strokeStyle = &#x27;#567176&#x27;;
+  ctx.beginPath(); ctx.moveTo(left, top); ctx.lineTo(left, bottom); ctx.lineTo(right, bottom); ctx.stroke();
+  ctx.textAlign = &#x27;center&#x27;;
+  const tickCount = width &lt; 480 ? 2 : 4;
+  for (let i = 0; i &lt;= tickCount; i += 1) {
+    if (low === high &amp;&amp; i !== tickCount / 2) continue;
+    const fraction = i / tickCount;
+    const x = left + (right - left) * fraction;
+    const value = low === high ? low : low * (1 - fraction) + high * fraction;
+    ctx.textAlign = i === 0 ? &#x27;left&#x27; : i === tickCount ? &#x27;right&#x27; : &#x27;center&#x27;;
+    ctx.fillText(format(value), x, bottom + 15, (right - left) / tickCount);
+  }
+  ctx.textAlign = &#x27;center&#x27;;
+  ctx.fillText(&#x27;Corrected energy (eV)&#x27;, (left + right) / 2, height - 13);
+  ctx.save();
+  ctx.translate(13, (top + bottom) / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText(&#x27;Intensity (detector counts / monitor counts)&#x27;, 0, 0, bottom - top);
+  ctx.restore();
+  ctx.strokeStyle = &#x27;#087b70&#x27;;
+  ctx.fillStyle = &#x27;#087b70&#x27;;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  profile.forEach((point, index) =&gt; {
+    const x = mapX(point.energy);
+    const y = mapY(point.intensity);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  if (profile.length &lt;= 35) {
+    for (const point of profile) {
+      ctx.beginPath(); ctx.arc(mapX(point.energy), mapY(point.intensity), 3, 0, 2 * Math.PI); ctx.fill();
+    }
+  }
+}
+
+files.addEventListener(&#x27;change&#x27;, async () =&gt; {
+  const current = ++generation;
+  const selected = Array.from(files.files);
+  profile = [];
+  result.hidden = true;
+  contributors.replaceChildren();
+  status.dataset.error = &#x27;false&#x27;;
+  status.textContent = selected.length ? &#x27;Reading scan files…&#x27; : &#x27;Select files to calculate the combined profile.&#x27;;
+  if (!selected.length) return;
+  try {
+    const scans = [];
+    for (const [index, file] of selected.entries()) {
+      scans.push(await readScan(file, index));
+      if (current !== generation) return;
+    }
+    profile = combine(scans);
+    for (const scan of scans) {
+      const row = contributors.insertRow();
+      for (const value of [scan.index + 1, scan.file.name, scan.marker, scan.points.length]) {
+        row.insertCell().textContent = String(value);
+      }
+    }
+    caption.textContent = `${profile.length} ${profile.length === 1 ? &#x27;bin&#x27; : &#x27;bins&#x27;}. Energy coordinates are from file 1 (${scans[0].file.name}).`;
+    result.hidden = false;
+    status.textContent = `${scans.length} ${scans.length === 1 ? &#x27;scan&#x27; : &#x27;scans&#x27;} included.`;
+    draw();
+  } catch (error) {
+    if (current !== generation) return;
+    profile = [];
+    result.hidden = true;
+    status.dataset.error = &#x27;true&#x27;;
+    status.textContent = error.message;
+  }
+});
+
+new ResizeObserver(draw).observe(plot);
+download.addEventListener(&#x27;click&#x27;, () =&gt; {
+  if (!profile.length) return;
+  const lines = [&#x27;corrected_energy_eV,normalized_intensity_det_ct_per_mon_ct\r\n&#x27;];
+  for (const point of profile) lines.push(`${point.energy},${point.intensity}\r\n`);
+  const url = URL.createObjectURL(new Blob(lines, { type: &#x27;text/csv;charset=utf-8&#x27; }));
+  const link = document.createElement(&#x27;a&#x27;);
+  link.href = url;
+  link.download = &#x27;combined_spectrum.csv&#x27;;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() =&gt; URL.revokeObjectURL(url), 30000);
+});
+&lt;/script&gt;
+&lt;/body&gt;
+&lt;/html&gt;"></iframe></body></html>

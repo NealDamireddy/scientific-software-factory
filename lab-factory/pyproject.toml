@@ -29,4 +29,4 @@ packages = ["src/labfactory", "src/lab_codex_worker"]
 "examples/b12-experiment.json" = "labfactory/examples/b12-experiment.json"
 
 [tool.uv]
-cache-keys = [{ file = "pyproject.toml" }, { file = "src/**/*.py" }, { file = "src/**/*.json" }]
+cache-keys = [{ file = "pyproject.toml" }, { file = "src/**/*.py" }, { file = "src/**/*.json" }, { file = "src/**/*.html" }]

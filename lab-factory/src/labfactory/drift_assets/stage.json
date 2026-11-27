@@ -1,0 +1,198 @@
+[
+  {
+    "experiment": {
+      "digest": "1bbc2d9391a775fa6545016dfe27fcf17f56b477e06dc116f19bacea72ff872b",
+      "documents": [
+        {
+          "id": "origin",
+          "kind": "sop",
+          "source": "Stage project §3",
+          "text": "Report signed displacement as stage position in mm minus the project origin of 2 mm.",
+          "title": "Reporting origin"
+        }
+      ],
+      "goal": "Measure signed displacement from the project origin.",
+      "id": "drift",
+      "revision": 1,
+      "title": "Stage alignment"
+    },
+    "lab": {
+      "digest": "630752fff016c777ae9cee2f9a9eb4875fc22f184ed58bc4af07f3d475cdbfa1",
+      "documents": [
+        {
+          "id": "export",
+          "kind": "manual",
+          "source": "Lab handbook §2",
+          "text": "The reading column contains the assigned stage's exported coordinate. Use its recorded units.",
+          "title": "Stage export handbook"
+        }
+      ],
+      "id": "metrology",
+      "instruments": [
+        {
+          "commands": [],
+          "firmware": "2",
+          "id": "stage",
+          "model": "Encoder S",
+          "name": "Translation stage",
+          "notes": "millimetres",
+          "parameters": []
+        }
+      ],
+      "name": "Metrology lab",
+      "revision": 1
+    },
+    "stage_calibration": {
+      "origin_mm": 2,
+      "reading_unit": "mm",
+      "ticks_per_mm": 1
+    }
+  },
+  {
+    "experiment": {
+      "digest": "ec0951dc8b8c470c0df6fef7ee327a5e20af98831d72e10b064190cc812bc80e",
+      "documents": [
+        {
+          "id": "origin",
+          "kind": "sop",
+          "source": "Stage project §3",
+          "text": "Report signed displacement as stage position in mm minus the project origin of 8 mm.",
+          "title": "Reporting origin"
+        }
+      ],
+      "goal": "Measure signed displacement from the project origin.",
+      "id": "drift",
+      "revision": 1,
+      "title": "Stage alignment"
+    },
+    "lab": {
+      "digest": "630752fff016c777ae9cee2f9a9eb4875fc22f184ed58bc4af07f3d475cdbfa1",
+      "documents": [
+        {
+          "id": "export",
+          "kind": "manual",
+          "source": "Lab handbook §2",
+          "text": "The reading column contains the assigned stage's exported coordinate. Use its recorded units.",
+          "title": "Stage export handbook"
+        }
+      ],
+      "id": "metrology",
+      "instruments": [
+        {
+          "commands": [],
+          "firmware": "2",
+          "id": "stage",
+          "model": "Encoder S",
+          "name": "Translation stage",
+          "notes": "millimetres",
+          "parameters": []
+        }
+      ],
+      "name": "Metrology lab",
+      "revision": 1
+    },
+    "stage_calibration": {
+      "origin_mm": 8,
+      "reading_unit": "mm",
+      "ticks_per_mm": 1
+    }
+  },
+  {
+    "experiment": {
+      "digest": "1bbc2d9391a775fa6545016dfe27fcf17f56b477e06dc116f19bacea72ff872b",
+      "documents": [
+        {
+          "id": "origin",
+          "kind": "sop",
+          "source": "Stage project §3",
+          "text": "Report signed displacement as stage position in mm minus the project origin of 2 mm.",
+          "title": "Reporting origin"
+        }
+      ],
+      "goal": "Measure signed displacement from the project origin.",
+      "id": "drift",
+      "revision": 1,
+      "title": "Stage alignment"
+    },
+    "lab": {
+      "digest": "ff11630a3c1e2e773ac16b160630cfc0f0a056fcdf4fd126cc2bb543309fee31",
+      "documents": [
+        {
+          "id": "export",
+          "kind": "manual",
+          "source": "Lab handbook §2",
+          "text": "The reading column contains the assigned stage's exported coordinate. Use its recorded units.",
+          "title": "Stage export handbook"
+        }
+      ],
+      "id": "metrology",
+      "instruments": [
+        {
+          "commands": [],
+          "firmware": "1",
+          "id": "stage",
+          "model": "Encoder S",
+          "name": "Translation stage",
+          "notes": "The firmware exports raw encoder ticks at 4 ticks per millimetre.",
+          "parameters": []
+        }
+      ],
+      "name": "Metrology lab",
+      "revision": 1
+    },
+    "stage_calibration": {
+      "origin_mm": 2,
+      "reading_unit": "ticks",
+      "ticks_per_mm": 4
+    }
+  },
+  {
+    "experiment": {
+      "digest": "1bbc2d9391a775fa6545016dfe27fcf17f56b477e06dc116f19bacea72ff872b",
+      "documents": [
+        {
+          "id": "origin",
+          "kind": "sop",
+          "source": "Stage project §3",
+          "text": "Report signed displacement as stage position in mm minus the project origin of 2 mm.",
+          "title": "Reporting origin"
+        }
+      ],
+      "goal": "Measure signed displacement from the project origin.",
+      "id": "drift",
+      "revision": 1,
+      "title": "Stage alignment"
+    },
+    "lab": {
+      "digest": "a0a416aef12700efcb65cbc3d334b7f2ef5aab294fa1e16172bc4275240fcf56",
+      "documents": [
+        {
+          "id": "export",
+          "kind": "manual",
+          "source": "Lab handbook §2",
+          "text": "The reading column contains the assigned stage's exported coordinate. Use its recorded units.",
+          "title": "Stage export handbook"
+        }
+      ],
+      "id": "metrology",
+      "instruments": [
+        {
+          "commands": [],
+          "firmware": "1",
+          "id": "stage",
+          "model": "Encoder S",
+          "name": "Translation stage",
+          "notes": "This firmware can export ticks or millimetres. The acquisition mode was not recorded.",
+          "parameters": []
+        }
+      ],
+      "name": "Metrology lab",
+      "revision": 1
+    },
+    "stage_calibration": {
+      "origin_mm": 2,
+      "reading_unit": null,
+      "ticks_per_mm": null
+    }
+  }
+]

@@ -1,6 +1,7 @@
 """ASGI entry point for the reviewer API and authenticated remote agents."""
 
 from dataclasses import asdict
+from functools import partial
 import json
 import os
 from pathlib import Path
@@ -14,7 +15,7 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from . import b12_service, experiment_catalog, honey_service, reference_orders, references, tabular_service
+from . import analysis_requests, b12_service, experiment_catalog, honey_service, reference_orders, references, tabular_service
 from .artifacts import render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
 from .hosted_auth import Access, PUBLIC_REVIEWER, SESSION_COOKIE, SESSION_SECONDS
@@ -308,6 +309,28 @@ async def analysis_create(request):
     return _response(result, 201)
 
 
+async def analysis_request(request, *, prefix):
+    actor = _reviewer(request)
+    key = request.path_params.get("id")
+    if key and not key.startswith(prefix):
+        raise NotFound("Unknown analysis request.")
+    if request.method == "POST":
+        data = await _json_body(request)
+        def write(store):
+            return analysis_requests.answer(store, key, actor, data) if key else analysis_requests.create(store, actor, data, prefix)
+        return _response(await run_in_threadpool(run_store, write, write=True), 200 if key else 201)
+    if key and request.url.path.endswith("/app"):
+        html = await run_in_threadpool(run_store, lambda store: analysis_requests.download(store, key))
+        return Response(html, media_type="application/octet-stream", headers={"Cache-Control": "private, no-store",
+                        "X-Content-Type-Options": "nosniff", "Content-Disposition": 'attachment; filename="analysis-app.html"'})
+    return _response(await run_in_threadpool(run_store, lambda store: analysis_requests.detail(store, key)
+                                             if key else {"requests": analysis_requests.listing(store, prefix=prefix)}))
+
+
+offline_requests = partial(analysis_request, prefix=analysis_requests.APP_PREFIX)
+stage_requests = partial(analysis_request, prefix=analysis_requests.PLOT_PREFIX)
+
+
 async def analysis_order(request):
     _reviewer(request)
     id = request.path_params["id"]
@@ -509,6 +532,14 @@ reviewer_api = Starlette(routes=[
     Route("/api/references", reference_catalog), Route("/api/references/search", reference_search),
     Route("/api/references/orders", reference_order, methods=["POST"]),
     Route("/api/analysis", analysis_catalog), Route("/api/analysis/orders", analysis_create, methods=["POST"]),
+    Route("/api/analysis/drift", stage_requests, methods=["GET", "POST"]),
+    Route("/api/analysis/drift/{id}", stage_requests),
+    Route("/api/analysis/drift/{id}/answers", stage_requests, methods=["POST"]),
+    Route("/api/analysis/drift/{id}/app", stage_requests),
+    Route("/api/analysis/apps", offline_requests, methods=["GET", "POST"]),
+    Route("/api/analysis/apps/{id}", offline_requests),
+    Route("/api/analysis/apps/{id}/answers", offline_requests, methods=["POST"]),
+    Route("/api/analysis/apps/{id}/app", offline_requests),
     Route("/api/analysis/orders/{id}", analysis_order),
     Route("/api/analysis/orders/{id}/uploads/{kind}", analysis_upload),
     Route("/api/analysis/orders/{id}/runs/{run_id}/readings", analysis_upload),
