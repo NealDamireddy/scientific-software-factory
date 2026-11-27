@@ -50,7 +50,9 @@ Stay within read-only analysis or non-hazardous physical measurements. For goals
 biological manipulation, ask for a benign measurement or data-analysis objective instead of operational steps.
 For a complete draft return an empty question and ordered steps. Cite a verbatim substring of a numbered
 passage for every step and every setting/amount. Keep instrument operations in action, with the exact
-operating manual evidence selected for that instrument cited directly on the operating step. Use the
+operating manual evidence selected for that instrument cited directly on the operating step. For a
+prescribed setting, cite both the study passage authorizing it and the applicable instrument manual
+on the action that uses it. Use the
 registered instrument ID, command, required parameter names and supported units. Put manual quantities in
 amounts. Specimen counts and replicate counts are design information for step text. Do not encode them
 as physical amounts. Do not write numeric quantities with units in step text. Keep observational or data-analysis
@@ -88,7 +90,7 @@ def _acquire(store, order_id, token):
         """UPDATE procedure_author_jobs SET token=?, expires=unixepoch()+?
            WHERE work_order_id=? AND (token IS NULL OR expires < unixepoch())
            AND NOT EXISTS (SELECT 1 FROM submissions WHERE work_order_id=?)""",
-        (token, TIMEOUT * 12 + 60, order_id, order_id))
+        (token, TIMEOUT * 16 + 60, order_id, order_id))
     if changed.rowcount != 1:
         return None
     orders = WorkOrders(store)
@@ -163,7 +165,8 @@ def complete(run_store, pending):
         corrections = []
         paper_ids = paper_review.paper_ids(lab, exp)
         papers = [p for p in passages(lab, exp) if p["document"] in paper_ids]
-        for _ in range(2):
+        decision_repair_used = False
+        for attempt in range(3):
             rejected_decision = None
             candidate = {"needs_input": gap["question"]} if gap else generate(context, feedback)
             input_kind = gap["status"] if gap else candidate.pop("question_kind", None)
@@ -219,7 +222,14 @@ def complete(run_store, pending):
             if not corrections or corrections[-1] != problems:
                 corrections.append(problems)
             feedback = {"candidate": candidate, "failures": problems}
-        else:
+            if rejected_decision is not None and not decision_repair_used:
+                # An earlier citation repair may have been needed just to reach the
+                # independent reviewer. Give the author its first decision feedback.
+                decision_repair_used = True
+                feedback["decision_to_correct"] = rejected_decision
+                continue
+            if attempt == 0:
+                continue
             if rejected_decision is None:
                 raise DraftUnavailable("The source drafter failed verification twice. Retry the same request.")
             gap = decision_evidence.recovery_gap(lab, exp, context, len(plan) + 1, rejected_decision["search"],
@@ -227,6 +237,7 @@ def complete(run_store, pending):
             plan.append(gap)
             candidate, input_kind = {"needs_input": gap["question"]}, gap["status"]
             report = decision_report = None
+            break
         def commit(store):
             row = store.connection.execute("SELECT token FROM procedure_author_jobs WHERE work_order_id=?",
                                            (order_id,)).fetchone()

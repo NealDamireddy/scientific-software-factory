@@ -196,7 +196,8 @@ def author_context(context, plan, lab, experiment):
     selected = [p for p in passages(lab, experiment) if (p["document"], p["passage"]) in wanted
                 or p["document"] == context["answer_document_id"]]
     selected.sort(key=lambda p: p["document"] != context["answer_document_id"])
-    return {**context, "decisions": [{k: d[k] for k in ("index", "search", "finding", "evidence")} for d in plan],
+    return {**context, "decisions": [{**{k: d[k] for k in ("index", "search", "finding", "evidence")},
+                                       "instrument_manuals": d.get("instrument_manuals", [])} for d in plan],
             "passages": selected}
 
 

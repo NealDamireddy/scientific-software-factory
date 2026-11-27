@@ -14,7 +14,7 @@ FIXTURE = Path(__file__).parent / "fixtures" / "procedure_drafts" / "filters.jso
 
 
 @pytest.mark.parametrize("outcome", ["resolved", "researcher_choice", "missing_method_detail", "bad_quote",
-                                     "irrelevant_search", "late_question", "failed_decision_review"])
+                                     "irrelevant_search", "late_question", "failed_decision_review", "citation_then_decision"])
 def test_decision_retrieval_and_gates(tmp_path, monkeypatch, outcome):
     body = json.loads(FIXTURE.read_text())
     docs = body["lab"]["documents"]
@@ -57,10 +57,15 @@ def test_decision_retrieval_and_gates(tmp_path, monkeypatch, outcome):
         draft_calls.append(feedback)
         if outcome == "late_question" and not feedback:
             return {"needs_input": "Use the spare equipment?", "question_kind": "researcher_choice"}
-        if feedback:
+        if outcome == "citation_then_decision":
+            if len(draft_calls) == 1:
+                return {"steps": []}
+            if len(draft_calls) == 3:
+                assert feedback["decision_to_correct"]["evidence"] == [evidence]
+        elif feedback:
             expected = "Spare equipment" if outcome == "late_question" else "Report A minus B"
             assert any(expected in p for p in feedback["failures"])
-        return {"steps": [{"text": "Report A minus B." if feedback else "Report B minus A.",
+        return {"steps": [{"text": "Report A minus B." if feedback and (outcome != "citation_then_decision" or len(draft_calls) == 3) else "Report B minus A.",
                            "citations": ["channel"], "evidence": [evidence],
                            "action": {"instrument_id": "photometer-1", "command": "read_transmittance",
                                       "settings": [{"parameter": "wavelength", "value": 520, "unit": "nm"}]}}]}
@@ -93,7 +98,8 @@ def test_decision_retrieval_and_gates(tmp_path, monkeypatch, outcome):
             assert result["state"] == "needs_input" and result["input_kind"] == outcome
             assert set(result["submission"]["artifact"]) == {"needs_input"} and not draft_calls
             return
-        assert result["state"] == "in_review" and len(draft_calls) == 2
+        assert result["state"] == "in_review"
+        assert len(draft_calls) == (3 if outcome == "citation_then_decision" else 2)
         assert all(c["passed"] for c in result["submission"]["results"])
         with Store(db) as store:
             orders = WorkOrders(store)
