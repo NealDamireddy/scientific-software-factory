@@ -121,3 +121,21 @@ def test_list_and_show_see_committed_order_during_write(operator, tmp_path, caps
         for args in [("list", "--status", "open"), ("show", "WO-1")]:
             assert cli("wo", *args) == 0
             assert "WO-1 run_plan open" in capsys.readouterr().out
+
+
+def test_show_and_requeue_specific_claim(operator, capsys):
+    cli, agent = operator
+    create(cli, "run_plan")
+    agent.claim_work_order("WO-1", "worker")
+    assert cli("wo", "show", "WO-1") == 0
+    assert "claim: 1" in capsys.readouterr().out.splitlines()
+    assert cli("wo", "requeue", "WO-1", "--claim", "1", "--by", "Ada", "--reason", "Disconnected") == 0
+    assert cli("wo", "show", "WO-1") == 0
+    reopened = capsys.readouterr().out
+    assert "WO-1 run_plan open" in reopened and "\nclaim: " not in reopened
+    assert "requeued by Ada" in reopened and "Disconnected" in reopened
+    agent.claim_work_order("WO-1", "worker")
+    assert cli("wo", "requeue", "WO-1", "--claim", "1", "--by", "Ada", "--reason", "Stale") == 1
+    assert "no longer active" in capsys.readouterr().err
+    assert cli("wo", "show", "WO-1") == 0
+    assert "claim: 2" in capsys.readouterr().out.splitlines()

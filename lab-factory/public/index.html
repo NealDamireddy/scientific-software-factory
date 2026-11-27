@@ -84,8 +84,8 @@
     <form id="decision-form" method="post">
       <div class="dialog-head"><h2 id="decision-title"></h2><button class="icon-btn" type="button" data-close aria-label="Close">×</button></div>
       <p id="decision-summary"></p>
-      <p class="field-caption">Artifact SHA-256</p><p class="digest mono" id="decision-digest"></p>
-      <div id="reason-field" hidden><label for="reason">Reason for rejection</label><textarea id="reason" name="reason" rows="3"></textarea></div>
+      <p class="field-caption" id="decision-digest-label">Artifact SHA-256</p><p class="digest mono" id="decision-digest"></p>
+      <div id="reason-field" hidden><label id="reason-label" for="reason">Reason for rejection</label><textarea id="reason" name="reason" rows="3"></textarea></div>
       <p class="form-error" role="alert" hidden></p>
       <div class="dialog-actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary" id="decision-submit"></button></div>
     </form>

@@ -224,19 +224,52 @@ function showOrders(orders) {
   if (!orders.length) workspace.append(examplePanel());
 }
 
+function configureDecision(kind, order, number, digest) {
+  decision = {kind, order: order.id, number, reviewer};
+  const approve = kind === "approve";
+  const requeue = kind === "requeue";
+  byId("decision-digest-label").hidden = requeue;
+  byId("decision-digest").hidden = requeue;
+  byId("decision-digest").textContent = digest;
+  byId("reason-field").hidden = approve;
+  byId("reason-label").textContent = requeue ? "Reason for requeue" : "Reason for rejection";
+  byId("reason").required = !approve;
+  byId("decision-submit").textContent = requeue ? "Requeue order" : approve ? "Approve and release" : "Reject and reopen";
+  byId("decision-submit").className = approve ? "primary" : "danger";
+}
+
+function claimAge(claimedAt) {
+  const timestamp = Date.parse(claimedAt);
+  if (!Number.isFinite(timestamp)) return element("span", "Claim time unavailable", "muted");
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+  let age = "just now";
+  if (minutes > 0) {
+    const [amount, unit] = minutes < 60 ? [minutes, "minute"]
+      : minutes < 1440 ? [Math.floor(minutes / 60), "hour"]
+        : [Math.floor(minutes / 1440), "day"];
+    age = amount + " " + unit + (amount === 1 ? "" : "s") + " ago";
+  }
+  const precise = claimedAt.replace("T", " ").replace(/Z$/, " UTC");
+  const time = element("time", "Claimed " + age + " (" + precise + ")", "muted");
+  time.dateTime = claimedAt;
+  return time;
+}
+
+function openClaimRecovery(order) {
+  configureDecision("requeue", order, order.claim_id, "");
+  byId("decision-title").textContent = "Requeue claim " + order.claim_id + "?";
+  byId("decision-summary").textContent = "Return " + order.id + " to the queue and release " + order.worker + "'s claim.";
+  openForm(byId("decision-dialog"));
+}
+
 function openDecision(kind, order, submission) {
-  decision = {kind, order: order.id, number: submission.number, reviewer};
+  configureDecision(kind, order, submission.number, submission.artifact_digest);
   const approve = kind === "approve";
   const label = approve ? "Approve submission" : "Reject submission";
   byId("decision-title").textContent = label + " " + submission.number + "?";
   byId("decision-summary").textContent = approve
     ? "Release " + order.id + " submission " + submission.number + " as " + reviewer + "."
     : "Reopen " + order.id + " as " + reviewer + " and send feedback on submission " + submission.number + " to the next worker.";
-  byId("decision-digest").textContent = submission.artifact_digest;
-  byId("reason-field").hidden = approve;
-  byId("reason").required = !approve;
-  byId("decision-submit").textContent = approve ? "Approve and release" : "Reject and reopen";
-  byId("decision-submit").className = approve ? "primary" : "danger";
   openForm(byId("decision-dialog"));
   if (!approve && isTabularOrder(order)) byId("decision-summary").textContent = "Reopen " + order.id + " submission " + submission.number + " as " + reviewer + ". Keep blind control values out of feedback for the worker.";
 }
@@ -362,9 +395,18 @@ function showOrder(data, assay) {
   definition(meta, "Experiment", order.experiment_id + " · revision " + order.experiment_revision);
   definition(meta, "Lab", order.lab_id + " · revision " + order.lab_revision);
   definition(meta, "Worker", order.worker || "Unclaimed");
+  if (order.claim_id != null) definition(meta, "Claim", order.claim_id);
   workspace.replaceChildren(back, statusLine, heading(order.objective, refreshButton()), meta);
   if (tabular) renderTabularOrder(data);
   if (brief && !honey) workspace.append(referenceBrief(brief));
+  if (order.claim_id != null) {
+    const actions = element("div", undefined, "review-actions");
+    actions.append(
+      button("Requeue claim " + order.claim_id, "danger-outline", () => openClaimRecovery(order)),
+      claimAge(order.claimed_at),
+    );
+    workspace.append(actions);
+  }
   if (honey && order.status === "released") {
     workspace.append(honeyReadingEntry(order));
     if (data.runs.length) workspace.append(honeyRuns(data.runs));
@@ -1157,15 +1199,17 @@ handleForm(byId("create-form"), async (fields) => {
 });
 handleForm(byId("decision-form"), async (fields) => {
   const {kind, order, number, reviewer: expectedReviewer} = decision;
-  const payload = {submission: number, expected_reviewer: expectedReviewer};
-  if (kind === "reject") {
+  const requeue = kind === "requeue";
+  const payload = {[requeue ? "claim_id" : "submission"]: number, expected_reviewer: expectedReviewer};
+  if (kind !== "approve") {
     payload.reason = String(fields.get("reason")).trim();
-    if (!payload.reason) throw new Error("Enter the reason for rejection.");
+    if (!payload.reason) throw new Error(requeue ? "Enter the reason for requeue." : "Enter the reason for rejection.");
   }
   await post("orders/" + encodeURIComponent(order) + "/" + kind, payload);
   byId("decision-dialog").close();
   await navigate();
-  notify(order + " submission " + number + (kind === "approve" ? " released." : " rejected. Order reopened."));
+  notify(requeue ? order + " returned to the queue." :
+    order + " submission " + number + (kind === "approve" ? " released." : " rejected. Order reopened."));
   if (kind === "approve" && location.hash === "#order/" + encodeURIComponent(order)) {
     (byId("tabular-run") || byId("honey-readings") || byId("b12-datasets"))?.focus();
   }

@@ -9,7 +9,10 @@ import sys
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
+from labfactory import b12_service
 from labfactory.cli import main
+from labfactory.store import Store
+from labfactory.workorders import WorkOrders
 
 
 EXAMPLES = Path(__file__).resolve().parents[1] / "examples"
@@ -63,21 +66,36 @@ def test_mcp_stdio_round_trip(tmp_path, capsys, uvvis_lab_dict, b12_experiment_d
             tools = await session.list_tools()
             assert {tool.name for tool in tools.tools} == TOOLS
             codex = {**order_id, "worker": "codex"}
-            await call(session, "claim_work_order", codex)
+            first = await call(session, "claim_work_order", codex)
+            with Store(db) as store:
+                WorkOrders(store).requeue(order_id["work_order_id"], "Neal", first["claim_id"], "Timeout")
+            current = await call(session, "claim_work_order", codex)
             ctx = await call(session, "get_work_order_context", order_id)
+            assert first["claim_id"] != current["claim_id"] == ctx["work_order"]["claim_id"]
             assert ctx["lab"] == uvvis_lab_dict
             assert ctx["experiment"] == b12_experiment_dict
             valid_plan = ctx["artifact_example"]
+            with Store(db) as store:
+                history = WorkOrders(store).history(order_id["work_order_id"])
+            for token in ({}, {"claim_id": first["claim_id"]}):
+                response = await session.call_tool("submit_artifact", {**codex, **token, "artifact": valid_plan})
+                assert not response.isError
+                assert "error" in json.loads(response.content[0].text)
+            with Store(db) as store:
+                orders = WorkOrders(store)
+                assert orders.history(order_id["work_order_id"]) == history
+                assert orders.submissions(order_id["work_order_id"]) == []
             invalid = deepcopy(valid_plan)
             invalid["steps"][0]["settings"][0]["value"] = 800
-            failed = await call(session, "submit_artifact", {**codex, "artifact": invalid})
+            claim = {**codex, "claim_id": current["claim_id"]}
+            failed = await call(session, "submit_artifact", {**claim, "artifact": invalid})
             assert failed["submission"] == 1
             assert not failed["passed"]
             assert failed["status"] == "in_progress"
             assert any("outside [400, 700] nm" in r["detail"] for r in failed["results"] if not r["passed"])
             ctx = await call(session, "get_work_order_context", order_id)
             assert ctx["work_order"]["worker"] == "codex"
-            corrected = await call(session, "submit_artifact", {**codex, "artifact": valid_plan})
+            corrected = await call(session, "submit_artifact", {**claim, "artifact": valid_plan})
             assert corrected["passed"] and corrected["status"] == "in_review"
             assert corrected["submission"] == 2
             return valid_plan
@@ -134,3 +152,42 @@ def test_stdio_reference_discovery_and_encoded_search(tmp_path):
             assert json.loads(item.contents[0].text)["digest"] == next(
                 r["digest"] for r in evidence["findings"] if r["id"] == key)
     asyncio.run(read())
+
+
+def test_prebuilt_source_retries_keep_their_original_binding(tmp_path, monkeypatch, capsys):
+    monkeypatch.syspath_prepend(str(EXAMPLES))
+    from submit_example import submit
+
+    db = tmp_path / "lab.db"
+    worker = "example-agent"
+    source = (EXAMPLES.parent / "src" / "labfactory" / "b12_example.py").read_text(encoding="utf-8")
+    with Store(db) as store:
+        assert b12_service.create_order(store, "Reviewer")["id"] == "WO-1"
+        orders = WorkOrders(store)
+        first = orders.active_claim_id(orders.claim("WO-1", worker))
+        orders.requeue("WO-1", "Reviewer", first, "Timeout")
+        history = orders.history("WO-1")
+
+    assert asyncio.run(submit(db, "WO-1", source, claim_id=first)) == 1
+    assert f"claim {first} is no longer active" in capsys.readouterr().err
+    with Store(db) as store:
+        orders = WorkOrders(store)
+        assert orders.get("WO-1").status == "open"
+        assert orders.history("WO-1") == history
+
+    for _ in range(2):
+        assert asyncio.run(submit(db, "WO-1", source)) == 1
+        assert "claim_id is required" in capsys.readouterr().err
+        with Store(db) as store:
+            orders = WorkOrders(store)
+            assert orders.get("WO-1").status == "open"
+            assert orders.history("WO-1") == history
+            assert orders.submissions("WO-1") == []
+
+    with Store(db) as store:
+        orders = WorkOrders(store)
+        current = orders.active_claim_id(orders.claim("WO-1", worker))
+        assert current == first + 1
+        assert orders.submissions("WO-1") == []
+
+    assert asyncio.run(submit(db, "WO-1", source, claim_id=current)) == 0

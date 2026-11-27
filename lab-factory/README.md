@@ -65,6 +65,8 @@ uv run --locked python examples/submit_remote_example.py "$order" \
   --url https://neal-lab-factory.vercel.app/mcp --worker lab-agent
 ```
 
+For a honey fixture upload or an analysis source upload with `--source` (local or hosted), save the claim ID when you take the order and pass it as `--claim-id ID` when uploading work from that claim. A bound upload requires that claim to still be active for your worker. Omitting the flag sends an untagged upload. For an open order, the uploader passes the payload as `untagged_artifact` to `claim_work_order`, which checks untagged eligibility before acquiring the claim.
+
 The prompt above uses zsh. In the browser, open the order and select **Refresh**. Inspect the instrument, command, wavelength, checks and digest, then approve the numbered submission or reject it with a reason. The portal opens the latest submission first and loads earlier artifacts and history on demand. A rejection reopens the order for an agent. The history records the reviewer identity used for each decision and the digest of each approved artifact.
 
 To connect a Codex agent from a shell that has the token, run
@@ -99,6 +101,28 @@ uv run --locked labfactory --db "$db" wo show WO-1
 
 Look for `released: submission 1 by Local reviewer` and the approved artifact’s SHA-256 digest in the history. To run the tests, use `uv run --locked pytest -v`.
 
+During local review, use [`wo citation`](#inspect-a-pinned-citation) to read a cited document.
+
+### Inspect a pinned citation
+
+Run `labfactory --db PATH wo citation ORDER DOCUMENT_ID` to see the document's origin, record ID and revision, document ID, kind, title, source, and full stored text. For example, inspect the lab SOP pinned to the quickstart order.
+
+```sh
+uv run --locked labfactory --db "$db" wo citation WO-1 sop-cuvette
+```
+
+The document ID must match exactly one document across the order's pinned lab and experiment revisions. Unknown IDs and IDs found in both records produce an error.
+
+### Recover an abandoned claim
+
+In the reviewer portal, open the in-progress order, choose **Requeue claim**, and enter the reason. From the local CLI, read the active claim number with `wo show`, then requeue that specific claim. For example, if WO-1 shows `claim: 2`, run
+
+```sh
+uv run --locked labfactory --db "$db" wo requeue WO-1 --claim 2 --by "Local reviewer" --reason "The worker disconnected"
+```
+
+The order reopens with its original pins, submissions and audit history. A stale claim number leaves the current claim intact. Private deployments record the signed-in reviewer. The public demo records its shared reviewer identity.
+
 ## Web UI
 
 The combined reviewer portal runs at `/` and links to the EVOLVE evidence demos at `/evolve/`. The standalone researcher interface in `web/` provides sample projects, procedure and run-plan review, and browser-side analysis and simulation. To launch its sample mode or develop against its live API contract, see the [researcher web UI guide](web/README.md).
@@ -124,6 +148,10 @@ args = ["run", "--locked", "--project", "/absolute/path to/lab-factory", "labfac
 ```
 
 The four agent tools are `list_work_orders`, `claim_work_order`, `get_work_order_context`, and `submit_artifact`. A rejected order reopens with the submitted artifact and reviewer's reason in its context.
+
+Before starting work, save the `claim_id` returned by `claim_work_order` or, when resuming your active claim, by `get_work_order_context` under `work_order`. Pass that ID to `submit_artifact` and reuse it on every retry of the same work. If the claim was recovered and the same worker later reclaimed the order, submissions under the new claim require its ID.
+
+After a rejection, a worker can still submit a revised artifact without a claim ID if their earlier claim on that order was never recovered. Sending an artifact with the same digest as any of that worker's rejected submissions on the order requires the current claim ID.
 
 ## Release and review
 

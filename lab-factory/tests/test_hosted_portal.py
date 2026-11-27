@@ -454,3 +454,54 @@ def test_large_order_uses_indexed_submission_and_history_pages(client):
         assert page["submissions"] == []
         history = page["history"] + history
     assert history == full["history"]
+
+
+@pytest.mark.parametrize("public", [False, True])
+def test_requeue_uses_displayed_claim_and_reviewer_policy(client, monkeypatch, public):
+    if public:
+        monkeypatch.setenv("LABFACTORY_PUBLIC_REVIEW", "1")
+        monkeypatch.delenv("LABFACTORY_REVIEWERS")
+        monkeypatch.delenv("LABFACTORY_SESSION_KEY")
+    else:
+        denied = client.post("/api/orders/WO-1/requeue", json={"claim_id": 1, "reason": "Timeout"},
+                             headers={"Authorization": "Bearer " + AGENT_TOKEN})
+        assert denied.status_code == 401
+        login(client)
+    reviewer = "Public reviewer" if public else "Ada"
+    created = client.post("/api/example", json={})
+    assert created.status_code == 201
+    id = created.json()["id"]
+    path = f"/api/orders/{id}"
+    with Store(os.environ["LABFACTORY_LOCAL_DB"]) as store:
+        WorkOrders(store).claim(id, "spectrometer-agent")
+        with store.transaction():
+            store.connection.execute(
+                "UPDATE events SET at='2026-11-25 19:20:21' WHERE work_order_id=? AND event='claimed'", (id,),
+            )
+    detail = client.get(path + "?submission=latest").json()
+    assert detail["submissions"] == []
+    assert detail["order"]["claimed_at"] == "2026-11-25T19:20:21Z"
+    payload = {"claim_id": detail["order"]["claim_id"], "reason": "Timeout", "expected_reviewer": reviewer}
+    assert client.post(path + "/requeue", json={**payload, "claim_id": True}).status_code == 400
+    assert client.post(path + "/requeue", json={**payload, "reason": " "}).status_code == 409
+    assert client.post(path + "/requeue", json={**payload, "expected_reviewer": "Other"}).status_code == 409
+    assert client.post(path + "/requeue", json=payload, headers={"Origin": "https://other.test"}).status_code == 403
+    assert client.post(path + "/requeue", json=payload).json() == {"id": id, "status": "open"}
+    detail = client.get(path).json()
+    assert detail["order"]["claim_id"] is None and detail["order"]["worker"] is None
+    assert detail["order"]["claimed_at"] is None
+    event = detail["history"][-1]
+    assert event["event"] == "requeued" and event["actor"] == reviewer
+    assert "spectrometer-agent" in event["note"] and "Timeout" in event["note"]
+    with Store(os.environ["LABFACTORY_LOCAL_DB"]) as store:
+        WorkOrders(store).claim(id, "spectrometer-agent")
+        with store.transaction():
+            # A clock correction must not make the first claim look active again.
+            store.connection.execute(
+                "UPDATE events SET at='2026-11-25 18:19:20' WHERE rowid=last_insert_rowid()",
+            )
+    replacement = client.get(path).json()
+    assert replacement["order"]["claim_id"] != payload["claim_id"]
+    assert replacement["order"]["claimed_at"] == "2026-11-25T18:19:20Z"
+    assert client.post(path + "/requeue", json=payload).status_code == 409
+    assert client.get(path).json() == replacement

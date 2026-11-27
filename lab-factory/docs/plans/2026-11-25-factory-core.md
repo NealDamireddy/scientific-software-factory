@@ -1,5 +1,7 @@
 # Lab Factory Core Implementation Plan
 
+For the implemented baseline and follow-up work, see the [reviewer workflow plan](2026-11-27-reviewer-workflow.md).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the core of a lab's software factory:
