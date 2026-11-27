@@ -31,6 +31,7 @@ def validate(decision):
 
 def package(source):
     # Keep generated scripts in an opaque origin even when a scientist opens the download locally.
+    # Local submit handlers need allow-forms. CSP blocks form navigation to any target.
     policy = ("default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "
               "img-src data: blob:; frame-src 'self'; form-action 'none'; base-uri 'none'")
     return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
@@ -38,5 +39,5 @@ def package(source):
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
             '<title>Lab Factory analysis app</title><style>html,body,iframe{width:100%;height:100%;'
             'margin:0;border:0;display:block}</style></head><body>'
-            '<iframe title="Generated analysis app" sandbox="allow-scripts allow-downloads" '
+            '<iframe title="Generated analysis app" sandbox="allow-scripts allow-downloads allow-forms" '
             f'srcdoc="{escape(source, quote=True)}"></iframe></body></html>')

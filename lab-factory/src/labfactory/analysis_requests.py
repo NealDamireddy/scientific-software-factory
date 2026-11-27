@@ -145,5 +145,5 @@ def submit(store, key, worker, artifact):
 def download(store, key):
     row = _row(store, key)
     if row["status"] != "ready" or hashlib.sha256(row["html"].encode()).hexdigest() != row["artifact_digest"]:
-        raise WorkOrderError("A complete verified download is unavailable.")
+        raise WorkOrderError("A complete download with a matching digest is unavailable.")
     return row["html"]

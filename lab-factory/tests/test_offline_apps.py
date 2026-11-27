@@ -37,8 +37,9 @@ def test_offline_app_reuses_context_and_turns(store, uvvis_lab_dict, b12_experim
     assert "error" in agent.submit_artifact(key, "author", candidate, first)
     assert agent.submit_artifact(key, "author", candidate, second)["status"] == "ready"
     html = analysis_requests.download(store, key)
+    assert "form-action 'none'" in html
     assert source in unescape(html)
-    assert 'sandbox="allow-scripts allow-downloads"' in html
+    assert 'sandbox="allow-scripts allow-downloads allow-forms"' in html
     assert analysis_requests.detail(store, key)["artifact_digest"] == hashlib.sha256(html.encode()).hexdigest()
 
 

@@ -14,6 +14,8 @@ The worker received the pinned project goal, the assigned instrument and the exp
 
 The second scan is shifted by 0.5 eV and has shuffled rows and unequal monitor exposure. The check reads the exported CSV, changes an unseen detector count and verifies the resulting bin. It also exercises a mismatched grid, zero monitor, negative detector count, inconsistent marker, duplicate energy and nonfinite input. It runs offline in Chrome.
 
+A second real generation retrieved the guide using only the project ID. It asked about the reference, grid and weighting and produced an app with a local submit form. Testing that app exposed a sandbox restriction on local form handlers. After the wrapper allowed form events while blocking form actions with CSP, the same generated code passed both numerical controls and all six invalid cases.
+
 From the repository root with the JavaScript dependencies installed and Chrome available, run:
 
 ```sh
