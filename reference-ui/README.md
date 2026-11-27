@@ -4,14 +4,14 @@ A Next.js and TypeScript research workspace with a simulated experiment workflow
 
 ## Run locally
 
-From this directory with Node.js 22 or newer:
+From this directory with Node.js 22.6 or newer, run the workspace on the loopback address printed by Next.js. Live skill delivery also uses Python 3.11+ on macOS or Linux and a signed-in Codex CLI on the server’s PATH.
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open the localhost address printed by Next.js. The app includes its Geist font files through the Geist package.
+For a production build on your own machine, use `npm run build` and `npm run start:local`. The ordinary hosted start command keeps the local worker disabled.
 
 ## Review the B12 workflow
 
@@ -31,11 +31,13 @@ npm start
 
 ## Automatic experiment context
 
-Create a reusable procedure in **Skills** and enable it. Add a service in **Connectors** and choose **Connect** to include its simulated connection. Start an experiment to capture the current selection for the simulated coding agent. Each run keeps its own snapshot in Evidence, so later edits apply to subsequent runs. **Settings → Download agent context** also provides a manual copy of the current configuration.
+Enable a built-in or custom skill in **Skills**, then start an experiment. The local workspace sends its objective, project, simulated method, instrument, run mode and the enabled skill instructions to the signed-in Codex worker. A repeat takes a fresh snapshot. Connector addresses and harness settings stay in the workspace. The worker returns a planning review. Measurements, instrument control and scientific approvals remain simulated.
 
-In Evidence, expand a run under **Agent context by run** to inspect the instructions, selected connectors, and any simulated review findings. The built-in skills are grouped by family in Skills. Enable individual checks before starting the experiment. Checks apply at start, result, or repeat according to the available evidence. Each applicable check records its stage, verdict and evidence references. Custom skills appear as loaded instructions.
+Open **Evidence → Agent context by run** and expand a run. The worker’s receipt shows its review and the exact SHA-256 version of each skill it received. A version covers the skill ID, name, applicability, instructions and stage. The worker must return the acknowledgement attached to this particular request, and the browser independently checks the versions before showing the receipt. A receipt establishes delivery. The review text shows how the worker responded.
 
-The export contains the active skill instructions and when to apply them, alongside the selected connector descriptions and any configured endpoint. A coding agent can use it to select a workflow or plan an integration. A simulated connector describes configuration only. A live implementation would need its own authenticated MCP client and tool discovery.
+If delivery fails, **Retry delivery** uses the same saved instructions and run ID. A completed receipt can be reopened after a refresh. The server stores completed receipts under `$XDG_STATE_HOME/lab-factory/skill-deliveries` (default `~/.local/state/lab-factory/skill-deliveries`), scoped to the local user. Older runs retain their original evidence. Built-in simulation checks are displayed separately from the worker’s response.
+
+See the [single-skill archive evaluation](evaluation/single-skill-archive/README.md) for the matched comparison.
 
 ## Review supplied measurements
 

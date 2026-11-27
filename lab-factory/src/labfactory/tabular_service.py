@@ -7,6 +7,8 @@ import json
 import math
 from uuid import UUID, uuid4
 
+from lab_codex_worker.skills import pin_skills
+
 from . import references, tabular_files
 from .artifacts import render_artifact
 from .checks import CheckResult, all_passed
@@ -170,7 +172,10 @@ def _public_spec(profile, batch):
     fields = ("objective", "unit", "mapping", "range_gate", "protocol_digest", "references")
     if "procedure" in profile:
         fields += ("procedure",)
-    return {**{k: profile[k] for k in fields}, "standards": batch["standards"]}
+    spec = {**{k: profile[k] for k in fields}, "standards": batch["standards"]}
+    if "skills" in profile:
+        spec["skill_versions"] = [{"id": skill["id"], "version": skill["version"]} for skill in profile["skills"]]
+    return spec
 
 
 def _experiment(exp_id, profile, batch):
@@ -218,7 +223,7 @@ def _procedure_context(store, pin):
 def create_order(store, reviewer, request):
     required = {"objective", "protocol_name", "protocol", "csv_name", "csv", "unit", "mapping",
                 "control_expected", "control_tolerance"}
-    if not required <= set(request) <= required | {"range_gate", "reference_ids", "request_id", "procedure_order_id"}:
+    if not required <= set(request) <= required | {"range_gate", "reference_ids", "request_id", "procedure_order_id", "skills"}:
         raise ContextError("Supply protocol and CSV uploads, an objective, column mapping, result unit and control settings.")
     key = request.get("request_id")
     if key is not None:
@@ -242,6 +247,11 @@ def create_order(store, reviewer, request):
     sources = [references.source(identifier) for identifier in selected]
     profile = dict(objective=objective, unit=unit, mapping=mapping, range_gate=range_gate,
                    protocol_name=protocol_name, protocol_digest=tabular_files.digest(protocol), references=sources)
+    if "skills" in request:
+        try:
+            profile["skills"] = pin_skills(request["skills"])
+        except ValueError as exc:
+            raise ContextError(str(exc)) from exc
     exp_id = PREFIX + uuid4().hex
     with store.transaction() as db:
         if key is not None:
@@ -274,6 +284,8 @@ def create_order(store, reviewer, request):
 def public_context(store, order):
     profile, batch = _intake(store, order.id)
     public = _public_spec(profile, batch)
+    if "skills" in profile:
+        public["skills"] = profile["skills"]
     if "procedure" in public:
         public["procedure_context"] = _procedure_context(store, public["procedure"])
     latest = WorkOrders(store).submission(order.id)
