@@ -10,11 +10,11 @@ Lab Factory hands out work orders for a lab experiment: write a procedure, or wr
 ## The loop
 
 1. Call `list_work_orders` (status `open` by default) and pick an order.
-2. Call `claim_work_order` with the order id and a stable worker name, such as `codex on lab-pc`. Use the same name for every call on this order, and from one session to the next, so the lab can see who did the work.
+2. Call `claim_work_order` with the order id and a stable worker name, such as `codex on lab-pc`. Save the returned `claim_id` before starting work. Use the same worker name and saved ID for retries of this work.
 3. Call `get_work_order_context`. It returns the work order, the pinned lab and experiment, an `artifact_example` showing the exact artifact format, `instructions`, and `previous_rejection`.
 4. Build the artifact. Follow the lab's enabled skills when the context includes them (or they were given to you alongside this file), and the artifact format in `artifact_example`; if there are none, follow `instructions`. Use only the pinned context: its instruments, commands, parameters, limits and documents.
-5. Call `submit_artifact` with the order id, the same worker name and the artifact. It returns numbered check results.
-6. If any check failed, read every failed check's detail, fix the artifact, and submit again. You still hold the order. Repeat until every check passes. A passing submission waits for a person's sign-off.
+5. Call `submit_artifact` with the order id, worker name, saved `claim_id`, and artifact. It returns numbered check results.
+6. If any check failed, read every failed check's detail, fix the artifact, and submit again. If the server refuses the claim ID, stop this attempt. Repeat until every check passes. A passing submission waits for a person's sign-off.
 
 A reopened order is `open` again with no worker, and carries the reviewer's reason in `previous_rejection`. Claim it again, read the context, address that reason, then submit.
 

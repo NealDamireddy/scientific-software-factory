@@ -25,10 +25,7 @@ def build_server(db_path: str) -> FastMCP:
 
     @server.tool()
     def claim_work_order(work_order_id: str, worker: str, untagged_artifact: dict | None = None) -> dict:
-        """Claim an open order and return its claim ID.
-
-        For a prebuilt untagged upload, provide untagged_artifact to check eligibility before claiming.
-        """
+        """Claim an open order and return its claim ID. Include untagged_artifact to preflight an untagged upload."""
         with Store(db_path) as store:
             return AgentTools(store).claim_work_order(work_order_id, worker, untagged_artifact=untagged_artifact)
 
