@@ -1,6 +1,7 @@
 """Expose the agent interface over MCP on a local SQLite database."""
 
 from mcp.server.fastmcp import FastMCP
+from pydantic import StrictInt
 
 from . import reference_resources
 from .agent import AgentTools
@@ -24,15 +25,15 @@ def build_server(db_path: str) -> FastMCP:
 
     @server.tool()
     def claim_work_order(work_order_id: str, worker: str) -> dict:
-        """Claim an open order under the worker's name."""
+        """Claim an open order under the worker's name and return its claim ID."""
         with Store(db_path) as store:
             return AgentTools(store).claim_work_order(work_order_id, worker)
 
     @server.tool()
-    def submit_artifact(work_order_id: str, worker: str, artifact: dict) -> dict:
-        """Submit a candidate for the claimed order and return its numbered check results."""
+    def submit_artifact(work_order_id: str, worker: str, artifact: dict, claim_id: StrictInt | None = None) -> dict:
+        """Submit with the claim ID captured before starting work. Reuse the ID on retries."""
         with Store(db_path) as store:
-            return AgentTools(store).submit_artifact(work_order_id, worker, artifact)
+            return AgentTools(store).submit_artifact(work_order_id, worker, artifact, claim_id)
 
     reference_resources.register(server)
     return server

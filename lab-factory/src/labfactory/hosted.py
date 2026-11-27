@@ -137,6 +137,7 @@ def _details(store, id, submission=None, before_event=None):
     page = {}
     with store.read_transaction():
         order = orders.get(id)
+        claim_id = orders.active_claim_id(order)
         brief = store.reference_brief(id)
         reports = {}
         if tabular_service.is_order(order) and before_event is None:
@@ -166,7 +167,7 @@ def _details(store, id, submission=None, before_event=None):
         values.append(value)
     if brief is not None:
         page["reference_brief"] = brief
-    return {"order": asdict(order), "submissions": values, "history": history, **page}
+    return {"order": {**asdict(order), "claim_id": claim_id}, "submissions": values, "history": history, **page}
 
 
 def _positive_integer(value):
@@ -419,6 +420,17 @@ async def decide(request):
         raise HTTPException(409, "Reviewer changed in another tab. Reload the page and review the submission again.")
     id = request.path_params["id"]
     action = request.path_params["action"]
+    if action == "requeue":
+        claim_id = data.get("claim_id")
+        if type(claim_id) is not int or claim_id < 1:
+            raise HTTPException(400, "Provide a positive claim ID.")
+        if set(data) != {"claim_id", "reason"}:
+            raise HTTPException(400, "Provide the claim ID and reason.")
+        order = await run_in_threadpool(
+            run_store, lambda store: WorkOrders(store).requeue(id, person, claim_id, data["reason"]),
+            write=True,
+        )
+        return _response({"id": order.id, "status": order.status})
     number = data.get("submission")
     if type(number) is not int or number < 1:
         raise HTTPException(400, "Provide a positive submission number.")

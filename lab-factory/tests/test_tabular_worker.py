@@ -28,8 +28,9 @@ def test_blind_failure_uses_one_candidate_and_stops(monkeypatch):
             return {"work_order":{"status":"open","worker":None}, "analysis":{
                 "protocol":"test", "awaiting_fresh_control":bool(counts["submission"])}}
         if name == "claim_work_order":
-            return {}
+            return {"claim_id": 1}
         assert name == "submit_artifact"
+        assert args["claim_id"] == 1
         counts["submission"] += 1
         return {"submission":1,"status":"in_progress","artifact_digest":"abc","passed":False,"results":[]}
     def author(context, feedback):
@@ -38,6 +39,24 @@ def test_blind_failure_uses_one_candidate_and_stops(monkeypatch):
     monkeypatch.setattr(worker,"_call",call)
     assert asyncio.run(worker.process(None,"WO-10","Author",author))
     assert counts == {"author":1, "submission":1}
+
+
+def test_resumed_worker_keeps_starting_claim_across_feedback_refresh(monkeypatch):
+    submitted = []
+
+    async def call(session, name, args):
+        if name == "get_work_order_context":
+            claim_id = 2 if submitted else 1
+            return {"work_order": {"status": "in_progress", "worker": "Author", "claim_id": claim_id},
+                    "analysis": {"protocol": "test"}}
+        assert name == "submit_artifact"
+        submitted.append(args["claim_id"])
+        return {"submission": len(submitted), "status": "in_progress",
+                "artifact_digest": "abc", "passed": False, "results": []}
+
+    monkeypatch.setattr(worker, "_call", call)
+    assert asyncio.run(worker.process(None, "WO-10", "Author", lambda context, feedback: {"source": "code"}))
+    assert submitted == [1, 1, 1, 1]
 
 
 def test_unrelated_order_and_pending_clarification_are_skipped(monkeypatch):

@@ -175,13 +175,60 @@ class WorkOrders:
             self._event(id, "claimed", worker)
             return self.get(id)
 
-    def submit(self, id: str, worker: str, artifact: dict) -> Submission:
+    def active_claim_id(self, order: WorkOrder) -> int | None:
+        """Read the claim number from the same transaction as the order snapshot."""
+        if order.status != "in_progress":
+            return None
+        # The per-order ordinal survives database reopen and SQLite rowid changes.
+        count = self.db.execute(
+            "SELECT COUNT(*) FROM events WHERE work_order_id=? AND event='claimed'", (order.id,)
+        ).fetchone()[0]
+        return count or None
+
+    def requeue(self, id: str, person: str, claim_id: int, reason: str) -> WorkOrder:
+        _actor(person)
+        if type(claim_id) is not int or claim_id < 1:
+            raise WorkOrderError("provide a positive claim ID")
+        if not isinstance(reason, str) or not reason.strip():
+            raise WorkOrderError("requeue needs a reason")
+        with self.store.transaction():
+            order = self.get(id)
+            if order.status != "in_progress":
+                raise WorkOrderError(f"{id} is {order.status}, expected in_progress")
+            if self.active_claim_id(order) != claim_id:
+                raise WorkOrderError(f"claim {claim_id} is no longer active for {id}")
+            self._transition(id, "in_progress", "open", None)
+            self._event(id, "requeued", person, note=f"Claim {claim_id} held by {order.worker}: {reason}")
+            return self.get(id)
+
+    def _was_displaced(self, id: str, worker: str) -> bool:
+        # The requeue actor is the reviewer. Its preceding claim identifies the worker,
+        # including for recovery events recorded before submissions carried a claim ID.
+        claimed_by = None
+        for event, actor in self.db.execute(
+            """SELECT event, actor FROM events WHERE work_order_id=?
+               AND event IN ('claimed', 'requeued') ORDER BY rowid""", (id,)
+        ):
+            if event == "claimed":
+                claimed_by = actor
+            elif claimed_by == worker:
+                return True
+        return False
+
+    def submit(self, id: str, worker: str, artifact: dict, claim_id: int | None = None) -> Submission:
         with self.store.transaction():
             order = self.get(id)
             if order.status != "in_progress":
                 raise WorkOrderError(f"{id} is {order.status}, expected in_progress")
             if worker != order.worker:
                 raise WorkOrderError(f"{id} belongs to {order.worker}")
+            if claim_id is not None:
+                if type(claim_id) is not int or claim_id < 1:
+                    raise WorkOrderError("provide a positive claim ID")
+                if self.active_claim_id(order) != claim_id:
+                    raise WorkOrderError(f"claim {claim_id} is no longer active for {id}")
+            elif self._was_displaced(id, worker):
+                raise WorkOrderError(f"claim_id is required after recovery of an earlier claim by {worker} on {id}")
             # Validate and persist the same snapshot, including its original JSON types.
             data = deepcopy(artifact)
             body = canonical_json(data)

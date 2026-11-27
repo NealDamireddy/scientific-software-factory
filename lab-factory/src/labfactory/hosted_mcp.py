@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 from anyio import to_thread
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from pydantic import StrictInt
 from starlette.datastructures import Headers
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
@@ -101,19 +102,19 @@ def _agent_server(run_store, agent_name: str, security: TransportSecuritySetting
 
     @server.tool()
     async def claim_work_order(work_order_id: str, worker: str) -> dict:
-        """Claim an open order using the name assigned to your agent credential."""
+        """Claim an open order using your authenticated agent name and return its claim ID."""
         if worker != agent_name:
             return {"error": "worker must match the authenticated agent name"}
         return await stored(lambda agent: agent.claim_work_order(work_order_id, worker), write=True)
 
     @server.tool()
-    async def submit_artifact(work_order_id: str, worker: str, artifact: dict) -> dict:
-        """Submit a candidate as its claiming agent and return numbered check results."""
+    async def submit_artifact(work_order_id: str, worker: str, artifact: dict, claim_id: StrictInt | None = None) -> dict:
+        """Submit with the claim ID captured before starting work. Reuse the ID on retries."""
         if worker != agent_name:
             return {"error": "worker must match the authenticated agent name"}
         if error := _artifact_limit_error(artifact):
             return {"error": error}
-        return await stored(lambda agent: agent.submit_artifact(work_order_id, worker, artifact), write=True)
+        return await stored(lambda agent: agent.submit_artifact(work_order_id, worker, artifact, claim_id), write=True)
 
     reference_resources.register(server)
     return server

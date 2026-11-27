@@ -37,6 +37,11 @@ def _parser() -> argparse.ArgumentParser:
         review.add_argument("--by", required=True, metavar="NAME")
         if decision == "reject":
             review.add_argument("--reason", required=True)
+    requeue = wo.add_parser("requeue")
+    requeue.add_argument("id")
+    requeue.add_argument("--claim", type=int, required=True, metavar="CLAIM_ID")
+    requeue.add_argument("--by", required=True, metavar="REVIEWER")
+    requeue.add_argument("--reason", required=True, metavar="TEXT")
     groups.add_parser("serve", help="serve the four agent tools over stdio")
     return parser
 
@@ -49,6 +54,7 @@ def _show(orders: WorkOrders, id: str) -> str:
     # Read one consistent view even when a claim or review occurs concurrently.
     with orders.store.read_transaction():
         order = orders.get(id)
+        claim_id = orders.active_claim_id(order)
         submissions = orders.submissions(id)
         history = orders.history(id)
     lines = [
@@ -59,6 +65,8 @@ def _show(orders: WorkOrders, id: str) -> str:
     ]
     if order.worker is not None:
         lines.append(f"worker: {order.worker}")
+    if claim_id is not None:
+        lines.append(f"claim: {claim_id}")
     for submission in submissions:
         verdict = "passed" if submission.passed else "failed"
         lines.append(
@@ -121,6 +129,9 @@ def _operate(args, store: Store) -> None:
     elif args.command == "reject":
         order = orders.reject(args.id, args.by, args.submission, args.reason)
         print(f"{order.id} reopened: rejected submission {args.submission} by {args.by}")
+    elif args.command == "requeue":
+        order = orders.requeue(args.id, args.by, args.claim, args.reason)
+        print(f"{order.id} requeued: claim {args.claim} by {args.by}")
 
 
 def main(argv: list[str] | None = None) -> int:

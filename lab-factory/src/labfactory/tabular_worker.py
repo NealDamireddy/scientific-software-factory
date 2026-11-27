@@ -85,13 +85,14 @@ async def process(session, order_id, worker, author=generate):
     if not analysis or analysis.get("awaiting_fresh_control") or analysis.get("needs_input"):
         return False
     if order["status"] == "open":
-        await _call(session, "claim_work_order", args)
+        order = await _call(session, "claim_work_order", args)
     elif order["status"] != "in_progress" or order["worker"] != worker:
         return False
+    submission_args = {**args, "claim_id": order["claim_id"]}
     feedback = analysis.get("last_public_checks")
     for _ in range(3):
         candidate = await asyncio.to_thread(author, context, feedback)
-        result = await _call(session, "submit_artifact", {**args, "artifact": candidate})
+        result = await _call(session, "submit_artifact", {**submission_args, "artifact": candidate})
         print(f"{order_id} submission {result['submission']} · {result['status']} · {result['artifact_digest']}",
               flush=True)
         if result["passed"] or "needs_input" in candidate:
@@ -104,7 +105,7 @@ async def process(session, order_id, worker, author=generate):
         feedback = {"checks": analysis.get("last_public_checks") or result["results"],
                     "previous_candidate": candidate}
     # Ask for human input rather than filling the order history with identical retries.
-    await _call(session, "submit_artifact", {**args, "artifact": {"needs_input":
+    await _call(session, "submit_artifact", {**submission_args, "artifact": {"needs_input":
         "The generated program repeatedly failed the public checks. Please review the protocol, units and column mapping."}})
     return True
 

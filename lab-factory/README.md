@@ -61,6 +61,8 @@ uv run --locked python examples/submit_remote_example.py "$order" \
   --url https://neal-lab-factory.vercel.app/mcp --worker lab-agent
 ```
 
+For a honey fixture upload or an analysis source upload with `--source` (local or hosted), save the claim ID when you take the order and pass it as `--claim-id ID` when uploading work from that claim. A bound upload requires that claim to still be active for your worker. Omitting the flag sends an untagged upload, including when the uploader claims an open order. The server rejects an untagged upload from a worker whose earlier claim on the same order was recovered.
+
 The prompt above uses zsh. In the browser, open the order and select **Refresh**. Inspect the instrument, command, wavelength, checks and digest, then approve the numbered submission or reject it with a reason. The portal opens the latest submission first and loads earlier artifacts and history on demand. A rejection reopens the order for an agent. The history records the reviewer identity used for each decision and the digest of each approved artifact.
 
 To connect a Codex agent from a shell that has the token, run
@@ -107,6 +109,16 @@ uv run --locked labfactory --db "$db" wo citation WO-1 sop-cuvette
 
 The document ID must match exactly one document across the order's pinned lab and experiment revisions. Unknown IDs and IDs found in both records produce an error.
 
+### Recover an abandoned claim
+
+In the reviewer portal, open the in-progress order, choose **Requeue claim**, and enter the reason. From the local CLI, read the active claim number with `wo show`, then requeue that specific claim. For example, if WO-1 shows `claim: 2`, run
+
+```sh
+uv run --locked labfactory --db "$db" wo requeue WO-1 --claim 2 --by "Local reviewer" --reason "The worker disconnected"
+```
+
+The order reopens with its original pins, submissions and audit history. A stale claim number leaves the current claim intact. Private deployments record the signed-in reviewer. The public demo records its shared reviewer identity.
+
 ## Connect a coding agent
 
 Use absolute paths to the project and the database containing your lab’s work orders. To connect Claude Code to the quickstart database from the same shell, run
@@ -124,6 +136,8 @@ args = ["run", "--locked", "--project", "/absolute/path to/lab-factory", "labfac
 ```
 
 The four agent tools are `list_work_orders`, `claim_work_order`, `get_work_order_context`, and `submit_artifact`. A rejected order reopens with the submitted artifact and reviewer's reason in its context.
+
+Before starting work, save the `claim_id` returned by `claim_work_order` or, when resuming your active claim, by `get_work_order_context` under `work_order`. Pass that ID to `submit_artifact` and reuse it on every retry of the same work. If the claim was recovered and the same worker later reclaimed the order, submissions under the new claim require its ID.
 
 ## Release and review
 

@@ -25,6 +25,8 @@ def order_context():
 
 
 def tool_stub(sender, monkeypatch, context):
+    import submit_example
+
     calls = []
 
     async def call(session, name, arguments):
@@ -32,26 +34,47 @@ def tool_stub(sender, monkeypatch, context):
         if name == "get_work_order_context":
             return context
         if name == "claim_work_order":
-            return {}
+            return {"claim_id": 2}
         assert name == "submit_artifact"
         return {"submission": 1, "status": "in_review", "artifact_digest": "abc",
                 "results": [], "passed": True}
 
     monkeypatch.setattr(sender, "call", call)
+    monkeypatch.setattr(submit_example, "call", call)
     return calls
 
 
-@pytest.mark.parametrize("status", ["open", "in_progress"])
-def test_sender_submits_pinned_candidate_or_retries_own_claim(sender, monkeypatch, order_context, status):
-    order_context["work_order"].update(status=status, worker="agent" if status == "in_progress" else None)
+@pytest.mark.parametrize(("status", "claim_id"), [
+    ("open", None), ("in_progress", None), ("in_progress", 2),
+])
+def test_sender_preserves_caller_binding(sender, monkeypatch, order_context, status, claim_id):
+    order_context["work_order"].update(
+        status=status, worker="agent" if status == "in_progress" else None,
+        claim_id=2 if status == "in_progress" else None,
+    )
     calls = tool_stub(sender, monkeypatch, order_context)
     artifact = json.loads(sender.CANDIDATE.read_text())
-    assert asyncio.run(sender.submit(None, "WO-1", "agent", artifact)) == 0
+    assert asyncio.run(sender.submit(None, "WO-1", "agent", artifact, claim_id)) == 0
     expected = ["get_work_order_context", "submit_artifact"]
     if status == "open":
         expected.insert(1, "claim_work_order")
     assert [name for name, args in calls] == expected
-    assert calls[-1][1] == {"work_order_id": "WO-1", "worker": "agent", "artifact": artifact}
+    submitted = {"work_order_id": "WO-1", "worker": "agent", "artifact": artifact}
+    if claim_id is not None:
+        submitted["claim_id"] = claim_id
+    assert calls[-1][1] == submitted
+
+
+@pytest.mark.parametrize("status", ["open", "in_progress"])
+def test_sender_rejects_stale_binding_before_claim_or_submit(sender, monkeypatch, order_context, status):
+    order_context["work_order"].update(
+        status=status, worker="agent" if status == "in_progress" else None,
+        claim_id=2 if status == "in_progress" else None,
+    )
+    calls = tool_stub(sender, monkeypatch, order_context)
+    with pytest.raises(sender.ExampleError, match="claim 1 is no longer active"):
+        asyncio.run(sender.submit(None, "WO-1", "agent", {}, claim_id=1))
+    assert [name for name, args in calls] == ["get_work_order_context"]
 
 
 @pytest.mark.parametrize("problem", ["edition", "experiment", "instrument", "owner"])
