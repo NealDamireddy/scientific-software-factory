@@ -1,0 +1,104 @@
+[
+  {
+    "label": 537,
+    "block": 1,
+    "condition": "data-provenance",
+    "skills": [
+      {
+        "id": "data-provenance",
+        "version": "41daf4e9f7c11dc359014abfdc885163bb8cb25b7038cf6b4bdb7430a33ece2a"
+      }
+    ],
+    "prompt_sha256": "729bc04dd1646a1f294dce0ee4ac617e33139d2cfaed1b1c364ea44553d44448",
+    "cli": "codex-cli 0.167.0",
+    "model": "gpt-6.2-sol"
+  },
+  {
+    "label": 432,
+    "block": 1,
+    "condition": "evidence",
+    "skills": [
+      {
+        "id": "evidence",
+        "version": "1c8f18b1e14d66c64bda1b45b7fe672b33f0d8fbd44ffe0548f8adf55dcc45c7"
+      }
+    ],
+    "prompt_sha256": "a12ce1f0129c48f75ed963c2e1ca0ad2988c83c38b587cd32654181ec28713ab",
+    "cli": "codex-cli 0.167.0",
+    "model": "gpt-6.2-sol"
+  },
+  {
+    "label": 748,
+    "block": 1,
+    "condition": "baseline",
+    "skills": [],
+    "prompt_sha256": "b7162beb4714f17b5871bbdc074d1d4a7bbe79a34c29a97485f3157279503414",
+    "cli": "codex-cli 0.167.0",
+    "model": "gpt-6.2-sol"
+  },
+  {
+    "label": 157,
+    "block": 1,
+    "condition": "claim-evidence",
+    "skills": [
+      {
+        "id": "claim-evidence",
+        "version": "fbd01141ea49af22f73799a905cd9621bd541b89d796139c1b89b8a042c4f94f"
+      }
+    ],
+    "prompt_sha256": "bf371be4b5e623629e16dad85c8334ddb42ffa1395ba372a5b6cc08c0a23bab7",
+    "cli": "codex-cli 0.167.0",
+    "model": "gpt-6.2-sol"
+  },
+  {
+    "label": 461,
+    "block": 2,
+    "condition": "data-provenance",
+    "skills": [
+      {
+        "id": "data-provenance",
+        "version": "41daf4e9f7c11dc359014abfdc885163bb8cb25b7038cf6b4bdb7430a33ece2a"
+      }
+    ],
+    "prompt_sha256": "729bc04dd1646a1f294dce0ee4ac617e33139d2cfaed1b1c364ea44553d44448",
+    "cli": "codex-cli 0.167.0",
+    "model": "gpt-6.2-sol"
+  },
+  {
+    "label": 778,
+    "block": 2,
+    "condition": "evidence",
+    "skills": [
+      {
+        "id": "evidence",
+        "version": "1c8f18b1e14d66c64bda1b45b7fe672b33f0d8fbd44ffe0548f8adf55dcc45c7"
+      }
+    ],
+    "prompt_sha256": "a12ce1f0129c48f75ed963c2e1ca0ad2988c83c38b587cd32654181ec28713ab",
+    "cli": "codex-cli 0.167.0",
+    "model": "gpt-6.2-sol"
+  },
+  {
+    "label": 227,
+    "block": 2,
+    "condition": "claim-evidence",
+    "skills": [
+      {
+        "id": "claim-evidence",
+        "version": "fbd01141ea49af22f73799a905cd9621bd541b89d796139c1b89b8a042c4f94f"
+      }
+    ],
+    "prompt_sha256": "bf371be4b5e623629e16dad85c8334ddb42ffa1395ba372a5b6cc08c0a23bab7",
+    "cli": "codex-cli 0.167.0",
+    "model": "gpt-6.2-sol"
+  },
+  {
+    "label": 438,
+    "block": 2,
+    "condition": "baseline",
+    "skills": [],
+    "prompt_sha256": "b7162beb4714f17b5871bbdc074d1d4a7bbe79a34c29a97485f3157279503414",
+    "cli": "codex-cli 0.167.0",
+    "model": "gpt-6.2-sol"
+  }
+]

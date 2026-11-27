@@ -1,0 +1,11 @@
+document,section,table,method,material,element,measurement_mg_per_kg,expanded_uncertainty_or_interval_mg_per_kg,certified_control_mg_per_kg,reported_absolute_z,table_footnote_b
+SP260-212,3.2,6,ICP-MS,916b,Na,200,100,,,no
+SP260-212,3.2,6,ICP-MS,916b,Mg,60,30,,,no
+SP260-212,3.2,6,ICP-MS,916b,K,30,0 to 100,,,yes
+SP260-212,3.2,6,ICP-MS,916b,Ca,300,0 to 2300,,,yes
+SP260-212,3.2,6,ICP-MS,916b,Fe,600,300,,,no
+SP260-212,3.2,7,ICP-MS,1643f,Na,16,9,18.64,0.57,no
+SP260-212,3.2,7,ICP-MS,1643f,Mg,6.5,3.7,7.38,0.47,no
+SP260-212,3.2,7,ICP-MS,1643f,K,0.87,0 to 2.9,1.9133,4.15,yes
+SP260-212,3.2,7,ICP-MS,1643f,Ca,8.4,0 to 57,29.14,8.53,yes
+SP260-212,3.2,7,ICP-MS,1643f,Fe,0.1,0.06,0.09251,0.26,no

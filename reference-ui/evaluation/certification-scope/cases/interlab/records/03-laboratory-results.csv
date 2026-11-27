@@ -1,0 +1,4 @@
+source_table,material,analyte,lab_id,reported_mg_per_L,method_code,method,rating,published_Z
+12,M-158,chloride,105,96.8,7,ion chromatography,2,1.36
+12,M-158,chloride,113,90.5,7,ion chromatography,4,-0.03
+12,M-158,chloride,274,68.88,20,colorimetric titration,0,-4.80

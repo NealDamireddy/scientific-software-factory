@@ -1,0 +1,2 @@
+source_table,material,analyte,units,number_of_results,most_probable_value,F_pseudosigma,rating_criterion
+12,M-158,chloride,mg/L,50,90.7,2.74,4.53

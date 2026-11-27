@@ -700,6 +700,38 @@
   font-size: 14px;
   margin: 17px 0 6px;
 }
+.ex-worker-status {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+.ex-worker-status:hover { background: var(--panel); }
+.ex-worker-status > span:last-child {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.ex-worker-review {
+  margin-bottom: 16px;
+}
+.ex-worker-review h4 {
+  margin-top: 0;
+}
+.ex-worker-answer {
+  white-space: pre-wrap;
+}
 .ex-application {
   border-left: 2px solid var(--line);
   padding-left: 8px;
