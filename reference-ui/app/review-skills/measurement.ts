@@ -1,3 +1,4 @@
+import { playbooks } from "./playbooks.ts";
 import type { Finding, ResearchSkill, ReviewInput } from "./types";
 
 function finite(value: unknown): value is number {
@@ -177,13 +178,12 @@ export const measurementSkills: ResearchSkill[] = [
     family: "Instruments & execution",
     stage: "start",
     description:
-      "Check whether the start record identifies the instrument and its measurement context.",
-    input: "Run instrument, method name and measurement wavelength.",
+      "Trace an equipment reference to the measurement and recorded operating settings.",
+    input:
+      "Equipment reference, applicable method, operating settings and the associated run record.",
     output: "A cited start-record check identifying any missing context.",
-    whenToUse:
-      "At the start of an original or repeat simulated absorbance run.",
-    instructions:
-      "Read the instrument label, method and wavelength from this run. Cite the supplied fields. Mark the check unassessed if the instrument is unidentified or the method or positive wavelength is missing.",
+    whenToUse: "When a result depends on the instrument used.",
+    instructions: playbooks["instrument-record"],
     evaluate: instrumentRecord,
   },
   {
@@ -192,14 +192,13 @@ export const measurementSkills: ResearchSkill[] = [
     family: "Analysis & results",
     stage: "repeat",
     description:
-      "Check a repeat concentration against the measured calibration and recorded dilution.",
+      "Trace a reported concentration through its calibration and dilution correction.",
     input:
-      "Repeat sample absorbance, standard concentrations and absorbances, recorded dilution factor and reported concentration.",
+      "Recorded sample response, applicable calibration, dilution factor and reported concentration.",
     output:
       "A cited comparison or a determination that concentration should be withheld.",
-    whenToUse: "When reviewing a repeat simulated B12 concentration result.",
-    instructions:
-      "Confirm the standards define a monotonic calibration. Interpolate between the standards bracketing the repeat absorbance, multiply by the recorded dilution factor and compare with the report. Cite the supporting values. Outside the measured range, check for explicit withholding and flag any numeric report. Mark missing or unusable evidence unassessed.",
+    whenToUse: "When a reported quantity includes a recorded dilution.",
+    instructions: playbooks["dilution-calculation"],
     evaluate: dilutionCalculation,
   },
 ];

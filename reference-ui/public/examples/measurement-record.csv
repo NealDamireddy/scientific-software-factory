@@ -1,0 +1,4 @@
+sample,measurement,value,unit
+bath-A,reference temperature,21.4,degC
+bath-A,reference temperature,21.6,degC
+bath-B,reference temperature,22.1,degC

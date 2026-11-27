@@ -1,3 +1,4 @@
+import { playbooks } from "./playbooks.ts";
 import type { Finding, ResearchSkill, ReviewInput } from "./types";
 
 const finite = (value: unknown): value is number =>
@@ -180,15 +181,13 @@ export const reviewSkills: ResearchSkill[] = [
     family: "Scientific review",
     stage: "result",
     description:
-      "Check the B12 method’s rule for reporting concentrations against the measured standards.",
+      "Compare a reported decision with a specific clause of the method used.",
     input:
-      "Run-specific B12 standards, sample absorbance and concentration reporting decision.",
+      "Versioned method clause, observations for this run, and the reported decision.",
     output:
-      "A reporting decision with references to the standards, sample and reported result.",
-    whenToUse:
-      "At the result stage of an original or repeat simulated B12 run.",
-    instructions:
-      "Read the concentration and absorbance pairs from this run. Compare the sample absorbance with the inclusive measured range. Flag a numeric concentration outside that range. Distinguish explicit withholding from a missing result. Cite the observed values and identify incomplete evidence.",
+      "A cited assessment of whether the recorded decision follows the identified clause.",
+    whenToUse: "When both a result and its applicable method are supplied.",
+    instructions: playbooks["method-adherence"],
     evaluate: methodAdherence,
   },
   {
@@ -197,15 +196,13 @@ export const reviewSkills: ResearchSkill[] = [
     family: "Evidence & reproducibility",
     stage: "repeat",
     description:
-      "Trace a diluted B12 repeat back to its original measurement and dilution approval.",
+      "Check a repeat against its original observation and the authorized change.",
     input:
-      "Linked original run and outcome, approved and actual dilution factors, repeat sample and standards.",
+      "Linked original and repeat records, comparable measurements and the authorized change.",
     output:
-      "A comparison of the linked runs with dilution discrepancies, range findings and missing evidence.",
-    whenToUse:
-      "At the repeat stage of a simulated B12 run with a dilution decision to review.",
-    instructions:
-      "Confirm the linked original precedes the repeat, has a recorded reading and has a flagged outcome. Compare the recorded dilution against the approval, then compare the actual repeat reading against its own standards. Cite both runs and measured values. List every unresolved discrepancy and identify evidence needed to complete the review.",
+      "A comparison of expected and observed changes with citations and unresolved differences.",
+    whenToUse: "When a repeat or remeasurement is linked to an earlier result.",
+    instructions: playbooks["repeat-comparison"],
     evaluate: repeatComparison,
   },
 ];

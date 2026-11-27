@@ -1,3 +1,4 @@
+import { playbooks } from "./playbooks.ts";
 import type { Finding, ResearchSkill, ReviewInput } from "./types";
 
 type BriefingField =
@@ -71,14 +72,12 @@ export const planningSkills: ResearchSkill[] = [
     name: "Method reference",
     family: "Lab knowledge",
     stage: "start",
-    description: "Checks whether the run identifies a method and its revision.",
+    description: "Identify the method and revision cited by a run.",
     input: "Method name and revision from the run briefing.",
     output:
       "Method identification status with the available briefing references.",
-    whenToUse:
-      "At the start of an original or repeat simulated B12 or time-course measurement.",
-    instructions:
-      "Read the method name and revision from this run’s briefing. Cite both as recorded. If either is missing or blank, name the missing field and leave identification unassessed.",
+    whenToUse: "When a record identifies the procedure used.",
+    instructions: playbooks["method-reference"],
     evaluate: (input) =>
       reviewBriefing(
         input,
@@ -88,19 +87,17 @@ export const planningSkills: ResearchSkill[] = [
   },
   {
     id: "protocol-readiness",
-    name: "Protocol readiness",
+    name: "Run setup completeness",
     family: "Experiment planning",
     stage: "start",
     description:
-      "Checks whether the planned measurement has an objective, a project, a versioned method, and a wavelength.",
+      "Check whether the recorded setup includes the fields needed for the stated measurement.",
     input:
-      "Run objective, project, method name, method revision, and wavelength in nm.",
+      "Run objective, project, method revision and the measurement settings required by that method.",
     output:
       "Briefing readiness with field references and any missing or invalid setup.",
-    whenToUse:
-      "At the start of an original or repeat simulated B12 or time-course measurement.",
-    instructions:
-      "Inspect the current briefing and cite each usable field. Flag a recorded wavelength of zero or less. Identify missing text and missing or nonfinite wavelengths as evidence gaps. Mark the setup clear only when every required field is present and the wavelength is positive.",
+    whenToUse: "Before a run or when auditing its original briefing.",
+    instructions: playbooks["protocol-readiness"],
     evaluate: (input) =>
       reviewBriefing(
         input,

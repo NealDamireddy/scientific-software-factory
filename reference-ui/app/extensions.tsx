@@ -20,6 +20,7 @@ import {
 import "./extensions.css";
 
 import Modal from "./modal";
+import RecordReview from "./record-review";
 import type { Family, Stage } from "./review-skills/types";
 import { ExtensionForm, endpointError } from "./extension-form";
 import {
@@ -84,6 +85,7 @@ export function ExtensionPage({
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [openFamily, setOpenFamily] = useState<Family | null>(null);
+  const [reviewingRecord, setReviewingRecord] = useState(false);
   const [dialog, setDialog] = useState<EntryDialog | null>(null);
   const addButton = useRef<HTMLButtonElement>(null);
   const isConnector = section === "connectors";
@@ -107,6 +109,7 @@ export function ExtensionPage({
   }
   useEffect(() => {
     setDialog(null);
+    setReviewingRecord(false);
     if (selectedId) reveal(selectedId);
     else setExpanded(null);
   }, [section, selectedId]);
@@ -242,14 +245,25 @@ export function ExtensionPage({
     <section className="ws-page ext-page">
       <div className="ws-pagehead">
         <h1>{isConnector ? "Connectors" : "Skills"}</h1>
-        <button
-          ref={addButton}
-          className="ws-button primary"
-          onClick={() => setDialog({ action: "add" })}
-        >
-          <Plus size={16} />
-          Add {kind}
-        </button>
+        <div className="ext-header-actions">
+          {!isConnector && (
+            <button
+              className="ws-button"
+              onClick={() => setReviewingRecord(true)}
+            >
+              <FileCheck2 size={16} />
+              Review a record
+            </button>
+          )}
+          <button
+            ref={addButton}
+            className="ws-button primary"
+            onClick={() => setDialog({ action: "add" })}
+          >
+            <Plus size={16} />
+            Add {kind}
+          </button>
+        </div>
       </div>
       <p className="ws-lede">
         {isConnector
@@ -437,7 +451,9 @@ export function ExtensionPage({
                                 <dt>Output</dt>
                                 <dd>{output}</dd>
                                 <dt>Instructions</dt>
-                                <dd>{instructions}</dd>
+                                <dd className="ext-skill-instructions">
+                                  {instructions}
+                                </dd>
                               </dl>
                             </div>
                           );
@@ -450,6 +466,9 @@ export function ExtensionPage({
             )}
           </div>
         </>
+      )}
+      {reviewingRecord && !isConnector && (
+        <RecordReview close={() => setReviewingRecord(false)} />
       )}
       {dialog &&
         (dialog.action === "remove" ? (

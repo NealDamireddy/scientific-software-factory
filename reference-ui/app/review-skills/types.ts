@@ -14,6 +14,7 @@ export type Finding = {
   references: string[];
 };
 export type ReviewInput = {
+  evidencePacket?: import("./evidence").EvidencePacket;
   runNumber: number;
   kind: "b12" | "time-course";
   mode: "original" | "repeat";

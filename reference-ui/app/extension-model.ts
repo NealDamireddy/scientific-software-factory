@@ -1,3 +1,4 @@
+import { playbooks } from "./review-skills/playbooks.ts";
 import { researchSkills } from "./review-skills/catalog.ts";
 import type { ResearchSkill, Family, Stage } from "./review-skills/types";
 
@@ -39,39 +40,36 @@ export const builtinSkills: Omit<ResearchSkill, "evaluate">[] = [
     family: "Analysis & results",
     stage: "result",
     name: "Calibration review",
-    description: "Check sample readings against a calibration range.",
-    input: "Calibration standards and sample absorbance",
+    description:
+      "Compare a measurement with the applicable calibration interval.",
+    input: "Eligible calibration standards, sample response and recorded units",
     output: "Range assessment and a review note",
-    whenToUse:
-      "When reviewing a simulated sample measured against calibration standards.",
-    instructions:
-      "Identify the measured range and units from the supplied standards. Compare the original and repeat sample readings with that range. Withhold a concentration for any out-of-range reading. For an in-range repeat, report the recorded dilution factor and explain how it affects the reported concentration. Identify missing inputs and reference the run for each observation.",
+    whenToUse: "When a quantitative result depends on calibration standards.",
+    instructions: playbooks["calibration"],
   },
   {
     id: "evidence",
     family: "Evidence & reproducibility",
     stage: "result",
     name: "Evidence summary",
-    description: "Summarize the records behind an experiment result.",
+    description:
+      "Trace a reported result to its readings, method, and review decisions.",
     input: "Run history, source readings, and reviewer decisions",
     output: "A summary with references to the underlying records",
-    whenToUse:
-      "When tracing a simulated result to its source records or explaining a review decision.",
-    instructions:
-      "List the recorded instrument, method revision, source readings, and reviewer decisions in order. Identify each run by its number and preserve the original and repeated readings separately. Summarize which observations support the reported result and identify any missing evidence.",
+    whenToUse: "When preparing a record for independent review.",
+    instructions: playbooks["evidence"],
   },
   {
     id: "method",
     family: "Scientific review",
     stage: "repeat",
     name: "Method comparison",
-    description: "Compare two versions of an experimental method.",
+    description:
+      "Compare the method revisions and settings recorded for two runs.",
     input: "Two method records",
     output: "A list of changes to parameters and interpretation",
-    whenToUse:
-      "When two recorded versions of a simulated method are available for comparison.",
-    instructions:
-      "Identify both revision identifiers. Compare recorded parameters field by field, including units, and describe changes that affect interpretation. If a value or revision is missing, mark the comparison incomplete. Reference the two source records in the summary.",
+    whenToUse: "When a comparison relies on the runs using comparable methods.",
+    instructions: playbooks["method"],
   },
   ...researchSkills.map(({ evaluate, ...definition }) => definition),
 ];
