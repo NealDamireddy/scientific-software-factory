@@ -8,6 +8,7 @@ import { ClientError } from "../types.ts";
 import { AGENT_SETUP, SKILL_MD } from "./agent-setup.ts";
 import { createSampleClient } from "./client.ts";
 import { enabledSkillPins, enabledSkills, listAgentConnections } from "./extensions.ts";
+import researchSkills from "./research-skills.json" with { type: "json" };
 import { createSeed } from "./seed.ts";
 
 const LAB = "emory-biophys";
@@ -26,13 +27,16 @@ async function rejects(promise: Promise<unknown>, code: string, message?: string
 
 // ---------------------------------------------------------------- skills
 
-test("listSkills returns the 3 seeded skills in seed order", async () => {
+test("listSkills preserves the sample defaults and includes each research playbook in full", async () => {
   const skills = await fresh().listSkills(LAB);
-  assert.deepEqual(skills.map((s) => [s.id, s.title, s.enabled, s.revision]), [
+  assert.deepEqual(skills.slice(0, 3).map((s) => [s.id, s.title, s.enabled, s.revision]), [
     ["procedure-style", "How we write procedures", true, 1],
     ["reporting-units", "Units we report in", true, 1],
     ["plot-style", "Plotting conventions", false, 1],
   ]);
+  assert.equal(researchSkills.length, 11);
+  assert.equal(new Set(skills.map((s) => s.id)).size, 14);
+  assert.deepEqual(skills.slice(3), researchSkills.map((skill) => ({ ...skill, revision: 1, enabled: false })));
   await rejects(fresh().listSkills("nope"), "not_found");
 });
 
@@ -72,6 +76,7 @@ test("overlapping identical edits make one revision", async () => {
 
 test("creating a skill slugs its title, enables it and records revision 1", async () => {
   const c = fresh();
+  const initialCount = (await c.listSkills(LAB)).length;
   const created = await c.saveSkill(LAB, { title: "How we write procedures", description: " Again ", body: "- Be brief." });
   assert.deepEqual(created, {
     id: "how-we-write-procedures", title: "How we write procedures", description: "Again", body: "- Be brief.",
@@ -80,7 +85,7 @@ test("creating a skill slugs its title, enables it and records revision 1", asyn
   const second = await c.saveSkill(LAB, { title: "How we write procedures", description: "", body: "- Be briefer." });
   assert.equal(second.id, "how-we-write-procedures-2");
   assert.deepEqual((await c.listRevisions("skill", created.id)).map((r) => [r.number, r.note]), [[1, "Created"]]);
-  assert.equal((await c.listSkills(LAB)).length, 5);
+  assert.equal((await c.listSkills(LAB)).length, initialCount + 2);
 });
 
 test("the id new is reserved: a skill titled New gets new-2", async () => {

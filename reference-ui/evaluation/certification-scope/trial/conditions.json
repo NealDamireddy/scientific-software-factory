@@ -1,0 +1,206 @@
+[
+  {
+    "case": "material",
+    "block": 1,
+    "label": 256,
+    "arm": "baseline",
+    "versions": [],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "01c53538aeb7f18b3d75a521265d53ae42e556cca67a1cb0219825eaef7df070"
+  },
+  {
+    "case": "material",
+    "block": 1,
+    "label": 405,
+    "arm": "old",
+    "versions": [
+      "fbd01141ea49af22f73799a905cd9621bd541b89d796139c1b89b8a042c4f94f"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "a71785621ea926bb337fcd7fb8e78c50674594541315a73fe0d0cc1cb1f705b3"
+  },
+  {
+    "case": "interlab",
+    "block": 1,
+    "label": 380,
+    "arm": "baseline",
+    "versions": [],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "221bc39b1487d1f3642adbfab2b05d0cb5e3083071b3873b5be4f3a85d1a881e"
+  },
+  {
+    "case": "isotope",
+    "block": 1,
+    "label": 929,
+    "arm": "revised",
+    "versions": [
+      "fc97ab38a2f3e490462bed166c938b852a1b2788a84a95bafd431f9fed6382d9"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "151db8f36d437970de1e35ce9428bc5247173b296364f61ee406f7baa5c0202a"
+  },
+  {
+    "case": "interlab",
+    "block": 2,
+    "label": 751,
+    "arm": "baseline",
+    "versions": [],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "221bc39b1487d1f3642adbfab2b05d0cb5e3083071b3873b5be4f3a85d1a881e"
+  },
+  {
+    "case": "material",
+    "block": 2,
+    "label": 927,
+    "arm": "baseline",
+    "versions": [],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "01c53538aeb7f18b3d75a521265d53ae42e556cca67a1cb0219825eaef7df070"
+  },
+  {
+    "case": "isotope",
+    "block": 1,
+    "label": 877,
+    "arm": "baseline",
+    "versions": [],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "eb35ad36c390cb01e8bf8e7b088281c60ffcfb77c8913ef48fe1858cfd38c51d"
+  },
+  {
+    "case": "interlab",
+    "block": 2,
+    "label": 935,
+    "arm": "old",
+    "versions": [
+      "fbd01141ea49af22f73799a905cd9621bd541b89d796139c1b89b8a042c4f94f"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "3b0b28170245a6ee6215b34a580568ab1c6a045391b87826bdde47dfc411af1b"
+  },
+  {
+    "case": "interlab",
+    "block": 1,
+    "label": 119,
+    "arm": "old",
+    "versions": [
+      "fbd01141ea49af22f73799a905cd9621bd541b89d796139c1b89b8a042c4f94f"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "3b0b28170245a6ee6215b34a580568ab1c6a045391b87826bdde47dfc411af1b"
+  },
+  {
+    "case": "isotope",
+    "block": 2,
+    "label": 176,
+    "arm": "revised",
+    "versions": [
+      "fc97ab38a2f3e490462bed166c938b852a1b2788a84a95bafd431f9fed6382d9"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "151db8f36d437970de1e35ce9428bc5247173b296364f61ee406f7baa5c0202a"
+  },
+  {
+    "case": "isotope",
+    "block": 1,
+    "label": 251,
+    "arm": "old",
+    "versions": [
+      "fbd01141ea49af22f73799a905cd9621bd541b89d796139c1b89b8a042c4f94f"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "ec57b1bf6acbe2c408d0946942c6a2dd5c736c24d7bfec6c29a4e7469b6122e6"
+  },
+  {
+    "case": "interlab",
+    "block": 1,
+    "label": 105,
+    "arm": "revised",
+    "versions": [
+      "fc97ab38a2f3e490462bed166c938b852a1b2788a84a95bafd431f9fed6382d9"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "a223d3a1db88a73649646a6571809e254f10013521fdd297c1f87c5b4a8352e1"
+  },
+  {
+    "case": "material",
+    "block": 2,
+    "label": 393,
+    "arm": "revised",
+    "versions": [
+      "fc97ab38a2f3e490462bed166c938b852a1b2788a84a95bafd431f9fed6382d9"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "b9d110c43cfa4e82f06f384ea623125b1e5b65061668d7e41ce54e17cc7e0938"
+  },
+  {
+    "case": "material",
+    "block": 2,
+    "label": 873,
+    "arm": "old",
+    "versions": [
+      "fbd01141ea49af22f73799a905cd9621bd541b89d796139c1b89b8a042c4f94f"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "a71785621ea926bb337fcd7fb8e78c50674594541315a73fe0d0cc1cb1f705b3"
+  },
+  {
+    "case": "isotope",
+    "block": 2,
+    "label": 484,
+    "arm": "baseline",
+    "versions": [],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "eb35ad36c390cb01e8bf8e7b088281c60ffcfb77c8913ef48fe1858cfd38c51d"
+  },
+  {
+    "case": "interlab",
+    "block": 2,
+    "label": 222,
+    "arm": "revised",
+    "versions": [
+      "fc97ab38a2f3e490462bed166c938b852a1b2788a84a95bafd431f9fed6382d9"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "a223d3a1db88a73649646a6571809e254f10013521fdd297c1f87c5b4a8352e1"
+  },
+  {
+    "case": "isotope",
+    "block": 2,
+    "label": 998,
+    "arm": "old",
+    "versions": [
+      "fbd01141ea49af22f73799a905cd9621bd541b89d796139c1b89b8a042c4f94f"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "ec57b1bf6acbe2c408d0946942c6a2dd5c736c24d7bfec6c29a4e7469b6122e6"
+  },
+  {
+    "case": "material",
+    "block": 1,
+    "label": 983,
+    "arm": "revised",
+    "versions": [
+      "fc97ab38a2f3e490462bed166c938b852a1b2788a84a95bafd431f9fed6382d9"
+    ],
+    "model": "gpt-6.2-sol",
+    "cli": "codex-cli 0.167.0",
+    "prompt_sha256": "b9d110c43cfa4e82f06f384ea623125b1e5b65061668d7e41ce54e17cc7e0938"
+  }
+]

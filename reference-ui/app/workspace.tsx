@@ -51,6 +51,7 @@ import {
   buildAgentContext,
 } from "./extension-model";
 import ExperimentDetail from "./experiment-detail";
+import { deliverReview, recordDelivery } from "./worker-delivery";
 import {
   advanceWorkspace,
   createDraft,
@@ -215,6 +216,27 @@ export default function Workspace() {
     );
     return () => window.clearTimeout(timer);
   }, [loaded, activeRunId, activeStep]);
+  const dispatched = useRef(new Set<string>());
+  useEffect(() => {
+    if (!loaded) return;
+    const pending = new Set<string>();
+    for (const experiment of saved.experiments) {
+      for (const run of experiment.runs) {
+        const delivery = run.workerDelivery;
+        if (delivery?.status !== "pending" || !run.agentContext) continue;
+        pending.add(delivery.id);
+        if (dispatched.current.has(delivery.id)) continue;
+        dispatched.current.add(delivery.id);
+        void deliverReview(delivery.id, run.agentContext, window.location.hostname)
+          .then((result) => setSaved((old) => ({
+            ...old, experiments: recordDelivery(old.experiments, result),
+          })));
+      }
+    }
+    for (const id of dispatched.current) {
+      if (!pending.has(id)) dispatched.current.delete(id);
+    }
+  }, [loaded, saved.experiments]);
   const update = (patch: Partial<Saved>) =>
     setSaved((old) => ({ ...old, ...patch }));
   useEffect(() => {
@@ -773,11 +795,11 @@ export default function Workspace() {
             extensions={saved.extensions}
             instrumentBusy={!!activeRun && activeRun.id !== experiment.id}
             onBack={() => go("experiments")}
-            onChange={(next) =>
+            onChange={(change) =>
               setSaved((old) => ({
                 ...old,
                 experiments: old.experiments.map((e) =>
-                  e.id === next.id ? next : e,
+                  e.id === experiment.id ? change(e) : e,
                 ),
               }))
             }
@@ -1202,9 +1224,9 @@ export default function Workspace() {
           <section className="ws-agent-context">
             <h3>Coding agent handoff</h3>
             <p>
-              Each simulated run automatically receives the enabled skills and
-              connected tools. Download a copy to inspect the current
-              configuration or share it with another agent.
+              On localhost, starting a run sends the experiment briefing and enabled
+              skills to your signed-in Codex worker. Evidence keeps its review and
+              the skill versions it received. Connector settings stay in the workspace.
             </p>
             <button
               className="ws-button"

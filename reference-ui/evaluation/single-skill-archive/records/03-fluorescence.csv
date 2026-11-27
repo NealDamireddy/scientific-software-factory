@@ -1,0 +1,9 @@
+document,section,table,method,element,916b_mg_per_kg,916b_expanded_unc_mg_per_kg,1566b_measured_mg_per_kg,1566b_expanded_unc_mg_per_kg,1566b_certificate_mg_per_kg,1566b_reported_absolute_z
+SP260-212,3.3,8,WDXRF,Na,160,64,3200,1300,3297,0.15
+SP260-212,3.3,8,WDXRF,Mg,60,24,970,390,1085,0.59
+SP260-212,3.3,8,WDXRF,Al,60,24,210,84,197.2,0.30
+SP260-212,3.3,8,WDXRF,Cl,2900,1200,4300,1700,5140,0.99
+SP260-212,3.3,8,WDXRF,K,40,16,5500,2200,6520,0.93
+SP260-212,3.3,8,WDXRF,Ca,770,310,680,270,838,1.17
+SP260-212,3.3,8,WDXRF,Fe,470,190,230,92,205.8,0.52
+SP260-212,3.3,8,WDXRF,published sum over full table,5640,2260,30330,12100,25699,0.58
