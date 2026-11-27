@@ -1,0 +1,144 @@
+{
+  "artifacts": {
+    "caffeine": {
+      "explanation": "Apply the submitted method to one anonymous sample.",
+      "source": "def analyze(standards, signal, factor):\n    signal_axis = column(standards, 0)\n    known_axis = column(standards, 1)\n    baseline = intercept(known_axis, signal_axis)\n    response = slope(known_axis, signal_axis)\n    return (signal - baseline) / response * factor\n",
+      "tests": [
+        {
+          "expected": 6,
+          "factor": 3,
+          "label": "Constructed sample 1",
+          "signal": 7,
+          "standards": [
+            [
+              2,
+              0
+            ],
+            [
+              12,
+              4
+            ]
+          ]
+        },
+        {
+          "expected": 10,
+          "factor": 5,
+          "label": "Constructed sample 2",
+          "signal": 60,
+          "standards": [
+            [
+              30,
+              1
+            ],
+            [
+              90,
+              3
+            ]
+          ]
+        }
+      ]
+    },
+    "density": {
+      "explanation": "Apply the submitted method to one anonymous sample.",
+      "source": "def analyze(standards, signal, factor):\n    return signal / factor\n",
+      "tests": [
+        {
+          "expected": 3,
+          "factor": 2,
+          "label": "Constructed sample 1",
+          "signal": 6,
+          "standards": []
+        },
+        {
+          "expected": 1.5,
+          "factor": 3,
+          "label": "Constructed sample 2",
+          "signal": 4.5,
+          "standards": []
+        }
+      ]
+    },
+    "wrong": {
+      "explanation": "Apply the submitted method to one anonymous sample.",
+      "source": "def analyze(standards, signal, factor):\n    return signal * factor\n",
+      "tests": [
+        {
+          "expected": 21,
+          "factor": 3,
+          "label": "Constructed sample 1",
+          "signal": 7,
+          "standards": [
+            [
+              2,
+              0
+            ],
+            [
+              12,
+              4
+            ]
+          ]
+        },
+        {
+          "expected": 300,
+          "factor": 5,
+          "label": "Constructed sample 2",
+          "signal": 60,
+          "standards": [
+            [
+              30,
+              1
+            ],
+            [
+              90,
+              3
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "examples": {
+    "caffeine": {
+      "control_expected": 16,
+      "control_tolerance": 0.25,
+      "csv": "sample,role,area,concentration,dilution\nS0,standard,40,0,1\nS5,standard,1040,5,1\nS10,standard,2040,10,1\nS20,standard,4040,20,1\nS30,standard,6040,30,1\nQC-A,control,1640,,2\nCoffee A,unknown,2440,,2\nCoffee B,unknown,3040,,3\n",
+      "csv_name": "readings.csv",
+      "mapping": {
+        "factor": "dilution",
+        "id": "sample",
+        "known": "concentration",
+        "role": "role",
+        "signal": "area"
+      },
+      "objective": "Estimate caffeine in the original coffee from integrated HPLC peak areas.",
+      "protocol": "# Caffeine in coffee by HPLC · simulated lab protocol\n\nReport caffeine in the original coffee in mg/L. The input is the integrated caffeine peak area for each injection. Peak identification and integration are complete. There is one injection per row in this simulated batch.\n\nCalibrate the detector response against the standards run with this batch. Use unweighted ordinary least squares with peak area as the response and known vial concentration (mg/L) as the predictor. Retain the fitted intercept. Obtain the concentration in each injected vial from its measured area. The dilution column gives the ratio of final volume to original sample volume. Correct each vial concentration to its original-sample basis using that row's dilution. A dilution of one is an undiluted sample.\n\nUse the calibration interval of the batch. Withhold results for readings outside the range of standard signals. Positive dilutions are required. Report in mg/L without rounding intermediate results. Do not infer mass per serving or caffeine per mass of coffee. The reviewer supplies the independent control certificate separately.\n",
+      "protocol_name": "protocol.md",
+      "range_gate": true,
+      "unit": "mg/L"
+    },
+    "density": {
+      "control_expected": 0.9,
+      "control_tolerance": 0.01,
+      "csv": "specimen,kind,mass_g,reference_density,volume_ml\nCheck liquid,control,7.2,,8\nLiquid A,unknown,13.5,,12.5\nLiquid B,unknown,6,,7.5\n",
+      "csv_name": "readings.csv",
+      "mapping": {
+        "factor": "volume_ml",
+        "id": "specimen",
+        "known": "reference_density",
+        "role": "kind",
+        "signal": "mass_g"
+      },
+      "objective": "Determine the density of each simulated liquid at 20 °C.",
+      "protocol": "# Density of liquids · simulated lab protocol\n\nReport the mass of one millilitre of each simulated liquid at 20 °C in g/mL. For each specimen, the balance gives the net liquid mass in grams after the empty container was tared. The volume column records the actual dispensed volume in millilitres and must be positive. Express the measured mass per unit of the specimen's own volume.\n\nThe independently characterized check liquid provides a quality check. This direct measurement uses no fitted calibration or standard rows. Sample volumes may differ, so the mass alone is not a calibration-range criterion. Report the unrounded density. Temperature correction, buoyancy correction and physical-instrument validation are outside this simulation.\n",
+      "protocol_name": "protocol.md",
+      "range_gate": false,
+      "unit": "g/mL"
+    }
+  },
+  "fresh_control": {
+    "expected": 14.382,
+    "factor": 2,
+    "signal": 1478.2,
+    "tolerance": 0.15
+  }
+}

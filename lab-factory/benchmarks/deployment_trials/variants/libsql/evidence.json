@@ -1,0 +1,1040 @@
+{
+  "acceptance": {
+    "access_mode": "private",
+    "base_url": "http://127.0.0.1:60048",
+    "downtime": {
+      "confirmed": true,
+      "observation": "connection unavailable"
+    },
+    "ids": {
+      "caffeine": "WO-1",
+      "density": "WO-2",
+      "race": "WO-3"
+    },
+    "outcome": {
+      "caffeine": {
+        "approval": {
+          "digest": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+          "submission": 2
+        },
+        "control_passed": true,
+        "history": [
+          [
+            "created",
+            null,
+            ""
+          ],
+          [
+            "claimed",
+            null,
+            ""
+          ],
+          [
+            "submitted",
+            1,
+            "failed"
+          ],
+          [
+            "submitted",
+            2,
+            "passed"
+          ],
+          [
+            "approved",
+            2,
+            "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0"
+          ]
+        ],
+        "replayed_receipt": true,
+        "run_batch_digest": "e935c8ca89a1cf817cd997dbf6c6eb576d94f36260a697db220711584d6dc002",
+        "submissions": [
+          {
+            "artifact_sha256": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2",
+            "control": {
+              "edition": 1,
+              "expected": 16.0,
+              "passed": false,
+              "predicted": 3280.0,
+              "tolerance": 0.25
+            },
+            "number": 1,
+            "passed": false
+          },
+          {
+            "artifact_sha256": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+            "control": {
+              "edition": 2,
+              "expected": 14.382,
+              "passed": true,
+              "predicted": 14.382,
+              "tolerance": 0.15
+            },
+            "number": 2,
+            "passed": true
+          }
+        ],
+        "unit": "mg/L",
+        "uploads": {
+          "csv": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+          "protocol": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f"
+        },
+        "values": [
+          24.0,
+          45.0
+        ]
+      },
+      "density": {
+        "approval": {
+          "digest": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+          "submission": 1
+        },
+        "control_passed": true,
+        "history": [
+          [
+            "created",
+            null,
+            ""
+          ],
+          [
+            "claimed",
+            null,
+            ""
+          ],
+          [
+            "submitted",
+            1,
+            "passed"
+          ],
+          [
+            "approved",
+            1,
+            "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2"
+          ]
+        ],
+        "replayed_receipt": true,
+        "run_batch_digest": "2eaaa06a8d2169e0bb14f1661af082bbf19ddb6a1613923c5f40e8403d39b538",
+        "submissions": [
+          {
+            "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+            "control": {
+              "edition": 1,
+              "expected": 0.9,
+              "passed": true,
+              "predicted": 0.9,
+              "tolerance": 0.01
+            },
+            "number": 1,
+            "passed": true
+          }
+        ],
+        "unit": "g/mL",
+        "uploads": {
+          "csv": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+          "protocol": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65"
+        },
+        "values": [
+          1.08,
+          0.8
+        ]
+      },
+      "race": {
+        "claim_events": 1,
+        "status": "in_progress",
+        "winners": 1
+      }
+    },
+    "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+    "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+    "verification": {
+      "downtime_observed": true,
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "passed": true
+    },
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  },
+  "acceptance_run_failed_sql_http_requests": 0,
+  "acceptance_run_sql_posts_by_path": {
+    "/v3/cursor": 420,
+    "/v3/pipeline": 33
+  },
+  "acceptance_runner_sha256": "cab9b87b4b2cdfdc7f41fcc8a05bdeaec2798e3a8511d0414086869d026ae288",
+  "acceptance_scenarios": {
+    "API offline confirmed": "pass",
+    "approve exact submission and digest": "pass",
+    "author receives protocol without expected held-back control": "pass",
+    "cold backup restored into a fresh directory reproduces canonical outcome": "pass",
+    "correct two numerical results for each analysis": "pass",
+    "intake caffeine and density": "pass",
+    "named reviewer gate and login": "pass",
+    "preserve receipt and original on replay": "pass",
+    "protocol and readings round-trip with pinned SHA256": "pass",
+    "reject approval and execution of failed revision": "pass",
+    "reject stale approval": "pass",
+    "replacement API reproduces canonical outcome": "pass",
+    "require fresh control after failed submission": "pass",
+    "restarted SQL reproduces canonical outcome": "pass",
+    "two simultaneous worker claims produce one persisted winner": "pass",
+    "two worker identities initialize and list four tools": "pass",
+    "unauthenticated MCP denied": "pass",
+    "verify corrected caffeine and density candidates": "pass",
+    "wrong candidate passes its own tests and fails independent control": "pass"
+  },
+  "analysis_worker_recovery": {
+    "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+    "author": "fixed shared density candidate",
+    "blind_control_passed": true,
+    "claim_events": 1,
+    "final_status": "in_review",
+    "kill_to_verified_submission_ms": 1492.48,
+    "model_generation": false,
+    "order_id": "WO-5",
+    "original_exit_code": -9,
+    "original_pid": 3388,
+    "passed": true,
+    "replacement_exit_code": 0,
+    "replacement_found_via_in_progress_list": true,
+    "replacement_pid": 3389,
+    "replacement_spawn_to_verified_submission_ms": 1449.37,
+    "reviewer_mode": "named",
+    "status": "pass",
+    "status_after_sigkill": "in_progress",
+    "submission_count": 1,
+    "submission_events": 1,
+    "submissions_after_sigkill": 0,
+    "transport": "authenticated streamable HTTP MCP",
+    "worker_function": "labfactory.tabular_worker.process",
+    "worker_identity": "agent-a",
+    "worker_spawn_to_confirmed_claim_ms": 558.73,
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  },
+  "backend_entry_point": "api.index:app",
+  "candidate_source_utf8_sha256": {
+    "caffeine": "900e1a056b20adfc0e8e97c488baf87334ba2d9b04178cdde773d4abaf71996b",
+    "density": "0ed267e7932a9123b596ce8074e6f41222b36984f840f471173f010e9ec39d83",
+    "wrong": "4de082bd88686474bc0b361304903d872ad1e054af105b990d1eb97a46bbe2f5"
+  },
+  "cold_backup_restore": {
+    "backup_manifest_matches_source": true,
+    "file_count": 9,
+    "image_bytes": 373677,
+    "image_manifest": {
+      "directories": [
+        "dbs",
+        "dbs/default",
+        "dbs/default/tmp",
+        "dbs/default/to_compact",
+        "metastore"
+      ],
+      "files": {
+        ".version": {
+          "bytes": 7,
+          "sha256": "52eb9b9dc88b7af9cebeb98605a30234d49c97fc8e5115e6cd9a8e69d2f32a3c"
+        },
+        "dbs/default/data": {
+          "bytes": 135168,
+          "sha256": "967ff2a5831a1a8c913166ee41580b91a3a8ce66a13f4ce1a7909515527a3a53"
+        },
+        "dbs/default/data-shm": {
+          "bytes": 32768,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "dbs/default/data-wal": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "dbs/default/stats.json": {
+          "bytes": 4174,
+          "sha256": "7dc1aada9947fe5e5d2165d870be79ee6b88b9a7b2ea804aaae4f46b39e757d7"
+        },
+        "dbs/default/wallog": {
+          "bytes": 136024,
+          "sha256": "a338d4fd9182ad1e2cd27bb87b1b3ab51b5f582530ec54119c95a77ad67d03f0"
+        },
+        "metastore/data": {
+          "bytes": 32768,
+          "sha256": "8f033bb352240ec627d15c46fca3b444135711b215472677c4a0e710c1600582"
+        },
+        "metastore/data-shm": {
+          "bytes": 32768,
+          "sha256": "bcf37fa99fed4bbf49359a2444075936e7f28ba33208c6cafcd61564c2bdb2b7"
+        },
+        "metastore/data-wal": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    "limitations": [
+      "Requires SQL downtime for a stable source image.",
+      "Off-host disaster recovery and online backup were untested."
+    ],
+    "method": "quiesced complete sqld directory copy",
+    "restore_manifest_matches_source": true,
+    "scope": "same host and filesystem; caller stopped sqld before copying",
+    "status": "pass",
+    "timings_ms": {
+      "backup_copy_ms": 6.519,
+      "backup_verification_ms": 2.854,
+      "copy_and_verification_total_ms": 23.284,
+      "restore_copy_ms": 7.125,
+      "restore_verification_ms": 2.423,
+      "source_manifest_ms": 3.268
+    }
+  },
+  "db_file_sizes_after_shutdown": {
+    ".version": 7,
+    "dbs/default/data": 135168,
+    "dbs/default/data-shm": 32768,
+    "dbs/default/data-wal": 0,
+    "dbs/default/stats.json": 4174,
+    "dbs/default/wallog": 136024,
+    "metastore/data": 32768,
+    "metastore/data-shm": 32768,
+    "metastore/data-wal": 0
+  },
+  "deployment_type": "Local stateless ASGI API + independent official libSQL sqld over TLS/Hrana v3",
+  "engine": {
+    "archive_sha256": "ced2a9d65a5d4b6bd72c67e98ad6c63139e2a139d91769f07fdd15be935381dd",
+    "binary_sha256": "cc075b5bf145e5e750afd2941f390b46dbfe9ae47158d95ab637a00559681054",
+    "classification": "official self-hosted libSQL sqld",
+    "native_jwt_with_token_http": 200,
+    "native_jwt_without_token_http": 401,
+    "source": "https://github.com/tursodatabase/libsql/releases/tag/libsql-server-v0.24.32",
+    "version": "sqld sqld 0.24.32 (40c272de 2025-02-14)"
+  },
+  "fresh_control_canonical_json_sha256": "91b97f6ee29ef7b382d9e5460e2b0f37e0fd084335bffc0175181d6d905db27c",
+  "host": {
+    "machine": "arm64",
+    "os": "Darwin",
+    "packages": {
+      "PyJWT": "2.15.1",
+      "cryptography": "50.0.2",
+      "httpx": "0.28.1",
+      "mcp": "1.30.0",
+      "turso-serverless": "0.1.0",
+      "uvicorn": "0.54.0"
+    },
+    "python": "3.14.9",
+    "release": "25.2.0"
+  },
+  "hosted_local_db_or_blob_environment_set": false,
+  "hosted_preview": {
+    "reason": "No dedicated, authorized hosted credentials or preview supplied.",
+    "status": "unverified"
+  },
+  "inputs": {
+    "artifact_sha256": {
+      "caffeine": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+      "density": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+      "wrong": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2"
+    },
+    "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+    "source_file_sha256": {
+      "examples/tabular/caffeine/control.json": "7d179557228dc6352b11d3747d3ad451d4270c8c3b099191fe4086391b9c9d6e",
+      "examples/tabular/caffeine/protocol.md": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f",
+      "examples/tabular/caffeine/readings.csv": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+      "examples/tabular/density/control.json": "5a2d991a9cb397389dc5558dbcb9a622d381d5eb48881bbfaf2e486fa3f21b04",
+      "examples/tabular/density/protocol.md": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65",
+      "examples/tabular/density/readings.csv": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+      "examples/tabular/index.json": "50c4300c28e4d2507c27d5f1ffd763155fce3f79a605aea1964282c87e3a0f4b",
+      "tests/test_tabular_acceptance.py": "00e11bb9df00d2495b81596b0176d3c624c5b759a1737555f7ae02a417de2816"
+    },
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  },
+  "operational_checks": {
+    "all_child_processes_reaped": true,
+    "api_kill_signal": "SIGKILL",
+    "api_session_with_sql_down_http": 200,
+    "api_work_dirs_after_run": {
+      "api_initial": [],
+      "api_peer": [],
+      "api_replacement": []
+    },
+    "api_workers_alive_across_sql_restart": true,
+    "database_backed_read_with_sql_down_http": 503,
+    "distinct_live_api_workers_same_released_order": true,
+    "fingerprint_after_api_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+    "fingerprint_after_cold_restore": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+    "fingerprint_after_sql_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+    "order_counts_verified": 3,
+    "scratch_removed": true,
+    "sql_kill_signal": "SIGKILL",
+    "sql_pid_alive_across_api_restart": true,
+    "supplemental_cross_worker_claim": {
+      "claim_events_per_origin": {
+        "peer": 1,
+        "primary": 1
+      },
+      "create_http_status": 201,
+      "identical_order_details": true,
+      "responses": {
+        "peer": {
+          "claim_result": "already_claimed",
+          "mcp_http_status": 200,
+          "read_http_status": 200,
+          "worker": "agent-b"
+        },
+        "primary": {
+          "claim_result": "in_progress",
+          "mcp_http_status": 200,
+          "read_http_status": 200,
+          "worker": "agent-a"
+        }
+      },
+      "status": "pass",
+      "supplemental_order_id": "WO-4",
+      "winner": "agent-a",
+      "winner_count": 1
+    }
+  },
+  "process_ids": {
+    "api_initial": 3289,
+    "api_peer": 3320,
+    "api_replacement": 3302,
+    "sql_initial": 3286,
+    "sql_reopened": 3330,
+    "sql_restored": 3347,
+    "sql_tls": 3288
+  },
+  "proxy_stats": {
+    "by_path": {
+      "/v3/cursor": 1078,
+      "/v3/pipeline": 88
+    },
+    "by_status": {
+      "200": 1165,
+      "503": 1
+    },
+    "failed_requests": 1,
+    "requests": 1166,
+    "snapshot_number": 2,
+    "successful_requests": 1165,
+    "unexpected_paths": 0,
+    "upstream_transport_failures": 1
+  },
+  "reviewer_gate_without_session_http": 401,
+  "samples": [
+    {
+      "acceptance_run_failed_sql_http_requests": 0,
+      "acceptance_run_sql_posts_by_path": {
+        "/v3/cursor": 420,
+        "/v3/pipeline": 33
+      },
+      "acceptance_runner_sha256": "cab9b87b4b2cdfdc7f41fcc8a05bdeaec2798e3a8511d0414086869d026ae288",
+      "analysis_worker_recovery": {
+        "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+        "author": "fixed shared density candidate",
+        "blind_control_passed": true,
+        "claim_events": 1,
+        "final_status": "in_review",
+        "kill_to_verified_submission_ms": 1492.48,
+        "model_generation": false,
+        "order_id": "WO-5",
+        "original_exit_code": -9,
+        "original_pid": 3388,
+        "passed": true,
+        "replacement_exit_code": 0,
+        "replacement_found_via_in_progress_list": true,
+        "replacement_pid": 3389,
+        "replacement_spawn_to_verified_submission_ms": 1449.37,
+        "reviewer_mode": "named",
+        "status": "pass",
+        "status_after_sigkill": "in_progress",
+        "submission_count": 1,
+        "submission_events": 1,
+        "submissions_after_sigkill": 0,
+        "transport": "authenticated streamable HTTP MCP",
+        "worker_function": "labfactory.tabular_worker.process",
+        "worker_identity": "agent-a",
+        "worker_spawn_to_confirmed_claim_ms": 558.73,
+        "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+      },
+      "cold_backup_restore": {
+        "backup_manifest_matches_source": true,
+        "file_count": 9,
+        "image_bytes": 373677,
+        "image_manifest": {
+          "directories": [
+            "dbs",
+            "dbs/default",
+            "dbs/default/tmp",
+            "dbs/default/to_compact",
+            "metastore"
+          ],
+          "files": {
+            ".version": {
+              "bytes": 7,
+              "sha256": "52eb9b9dc88b7af9cebeb98605a30234d49c97fc8e5115e6cd9a8e69d2f32a3c"
+            },
+            "dbs/default/data": {
+              "bytes": 135168,
+              "sha256": "967ff2a5831a1a8c913166ee41580b91a3a8ce66a13f4ce1a7909515527a3a53"
+            },
+            "dbs/default/data-shm": {
+              "bytes": 32768,
+              "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+            },
+            "dbs/default/data-wal": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "dbs/default/stats.json": {
+              "bytes": 4174,
+              "sha256": "7dc1aada9947fe5e5d2165d870be79ee6b88b9a7b2ea804aaae4f46b39e757d7"
+            },
+            "dbs/default/wallog": {
+              "bytes": 136024,
+              "sha256": "a338d4fd9182ad1e2cd27bb87b1b3ab51b5f582530ec54119c95a77ad67d03f0"
+            },
+            "metastore/data": {
+              "bytes": 32768,
+              "sha256": "8f033bb352240ec627d15c46fca3b444135711b215472677c4a0e710c1600582"
+            },
+            "metastore/data-shm": {
+              "bytes": 32768,
+              "sha256": "bcf37fa99fed4bbf49359a2444075936e7f28ba33208c6cafcd61564c2bdb2b7"
+            },
+            "metastore/data-wal": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "limitations": [
+          "Requires SQL downtime for a stable source image.",
+          "Off-host disaster recovery and online backup were untested."
+        ],
+        "method": "quiesced complete sqld directory copy",
+        "restore_manifest_matches_source": true,
+        "scope": "same host and filesystem; caller stopped sqld before copying",
+        "status": "pass",
+        "timings_ms": {
+          "backup_copy_ms": 6.519,
+          "backup_verification_ms": 2.854,
+          "copy_and_verification_total_ms": 23.284,
+          "restore_copy_ms": 7.125,
+          "restore_verification_ms": 2.423,
+          "source_manifest_ms": 3.268
+        }
+      },
+      "downtime": {
+        "confirmed": true,
+        "observation": "connection unavailable"
+      },
+      "operational_checks": {
+        "all_child_processes_reaped": true,
+        "api_kill_signal": "SIGKILL",
+        "api_session_with_sql_down_http": 200,
+        "api_work_dirs_after_run": {
+          "api_initial": [],
+          "api_peer": [],
+          "api_replacement": []
+        },
+        "api_workers_alive_across_sql_restart": true,
+        "database_backed_read_with_sql_down_http": 503,
+        "distinct_live_api_workers_same_released_order": true,
+        "fingerprint_after_api_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "fingerprint_after_cold_restore": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "fingerprint_after_sql_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "order_counts_verified": 3,
+        "scratch_removed": true,
+        "sql_kill_signal": "SIGKILL",
+        "sql_pid_alive_across_api_restart": true,
+        "supplemental_cross_worker_claim": {
+          "claim_events_per_origin": {
+            "peer": 1,
+            "primary": 1
+          },
+          "create_http_status": 201,
+          "identical_order_details": true,
+          "responses": {
+            "peer": {
+              "claim_result": "already_claimed",
+              "mcp_http_status": 200,
+              "read_http_status": 200,
+              "worker": "agent-b"
+            },
+            "primary": {
+              "claim_result": "in_progress",
+              "mcp_http_status": 200,
+              "read_http_status": 200,
+              "worker": "agent-a"
+            }
+          },
+          "status": "pass",
+          "supplemental_order_id": "WO-4",
+          "winner": "agent-a",
+          "winner_count": 1
+        }
+      },
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "process_ids": {
+        "api_initial": 3289,
+        "api_peer": 3320,
+        "api_replacement": 3302,
+        "sql_initial": 3286,
+        "sql_reopened": 3330,
+        "sql_restored": 3347,
+        "sql_tls": 3288
+      },
+      "proxy_stats": {
+        "by_path": {
+          "/v3/cursor": 1078,
+          "/v3/pipeline": 88
+        },
+        "by_status": {
+          "200": 1165,
+          "503": 1
+        },
+        "failed_requests": 1,
+        "requests": 1166,
+        "snapshot_number": 2,
+        "successful_requests": 1165,
+        "unexpected_paths": 0,
+        "upstream_transport_failures": 1
+      },
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "sample": 1,
+      "timings_ms": {
+        "acceptance_offline_ms": 235.58,
+        "acceptance_run_ms": 923.77,
+        "acceptance_verify_after_api_replacement_ms": 1820.77,
+        "acceptance_verify_after_cold_restore_ms": 2264.36,
+        "acceptance_verify_after_sql_restart_ms": 971.88,
+        "api_kill_to_database_backed_read_including_offline_probe_ms": 1346.64,
+        "cold_backup_and_restore_stop_to_database_backed_read_ms": 1260.9,
+        "initial_api_spawn_to_database_backed_read_ms": 504.03,
+        "replacement_api_spawn_to_database_backed_read_ms": 1107.15,
+        "sql_kill_to_database_backed_read_including_probes_ms": 470.13,
+        "sql_respawn_to_database_backed_read_ms": 459.34,
+        "storage_outage_request_ms": 5.91
+      },
+      "verification": {
+        "downtime_observed": true,
+        "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "passed": true
+      },
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    {
+      "acceptance_run_failed_sql_http_requests": 0,
+      "acceptance_run_sql_posts_by_path": {
+        "/v3/cursor": 420,
+        "/v3/pipeline": 33
+      },
+      "acceptance_runner_sha256": "cab9b87b4b2cdfdc7f41fcc8a05bdeaec2798e3a8511d0414086869d026ae288",
+      "analysis_worker_recovery": {
+        "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+        "author": "fixed shared density candidate",
+        "blind_control_passed": true,
+        "claim_events": 1,
+        "final_status": "in_review",
+        "kill_to_verified_submission_ms": 553.75,
+        "model_generation": false,
+        "order_id": "WO-5",
+        "original_exit_code": -9,
+        "original_pid": 3665,
+        "passed": true,
+        "replacement_exit_code": 0,
+        "replacement_found_via_in_progress_list": true,
+        "replacement_pid": 3675,
+        "replacement_spawn_to_verified_submission_ms": 525.37,
+        "reviewer_mode": "named",
+        "status": "pass",
+        "status_after_sigkill": "in_progress",
+        "submission_count": 1,
+        "submission_events": 1,
+        "submissions_after_sigkill": 0,
+        "transport": "authenticated streamable HTTP MCP",
+        "worker_function": "labfactory.tabular_worker.process",
+        "worker_identity": "agent-a",
+        "worker_spawn_to_confirmed_claim_ms": 437.24,
+        "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+      },
+      "cold_backup_restore": {
+        "backup_manifest_matches_source": true,
+        "file_count": 9,
+        "image_bytes": 369816,
+        "image_manifest": {
+          "directories": [
+            "dbs",
+            "dbs/default",
+            "dbs/default/tmp",
+            "dbs/default/to_compact",
+            "metastore"
+          ],
+          "files": {
+            ".version": {
+              "bytes": 7,
+              "sha256": "52eb9b9dc88b7af9cebeb98605a30234d49c97fc8e5115e6cd9a8e69d2f32a3c"
+            },
+            "dbs/default/data": {
+              "bytes": 135168,
+              "sha256": "09dd3ed1561479d637580b42c4d9d861c2cf3da7f61e8281d6891c82e8238197"
+            },
+            "dbs/default/data-shm": {
+              "bytes": 32768,
+              "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+            },
+            "dbs/default/data-wal": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "dbs/default/stats.json": {
+              "bytes": 313,
+              "sha256": "c18e89e65bc35ce029a9d25bc1abe90b6a5b5e799435f2755830fd431395b9ea"
+            },
+            "dbs/default/wallog": {
+              "bytes": 136024,
+              "sha256": "ae085a0bb5c00309f884259bc068c18358f1aa9a98f60250899d0c97e4243899"
+            },
+            "metastore/data": {
+              "bytes": 32768,
+              "sha256": "8f033bb352240ec627d15c46fca3b444135711b215472677c4a0e710c1600582"
+            },
+            "metastore/data-shm": {
+              "bytes": 32768,
+              "sha256": "76707c7e1974f715bbc9763c9b0a75f07be19d650a4bf9cb419f25027166c26f"
+            },
+            "metastore/data-wal": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "limitations": [
+          "Requires SQL downtime for a stable source image.",
+          "Off-host disaster recovery and online backup were untested."
+        ],
+        "method": "quiesced complete sqld directory copy",
+        "restore_manifest_matches_source": true,
+        "scope": "same host and filesystem; caller stopped sqld before copying",
+        "status": "pass",
+        "timings_ms": {
+          "backup_copy_ms": 2.873,
+          "backup_verification_ms": 1.037,
+          "copy_and_verification_total_ms": 9.518,
+          "restore_copy_ms": 2.744,
+          "restore_verification_ms": 1.071,
+          "source_manifest_ms": 1.412
+        }
+      },
+      "downtime": {
+        "confirmed": true,
+        "observation": "connection unavailable"
+      },
+      "operational_checks": {
+        "all_child_processes_reaped": true,
+        "api_kill_signal": "SIGKILL",
+        "api_session_with_sql_down_http": 200,
+        "api_work_dirs_after_run": {
+          "api_initial": [],
+          "api_peer": [],
+          "api_replacement": []
+        },
+        "api_workers_alive_across_sql_restart": true,
+        "database_backed_read_with_sql_down_http": 503,
+        "distinct_live_api_workers_same_released_order": true,
+        "fingerprint_after_api_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "fingerprint_after_cold_restore": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "fingerprint_after_sql_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "order_counts_verified": 3,
+        "scratch_removed": true,
+        "sql_kill_signal": "SIGKILL",
+        "sql_pid_alive_across_api_restart": true,
+        "supplemental_cross_worker_claim": {
+          "claim_events_per_origin": {
+            "peer": 1,
+            "primary": 1
+          },
+          "create_http_status": 201,
+          "identical_order_details": true,
+          "responses": {
+            "peer": {
+              "claim_result": "already_claimed",
+              "mcp_http_status": 200,
+              "read_http_status": 200,
+              "worker": "agent-b"
+            },
+            "primary": {
+              "claim_result": "in_progress",
+              "mcp_http_status": 200,
+              "read_http_status": 200,
+              "worker": "agent-a"
+            }
+          },
+          "status": "pass",
+          "supplemental_order_id": "WO-4",
+          "winner": "agent-a",
+          "winner_count": 1
+        }
+      },
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "process_ids": {
+        "api_initial": 3398,
+        "api_peer": 3524,
+        "api_replacement": 3408,
+        "sql_initial": 3396,
+        "sql_reopened": 3541,
+        "sql_restored": 3600,
+        "sql_tls": 3397
+      },
+      "proxy_stats": {
+        "by_path": {
+          "/v3/cursor": 1073,
+          "/v3/pipeline": 87
+        },
+        "by_status": {
+          "200": 1159,
+          "503": 1
+        },
+        "failed_requests": 1,
+        "requests": 1160,
+        "snapshot_number": 2,
+        "successful_requests": 1159,
+        "unexpected_paths": 0,
+        "upstream_transport_failures": 1
+      },
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "sample": 2,
+      "timings_ms": {
+        "acceptance_offline_ms": 176.95,
+        "acceptance_run_ms": 978.25,
+        "acceptance_verify_after_api_replacement_ms": 471.26,
+        "acceptance_verify_after_cold_restore_ms": 479.77,
+        "acceptance_verify_after_sql_restart_ms": 468.95,
+        "api_kill_to_database_backed_read_including_offline_probe_ms": 565.17,
+        "cold_backup_and_restore_stop_to_database_backed_read_ms": 396.97,
+        "initial_api_spawn_to_database_backed_read_ms": 685.64,
+        "replacement_api_spawn_to_database_backed_read_ms": 384.37,
+        "sql_kill_to_database_backed_read_including_probes_ms": 432.67,
+        "sql_respawn_to_database_backed_read_ms": 423.83,
+        "storage_outage_request_ms": 4.2
+      },
+      "verification": {
+        "downtime_observed": true,
+        "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "passed": true
+      },
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    {
+      "acceptance_run_failed_sql_http_requests": 0,
+      "acceptance_run_sql_posts_by_path": {
+        "/v3/cursor": 420,
+        "/v3/pipeline": 33
+      },
+      "acceptance_runner_sha256": "cab9b87b4b2cdfdc7f41fcc8a05bdeaec2798e3a8511d0414086869d026ae288",
+      "analysis_worker_recovery": {
+        "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+        "author": "fixed shared density candidate",
+        "blind_control_passed": true,
+        "claim_events": 1,
+        "final_status": "in_review",
+        "kill_to_verified_submission_ms": 504.83,
+        "model_generation": false,
+        "order_id": "WO-5",
+        "original_exit_code": -9,
+        "original_pid": 3715,
+        "passed": true,
+        "replacement_exit_code": 0,
+        "replacement_found_via_in_progress_list": true,
+        "replacement_pid": 3716,
+        "replacement_spawn_to_verified_submission_ms": 482.01,
+        "reviewer_mode": "named",
+        "status": "pass",
+        "status_after_sigkill": "in_progress",
+        "submission_count": 1,
+        "submission_events": 1,
+        "submissions_after_sigkill": 0,
+        "transport": "authenticated streamable HTTP MCP",
+        "worker_function": "labfactory.tabular_worker.process",
+        "worker_identity": "agent-a",
+        "worker_spawn_to_confirmed_claim_ms": 384.19,
+        "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+      },
+      "cold_backup_restore": {
+        "backup_manifest_matches_source": true,
+        "file_count": 9,
+        "image_bytes": 369816,
+        "image_manifest": {
+          "directories": [
+            "dbs",
+            "dbs/default",
+            "dbs/default/tmp",
+            "dbs/default/to_compact",
+            "metastore"
+          ],
+          "files": {
+            ".version": {
+              "bytes": 7,
+              "sha256": "52eb9b9dc88b7af9cebeb98605a30234d49c97fc8e5115e6cd9a8e69d2f32a3c"
+            },
+            "dbs/default/data": {
+              "bytes": 135168,
+              "sha256": "d0c562ee0473200f5a2c114f79ad0decc07f3724f4af8a01fa1a70ecd8cab107"
+            },
+            "dbs/default/data-shm": {
+              "bytes": 32768,
+              "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+            },
+            "dbs/default/data-wal": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "dbs/default/stats.json": {
+              "bytes": 313,
+              "sha256": "b2a409f0a8569de1f44b7d9263bdc85cca4348df7b79f3811c0efbab5b2ee4c1"
+            },
+            "dbs/default/wallog": {
+              "bytes": 136024,
+              "sha256": "551aee642e80a6a2c09764ce87824dfe7ebcd192258d0dff00fa55458968180d"
+            },
+            "metastore/data": {
+              "bytes": 32768,
+              "sha256": "8f033bb352240ec627d15c46fca3b444135711b215472677c4a0e710c1600582"
+            },
+            "metastore/data-shm": {
+              "bytes": 32768,
+              "sha256": "0b4fe1e6cb702c85dc82e8484ec8b144a241faf779afb203ba0c971724d5e267"
+            },
+            "metastore/data-wal": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "limitations": [
+          "Requires SQL downtime for a stable source image.",
+          "Off-host disaster recovery and online backup were untested."
+        ],
+        "method": "quiesced complete sqld directory copy",
+        "restore_manifest_matches_source": true,
+        "scope": "same host and filesystem; caller stopped sqld before copying",
+        "status": "pass",
+        "timings_ms": {
+          "backup_copy_ms": 2.437,
+          "backup_verification_ms": 0.855,
+          "copy_and_verification_total_ms": 7.807,
+          "restore_copy_ms": 2.113,
+          "restore_verification_ms": 0.858,
+          "source_manifest_ms": 1.2
+        }
+      },
+      "downtime": {
+        "confirmed": true,
+        "observation": "connection unavailable"
+      },
+      "operational_checks": {
+        "all_child_processes_reaped": true,
+        "api_kill_signal": "SIGKILL",
+        "api_session_with_sql_down_http": 200,
+        "api_work_dirs_after_run": {
+          "api_initial": [],
+          "api_peer": [],
+          "api_replacement": []
+        },
+        "api_workers_alive_across_sql_restart": true,
+        "database_backed_read_with_sql_down_http": 503,
+        "distinct_live_api_workers_same_released_order": true,
+        "fingerprint_after_api_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "fingerprint_after_cold_restore": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "fingerprint_after_sql_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "order_counts_verified": 3,
+        "scratch_removed": true,
+        "sql_kill_signal": "SIGKILL",
+        "sql_pid_alive_across_api_restart": true,
+        "supplemental_cross_worker_claim": {
+          "claim_events_per_origin": {
+            "peer": 1,
+            "primary": 1
+          },
+          "create_http_status": 201,
+          "identical_order_details": true,
+          "responses": {
+            "peer": {
+              "claim_result": "already_claimed",
+              "mcp_http_status": 200,
+              "read_http_status": 200,
+              "worker": "agent-b"
+            },
+            "primary": {
+              "claim_result": "in_progress",
+              "mcp_http_status": 200,
+              "read_http_status": 200,
+              "worker": "agent-a"
+            }
+          },
+          "status": "pass",
+          "supplemental_order_id": "WO-4",
+          "winner": "agent-a",
+          "winner_count": 1
+        }
+      },
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "process_ids": {
+        "api_initial": 3684,
+        "api_peer": 3704,
+        "api_replacement": 3688,
+        "sql_initial": 3682,
+        "sql_reopened": 3705,
+        "sql_restored": 3712,
+        "sql_tls": 3683
+      },
+      "proxy_stats": {
+        "by_path": {
+          "/v3/cursor": 1073,
+          "/v3/pipeline": 87
+        },
+        "by_status": {
+          "200": 1159,
+          "503": 1
+        },
+        "failed_requests": 1,
+        "requests": 1160,
+        "snapshot_number": 2,
+        "successful_requests": 1159,
+        "unexpected_paths": 0,
+        "upstream_transport_failures": 1
+      },
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "sample": 3,
+      "timings_ms": {
+        "acceptance_offline_ms": 143.48,
+        "acceptance_run_ms": 761.51,
+        "acceptance_verify_after_api_replacement_ms": 376.97,
+        "acceptance_verify_after_cold_restore_ms": 374.08,
+        "acceptance_verify_after_sql_restart_ms": 378.06,
+        "api_kill_to_database_backed_read_including_offline_probe_ms": 538.96,
+        "cold_backup_and_restore_stop_to_database_backed_read_ms": 355.38,
+        "initial_api_spawn_to_database_backed_read_ms": 652.01,
+        "replacement_api_spawn_to_database_backed_read_ms": 391.6,
+        "sql_kill_to_database_backed_read_including_probes_ms": 364.82,
+        "sql_respawn_to_database_backed_read_ms": 356.63,
+        "storage_outage_request_ms": 3.68
+      },
+      "verification": {
+        "downtime_observed": true,
+        "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "passed": true
+      },
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    }
+  ],
+  "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+  "storage_path": "labfactory.hosted_storage.run_store -> turso_serverless.Connection -> HTTPS Hrana",
+  "timings_ms": {
+    "acceptance_offline_ms": 235.58,
+    "acceptance_run_ms": 923.77,
+    "acceptance_verify_after_api_replacement_ms": 1820.77,
+    "acceptance_verify_after_cold_restore_ms": 2264.36,
+    "acceptance_verify_after_sql_restart_ms": 971.88,
+    "api_kill_to_database_backed_read_including_offline_probe_ms": 1346.64,
+    "cold_backup_and_restore_stop_to_database_backed_read_ms": 1260.9,
+    "initial_api_spawn_to_database_backed_read_ms": 504.03,
+    "replacement_api_spawn_to_database_backed_read_ms": 1107.15,
+    "sql_kill_to_database_backed_read_including_probes_ms": 470.13,
+    "sql_respawn_to_database_backed_read_ms": 459.34,
+    "storage_outage_request_ms": 5.91
+  }
+}
