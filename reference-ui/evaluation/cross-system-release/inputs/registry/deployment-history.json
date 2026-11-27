@@ -1,0 +1,47 @@
+[
+  {
+    "id": "DP-55",
+    "serial": "CX-04",
+    "program": "7324913f72a922dd7671a4ace9bd822c9060f1099dce30b582fcb18c3653aefd",
+    "procedure": "EC-41:r5",
+    "start_utc": "2025-08-01T00:00Z",
+    "end_exclusive_utc": "2026-01-01T00:00Z",
+    "signature": "registry-QA"
+  },
+  {
+    "id": "DP-62",
+    "serial": "CX-04",
+    "program": "5c8637b331faa4b4c4c7a46688a2d160e9c4cd04970bc5111dae3c39404782df",
+    "procedure": "EC-41:r6",
+    "start_utc": "2026-01-01T00:00Z",
+    "end_exclusive_utc": "2026-04-16T21:00Z",
+    "signature": "registry-QA"
+  },
+  {
+    "id": "DP-77",
+    "serial": "CX-04",
+    "program": "5c8637b331faa4b4c4c7a46688a2d160e9c4cd04970bc5111dae3c39404782df",
+    "procedure": "EC-41:r7",
+    "start_utc": "2026-04-16T21:00Z",
+    "end_exclusive_utc": "2026-05-01T00:00Z",
+    "signature": "registry-QA"
+  },
+  {
+    "id": "DP-80",
+    "serial": "CX-04",
+    "program": "f8ea64f3cde1d5c6a6e33ad6517d8c128df1b0ad683d950e084db94398b8370d",
+    "procedure": "EC-41:r8",
+    "start_utc": "2026-05-01T00:00Z",
+    "end_exclusive_utc": "",
+    "signature": "registry-QA"
+  },
+  {
+    "id": "DP-49",
+    "serial": "CX-09",
+    "program": "5c8637b331faa4b4c4c7a46688a2d160e9c4cd04970bc5111dae3c39404782df",
+    "procedure": "EC-41:r6",
+    "start_utc": "2026-01-01T00:00Z",
+    "end_exclusive_utc": "2026-05-01T00:00Z",
+    "signature": "registry-QA"
+  }
+]

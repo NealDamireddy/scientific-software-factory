@@ -1,0 +1,6 @@
+Sealed until answers are complete. Later outcomes used for retrospective comparison only.
+
+A. 12 January 2004. Archive processor restored all three nitrite results to 0.01. The follow-up attributes their reappearance to a 2001 resubmission involving a temperature conversion issue. The later identification of the responsible submission was not established in the packet.
+B. 24 April 2007. The tritium investigator confirmed the measurements and supplied comparative sections, attributing them to a subsurface tritium feature. No depth change was recorded. This confirmation and the comparison plots were not before the reviewers.
+C. 8–15 March 2001. Producer returned a corrected table. On 9 March the producer withdrew the suggestion to insert a good bottle flag on every row. The processor reported receipt and reformatting on 12 March. Further inspection still found inconsistencies. Receipt of a replacement did not validate every field in it.
+D. The response submitted 29 March 2002 reports investigation of field custody and laboratory logs. The 22 March validator's memo applies estimated J/UJ qualifiers to aromatic results from affected runs lacking pH verification, with corrected reporting forms and table. The rule and additional documentation narrowed the remedy. Do not expect a reviewer to predict that subset.

@@ -1,0 +1,39 @@
+.ws-resourceform {
+  display: grid;
+  gap: 16px;
+}
+.ws-resourceform .ws-field {
+  margin: 0;
+}
+.ws-resourceform textarea,
+.ws-resourceform select {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  padding: 10px 12px;
+  color: var(--ink);
+  font: inherit;
+}
+.ws-resourceform textarea {
+  resize: vertical;
+  min-height: 90px;
+}
+.ws-resourceform .ws-formhint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+.ws-resourceform .ws-actions {
+  margin-top: 4px;
+}
+.ws-article p,
+.ws-page h1,
+.ws-definitions dd,
+.ws-resource strong,
+.ws-resource small {
+  overflow-wrap: anywhere;
+}
+.ws-article .ws-note-paragraph {
+  white-space: pre-line;
+}

@@ -1,0 +1,49 @@
+{"entry": "N-110", "recorded": "2026-04-16T08:15:00-07:00", "type": "accession", "signed_by": "intake-4", "specimen": "BW-731", "accession": "AC-83"}
+{"entry": "N-241", "recorded": "2026-04-16T11:20:00-07:00", "type": "scanned transfer", "signed_by": "bench-6", "accession": "AC-83", "rack": "W-18", "well": "D07", "transfer_type": "physical seal read"}
+{"entry": "N-331", "recorded": "2026-04-16T16:30:00-07:00", "type": "result selection", "signed_by": "release-supervisor", "line": "L-01", "accession": "AC-83", "receipt": "EX-94", "value": "412.6", "unit": "uS/cm"}
+{"entry": "N-111", "recorded": "2026-04-16T08:15:00-07:00", "type": "accession", "signed_by": "intake-4", "specimen": "BW-744", "accession": "AC-19"}
+{"entry": "N-242", "recorded": "2026-04-16T11:20:00-07:00", "type": "scanned transfer", "signed_by": "bench-6", "accession": "AC-19", "rack": "W-44", "well": "C02", "transfer_type": "physical seal read"}
+{"entry": "N-332", "recorded": "2026-04-16T16:30:00-07:00", "type": "result selection", "signed_by": "release-supervisor", "line": "L-02", "accession": "AC-19", "receipt": "EX-81", "value": "317.8", "unit": "uS/cm"}
+{"entry": "N-112", "recorded": "2026-04-16T08:15:00-07:00", "type": "accession", "signed_by": "intake-4", "specimen": "BW-752", "accession": "AC-64"}
+{"entry": "N-243", "recorded": "2026-04-16T11:20:00-07:00", "type": "scanned transfer", "signed_by": "bench-6", "accession": "AC-64", "rack": "W-31", "well": "A11", "transfer_type": "physical seal read"}
+{"entry": "N-333", "recorded": "2026-04-16T16:30:00-07:00", "type": "result selection", "signed_by": "release-supervisor", "line": "L-03", "accession": "AC-64", "receipt": "EX-48", "value": "488.2", "unit": "uS/cm"}
+{"entry": "N-113", "recorded": "2026-04-16T08:15:00-07:00", "type": "accession", "signed_by": "intake-4", "specimen": "BW-760", "accession": "AC-11"}
+{"entry": "N-244", "recorded": "2026-04-16T11:20:00-07:00", "type": "transfer exception", "signed_by": "bench-6", "accessions": ["AC-11", "AC-12"], "rack": "W-23", "wells": ["B09", "B10"], "details": "Both seals lost at unloading; two positions occupied. Assignment to wells unresolved. No rescan logged."}
+{"entry": "N-251", "recorded": "2026-04-16T12:23:00-07:00", "type": "routing note", "signed_by": null, "accession": "AC-11", "rack": "W-23", "well": "B09", "details": "Expected routing from worksheet; awaiting confirmation."}
+{"entry": "N-334", "recorded": "2026-04-16T16:30:00-07:00", "type": "result selection", "signed_by": "release-supervisor", "line": "L-04", "accession": "AC-11", "receipt": "EX-60", "value": "390.0", "unit": "uS/cm"}
+{"entry": "N-404", "recorded": "2026-04-16T16:55:00-07:00", "type": "result selection amendment", "signed_by": "release-supervisor", "line": "L-01", "supersedes": "N-331", "receipt": "EX-95", "value": "412.6", "unit": "uS/cm", "reason": "Authorized remeasurement; preserve the first acquisition."}
+{"entry": "N-413", "recorded": "2026-04-16T17:05:00-07:00", "type": "handoff", "signed_by": null, "line": "L-01", "receipt": "EX-94", "details": "Bench copy from early printout."}
+{"entry": "N-800", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X00", "rack": "U-16", "well": "D01"}
+{"entry": "N-801", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X01", "rack": "U-16", "well": "D02"}
+{"entry": "N-802", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X02", "rack": "U-16", "well": "D03"}
+{"entry": "N-803", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X03", "rack": "U-16", "well": "D04"}
+{"entry": "N-804", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X04", "rack": "U-16", "well": "D05"}
+{"entry": "N-805", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X05", "rack": "U-16", "well": "D06"}
+{"entry": "N-806", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X06", "rack": "U-16", "well": "D07"}
+{"entry": "N-807", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X07", "rack": "U-16", "well": "D08"}
+{"entry": "N-808", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X08", "rack": "U-16", "well": "D09"}
+{"entry": "N-809", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X09", "rack": "U-16", "well": "D10"}
+{"entry": "N-810", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X10", "rack": "U-16", "well": "D11"}
+{"entry": "N-811", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X11", "rack": "U-16", "well": "D12"}
+{"entry": "N-812", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X12", "rack": "U-16", "well": "D01"}
+{"entry": "N-813", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X13", "rack": "U-16", "well": "D02"}
+{"entry": "N-814", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X14", "rack": "U-16", "well": "D03"}
+{"entry": "N-815", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X15", "rack": "U-16", "well": "D04"}
+{"entry": "N-816", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X16", "rack": "U-16", "well": "D05"}
+{"entry": "N-817", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X17", "rack": "U-16", "well": "D06"}
+{"entry": "N-818", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X18", "rack": "U-16", "well": "D07"}
+{"entry": "N-819", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X19", "rack": "U-16", "well": "D08"}
+{"entry": "N-820", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X20", "rack": "U-16", "well": "D09"}
+{"entry": "N-821", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X21", "rack": "U-16", "well": "D10"}
+{"entry": "N-822", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X22", "rack": "U-16", "well": "D11"}
+{"entry": "N-823", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X23", "rack": "U-16", "well": "D12"}
+{"entry": "N-824", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X24", "rack": "U-16", "well": "D01"}
+{"entry": "N-825", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X25", "rack": "U-16", "well": "D02"}
+{"entry": "N-826", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X26", "rack": "U-16", "well": "D03"}
+{"entry": "N-827", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X27", "rack": "U-16", "well": "D04"}
+{"entry": "N-828", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X28", "rack": "U-16", "well": "D05"}
+{"entry": "N-829", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X29", "rack": "U-16", "well": "D06"}
+{"entry": "N-830", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X30", "rack": "U-16", "well": "D07"}
+{"entry": "N-831", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X31", "rack": "U-16", "well": "D08"}
+{"entry": "N-832", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X32", "rack": "U-16", "well": "D09"}
+{"entry": "N-833", "recorded": "2026-04-16T15:10:00-07:00", "type": "scanned transfer", "signed_by": "bench-2", "accession": "AC-X33", "rack": "U-16", "well": "D10"}

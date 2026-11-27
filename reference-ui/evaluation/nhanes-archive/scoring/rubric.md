@@ -1,0 +1,12 @@
+Frozen before dispatch. A binary point requires all named components. Score reviews blind to access to skills. There are 10 possible points. A numeric or identifier result without a supporting record is insufficient for a method or provenance point. Give three separate retrieval metrics: governing 2009 manual found, governing 2013 manual found, and correct distinction between cycle-level documentation and specimen-level evidence. Check linked documents rather than relying on plausible-looking filenames. Identify new factual errors separately.
+1. Locate the recommended standardized historical 2005–06 release (VID_D, LBDVIDMS) and distinguish the original DiaSorin radioimmunoassay from the regression-predicted equivalent released for comparison.
+2. Locate the archived competing RIA-harmonized release (VIDRIA_D, or its specifically identified 2005–06 archive listing), and identify the 2015 standardization guidance that justifies choosing the appropriate series. Avoid transforming the already standardized result again.
+3. For 2009–10 establish cycle codebook-to-manual applicability and identify the official manual's method number 4027.03 as direct LC-MS/MS. Cite the actual manual or a locatable cycle-specific reference to it.
+4. For 2013–14 establish cycle codebook-to-manual applicability and identify manual 4027.06. Reconcile the codebook's no-change statement with the distinct document numbers, without inventing a new instrument, procedural change, or exact effective date.
+5. Correct totals/count and median for 2005–06: 8306 nonmissing, 56.8 nmol/L.
+6. Correct totals/count and median for 2009–10: LBXVIDMS, 8700 nonmissing, 62.5 nmol/L.
+7. Correct totals/count and median for 2013–14: LBXVIDMS, 8437 nonmissing, 62.4 nmol/L.
+8. Recover the 2013–14 record SEQN 73557 with total 28.9 nmol/L, identifying the release field and key.
+9. Decline specimen-specific revision certification, distinguishing a release-linked manual from an as-run record and identifying what record would settle it.
+10. Decline specimen-specific QC certification, distinguish general published QC from linked batch control results, and identify missing specimen-to-batch and batch-QC evidence. Do not count a detection-limit flag as a QC pass.
+Report descriptive findings on selective attention and reproducibility, but do not penalize failing to name extraneous files. Higher scores support this task only.

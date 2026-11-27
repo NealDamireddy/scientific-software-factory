@@ -1,0 +1,13 @@
+{
+  "document": "EC-41",
+  "revision": 5,
+  "published": "2025-08-01",
+  "reporting_units": "uS/cm",
+  "control_units": "uS/cm",
+  "required_controls": [
+    "L",
+    "H"
+  ],
+  "acceptance": "Each signed control must have absolute percentage error at most its level limit, using its assigned lot target. Compare before rounding. Limits: L 4%, H 4%.",
+  "batch_disposition": "Reporting requires a signed accepted disposition and both passing signed controls in this instrument batch. A recorded disposition cannot waive a failed limit."
+}

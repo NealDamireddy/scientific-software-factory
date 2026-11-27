@@ -1,0 +1,305 @@
+.ws-dialog.rr-dialog {
+  width: min(860px, calc(100vw - 32px));
+}
+.rr-done {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+.ws-app .rr-done .ws-button {
+  min-height: 44px;
+}
+@media (min-width: 961px) {
+  .rr-results .rr-refs {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+}
+
+.rr-dialog p {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 8px 0 14px;
+}
+.rr-dialog h3,
+.rr-dialog legend {
+  font-size: 16px;
+  font-weight: 590;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.rr-dialog .rr-intro {
+  margin-bottom: 20px;
+}
+.rr-section-head,
+.rr-result-head,
+.rr-run,
+.rr-pagination,
+.rr-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.rr-section-head a {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 14px;
+  text-decoration: none;
+}
+.rr-section-head a:hover {
+  text-decoration: underline;
+}
+.rr-upload {
+  position: relative;
+  display: flex;
+  width: fit-content;
+  gap: 8px;
+  align-items: center;
+  margin: 12px 0 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 15px;
+  cursor: pointer;
+}
+.rr-upload:hover {
+  background: var(--panel);
+}
+.rr-upload:focus-within {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.rr-upload input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+.rr-dialog .rr-schema {
+  font-size: 13px;
+  line-height: 1.65;
+  margin: 6px 0 12px;
+}
+.rr-schema code {
+  overflow-wrap: anywhere;
+}
+.rr-preview {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.rr-preview-head,
+.rr-pagination {
+  padding: 8px 12px;
+  font-size: 13px;
+  background: var(--panel);
+}
+.rr-preview-head strong {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.rr-preview-head strong svg {
+  flex: none;
+}
+.rr-preview-head small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.rr-table-wrap {
+  overflow: auto;
+  max-height: 235px;
+}
+.rr-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.4;
+  text-align: left;
+}
+.rr-table-wrap th,
+.rr-table-wrap td {
+  border-top: 1px solid var(--line);
+  padding: 6px 10px;
+  overflow-wrap: anywhere;
+  max-width: 180px;
+}
+.rr-table-wrap th {
+  font-weight: 570;
+  color: var(--muted);
+}
+.rr-pagination {
+  justify-content: flex-end;
+  gap: 6px;
+}
+.rr-pagination span {
+  margin-right: auto;
+}
+.rr-pagination button:disabled,
+.rr-run button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.rr-checks,
+.rr-claim,
+.rr-results {
+  margin: 20px 0 0;
+  border: 0;
+  border-top: 1px solid var(--line);
+  padding: 14px 0 0;
+}
+.rr-checks legend {
+  padding: 0 8px 0 0;
+}
+.rr-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  line-height: 1.45;
+  font-size: 15px;
+  cursor: pointer;
+}
+.rr-check + .rr-check {
+  margin-top: 10px;
+}
+.rr-check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--ink);
+  margin: 3px 0 0;
+  flex: none;
+}
+.rr-check strong,
+.rr-check small {
+  display: block;
+}
+.rr-check strong {
+  font-weight: 550;
+}
+.rr-check small {
+  font-size: 13px;
+  color: var(--muted);
+}
+.rr-fields {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.rr-fields input {
+  min-width: 0;
+  width: 100%;
+}
+.rr-run {
+  margin-top: 16px;
+  justify-content: flex-end;
+}
+.rr-run small,
+.rr-refs {
+  font-size: 13px;
+  color: var(--muted);
+}
+.rr-results article {
+  margin: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+}
+.rr-results h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 570;
+}
+.rr-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.rr-clear {
+  color: var(--green);
+}
+.rr-finding {
+  color: var(--amber);
+}
+.rr-results article p {
+  overflow-wrap: anywhere;
+  max-height: 180px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+.rr-refs strong {
+  font-weight: 550;
+}
+.rr-refs ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 120px;
+  overflow: auto;
+}
+.rr-refs li {
+  overflow-wrap: anywhere;
+}
+.rr-refs summary {
+  cursor: pointer;
+  margin-top: 4px;
+}
+@media (max-width: 480px) {
+  .rr-dialog {
+    padding: 16px;
+  }
+  .rr-fields {
+    grid-template-columns: 1fr;
+  }
+  .rr-table-wrap th,
+  .rr-table-wrap td {
+    padding: 4px;
+  }
+  .rr-section-head {
+    align-items: baseline;
+  }
+}
+.rr-digest {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  border-top: 1px solid var(--line);
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.rr-digest strong {
+  flex: none;
+  font-weight: 550;
+}
+.rr-digest code {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.rr-comparison {
+  grid-column: 1/-1;
+}
+.rr-comparison select {
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+}
+.rr-dialog .rr-comparison p {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
