@@ -1,0 +1,95 @@
+{
+  "steps": [
+    {
+      "action": null,
+      "amounts": [],
+      "citations": [
+        "__decision__",
+        "bench-record"
+      ],
+      "evidence": [
+        {
+          "document": "__decision__",
+          "passage": 1,
+          "quote": "Use the six individual berry-juice specimens from each lot and compare the two lot means. The composites are outside this comparison."
+        },
+        {
+          "document": "bench-record",
+          "passage": 1,
+          "quote": "Six separate berry-juice specimens per lot are already expressed, at room temperature, and labeled with lot and berry IDs."
+        }
+      ],
+      "text": "Use all delivered individual berry-juice specimens from each lot at room temperature. Exclude the composites."
+    },
+    {
+      "action": {
+        "command": "zero",
+        "instrument_id": "brix-1",
+        "settings": []
+      },
+      "amounts": [],
+      "citations": [
+        "hanna-manual"
+      ],
+      "evidence": [
+        {
+          "document": "hanna-manual",
+          "passage": 1,
+          "quote": "At the start of a measurement day, calibration requires distilled or deionized water covering the prism. With the meter on and ready, ZERO should yield a zero display without an error. The calibration water is removed with soft tissue and the prism dried."
+        }
+      ],
+      "text": "At the start of the measurement day, with the meter on and ready, cover the prism with deionized water before the action. Verify that the display shows zero without an error, then remove the calibration water with soft tissue and dry the prism."
+    },
+    {
+      "action": {
+        "command": "read_brix",
+        "instrument_id": "brix-1",
+        "settings": []
+      },
+      "amounts": [],
+      "citations": [
+        "hanna-manual",
+        "bench-record"
+      ],
+      "evidence": [
+        {
+          "document": "hanna-manual",
+          "passage": 2,
+          "quote": "A plastic pipette protects the prism from scratches. A measurement uses a dry prism with the sample well filled and prism covered. READ displays the Brix result; allow thermal equilibration if the sample and meter differ appreciably in temperature."
+        },
+        {
+          "document": "hanna-manual",
+          "passage": 3,
+          "quote": "Between samples the well and prism are rinsed using distilled or deionized water and dried with soft tissue. An Air indication means insufficient coverage; an error display is not a sample result."
+        },
+        {
+          "document": "bench-record",
+          "passage": 2,
+          "quote": "One valid reading per selected specimen is requested. Record specimen ID and displayed Brix."
+        }
+      ],
+      "text": "For each selected specimen, use a plastic pipette to fill the sample well with juice and cover the dry prism. Allow thermal equilibration before the action if the sample and meter differ appreciably in temperature. If Air appears, correct the coverage and repeat the action. Exclude error displays. Record the specimen ID and the first valid displayed Brix for that specimen. Between specimens, rinse the well and prism with deionized water and dry them with soft tissue."
+    },
+    {
+      "action": null,
+      "amounts": [],
+      "citations": [
+        "__decision__",
+        "bench-record"
+      ],
+      "evidence": [
+        {
+          "document": "__decision__",
+          "passage": 1,
+          "quote": "Use the six individual berry-juice specimens from each lot and compare the two lot means."
+        },
+        {
+          "document": "bench-record",
+          "passage": 2,
+          "quote": "Compare lot A minus lot B in degrees Brix. For individual specimens the comparison uses the arithmetic mean within each lot. Only these delivered specimens are in scope."
+        }
+      ],
+      "text": "Calculate and report the arithmetic mean of the recorded Brix readings for each lot. Report the signed difference in degrees Brix by subtracting the lot B mean from the lot A mean."
+    }
+  ]
+}

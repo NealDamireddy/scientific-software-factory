@@ -14,6 +14,7 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
+from . import first_draft, source_drafter
 from . import b12_service, experiment_catalog, honey_service, reference_orders, references, tabular_service
 from .artifacts import render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
@@ -343,6 +344,26 @@ async def analysis_action(request):
     return _response(result, 201)
 
 
+async def automatic_procedure(request):
+    reviewer = _reviewer(request)
+    order_id = request.path_params.get("id")
+    if request.method == "GET":
+        return _response(await run_in_threadpool(run_store, lambda store: first_draft.detail(store, order_id)))
+    data = await _json_body(request)
+
+    def write(store):
+        if order_id is None:
+            return first_draft.start(store, reviewer, data)
+        return first_draft.answer(store, reviewer, order_id, data)
+
+    pending = await run_in_threadpool(run_store, write, write=True)
+    try:
+        result = await run_in_threadpool(source_drafter.complete, run_store, pending)
+    except source_drafter.DraftUnavailable as exc:
+        return _response({"error": str(exc), "order_id": pending["order"]["id"], "state": "drafting"}, 503)
+    return _response(result, 202 if result["state"] == "drafting" else 201)
+
+
 async def honey_catalog(request):
     _reviewer(request)
     return _response(await run_in_threadpool(run_store, honey_service.catalog))
@@ -514,6 +535,9 @@ reviewer_api = Starlette(routes=[
     Route("/api/analysis/orders/{id}/runs/{run_id}/readings", analysis_upload),
     Route("/api/analysis/orders/{id}/runs", analysis_action, methods=["POST"]),
     Route("/api/analysis/orders/{id}/control", analysis_action, methods=["POST"]),
+    Route("/api/procedure-drafts", automatic_procedure, methods=["POST"]),
+    Route("/api/procedure-drafts/{id}", automatic_procedure, methods=["GET"]),
+    Route("/api/procedure-drafts/{id}/answers", automatic_procedure, methods=["POST"]),
     Route("/api/honey", honey_catalog), Route("/api/honey/orders", honey_create, methods=["POST"]),
     Route("/api/honey/orders/{id}", honey_order),
     Route("/api/honey/orders/{id}/run", honey_run, methods=["POST"]),

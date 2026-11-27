@@ -1,0 +1,47 @@
+{
+  "request_id": "catalog-source-intake",
+  "lab": {
+    "id": "archival-lab",
+    "name": "Archival astronomy workspace",
+    "documents": [
+      {
+        "id": "dictionary",
+        "kind": "manual",
+        "title": "NASA Planetary Systems data dictionary \u2014 source notes",
+        "source": "https://exoplanetarchive.ipac.caltech.edu/docs/API_PS_columns.html",
+        "text": "The ps table can contain several published parameter sets for a planet. The pl_name field identifies the planet; default_flag identifies the archive-selected parameter set.\ndisc_year is the year of discovery. discoverymethod describes the first means of identification, while tran_flag records whether the planet transits."
+      },
+      {
+        "id": "access",
+        "kind": "manual",
+        "title": "NASA Table Access Protocol guide \u2014 source notes",
+        "source": "https://exoplanetarchive.ipac.caltech.edu/docs/TAP/usingTAP.html",
+        "text": "NASA's TAP service provides ps data in CSV format. Its confirmed-planet counting example uses default_flag=1 to restrict the count to default solutions."
+      },
+      {
+        "id": "faq",
+        "kind": "note",
+        "title": "NASA archive FAQ on transit membership \u2014 source notes",
+        "source": "https://exoplanetarchive.ipac.caltech.edu/docs/faq.html",
+        "text": "A planet discovered by a different technique can subsequently be found to transit. The archive identifies known transiting planets with tran_flag=1."
+      }
+    ],
+    "instruments": []
+  },
+  "experiment": {
+    "id": "transit-comparison",
+    "lab_id": "archival-lab",
+    "title": "Annual transit-related discoveries",
+    "goal": "Compare counts of transit-related confirmed planet discoveries in 2022 and 2023.",
+    "documents": [
+      {
+        "id": "study",
+        "kind": "note",
+        "title": "Walkthrough study design",
+        "source": "Research brief for this walkthrough",
+        "text": "The comparison uses the discovery years 2022 and 2023. The unit of analysis is a confirmed planet. The requested outputs are the two counts and the later count minus the earlier count. The query, retrieval date and input CSV belong in the study record."
+      }
+    ],
+    "instrument_ids": []
+  }
+}
