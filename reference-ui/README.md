@@ -28,8 +28,10 @@ npm run typecheck
 npm start
 ```
 
-## Give a coding agent workspace context
+## Automatic experiment context
 
-Create a reusable procedure in **Skills** and enable it. Add a service in **Connectors** and choose **Connect** to include its simulated connection. Open **Settings → Download agent context** and give the JSON file to your coding agent. Export a fresh copy after changing the workspace.
+Create a reusable procedure in **Skills** and enable it. Add a service in **Connectors** and choose **Connect** to include its simulated connection. Start an experiment to capture the current selection for the simulated coding agent. Each run keeps its own snapshot in Evidence, so later edits apply to subsequent runs. **Settings → Download agent context** also provides a manual copy of the current configuration.
+
+In Evidence, expand a run under **Agent context by run** to inspect the instructions, selected connectors, and any simulated review findings. Calibration review and Evidence summary can produce findings from the illustrative readings. Custom skills appear as loaded instructions.
 
 The export contains the active skill instructions and when to apply them, alongside the selected connector descriptions and any configured endpoint. A coding agent can use it to select a workflow or plan an integration. A simulated connector describes configuration only. A live implementation would need its own authenticated MCP client and tool discovery.

@@ -766,6 +766,7 @@ export default function Workspace() {
           <ExperimentDetail
             key={experiment.id}
             experiment={experiment}
+            extensions={saved.extensions}
             instrumentBusy={!!activeRun && activeRun.id !== experiment.id}
             onBack={() => go("experiments")}
             onChange={(next) =>
@@ -1197,8 +1198,9 @@ export default function Workspace() {
           <section className="ws-agent-context">
             <h3>Coding agent handoff</h3>
             <p>
-              Give your coding agent this JSON file with the enabled skills,
-              their instructions, and the workspace’s simulated connections.
+              Each simulated run automatically receives the enabled skills and
+              connected tools. Download a copy to inspect the current
+              configuration or share it with another agent.
             </p>
             <button
               className="ws-button"

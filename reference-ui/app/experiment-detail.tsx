@@ -26,6 +26,11 @@ import {
 } from "lucide-react";
 import {
   cancel,
+  prepareRunContext,
+  sampleOriginal,
+  sampleRepeat,
+  type RunContext,
+  type AgentCheck,
   editObjective,
   methodName,
   readings,
@@ -36,10 +41,12 @@ import {
   type Experiment,
   type Run,
 } from "./simulation";
+import { buildAgentContext, type ExtensionState } from "./extension-model";
 import "./experiment-detail.css";
 
 type Props = {
   experiment: Experiment;
+  extensions: ExtensionState;
   onChange: (experiment: Experiment) => void;
   onBack: () => void;
   instrumentBusy?: boolean;
@@ -53,8 +60,6 @@ const stages = [
   "Check sample",
   "Verify result",
 ];
-const sampleOriginal = 1.25;
-const sampleRepeat = 0.65;
 const resultConcentration = Number(
   (((sampleRepeat - 0.05) / 0.08) * 2).toFixed(1),
 );
@@ -253,6 +258,96 @@ function Chart({ experiment: e, run }: { experiment: Experiment; run: Run }) {
   );
 }
 
+function ContextRecord({
+  title,
+  context,
+  checks,
+}: {
+  title: string;
+  context?: RunContext;
+  checks?: AgentCheck[];
+}) {
+  if (!context)
+    return (
+      <div className="ex-context-legacy">
+        <strong>{title}</strong>
+        <p>Agent context wasn’t recorded for this run.</p>
+      </div>
+    );
+  const { briefing, harness, skills, connectors } = context;
+  return (
+    <details className="ex-context">
+      <summary>
+        <span>
+          <strong>{title}</strong>
+          <small>
+            {skills.length} {skills.length === 1 ? "skill" : "skills"} ·{" "}
+            {connectors.length}{" "}
+            {connectors.length === 1 ? "connector" : "connectors"}
+          </small>
+        </span>
+        <ChevronRight size={16} />
+      </summary>
+      <div className="ex-context-content">
+        <p>Local simulation · External services are never contacted.</p>
+        <dl className="ex-context-facts">
+          <dt>Objective</dt>
+          <dd>{briefing.objective}</dd>
+          <dt>Project</dt>
+          <dd>{briefing.project}</dd>
+          <dt>Method</dt>
+          <dd>
+            {briefing.method.name} v{briefing.method.revision} ·{" "}
+            {briefing.method.wavelengthNm} nm
+          </dd>
+          <dt>Harness</dt>
+          <dd>
+            {harness ? (
+              <>
+                {harness.name}
+                <code>{harness.endpoint}</code>
+              </>
+            ) : (
+              "Workspace simulator"
+            )}
+          </dd>
+        </dl>
+        <h4>Skills</h4>
+        {skills.length === 0 && <p>No enabled skills.</p>}
+        {skills.map((skill) => {
+          const check = checks?.find((c) => c.skillId === skill.id);
+          return (
+            <div className="ex-context-entry" key={skill.id}>
+              <strong>{skill.name}</strong>
+              <p>
+                <b>When to use</b> {skill.whenToUse}
+              </p>
+              <p>
+                <b>Instructions</b> {skill.instructions}
+              </p>
+              {checks && (
+                <p className="ex-application">
+                  <b>{check ? "Simulated check" : "Loaded only"}</b>{" "}
+                  {check?.finding ?? "Instructions included as reference."}
+                </p>
+              )}
+            </div>
+          );
+        })}
+        <h4>Connectors</h4>
+        {connectors.length === 0 && <p>No selected connectors.</p>}
+        {connectors.map((item) => (
+          <div className="ex-context-entry" key={item.id}>
+            <strong>{item.name}</strong>
+            <p>{item.description}</p>
+            {item.endpoint && <code>{item.endpoint}</code>}
+          </div>
+        ))}
+      </div>
+    </details>
+  );
+}
+
 function Evidence({ e }: { e: Experiment }) {
   function download() {
     const record = {
@@ -311,6 +406,19 @@ function Evidence({ e }: { e: Experiment }) {
           <strong>{e.runs.length}</strong>
         </div>
       </div>
+      {e.runs.length > 0 && (
+        <section aria-label="Agent context by run">
+          <h3 className="ex-subhead">Agent context by run</h3>
+          {e.runs.map((r) => (
+            <ContextRecord
+              key={r.number}
+              title={`Run ${r.number} · ${r.mode === "original" ? "Original sample" : "Diluted repeat"}`}
+              context={r.agentContext}
+              checks={r.agentChecks ?? []}
+            />
+          ))}
+        </section>
+      )}
       <h3 className="ex-subhead">Activity history</h3>
       <ol className="ex-timeline">
         {e.events.map((v, i) => (
@@ -331,6 +439,7 @@ function Evidence({ e }: { e: Experiment }) {
 
 export default function ExperimentDetail({
   experiment: e,
+  extensions,
   onChange,
   onBack,
   instrumentBusy = false,
@@ -355,7 +464,13 @@ export default function ExperimentDetail({
     if (instrumentBusy) return;
     setPicked(null);
     setTab("Overview");
-    onChange(startRun(e, repeat ? "repeat" : "original"));
+    onChange(
+      startRun(
+        e,
+        repeat ? "repeat" : "original",
+        buildAgentContext(extensions),
+      ),
+    );
     setDialog(null);
   };
   return (
@@ -420,8 +535,8 @@ export default function ExperimentDetail({
               <div>
                 <h2>Review experiment</h2>
                 <p>
-                  Check the method and instrument before starting your
-                  simulation.
+                  Starting the simulation automatically loads your enabled
+                  skills and selected connectors.
                 </p>
               </div>
               <button
@@ -433,6 +548,16 @@ export default function ExperimentDetail({
                 Start simulation
               </button>
             </section>
+          )}
+          {e.status === "Draft" && (
+            <ContextRecord
+              title="Agent context for this run"
+              context={prepareRunContext(
+                e,
+                "original",
+                buildAgentContext(extensions),
+              )}
+            />
           )}
           {e.status === "Running" && run && (
             <section className="ex-run">
@@ -459,6 +584,16 @@ export default function ExperimentDetail({
                 Step {run.step + 1} of 4 · {readings(e, run).length} readings
                 collected
               </p>
+              {run.agentContext && (
+                <p>
+                  Agent context loaded · {run.agentContext.skills.length}{" "}
+                  {run.agentContext.skills.length === 1 ? "skill" : "skills"} ·{" "}
+                  {run.agentContext.connectors.length}{" "}
+                  {run.agentContext.connectors.length === 1
+                    ? "connector"
+                    : "connectors"}
+                </p>
+              )}
             </section>
           )}
           {e.status === "Awaiting approval" && (

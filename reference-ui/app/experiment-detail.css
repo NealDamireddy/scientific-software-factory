@@ -615,3 +615,106 @@
   font-size: 13px;
   color: var(--muted);
 }
+.ex-context,
+.ex-context-legacy {
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  margin: 0 0 12px;
+  background: var(--surface);
+}
+.ex-context summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 15px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.ex-context summary::-webkit-details-marker {
+  display: none;
+}
+.ex-context summary span {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.ex-context summary small {
+  font-size: 12px;
+  color: var(--muted);
+}
+.ex-context summary:hover {
+  background: var(--panel);
+  border-radius: 8px;
+}
+.ex-context summary:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+.ex-context[open] summary > svg {
+  transform: rotate(90deg);
+}
+.ex-context-content,
+.ex-context-legacy {
+  padding: 12px 15px;
+  font-size: 13px;
+}
+.ex-context-content {
+  border-top: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+.ex-context-content p,
+.ex-context-legacy p {
+  font-size: 13px;
+  margin: 2px 0 6px;
+}
+.ex-context-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 12px;
+}
+.ex-context-facts dt,
+.ex-context-content b {
+  color: var(--muted);
+  font-weight: 550;
+}
+.ex-context-facts dd {
+  margin: 0;
+}
+.ex-context-content code {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.ex-context-entry {
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+}
+.ex-context-entry p {
+  white-space: pre-wrap;
+}
+.ex-context h4 {
+  font-size: 14px;
+  margin: 17px 0 6px;
+}
+.ex-application {
+  border-left: 2px solid var(--line);
+  padding-left: 8px;
+}
+@media (min-width: 761px) {
+  .ex-context summary,
+  .ex-context h4 {
+    font-size: 18px;
+  }
+  .ex-context summary small,
+  .ex-context-content,
+  .ex-context-content p,
+  .ex-context-content code,
+  .ex-context-legacy,
+  .ex-context-legacy p {
+    font-size: 16.5px;
+  }
+}
