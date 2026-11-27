@@ -1,3 +1,4 @@
+import type { WorkerDelivery } from "./worker-delivery";
 import type { AgentContext } from "./extension-model";
 import { researchSkills } from "./review-skills/catalog.ts";
 import type { ReviewInput, Stage, Verdict } from "./review-skills/types";
@@ -32,6 +33,7 @@ export type Run = {
   step: number;
   agentContext?: RunContext;
   agentChecks?: AgentCheck[];
+  workerDelivery?: WorkerDelivery;
   approval?: { originalRunNumber: number; dilutionFactor: number };
   outcome: "running" | "flagged" | "verified" | "cancelled";
 };
@@ -295,6 +297,7 @@ export function startRun(
   e: Experiment,
   mode: Run["mode"] = "original",
   configuration?: AgentContext,
+  deliveryId?: string,
 ): Experiment {
   const previous = e.runs.at(-1);
   if (
@@ -331,6 +334,7 @@ export function startRun(
   }
   if (configuration) {
     run.agentContext = prepareRunContext(e, mode, configuration);
+    run.workerDelivery = { id: deliveryId ?? crypto.randomUUID(), status: "pending" };
     run.agentChecks = evaluateStage(e, run, "start");
   }
   return {

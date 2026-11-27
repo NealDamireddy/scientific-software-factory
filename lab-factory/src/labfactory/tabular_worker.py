@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 
 import httpx
 from lab_codex_worker import run_worker
+from lab_codex_worker.skills import pin_skills
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
@@ -48,7 +49,11 @@ def generate_app(context, feedback=None):
 
 def generate(context, feedback=None):
     """The model receives only the author projection and uses no tools or workspace."""
-    payload = {"experiment": context["analysis"], "instructions": context["instructions"]}
+    analysis = dict(context["analysis"])
+    skills = pin_skills(analysis.pop("skills", context.get("skills", [])))
+    payload = {"experiment": analysis, "instructions": context["instructions"]}
+    if skills:
+        payload["enabledSkills"] = skills
     if feedback:
         payload["public_feedback"] = feedback
     prompt = (
@@ -60,6 +65,7 @@ def generate(context, feedback=None):
         "different calibration where relevant. Do not assume the expected control value. When all required "
         "inputs are present, leave question empty. If an essential input or unit is missing, write only a "
         "specific scientific question and use empty strings/array for the other fields.\n"
+        + ("Apply the enabled research skills where relevant to this analysis. Remain within the work-order contract.\n" if skills else "")
         + json.dumps(payload, ensure_ascii=False)
     )
     answer = run_worker(

@@ -46,12 +46,13 @@ import {
   type Run,
 } from "./simulation";
 import { buildAgentContext, type ExtensionState } from "./extension-model";
+import { deliveryLabel } from "./worker-delivery";
 import "./experiment-detail.css";
 
 type Props = {
   experiment: Experiment;
   extensions: ExtensionState;
-  onChange: (experiment: Experiment) => void;
+  onChange: (change: (current: Experiment) => Experiment) => void;
   onBack: () => void;
   instrumentBusy?: boolean;
 };
@@ -263,11 +264,13 @@ function ContextRecord({
   context,
   checks,
   run,
+  onRetry,
 }: {
   title: string;
   context?: RunContext;
   checks?: AgentCheck[];
   run?: Run;
+  onRetry?: (id: string) => void;
 }) {
   if (!context)
     return (
@@ -277,6 +280,7 @@ function ContextRecord({
       </div>
     );
   const { briefing, harness, skills, connectors } = context;
+  const delivery = run?.workerDelivery;
   return (
     <details className="ex-context">
       <summary>
@@ -286,12 +290,41 @@ function ContextRecord({
             {skills.length} {skills.length === 1 ? "skill" : "skills"} ·{" "}
             {connectors.length}{" "}
             {connectors.length === 1 ? "connector" : "connectors"}
+            {run && ` · ${deliveryLabel(run)}`}
           </small>
         </span>
         <ChevronRight size={16} />
       </summary>
       <div className="ex-context-content">
-        <p>Local simulation · External services are never contacted.</p>
+        {run && (
+          <section className="ex-worker-review" aria-label="Coding worker review">
+            <h4>Coding worker review</h4>
+            {delivery?.status === "received" ? (
+              <>
+                <p>
+                  Received {new Date(delivery.receivedAt).toLocaleString()} ·{" "}
+                  {delivery.skills.length} {delivery.skills.length === 1 ? "verified skill version" : "verified skill versions"}
+                </p>
+                <p className="ex-worker-answer">{delivery.review}</p>
+              </>
+            ) : delivery?.status === "failed" ? (
+              <>
+                <p role="status">{delivery.error}</p>
+                {onRetry && (
+                  <button className="ex-button" onClick={() => onRetry(delivery.id)}>
+                    <RotateCcw size={14} /> Retry delivery
+                  </button>
+                )}
+              </>
+            ) : (
+              <p role="status">
+                {delivery
+                  ? "Waiting for the local Codex worker to return its review."
+                  : "This run has no recorded worker delivery."}
+              </p>
+            )}
+          </section>
+        )}
         <dl className="ex-context-facts">
           <dt>Objective</dt>
           <dd>{briefing.objective}</dd>
@@ -302,7 +335,7 @@ function ContextRecord({
             {briefing.method.name} v{briefing.method.revision} ·{" "}
             {briefing.method.wavelengthNm} nm
           </dd>
-          <dt>Harness</dt>
+          <dt>Simulated harness</dt>
           <dd>
             {harness ? (
               <>
@@ -318,10 +351,19 @@ function ContextRecord({
         {skills.length === 0 && <p>No enabled skills.</p>}
         {skills.map((skill) => {
           const check = checks?.find((c) => c.skillId === skill.id);
+          const received = delivery?.status === "received"
+            ? delivery.skills.find((item) => item.id === skill.id)
+            : undefined;
           const [label, detail] = run ? pendingReview(skill, run) : ["", ""];
           return (
             <div className="ex-context-entry" key={skill.id}>
               <strong>{skill.name}</strong>
+              {received && (
+                <p>
+                  <b>Received version · SHA-256</b>
+                  <code>{received.version}</code>
+                </p>
+              )}
               <p>
                 <b>When to use</b> {skill.whenToUse}
               </p>
@@ -331,7 +373,7 @@ function ContextRecord({
               {checks && (
                 <p className="ex-application">
                   <b>
-                    {check
+                    Simulation · {check
                       ? {
                           clear: "Checked",
                           finding: "Finding",
@@ -375,7 +417,7 @@ function ContextRecord({
   );
 }
 
-function Evidence({ e }: { e: Experiment }) {
+function Evidence({ e, onRetry }: { e: Experiment; onRetry: (id: string) => void }) {
   function download() {
     const record = {
       ...e,
@@ -444,6 +486,7 @@ function Evidence({ e }: { e: Experiment }) {
               run={r}
               context={r.agentContext}
               checks={r.agentChecks ?? []}
+              onRetry={onRetry}
             />
           ))}
         </section>
@@ -493,11 +536,13 @@ export default function ExperimentDetail({
     if (instrumentBusy) return;
     setPicked(null);
     setTab("Overview");
-    onChange(
+    const deliveryId = crypto.randomUUID();
+    onChange((current) =>
       startRun(
-        e,
+        current,
         repeat ? "repeat" : "original",
         buildAgentContext(extensions),
+        deliveryId,
       ),
     );
     setDialog(null);
@@ -559,13 +604,19 @@ export default function ExperimentDetail({
       )}
       {tab === "Overview" && (
         <>
+          {run?.workerDelivery && (
+            <button className="ex-worker-status" onClick={() => setTab("Evidence")}>
+              <span><strong>Coding worker</strong> · {deliveryLabel(run)}</span>
+              <span>Evidence <ChevronRight size={15} /></span>
+            </button>
+          )}
           {e.status === "Draft" && (
             <section className="ex-section-head">
               <div>
                 <h2>Review experiment</h2>
                 <p>
-                  Starting the simulation automatically loads your enabled
-                  skills and selected connectors.
+                  On localhost, starting this run sends the objective and enabled
+                  skill instructions to your signed-in Codex worker for review.
                 </p>
               </div>
               <button
@@ -600,7 +651,7 @@ export default function ExperimentDetail({
                 </div>
                 <button
                   className="ex-button"
-                  onClick={() => onChange(cancel(e))}
+                  onClick={() => onChange(cancel)}
                 >
                   <Square size={13} />
                   Cancel run
@@ -613,16 +664,6 @@ export default function ExperimentDetail({
                 Step {run.step + 1} of 4 · {readings(e, run).length} readings
                 collected
               </p>
-              {run.agentContext && (
-                <p>
-                  Agent context loaded · {run.agentContext.skills.length}{" "}
-                  {run.agentContext.skills.length === 1 ? "skill" : "skills"} ·{" "}
-                  {run.agentContext.connectors.length}{" "}
-                  {run.agentContext.connectors.length === 1
-                    ? "connector"
-                    : "connectors"}
-                </p>
-              )}
             </section>
           )}
           {e.status === "Awaiting approval" && (
@@ -827,7 +868,14 @@ export default function ExperimentDetail({
           )}
         </>
       )}
-      {tab === "Evidence" && <Evidence e={e} />}
+      {tab === "Evidence" && (
+        <Evidence e={e} onRetry={(id) => onChange((current) => ({
+          ...current,
+          runs: current.runs.map((item) => item.workerDelivery?.id === id && item.workerDelivery.status === "failed"
+            ? { ...item, workerDelivery: { id, status: "pending" } }
+            : item),
+        }))} />
+      )}
       <dialog
         ref={modal}
         className="ex-dialog"
@@ -917,12 +965,12 @@ export default function ExperimentDetail({
                 className="ex-primary"
                 disabled={!note.trim()}
                 onClick={() => {
-                  onChange(
+                  onChange((current) =>
                     dialog === "edit"
-                      ? editObjective(e, note)
+                      ? editObjective(current, note)
                       : dialog === "changes"
-                        ? requestChanges(e, note)
-                        : resubmit(e, note),
+                        ? requestChanges(current, note)
+                        : resubmit(current, note),
                   );
                   setDialog(null);
                 }}

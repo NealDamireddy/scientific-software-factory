@@ -318,3 +318,33 @@ def test_private_downloads_require_reviewer_and_return_exact_originals(tmp_path,
         assert client.get(path + "/uploads/unknown").status_code == 404
         assert client.get(path + "/runs/1/readings").status_code == 404
         assert client.post(path + "/runs", json={"submission": 1}).status_code == 409
+
+
+def test_created_order_pins_enabled_skill_in_actual_author_request(store, request_data, monkeypatch):
+    from types import SimpleNamespace
+    from labfactory import tabular_worker
+
+    supplied = {"id": "record-links", "name": "Record links", "whenToUse": "When inspecting a run.",
+                "instructions": "Trace each specimen to its signed acquisition."}
+    request_data["skills"] = [supplied]
+    key = _create(store, request_data)
+    supplied["instructions"] = "Later revision."
+    context = AgentTools(store).get_work_order_context(key)
+    pinned, = context["analysis"]["skills"]
+    assert pinned["instructions"] == "Trace each specimen to its signed acquisition."
+    assert context["analysis"]["skill_versions"] == [{"id": supplied["id"], "version": pinned["version"]}]
+    assert len(pinned["version"]) == 64
+    assert svc.reviewer_context(store, WorkOrders(store).get(key))["skills"] == [pinned]
+
+    def capture(prompt, *args, **kwargs):
+        payload = json.loads(prompt.splitlines()[-1])
+        assert payload["enabledSkills"] == [pinned]
+        assert "Later revision." not in prompt
+        return SimpleNamespace(answer={"question": "Which procedure applies?"})
+
+    monkeypatch.setattr(tabular_worker, "run_worker", capture)
+    assert tabular_worker.generate(context) == {"needs_input": "Which procedure applies?"}
+
+    with pytest.raises(ContextError):
+        _create(store, {**request_data, "skills": [{**supplied, "version": pinned["version"]}]})
+    assert len(svc.catalog(store)["orders"]) == 1

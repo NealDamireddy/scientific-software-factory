@@ -9,6 +9,7 @@ import type {
   ProcedureStep, Project, Revision, RunPlan, RunStepView, Simulation, Skill, StepView, Submission,
   WorkOrder,
 } from "../types.ts";
+import researchSkills from "./research-skills.json" with { type: "json" };
 import { ANALYSIS_CODE, SIMULATION_CODE } from "./code.ts";
 import {
   procedureResults, procedureViews, referenceCases, runPlanResults, runPlanViews, sampleB12Experiment,
@@ -54,6 +55,7 @@ function skills(): Skill[] {
       enabled: false,
       revision: 1,
     },
+    ...researchSkills.map((skill) => ({ ...skill, enabled: false, revision: 1 })),
   ];
 }
 

@@ -92,6 +92,10 @@ For remote SQL, configure `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. A small h
 
 When Blob holds uploaded files, back up the database **and** every referenced `uploads/<sha256>` object under the snapshot prefix. This applies to both Blob snapshots and Turso with Blob uploads. Snapshot-only storage uses `labfactory/lab.sqlite3` by default. During recovery, restore the database and uploads to a private destination and verify that the protocol and readings download with the SHA-256 hashes from their saved records. With database-only storage, the original file bytes are stored in the database.
 
+### Skill versions on uploaded analysis orders
+
+The authenticated order-creation request accepts an optional `skills` array containing the enabled instructions selected for that order. Each entry supplies `id`, `name`, `whenToUse`, and `instructions`. The server calculates a SHA-256 version for each entry and checks any supplied version. The order retains the original instructions. The reviewer can inspect them in the analysis details, and the coding worker receives them with the public experiment fields on every authoring attempt, including retries. Later workspace edits apply to new orders. Orders created without skills continue to work.
+
 ## Project-based offline applications
 
 A signed-in researcher can submit a plain-language objective to `POST /api/analysis/apps`. Send the usual same-origin JSON header and a fresh UUID. For example:

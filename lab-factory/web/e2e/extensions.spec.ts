@@ -1,12 +1,13 @@
 import { expect, test } from "playwright/test";
 import { goto } from "./helpers.ts";
 
-test("three skills are listed and a skill that is off says so", async ({ page }) => {
+test("the research and sample skills are listed with their enabled state", async ({ page }) => {
   await goto(page, "/#/skills");
   await expect(page.getByRole("heading", { name: "Skills", level: 1 })).toBeVisible();
   await expect(page.getByText("Instructions every agent follows when it works for this lab.")).toBeVisible();
   await expect(page.getByText("Skills that are switched on are followed every time the factory builds.")).toBeVisible();
-  await expect(page.getByRole("list", { name: "Skills" }).getByRole("listitem")).toHaveCount(3);
+  await expect(page.getByRole("list", { name: "Skills" }).getByRole("listitem")).toHaveCount(14);
+  await expect(page.getByRole("switch", { name: "Claim-to-evidence review enabled" })).toHaveAttribute("aria-checked", "false");
   const plotting = page.getByRole("switch", { name: "Plotting conventions enabled" });
   await expect(plotting).toHaveAttribute("aria-checked", "false");
   await expect(page.getByRole("switch", { name: "How we write procedures enabled" })).toHaveAttribute("aria-checked", "true");
@@ -41,7 +42,7 @@ test("a long unbroken skill title does not widen the page", async ({ page }) => 
   await createSkill(page, "x".repeat(300), "y".repeat(300));
   await expect(page.getByText("Saved as revision 1")).toBeVisible();
   await goto(page, "/#/skills");
-  await expect(page.getByRole("list", { name: "Skills" }).getByRole("listitem")).toHaveCount(4);
+  await expect(page.getByRole("list", { name: "Skills" }).getByRole("listitem")).toHaveCount(15);
   const fits = () => page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
   expect(await fits()).toBe(true);
   await page.setViewportSize({ width: 390, height: 800 });
@@ -65,7 +66,7 @@ test("a new skill is saved as revision 1, then edited into revision 2", async ({
   await expect(page).toHaveURL(/#\/skills\?skill=error-bars$/);
   await expect(page.getByRole("heading", { name: "Edit skill", level: 2 })).toBeVisible();
   await expect(page.getByText("Saved as revision 1")).toBeVisible();
-  await expect(page.getByRole("list", { name: "Skills" }).getByRole("listitem")).toHaveCount(4);
+  await expect(page.getByRole("list", { name: "Skills" }).getByRole("listitem")).toHaveCount(15);
 
   await save.click();
   await expect(page.getByText("No changes to save.")).toBeVisible();

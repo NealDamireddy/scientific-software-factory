@@ -1,0 +1,6 @@
+issuer,record,issue_date,material,table,table_class,quantity,mass_fraction_percent,expanded_uncertainty_percentage_points
+NIST,Certificate of Analysis,2021-07-09,SRM 2686b Portland Cement Clinker,1,certified phase abundance,periclase,3.31,0.70
+NIST,Certificate of Analysis,2021-07-09,SRM 2686b Portland Cement Clinker,1,certified phase abundance,alite,64.82,2.57
+NIST,Certificate of Analysis,2021-07-09,SRM 2686b Portland Cement Clinker,2,information phase abundance,free lime,0.53,
+NIST,Certificate of Analysis,2021-07-09,SRM 2686b Portland Cement Clinker,3,information bulk chemistry by XRF,MgO,4.37,
+NIST,Certificate of Analysis,2021-07-09,SRM 2686b Portland Cement Clinker,3,information bulk chemistry by XRF,CaO,63.97,

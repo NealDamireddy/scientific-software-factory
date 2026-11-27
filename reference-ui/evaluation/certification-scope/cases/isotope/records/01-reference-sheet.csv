@@ -1,0 +1,5 @@
+material,matrix,issuer_document,section,quantity,scale,value_per_mille,combined_standard_uncertainty_per_mille,k,table_class
+IAEA-600,caffeine,reference sheet rev 0 dated 2025-09-25,page 1,delta-13C,VPDB-LSVEC,-27.77,0.04,1,reference value
+IAEA-600,caffeine,reference sheet rev 0 dated 2025-09-25,page 1,delta-15N,Air-N2,+1.02,0.05,1,reference value
+IAEA-600,caffeine,reference sheet rev 0 dated 2025-09-25,page 2,delta-2H,VSMOW-SLAP,-156.1,1.3,1,information value
+IAEA-600,caffeine,reference sheet rev 0 dated 2025-09-25,page 2,delta-18O,VSMOW-SLAP,-3.48,0.53,1,information value
