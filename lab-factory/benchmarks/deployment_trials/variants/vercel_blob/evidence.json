@@ -1,0 +1,426 @@
+{
+  "acceptance_scenarios": {
+    "api_offline": "pass",
+    "caffeine_and_density_intake": "pass",
+    "caffeine_and_density_release": "pass",
+    "caffeine_bad_candidate_failed_blind_control": "pass",
+    "cold_worker_recovery": "pass",
+    "empty_store_backup_restore": "pass",
+    "exact_candidate_protocol_csv_and_receipt_provenance": "pass",
+    "expected_values_and_units": "pass",
+    "failed_or_stale_approval_and_run_blocked": "pass",
+    "fresh_control_required_and_replaced": "pass",
+    "mcp_auth_and_tool_discovery": "pass",
+    "named_reviewer_login": "pass",
+    "replay_returns_same_receipt": "pass",
+    "two_agent_claim_single_winner": "pass"
+  },
+  "analytical_results": {
+    "caffeine": {
+      "approved_submission": 2,
+      "replayed_same_receipt": true,
+      "submissions": [
+        {
+          "artifact_sha256": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2",
+          "blind_control_passed": false,
+          "control_edition": 1,
+          "number": 1
+        },
+        {
+          "artifact_sha256": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+          "blind_control_passed": true,
+          "control_edition": 2,
+          "number": 2
+        }
+      ],
+      "unit": "mg/L",
+      "uploads_sha256": {
+        "csv": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+        "protocol": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f"
+      },
+      "values": [
+        24.0,
+        45.0
+      ]
+    },
+    "density": {
+      "approved_submission": 1,
+      "replayed_same_receipt": true,
+      "submissions": [
+        {
+          "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+          "blind_control_passed": true,
+          "control_edition": 1,
+          "number": 1
+        }
+      ],
+      "unit": "g/mL",
+      "uploads_sha256": {
+        "csv": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+        "protocol": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65"
+      },
+      "values": [
+        1.08,
+        0.8
+      ]
+    }
+  },
+  "blob_traffic": {
+    "acceptance_run_only": {
+      "requests": {
+        "original_GET_200": 10,
+        "original_PUT_200": 4,
+        "snapshot_GET_200": 32,
+        "snapshot_GET_404": 2,
+        "snapshot_PUT_200": 14,
+        "snapshot_PUT_412": 1
+      },
+      "successful_payload_bytes": {
+        "original_GET_200": 6290,
+        "original_PUT_200": 2213,
+        "snapshot_GET_200": 4325376,
+        "snapshot_GET_404": 0,
+        "snapshot_PUT_200": 1892352,
+        "snapshot_PUT_412": 0
+      }
+    },
+    "restore_plus_verify_plus_readback": {
+      "requests": {
+        "original_GET_200": 12,
+        "original_PUT_200": 4,
+        "snapshot_GET_200": 13,
+        "snapshot_PUT_200": 1
+      },
+      "successful_payload_bytes": {
+        "original_GET_200": 6639,
+        "original_PUT_200": 2213,
+        "snapshot_GET_200": 1757184,
+        "snapshot_PUT_200": 135168
+      }
+    },
+    "run_plus_worker_restart_verify_plus_backup": {
+      "requests": {
+        "original_GET_200": 22,
+        "original_PUT_200": 4,
+        "snapshot_GET_200": 44,
+        "snapshot_GET_404": 2,
+        "snapshot_PUT_200": 14,
+        "snapshot_PUT_412": 1
+      },
+      "successful_payload_bytes": {
+        "original_GET_200": 12929,
+        "original_PUT_200": 2213,
+        "snapshot_GET_200": 5947392,
+        "snapshot_GET_404": 0,
+        "snapshot_PUT_200": 1892352,
+        "snapshot_PUT_412": 0
+      }
+    }
+  },
+  "candidate_source_sha256": {
+    "caffeine": "900e1a056b20adfc0e8e97c488baf87334ba2d9b04178cdde773d4abaf71996b",
+    "density": "0ed267e7932a9123b596ce8074e6f41222b36984f840f471173f010e9ec39d83",
+    "wrong": "4de082bd88686474bc0b361304903d872ad1e054af105b990d1eb97a46bbe2f5"
+  },
+  "canonical_outcome": {
+    "caffeine": {
+      "approval": {
+        "digest": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+        "submission": 2
+      },
+      "control_passed": true,
+      "history": [
+        [
+          "created",
+          null,
+          ""
+        ],
+        [
+          "claimed",
+          null,
+          ""
+        ],
+        [
+          "submitted",
+          1,
+          "failed"
+        ],
+        [
+          "submitted",
+          2,
+          "passed"
+        ],
+        [
+          "approved",
+          2,
+          "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0"
+        ]
+      ],
+      "replayed_receipt": true,
+      "run_batch_digest": "e935c8ca89a1cf817cd997dbf6c6eb576d94f36260a697db220711584d6dc002",
+      "submissions": [
+        {
+          "artifact_sha256": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2",
+          "control": {
+            "edition": 1,
+            "expected": 16.0,
+            "passed": false,
+            "predicted": 3280.0,
+            "tolerance": 0.25
+          },
+          "number": 1,
+          "passed": false
+        },
+        {
+          "artifact_sha256": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+          "control": {
+            "edition": 2,
+            "expected": 14.382,
+            "passed": true,
+            "predicted": 14.382,
+            "tolerance": 0.15
+          },
+          "number": 2,
+          "passed": true
+        }
+      ],
+      "unit": "mg/L",
+      "uploads": {
+        "csv": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+        "protocol": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f"
+      },
+      "values": [
+        24.0,
+        45.0
+      ]
+    },
+    "density": {
+      "approval": {
+        "digest": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+        "submission": 1
+      },
+      "control_passed": true,
+      "history": [
+        [
+          "created",
+          null,
+          ""
+        ],
+        [
+          "claimed",
+          null,
+          ""
+        ],
+        [
+          "submitted",
+          1,
+          "passed"
+        ],
+        [
+          "approved",
+          1,
+          "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2"
+        ]
+      ],
+      "replayed_receipt": true,
+      "run_batch_digest": "2eaaa06a8d2169e0bb14f1661af082bbf19ddb6a1613923c5f40e8403d39b538",
+      "submissions": [
+        {
+          "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+          "control": {
+            "edition": 1,
+            "expected": 0.9,
+            "passed": true,
+            "predicted": 0.9,
+            "tolerance": 0.01
+          },
+          "number": 1,
+          "passed": true
+        }
+      ],
+      "unit": "g/mL",
+      "uploads": {
+        "csv": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+        "protocol": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65"
+      },
+      "values": [
+        1.08,
+        0.8
+      ]
+    },
+    "race": {
+      "claim_events": 1,
+      "status": "in_progress",
+      "winners": 1
+    }
+  },
+  "canonical_outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+  "cleanup": "All child processes exited and private temporary storage, log, credential and backup files removed.",
+  "deployment_type": "Local loopback HTTP, pinned Vercel Python ASGI entrypoint under uvicorn, private Blob HTTP sidecar",
+  "elapsed_seconds": {
+    "acceptance_run": 1.1195,
+    "acceptance_verify_after_empty_store_restore": 0.8012,
+    "acceptance_verify_after_worker_restart": 0.8014,
+    "backup_snapshot_and_originals": 0.0175,
+    "empty_store_start": 0.0978,
+    "end_to_end_with_cleanup": 15.7475,
+    "first_store_start": 0.0787,
+    "first_worker_start_until_session_ready": 0.5244,
+    "pre_restore_offline_check": 0.2891,
+    "replacement_worker_start_until_session_ready": 0.6251,
+    "restore_objects_and_check_snapshot": 0.0231,
+    "restored_worker_start_until_session_ready": 0.569,
+    "stopped_worker_offline_check": 0.358,
+    "supplemental_author_crash_and_resume": 5.4671,
+    "supplemental_cross_process_claim": 0.5532
+  },
+  "environment": {
+    "access_mode": "private",
+    "architecture": "arm64",
+    "python": "3.14.9",
+    "sqlite": "3.53.1",
+    "system": "Darwin",
+    "vercel_env": "preview"
+  },
+  "inputs": {
+    "artifact_sha256": {
+      "caffeine": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+      "density": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+      "wrong": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2"
+    },
+    "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+    "source_file_sha256": {
+      "examples/tabular/caffeine/control.json": "7d179557228dc6352b11d3747d3ad451d4270c8c3b099191fe4086391b9c9d6e",
+      "examples/tabular/caffeine/protocol.md": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f",
+      "examples/tabular/caffeine/readings.csv": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+      "examples/tabular/density/control.json": "5a2d991a9cb397389dc5558dbcb9a622d381d5eb48881bbfaf2e486fa3f21b04",
+      "examples/tabular/density/protocol.md": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65",
+      "examples/tabular/density/readings.csv": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+      "examples/tabular/index.json": "50c4300c28e4d2507c27d5f1ffd763155fce3f79a605aea1964282c87e3a0f4b",
+      "tests/test_tabular_acceptance.py": "00e11bb9df00d2495b81596b0176d3c624c5b759a1737555f7ae02a417de2816"
+    },
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  },
+  "limitations": [
+    "No live Vercel build, function scheduler, edge routing, authentication, CDN or Blob service measurements.",
+    "One local synthetic workload. Time includes runner process startup, authentication, and loopback I/O.",
+    "Whole SQLite object replaced on changed transactions; 8 MiB cap, four CAS attempts, separate immutable uploads.",
+    "ETags identify the current object; prior snapshots require independent backups."
+  ],
+  "live_vercel_preview": {
+    "reason": "Local fallback uses disposable loopback storage. Pinned adapter requires a separately provisioned private Blob read/write token for live staging.",
+    "status": "unverified"
+  },
+  "restore": {
+    "backup_and_readback_manifests_identical": true,
+    "empty_new_store_and_new_token": true,
+    "original_api_process_exited": true,
+    "original_storage_process_exited": true
+  },
+  "retained": {
+    "external_originals_sha256_to_bytes": {
+      "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65": 747,
+      "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a": 129,
+      "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f": 1117,
+      "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e": 220
+    },
+    "foreign_key_violations": 0,
+    "originals_bytes": 2213,
+    "receipt_statuses": {
+      "estimated": 2
+    },
+    "snapshot_bytes": 135168,
+    "snapshot_sha256": "62443e201b2245b4e7a5ccfac000a9fa556ccd2d223d3d354dcbc3ea21fef061",
+    "sqlite_integrity": "ok",
+    "table_rows": {
+      "events": 11,
+      "records": 5,
+      "submissions": 3,
+      "tabular_controls": 3,
+      "tabular_files": 4,
+      "tabular_intakes": 2,
+      "tabular_reports": 3,
+      "tabular_runs": 2,
+      "work_orders": 3
+    }
+  },
+  "run_request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+  "runner_phases": {
+    "offline": {
+      "confirmed": true,
+      "observation": "connection unavailable"
+    },
+    "run": {
+      "mode": "run",
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    "verify_replacement_worker": {
+      "mode": "verify",
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    "verify_restored_store": {
+      "mode": "verify",
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    }
+  },
+  "runner_sha256": "cab9b87b4b2cdfdc7f41fcc8a05bdeaec2798e3a8511d0414086869d026ae288",
+  "shared_runner_claim_race": {
+    "claim_events": 1,
+    "status": "in_progress",
+    "winners": 1
+  },
+  "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+  "supplemental_author_crash_recovery": {
+    "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+    "author": "Injected fixed density candidate",
+    "backend_worker": "labfactory.tabular_worker.process",
+    "blind_control_passed": true,
+    "claim_events": 1,
+    "competing_identity_claim_denied": true,
+    "distinct_worker_processes": 3,
+    "elapsed_seconds": {
+      "additional_replay": 1.4786,
+      "first_start_to_kill": 1.8179,
+      "kill_to_verified_submission": 1.88
+    },
+    "final_status": "in_review",
+    "interrupted_exitcode": -9,
+    "model_generation": false,
+    "replay_history_and_submissions_unchanged": true,
+    "status": "pass",
+    "status_after_kill": "in_progress",
+    "submission_count": 1,
+    "submission_number": 1,
+    "submissions_after_kill": 0,
+    "submitted_events": 1,
+    "transport": "MCP streamable HTTP",
+    "verification_passed": true,
+    "worker_identity": "agent-a"
+  },
+  "supplemental_tls_login": {
+    "anonymous_order_list_status": 401,
+    "authenticated_order_list_status": 200,
+    "certificate_verified": true,
+    "secure_cookie_returned": true,
+    "status": "pass",
+    "vercel": "1"
+  },
+  "supplemental_two_process_claim": {
+    "api_processes": 2,
+    "losing_responses": 1,
+    "mcp_identities": 2,
+    "persisted_claim_events": 1,
+    "read_confirmed_by_both_processes": true,
+    "snapshot_precondition_failures": 0,
+    "status": "pass",
+    "winning_responses": 1
+  },
+  "tested_at_utc": "2026-11-26T07:42:06.221119+00:00",
+  "variant": "vercel_blob"
+}

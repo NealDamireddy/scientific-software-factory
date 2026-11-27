@@ -1,0 +1,65 @@
+{
+  "all_used_pinned_workload": true,
+  "all_verified": true,
+  "deployments": {
+    "libsql": {
+      "access_mode": "private",
+      "logical_request_sequence_sha256": "2fff2a02b9d5998848e53e14a6ebf155588b6dede6043bc7f14d8ebf516af942",
+      "offline_observed": true,
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "outcome_v2_sha256": "1f9c329696cbd96b9d55e7252617def798d1322d2559d2774c755f969abbc5e8",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "verified": true,
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    "replicas": {
+      "access_mode": "private",
+      "logical_request_sequence_sha256": "2fff2a02b9d5998848e53e14a6ebf155588b6dede6043bc7f14d8ebf516af942",
+      "offline_observed": true,
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "outcome_v2_sha256": "1f9c329696cbd96b9d55e7252617def798d1322d2559d2774c755f969abbc5e8",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "verified": true,
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    "single_host": {
+      "access_mode": "private",
+      "logical_request_sequence_sha256": "2fff2a02b9d5998848e53e14a6ebf155588b6dede6043bc7f14d8ebf516af942",
+      "offline_observed": true,
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "outcome_v2_sha256": "1f9c329696cbd96b9d55e7252617def798d1322d2559d2774c755f969abbc5e8",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "verified": true,
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    "vercel_blob": {
+      "access_mode": "private",
+      "logical_request_sequence_sha256": "2fff2a02b9d5998848e53e14a6ebf155588b6dede6043bc7f14d8ebf516af942",
+      "offline_observed": true,
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "outcome_v2_sha256": "1f9c329696cbd96b9d55e7252617def798d1322d2559d2774c755f969abbc5e8",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "verified": true,
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    "vercel_preview": {
+      "access_mode": "private",
+      "logical_request_sequence_sha256": "2fff2a02b9d5998848e53e14a6ebf155588b6dede6043bc7f14d8ebf516af942",
+      "offline_observed": true,
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "outcome_v2_sha256": "1f9c329696cbd96b9d55e7252617def798d1322d2559d2774c755f969abbc5e8",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "verified": true,
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    }
+  },
+  "matching_hashes": {
+    "logical_request_sequence_sha256": true,
+    "outcome_sha256": true,
+    "outcome_v2_sha256": true,
+    "request_sequence_sha256": true,
+    "workload_sha256": true
+  },
+  "parity": true,
+  "pinned_workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+}
