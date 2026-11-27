@@ -2,3 +2,4 @@
 /labfactory.db-*
 /.vercel/
 /.env*
+/public/evolve/

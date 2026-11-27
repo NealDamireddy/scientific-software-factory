@@ -1,24 +1,63 @@
 import asyncio
+import json
 from pathlib import Path
+import subprocess
+
+import pytest
 
 from labfactory import tabular_worker as worker
 
 
-def test_author_receives_only_public_analysis_and_tool_free_prompt(monkeypatch):
-    import json
-    import subprocess
+@pytest.mark.parametrize("question", ["", "What is the dilution?"])
+def test_author_receives_only_public_analysis_and_tool_free_prompt(monkeypatch, question):
+    context = {"instructions": "host syntax", "analysis": {"protocol": "real protocol"}, "private": "private!control"}
+    artifact = {"source": "candidate", "explanation": "calculation", "tests": []}
+    workdirs = []
 
-    def invoke(command, *, cwd, env, input, **kwargs):
-        assert "private!control" not in input and "private!control" not in str(env)
-        assert "experiment" in input and "real protocol" in input and "public feedback" in input
+    def invoke(command, *, cwd, env, input, timeout, capture_output, text):
+        work = Path(cwd)
+        workdirs.append(work)
+        assert command[:2] == ["codex", "exec"] and command[-1] == "-"
+        assert command[command.index("--sandbox") + 1] == "read-only"
         assert "--ignore-user-config" in command and "shell_tool" in command and "apps" in command
-        Path(cwd, "answer.json").write_text(json.dumps({"question":"What is the dilution?", "source":"",
-                                                        "explanation":"", "tests":[]}))
+        assert timeout == 210 and capture_output and text
+        assert "LAB_FACTORY_AGENT_TOKEN" not in env and "private!control" not in input
+        assert json.loads(input.splitlines()[-1]) == {
+            "experiment": context["analysis"], "instructions": "host syntax", "public_feedback": ["public feedback"],
+        }
+        schema = json.loads((work / command[command.index("--output-schema") + 1]).read_text())
+        assert set(schema["required"]) == {"question", "source", "explanation", "tests"}
+        answer = work / command[command.index("--output-last-message") + 1]
+        answer.write_text(json.dumps({"question": question, **artifact}))
         return subprocess.CompletedProcess(command, 0)
-    monkeypatch.setattr(worker.subprocess, "run", invoke)
-    monkeypatch.setenv("LAB_FACTORY_AGENT_TOKEN","private!control")
-    ctx = {"instructions":"host syntax", "analysis":{"protocol":"real protocol"}, "private":"private!control"}
-    assert worker.generate(ctx, ["public feedback"]) == {"needs_input":"What is the dilution?"}
+
+    monkeypatch.setattr(subprocess, "run", invoke)
+    monkeypatch.setattr(subprocess, "check_output", lambda *args, **kwargs: pytest.fail("Unexpected version lookup"))
+    monkeypatch.setenv("LAB_FACTORY_AGENT_TOKEN", "private!control")
+    expected = {"needs_input": question} if question else artifact
+    assert worker.generate(context, ["public feedback"]) == expected
+    assert len(workdirs) == 1 and not workdirs[0].exists()
+
+
+@pytest.mark.parametrize("exit_code, output, error", [
+    (1, "{}", RuntimeError), (0, None, RuntimeError), (0, "invalid", json.JSONDecodeError),
+])
+def test_failed_author_cleans_up_its_workspace(monkeypatch, exit_code, output, error):
+    workdirs = []
+
+    def invoke(command, *, cwd, **kwargs):
+        work = Path(cwd)
+        workdirs.append(work)
+        if output is not None:
+            (work / command[command.index("--output-last-message") + 1]).write_text(output)
+        return subprocess.CompletedProcess(command, exit_code, "", "private diagnostic")
+
+    monkeypatch.setattr(subprocess, "run", invoke)
+    with pytest.raises(error) as exc:
+        worker.generate({"analysis": {}, "instructions": "host syntax"})
+    if error is RuntimeError:
+        assert f"exit {exit_code}" in str(exc.value) and "private diagnostic" not in str(exc.value)
+    assert len(workdirs) == 1 and not workdirs[0].exists()
 
 
 def test_blind_failure_uses_one_candidate_and_stops(monkeypatch):

@@ -1,6 +1,10 @@
 # Operating a shared Lab Factory
 
-The Vercel project root is `lab-factory/`. Vercel builds the Python function from `uv.lock`, serves the browser portal from `public/`, and routes the reviewer API and Streamable HTTP MCP through the same application. The existing local CLI and stdio server continue to use the SQLite path supplied on the command line.
+One Lab Factory Vercel deployment serves the reviewer at `/`, the EVOLVE workbench at `/evolve/`, and the reviewer API and Streamable HTTP MCP at their existing paths. The Python function uses `lab-factory/uv.lock`.
+
+For a Git deployment from this monorepo, set the Vercel project’s **Root Directory** to `lab-factory` and enable **Include source files outside of the Root Directory in the Build Step** so the build can read the EVOLVE sources and npm lockfile from the repository root. Configure the project to build on changes to those files as well as changes under `lab-factory/`. The build command in `vercel.json` stages EVOLVE alongside the reviewer in `public/`.
+
+For a CLI upload of the Lab Factory directory alone, first run `npm ci` and `npm run build:lab` at the repository root. The existing production release used this CLI workflow with the uploaded directory as its Vercel project root (`.`). The subtree build verifies the prebuilt pages, replay runtime and evidence files. To verify the staged files locally, run `node lab-factory/scripts/build_portal.mjs --check` from the root. [Local portal and demo launcher](../../README.md#run-the-app)
 
 ## Who can review
 
@@ -48,15 +52,13 @@ The factory evaluates arithmetic, local assignments, indexing of the three readi
 
 ## Storage
 
-The deployed service uses one **private Vercel Blob** in the same region as the function. Each operation reads the current SQLite snapshot, runs the core transaction and conditionally replaces the snapshot using its ETag. A competing write causes the callback to repeat against current history. If an upload loses its acknowledgement, inspect the order and its submission numbers before resubmitting.
-
-The total SQLite snapshot is limited to **8 MiB**, including revisions, submissions and history. This backend is intended for a small lab. Back up the private object `labfactory/lab.sqlite3` to a location your lab controls. The backup is a regular SQLite database and can be opened with the local CLI. Provision a transactional database before growth reaches the limit. The supported Turso configuration uses `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. Setting a database URL switches the application to that database, so migrate and verify the existing history first.
+A private Vercel Blob store can hold the SQLite snapshot, capped at 8 MiB. Each operation reads the current snapshot and conditionally writes the new state using its ETag. Larger deployments can use Turso with `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. When Blob stores uploaded files, back up the database and the separate content-addressed upload objects for either backend. Verify restored files against the SHA-256 digests on their saved records before switching the deployment. [Storage and recovery](analysis-api.md#storage-and-recovery)
 
 Remote artifacts are limited to 128 KiB of compact UTF-8 JSON, 256 steps, 256 settings per action and 256 characters per instrument ID or command. Reviewer JSON imports are limited to 1 MiB per request.
 
 ## Production configuration
 
-Link the project directory to the intended Vercel project and connect a **private** Blob store to Production. The integration supplies `BLOB_READ_WRITE_TOKEN`. Use the following additional Production environment variables and redeploy after changes.
+Link the project directory to the intended Vercel project. For a private Blob snapshot or Blob-backed uploads, connect a private Blob store to Production so the integration supplies `BLOB_READ_WRITE_TOKEN`. Set the origin and identity variables below, then redeploy.
 
 | Variable | Value |
 | --- | --- |
@@ -76,3 +78,15 @@ uv run --locked python -c 'from getpass import getpass; from labfactory.hosted_a
 Preserve the map entries for identities that continue to need access. After changing the production environment, deploy the project again. Restrict or retire previous deployment URLs that still use the old environment. Named reviewer sessions expire after eight hours. Changing a reviewer’s verifier or the session signing key invalidates affected sessions on the new deployment.
 
 Give each agent only its own bearer token and worker name. The four MCP tools list work, retrieve pinned context, claim and submit. A reviewer can approve or reject using the portal or the reviewer API. The release event records the reviewer identity, submission number and reviewed artifact digest. The Vercel project and storage administrators are trusted to manage credentials and stored data.
+
+## Background analysis worker
+
+The Vercel service retains the orders. The user-selected author uses the existing local Codex sign-in and a dedicated MCP worker token. From `lab-factory/` in a committed release on macOS, run the installer for the signed-in user.
+
+```sh
+python3 scripts/install_analysis_worker.py --url https://neal-lab-factory.vercel.app/mcp \
+  --worker lab-agent --token-file "$HOME/.config/labfactory/neal-lab-factory/agent-token"
+launchctl print "gui/$(id -u)/com.labfactory.analysis-author"
+```
+
+It checks the queue at login and every 90 seconds while the Mac is awake and online. An interrupted claim can be resumed by the same worker. The installed worker uses a version-specific Python environment under `~/.local/share/labfactory/analysis-worker/`. Its logs are in the `logs/` subdirectory. An explicit `needs_input` stops that order for reviewer attention. Correct incomplete inputs by creating a new order with a revised protocol or mapping. To process one order manually, run `python -m labfactory.tabular_worker --url URL/mcp --worker NAME --token-file PATH --order WO-N` in the project environment.

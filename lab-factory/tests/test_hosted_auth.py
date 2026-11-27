@@ -20,6 +20,20 @@ def config(monkeypatch, reviewer_hash):
     monkeypatch.setenv("LABFACTORY_SESSION_KEY", "test-key-which-exceeds-thirty-two-characters")
 
 
+def test_local_reviewer_can_use_portal_with_no_agents(monkeypatch):
+    monkeypatch.setenv("LABFACTORY_PUBLIC_REVIEW", "1")
+    monkeypatch.setenv("LABFACTORY_LOCAL_DB", "local.sqlite3")
+    monkeypatch.setenv("LABFACTORY_AGENTS", "{}")
+    monkeypatch.delenv("VERCEL", raising=False)
+    monkeypatch.delenv("VERCEL_ENV", raising=False)
+    access = Access.from_env()
+    assert access.public_review and access.agents == {}
+    assert access.authenticate_agent({"authorization": "Bearer unknown"}) is None
+    monkeypatch.setenv("VERCEL", "1")
+    with pytest.raises(ValueError, match="Missing identities in LABFACTORY_AGENTS"):
+        Access.from_env()
+
+
 @pytest.mark.parametrize(("variable", "value"), [
     ("LABFACTORY_REVIEWERS", "plaintext"),
     ("LABFACTORY_REVIEWERS", "gg" * 16 + ":" + "aa" * 32),

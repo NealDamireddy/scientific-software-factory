@@ -1,4 +1,4 @@
-import {loadPyodide} from "/runtime/pyodide.mjs";
+import {loadPyodide} from "./runtime/pyodide.mjs";
 
 async function verifiedFile(folder, name, manifest) {
   const response = await fetch(folder + "/" + name);
@@ -13,7 +13,7 @@ self.onmessage = async ({data}) => {
   try {
     const {folder,manifest,reference} = data;
     const [source,raw,metadata] = await Promise.all(["analysis.py","input.csv","metadata.json"].map(name=>verifiedFile(folder,name,manifest)));
-    const python = await loadPyodide({indexURL:"/runtime/"});
+    const python = await loadPyodide({indexURL:new URL("./runtime/", import.meta.url).href});
     python.globals.set("app_source",source);
     python.globals.set("csv_data",raw);
     python.globals.set("meta_json",metadata);

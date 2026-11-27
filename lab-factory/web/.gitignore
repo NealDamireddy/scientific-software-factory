@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+test-results/
+playwright-report/
+
+# Pyodide files are copied from node_modules by scripts/copy-runtime.mjs.
+# Only the hand-written worker is committed.
+!public/runtime/
+public/runtime/*
+!public/runtime/python-worker.mjs

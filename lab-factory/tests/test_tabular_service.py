@@ -7,7 +7,7 @@ import pytest
 
 from labfactory import references, tabular_service as svc
 from labfactory.agent import AgentTools
-from labfactory.context import ContextError, canonical_digest, canonical_json
+from labfactory.context import ContextError, canonical_digest, canonical_json, experiment_from_dict, lab_from_dict
 from labfactory.store import Store
 from labfactory.workorders import WorkOrderError, WorkOrders
 
@@ -34,6 +34,28 @@ def _artifact(multiplier=1):
 
 def _create(store, request_data):
     return svc.create_order(store, "Reviewer", request_data)["id"]
+
+
+@pytest.mark.parametrize("corrupt", [
+    "DELETE FROM events WHERE work_order_id=? AND event='approved'",
+    "UPDATE events SET note='wrong digest' WHERE work_order_id=? AND event='approved'",
+    "UPDATE submissions SET artifact='{}' WHERE work_order_id=?",
+    "UPDATE submissions SET passed=0 WHERE work_order_id=?",
+    "UPDATE submissions SET results='[]' WHERE work_order_id=?",
+])
+def test_link_requires_verifiable_procedure_release(store, request_data, uvvis_lab_dict, b12_experiment_dict, corrupt):
+    store.put_lab(lab_from_dict(uvvis_lab_dict))
+    experiment = experiment_from_dict(b12_experiment_dict)
+    store.put_experiment(experiment)
+    orders = WorkOrders(store)
+    order = orders.create(experiment.id, "procedure", "Review optical handling")
+    orders.claim(order.id, "Author")
+    orders.submit(order.id, "Author", {"steps": [{"text": "Record the reading.", "citations": ["sop-cuvette"]}]})
+    orders.approve(order.id, "Reviewer", 1)
+    store.connection.execute(corrupt, (order.id,))
+    with pytest.raises(WorkOrderError, match="approved artifact"):
+        _create(store, {**request_data, "procedure_order_id": order.id})
+    assert svc.catalog(store) == {"orders": []}
 
 
 def test_opaque_author_context_and_originals(store, request_data):
@@ -82,8 +104,50 @@ def test_blind_attempt_pinned_reviewer_and_separate_qc_for_revised_source(store,
     WorkOrders(store).approve(key, "Reviewer", 3)
     receipt = svc.run(store, key, "Reviewer", {"submission": 3})
     assert receipt["results"][0]["value"] == pytest.approx(14.0246)
-    assert receipt["control"]["source"] == "replacement blind control" and receipt["control"]["edition"] == 3
+    assert receipt["release_control_edition"] == 3
+    assert receipt["control"]["source"] == "original batch" and receipt["control"]["edition"] == 1
+    assert receipt["control"]["signal"] == 53.92
     assert receipt["artifact_digest"] == canonical_digest(_artifact()) and receipt["status"] == "estimated"
+
+
+def test_original_batch_qc_withholds_after_a_passing_replacement_and_checks_exact_reuploads(store, request_data):
+    request_data["control_expected"] = 6.0  # Final method predicts 5.392 for this collected QC sample.
+    key = _create(store, request_data)
+    orders = WorkOrders(store)
+    orders.claim(key, "Writer")
+    assert not orders.submit(key, "Writer", _artifact(2)).passed
+    replacement = {"signal": 40, "factor": 1, "expected": 4, "tolerance": .02}
+    svc.replace_control(store, key, "R", replacement)
+    assert orders.submit(key, "Writer", _artifact()).passed
+    orders.approve(key, "R", 2)
+
+    # Simulate the persisted run identity from before collected and release controls were separated.
+    _, batch = svc._intake(store, key)
+    old_digest = canonical_digest({"batch": batch, "control": {k: float(v) for k, v in replacement.items()}})
+    old_receipt = {"batch_digest": old_digest, "csv_name": batch["csv_name"], "csv_digest": batch["csv_digest"],
+                   "status": "estimated", "control": {"source": "replacement blind control", "edition": 2}}
+    with store.transaction() as db:
+        db.execute("INSERT INTO tabular_runs(work_order_id,submission,batch_digest,actor,receipt) VALUES (?,?,?,?,?)",
+                   (key, 2, old_digest, "R", canonical_json(old_receipt)))
+
+    run = svc.run(store, key, "R", {"submission": 2})
+    assert run["status"] == "withheld" and run["results"] == []
+    assert run["release_control_edition"] == 2
+    assert run["control"]["edition"] == 1 and not run["control"]["passed"]
+    assert (run["control"]["expected"], run["control"]["predicted"]) == pytest.approx((6, 5.392))
+    reupload = {k: request_data[k] for k in ("csv", "control_expected", "control_tolerance")}
+    reupload.update(submission=2, csv_name="renamed.csv")
+    assert svc.run(store, key, "R", reupload) == run
+    with pytest.raises(WorkOrderError, match="already pinned"):
+        svc.run(store, key, "R", {**reupload, "control_expected": 5.392})
+    archived = svc.list_runs(store.connection, key)
+    assert len(archived) == 2 and archived[1]["batch_digest"] == old_digest and archived[1]["status"] == "estimated"
+
+    with store.transaction() as db:
+        db.execute("UPDATE tabular_controls SET value=? WHERE work_order_id=? AND edition=1",
+                   (canonical_json(replacement), key))
+    with pytest.raises(WorkOrderError, match="sealed"):
+        svc.run(store, key, "R", {"submission": 2})
 
 
 def test_public_clarification_and_syntax_failures_do_not_consume_holdout(store, request_data):

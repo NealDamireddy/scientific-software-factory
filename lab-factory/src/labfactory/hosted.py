@@ -1,4 +1,4 @@
-"""Shared operator API, browser portal, and remote agent entry point."""
+"""ASGI entry point for the reviewer API and authenticated remote agents."""
 
 from dataclasses import asdict
 import json
@@ -14,7 +14,7 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from . import b12_service, honey_service, reference_orders, references, tabular_service
+from . import b12_service, experiment_catalog, honey_service, reference_orders, references, tabular_service
 from .artifacts import render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
 from .hosted_auth import Access, PUBLIC_REVIEWER, SESSION_COOKIE, SESSION_SECONDS
@@ -23,7 +23,10 @@ from .hosted_storage import HostedStorageError, run_store
 from .store import NotFound
 from .workorders import WorkOrderError, WorkOrders
 
-PROJECT = Path(__file__).resolve().parents[2]
+EXAMPLES = Path(__file__).with_name("examples")
+if not EXAMPLES.is_dir():
+    # The wheel includes these two source-controlled examples inside the package.
+    EXAMPLES = Path(__file__).resolve().parents[2] / "examples"
 BODY_LIMIT = 1024 * 1024
 HISTORY_PAGE = 30
 STREAM_CHUNK = 64 * 1024
@@ -54,7 +57,7 @@ def _response(data, status=200):
 async def _json_body(request: Request) -> dict:
     scheme = "https" if os.getenv("VERCEL") else request.url.scheme
     if request.headers.get("origin") != f"{scheme}://{request.headers.get('host')}":
-        raise HTTPException(403, "Send this request from the lab portal.")
+        raise HTTPException(403, "Supply the same origin as the reviewer API.")
     if request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
         raise HTTPException(415, "Send application/json.")
     body = bytearray()
@@ -202,8 +205,20 @@ async def order_list(request):
     data = await _json_body(request)
     if not isinstance(data.get("experiment_id"), str):
         raise HTTPException(400, "Provide an experiment ID.")
+    pins = ("expected_experiment_revision", "expected_lab_revision")
+    check_revisions = any(key in data for key in pins)
+    if check_revisions and not all(type(data.get(key)) is int and data[key] > 0 for key in pins):
+        raise HTTPException(400, "Supply both expected revisions as positive integers.")
+
     def create(store):
-        return WorkOrders(store).create(data["experiment_id"], data.get("kind"), data.get("objective"), actor=reviewer)
+        with store.transaction():
+            order = WorkOrders(store).create(
+                data["experiment_id"], data.get("kind"), data.get("objective"), actor=reviewer,
+            )
+            if check_revisions and (order.experiment_revision, order.lab_revision) != (data[pins[0]], data[pins[1]]):
+                raise WorkOrderError("The experiment or lab has changed. Refresh the experiment before creating an order.")
+            return order
+
     order = await run_in_threadpool(run_store, create, write=True)
     return _response({"id": order.id}, 201)
 
@@ -226,11 +241,30 @@ async def context_put(request):
     return _response({"id": record.id, "revision": revision.number, "digest": revision.digest})
 
 
+async def experiment_list(request):
+    _reviewer(request)
+    return _response(await run_in_threadpool(run_store, experiment_catalog.list_experiments))
+
+
+async def experiment_detail(request):
+    _reviewer(request)
+    experiment_id = request.path_params["id"]
+    detail = await run_in_threadpool(run_store, lambda store: experiment_catalog.experiment_detail(store, experiment_id))
+    return _response(detail)
+
+
+async def order_context(request):
+    _reviewer(request)
+    order_id = request.path_params["id"]
+    context = await run_in_threadpool(run_store, lambda store: experiment_catalog.order_context(store, order_id))
+    return _response(context)
+
+
 async def example(request):
     reviewer = _reviewer(request)
     await _json_body(request)
-    lab = lab_from_dict(json.loads((PROJECT / "examples/uvvis-lab.json").read_text()))
-    exp = experiment_from_dict(json.loads((PROJECT / "examples/b12-experiment.json").read_text()))
+    lab = lab_from_dict(json.loads((EXAMPLES / "uvvis-lab.json").read_text(encoding="utf-8")))
+    exp = experiment_from_dict(json.loads((EXAMPLES / "b12-experiment.json").read_text(encoding="utf-8")))
 
     def create(store):
         # Seed absent records only. Preserve any revisions saved by this lab.
@@ -455,10 +489,12 @@ async def domain_error(request, exc):
     return _response({"error": str(exc)}, status)
 
 
-portal = Starlette(routes=[
+reviewer_api = Starlette(routes=[
     Route("/api/session", session), Route("/api/login", login, methods=["POST"]),
     Route("/api/logout", logout, methods=["POST"]), Route("/api/orders", order_list, methods=["GET", "POST"]),
-    Route("/api/orders/{id}", order_detail), Route("/api/orders/{id}/{action}", decide, methods=["POST"]),
+    Route("/api/orders/{id}", order_detail), Route("/api/orders/{id}/context", order_context),
+    Route("/api/orders/{id}/{action}", decide, methods=["POST"]),
+    Route("/api/experiments", experiment_list), Route("/api/experiments/{id:path}", experiment_detail),
     Route("/api/context/{kind}", context_put, methods=["POST"]), Route("/api/example", example, methods=["POST"]),
     Route("/api/references", reference_catalog), Route("/api/references/search", reference_search),
     Route("/api/references/orders", reference_order, methods=["POST"]),
@@ -474,10 +510,8 @@ portal = Starlette(routes=[
     Route("/api/b12", b12_catalog), Route("/api/b12/orders", b12_order, methods=["POST"]),
     Route("/api/b12/orders/{id}/readings", b12_readings, methods=["GET", "POST"]),
     Route("/api/b12/orders/{id}/readings/{reading_id}/run", b12_run, methods=["POST"]),
-    Mount("/", app=StaticFiles(directory=PROJECT / "public", html=True, check_dir=False)),
 ], exception_handlers={cls: domain_error for cls in (HTTPException, ContextError, NotFound, WorkOrderError, HostedStorageError)})
 
-# Vercel supplies the original request path even when routed to api/index.py.
 mcp = make_mcp_app(run_store, lambda headers: _access().authenticate_agent(headers))
 
 
@@ -485,4 +519,20 @@ async def application(scope, receive, send):
     if scope["type"] == "http" and scope["path"] in ("/mcp", "/mcp/"):
         await mcp(scope, receive, send)
     else:
-        await portal(scope, receive, send)
+        await reviewer_api(scope, receive, send)
+
+
+def make_portal(public_directory: Path):
+    """Serve the reviewer and its static assets on the same origin as the API and MCP."""
+    static = Starlette(
+        routes=[Mount("/", app=StaticFiles(directory=public_directory, html=True))],
+        exception_handlers={HTTPException: domain_error},
+    )
+
+    async def portal(scope, receive, send):
+        if scope["type"] != "http" or scope["path"].split("/", 2)[1] in {"api", "mcp"}:
+            await application(scope, receive, send)
+        else:
+            await static(scope, receive, send)
+
+    return portal

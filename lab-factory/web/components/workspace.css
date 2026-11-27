@@ -1,0 +1,1931 @@
+/* The experiment workspace: the conversation with the factory, and the output panel beside it.
+   Imported once, by Workspace.tsx. Theme tokens only. */
+
+/* ---------------------------------------------------------------- layout */
+
+.ws {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
+
+.ws-main {
+  display: flex;
+  flex: 1 1 auto;
+  container: conversation / inline-size;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ws-header {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 60px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.ws-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.9375rem;
+}
+
+.ws-crumb-project {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 40px;
+  color: var(--steel);
+  text-decoration: none;
+}
+
+.ws-crumb-project:hover {
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.ws-crumb-sep {
+  flex: none;
+  color: var(--steel);
+}
+
+.ws-title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- buttons and errors */
+
+.ws-button {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.ws-button:hover:not(:disabled) {
+  background: var(--ground);
+}
+
+.ws-button svg {
+  color: var(--steel);
+}
+
+.ws-button-primary {
+  border-color: var(--indigo);
+  background: var(--indigo);
+  color: var(--paper);
+  font-weight: 500;
+}
+
+.ws-button-primary:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--indigo) 88%, var(--ink));
+}
+
+.ws-button:disabled,
+.ws-send:disabled {
+  border-color: var(--rule);
+  background: var(--rule);
+  color: var(--steel);
+  cursor: default;
+}
+
+.ws-error {
+  margin: 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--fail-bg);
+  color: var(--fail);
+  font-size: 0.9375rem;
+}
+
+.ws-load-error {
+  margin: 12px 24px 0;
+}
+
+/* ---------------------------------------------------------------- conversation */
+
+.conv-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 32px 24px 24px;
+}
+
+.conv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 0;
+  list-style: none;
+}
+
+.conv-message-person {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.conv-person {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(85%, 520px);
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--indigo) 9%, var(--paper));
+}
+
+.conv-factory {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.conv-text {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.conv-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.conv-attachment {
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--paper);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+/* The plan proposal. */
+
+.conv-proposal {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  margin: 0;
+  padding: 8px 8px 8px 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.conv-proposal-options {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: 0 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.conv-proposal-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.conv-proposal-option input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--indigo);
+}
+
+.conv-proposal .ws-error {
+  flex-basis: 100%;
+}
+
+.conv-proposal-done {
+  display: block;
+  padding: 0;
+  border: 0;
+  color: var(--steel);
+  font-size: 0.9375rem;
+}
+
+/* The activity log. */
+
+.conv-activity {
+  font-size: 0.875rem;
+}
+
+.conv-activity-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  color: var(--steel);
+  cursor: pointer;
+  list-style: none;
+}
+
+.conv-activity-summary::-webkit-details-marker {
+  display: none;
+}
+
+.conv-activity-summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.conv-activity[open] > .conv-activity-summary::before {
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.conv-activity-summary:hover {
+  color: var(--ink);
+}
+
+.conv-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 2px 0 0 3px;
+  padding: 2px 0 2px 14px;
+  border-left: 1px solid var(--rule);
+  list-style: none;
+}
+
+.conv-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.conv-activity-icon {
+  display: inline-flex;
+  flex: none;
+  margin-top: 2px;
+  color: var(--steel);
+}
+
+.conv-outcome-passed .conv-activity-icon {
+  color: var(--indigo);
+}
+
+.conv-outcome-failed .conv-activity-icon,
+.conv-outcome-failed .conv-activity-detail {
+  color: var(--fail);
+}
+
+.conv-activity-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.conv-activity-detail {
+  color: var(--steel);
+  overflow-wrap: anywhere;
+}
+
+/* Lines that arrive while the factory works fade in. The global reduced-motion rule turns it off. */
+.conv-activity-live .conv-activity-item {
+  animation: conv-line-in 220ms ease-out both;
+}
+
+@keyframes conv-line-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* References to built outputs: one quiet bordered list, a row per output. */
+
+.conv-refs {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  list-style: none;
+}
+
+.conv-refs li + li {
+  border-top: 1px solid var(--rule);
+}
+
+.conv-ref {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  padding: 8px 14px;
+  border: 0;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.conv-ref:hover {
+  background: var(--ground);
+}
+
+.conv-ref:focus-visible {
+  outline-offset: -2px;
+}
+
+.conv-ref-icon {
+  flex: none;
+  color: var(--indigo);
+}
+
+.conv-ref-label {
+  flex: none;
+  font-weight: 500;
+}
+
+.conv-ref-summary {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--steel);
+  font-size: 0.875rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ---------------------------------------------------------------- composer */
+
+.ws-composer {
+  flex: none;
+  padding: 8px 24px 20px;
+}
+
+.ws-composer-box,
+.ws-composer > .ws-error {
+  max-width: 620px;
+  margin: 0 auto;
+}
+
+.ws-composer > .ws-error {
+  margin-top: 8px;
+}
+
+.ws-composer-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 8px 8px 14px;
+  border: 1px solid color-mix(in srgb, var(--steel) 35%, var(--rule));
+  border-radius: 12px;
+  background: var(--paper);
+}
+
+.ws-composer-box:has(.ws-composer-input:focus-visible) {
+  outline: 2px solid var(--indigo);
+  outline-offset: 2px;
+}
+
+.ws-composer-input {
+  width: 100%;
+  min-height: 48px;
+  max-height: 200px;
+  padding: 2px 6px 0 0;
+  border: 0;
+  background: none;
+  resize: none;
+  field-sizing: content;
+}
+
+.ws-composer-input:focus-visible {
+  outline: none;
+}
+
+.ws-composer-input::placeholder {
+  color: var(--steel);
+  opacity: 1;
+}
+
+.ws-composer-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: -6px;
+}
+
+.ws-attach {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  color: var(--steel);
+  cursor: pointer;
+}
+
+.ws-attach:hover {
+  background: var(--ground);
+  color: var(--ink);
+}
+
+.ws-attach:has(input:focus-visible) {
+  outline: 2px solid var(--indigo);
+  outline-offset: 2px;
+}
+
+.ws-working {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.ws-send {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--indigo);
+  color: var(--paper);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ws-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ws-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding-left: 10px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--ground);
+  font-size: 0.875rem;
+}
+
+.ws-chip-name {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ws-chip-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  /* A full 40 px target: it overlaps the chip's border rather than growing the chip. */
+  margin: -1px -1px -1px 0;
+  border: 0;
+  border-radius: 0 8px 8px 0;
+  background: none;
+  color: var(--steel);
+  cursor: pointer;
+}
+
+.ws-chip-remove:hover {
+  color: var(--ink);
+}
+
+.ws-chip-remove:focus-visible {
+  outline-offset: -2px;
+}
+
+/* ---------------------------------------------------------------- output panel */
+
+.ws-show svg {
+  color: var(--indigo);
+}
+
+.ws-header-actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------------------------------------------------------------- experiment context */
+
+/* One small, quiet control in the header row; the context opens inline beneath the header. */
+.ws-context-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: none;
+  color: var(--steel);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.ws-context-info {
+  display: none;
+}
+
+.ws-context-toggle:hover,
+.ws-context-toggle[aria-expanded="true"] {
+  color: var(--ink);
+}
+
+.ws-context-toggle:hover {
+  background: var(--ground);
+}
+
+.ws-context {
+  flex: none;
+  max-height: min(60vh, 560px);
+  overflow-y: auto;
+  padding: 20px 24px 24px;
+  border-bottom: 1px solid var(--rule);
+  background: var(--ground);
+  font-size: 0.9375rem;
+}
+
+.ws-context-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px 32px;
+  align-items: start;
+}
+
+.ws-context-part {
+  min-width: 0;
+}
+
+.ws-context h2 {
+  margin: 0 0 6px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.ws-context h2:not(:first-child) {
+  margin-top: 18px;
+}
+
+.ws-context-goal {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.ws-context-names {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ws-context-names li {
+  padding: 2px 0;
+}
+
+.ws-context .pg-form {
+  gap: 12px;
+}
+
+.ws-context .pg-revisions {
+  margin-top: 8px;
+}
+
+.ws-context-add .pg-form {
+  padding: 4px 0 12px;
+}
+
+/* Reserve the header for the experiment name when its own column is narrow. */
+@container conversation (max-width: 570px) {
+  .ws-crumb-project {
+    display: block;
+    flex: 0 1 auto;
+    max-width: 40%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 40px;
+  }
+
+  .ws-title {
+    flex: 0 0 auto;
+    max-width: 70%;
+  }
+
+  .ws-context-toggle-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  .ws-context-toggle {
+    width: 40px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .ws-context-chevron {
+    display: none;
+  }
+
+  .ws-context-info {
+    display: block;
+  }
+}
+
+.ws-panel {
+  display: flex;
+  flex: 0 0 45%;
+  flex-direction: column;
+  min-width: 420px;
+  overflow: hidden;
+  border-left: 1px solid var(--rule);
+  background: var(--paper);
+  transition: flex-basis 180ms ease, min-width 180ms ease, opacity 180ms ease;
+}
+
+/* Closed: it narrows and fades, then leaves the page (visibility waits for the fade). */
+.ws-panel[data-open="false"] {
+  flex-basis: 0;
+  min-width: 0;
+  border-left-width: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: flex-basis 180ms ease, min-width 180ms ease, opacity 180ms ease, visibility 0s linear 180ms;
+}
+
+.panel {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 420px;
+  min-height: 0;
+}
+
+.panel-bar {
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 60px;
+  padding: 10px 10px 10px 8px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.panel-tabs {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: 2px 0;
+  min-width: 0;
+}
+
+.panel-tab {
+  flex: none;
+  min-height: 40px;
+  padding: 0 9px;
+  border: 0;
+  background: none;
+  color: var(--steel);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.panel-tab:hover {
+  color: var(--ink);
+}
+
+.panel-tab[aria-selected="true"] {
+  color: var(--ink);
+  font-weight: 500;
+  box-shadow: inset 0 -2px 0 var(--indigo);
+}
+
+.panel-tab:focus-visible {
+  outline-offset: -4px;
+}
+
+.panel-close {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--steel);
+  cursor: pointer;
+}
+
+.panel-close:hover {
+  background: var(--ground);
+  color: var(--ink);
+}
+
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 24px 28px 40px;
+}
+
+.panel-body:focus-visible {
+  outline-offset: -2px;
+}
+
+.panel-heading {
+  margin: 0 0 12px;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+/* ---------------------------------------------------------------- submission header */
+
+.sub-header {
+  margin: 0 0 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.sub-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.sub-jump {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sub-jump:hover {
+  text-decoration: underline;
+}
+
+.sub-icon {
+  flex: none;
+  color: var(--indigo);
+}
+
+.sub-summary[data-failed="true"] {
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
+  padding: 4px 12px 4px 8px;
+  border-radius: 6px;
+  background: var(--fail-bg);
+  color: var(--fail);
+}
+
+.sub-summary[data-failed="true"] .sub-icon {
+  color: var(--fail);
+}
+
+/* A rejection quotes its reason here, which can be one long unbroken word. */
+.sub-status {
+  margin: 6px 0 0;
+  color: var(--steel);
+  font-size: 0.9375rem;
+  overflow-wrap: anywhere;
+}
+
+.sub-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ---------------------------------------------------------------- sign-off */
+
+/* Follows the picker row, wrapping under it in a narrow panel; Approve is the one filled button. */
+.signoff-buttons {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ws-button.signoff-reject {
+  border-color: var(--rule);
+}
+
+.ws-button.signoff-reject[aria-expanded="true"] {
+  background: var(--ground);
+}
+
+/* The inline form drops onto its own line under the action row. */
+.signoff-form {
+  display: flex;
+  flex: 1 0 100%;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 28rem;
+  padding: 14px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+}
+
+.signoff-field {
+  font-size: 0.875rem;
+}
+
+.signoff-field select {
+  color: var(--ink);
+  font: inherit;
+}
+
+.signoff-error {
+  overflow-wrap: anywhere;
+}
+
+.signoff-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------------------------------------------------------------- procedure and run plan */
+
+.proc-scope {
+  margin: 0 0 8px;
+  color: var(--steel);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.proc-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* One continuous list: numbers in a gutter, steps divided by a hairline rule, no cards. */
+.proc-step {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  column-gap: 12px;
+  padding: 18px 0;
+}
+
+.proc-step + .proc-step {
+  border-top: 1px solid var(--rule);
+}
+
+.proc-num {
+  color: var(--steel);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  line-height: 1.6;
+  text-align: right;
+}
+
+.proc-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.proc-text {
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* Sources follow the step text in smaller text, as one unit that wraps after the words. Each link
+   has a 40 px hit area from its vertical padding, but the negative margin keeps its layout box to
+   one 18 px line, so lines with a source don't grow and step numbers stay level with the first line.
+   The unit lays links out in rows of whole 40 px boxes, so no two links' hit areas overlap. */
+.proc-sources {
+  display: inline-flex;
+  flex-wrap: wrap;
+  column-gap: 8px;
+  max-width: 100%;
+  margin-block: -11px;
+  margin-left: 4px;
+  vertical-align: baseline;
+}
+
+.proc-source {
+  display: inline-block;
+  min-width: 40px;
+  max-width: 100%;
+  padding-block: 11px;
+  color: var(--indigo);
+  font-size: 0.8125rem;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--indigo) 40%, transparent);
+  text-underline-offset: 3px;
+}
+
+.proc-source:hover {
+  text-decoration-color: currentColor;
+}
+
+.proc-command {
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  white-space: pre;
+}
+
+.proc-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 440px;
+  padding: 2px 0 2px;
+}
+
+.proc-settings .range-head {
+  margin-bottom: 6px;
+  font-size: 0.875rem;
+}
+
+.proc-settings .range-ends {
+  margin-top: 6px;
+  font-size: 0.75rem;
+}
+
+.proc-unchecked-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.proc-unchecked {
+  padding: 3px 10px;
+  border-radius: 4px;
+  background: var(--sand);
+  color: var(--sand-ink);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.proc-failures {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.proc-fail {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--fail);
+  border-radius: 0 4px 4px 0;
+  background: var(--fail-bg);
+  color: var(--fail);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.proc-fail-icon {
+  flex: none;
+  margin-top: 2px;
+}
+
+.proc-unplaced {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+
+.proc-unplaced-head {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.proc-send {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  margin: 0 0 8px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.proc-send-note {
+  flex: 1 1 220px;
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+/* ---------------------------------------------------------------- narrow screens */
+
+/* From 1024 to 1099 px the conversation and the panel still sit side by side: the sidebar
+   (app/globals.css) and the panel both narrow. */
+@media (min-width: 1024px) and (max-width: 1099px) {
+  .ws-panel:not([data-open="false"]),
+  .panel {
+    min-width: 380px;
+  }
+
+  .panel-tab {
+    padding: 0 6px;
+    font-size: 0.875rem;
+  }
+}
+
+/* Below this the panel stacks under the conversation and the page scrolls as a whole. */
+@media (max-width: 1023px) {
+  .ws {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .ws-main {
+    min-height: 70vh;
+  }
+
+  .conv-scroll {
+    overflow: visible;
+  }
+
+  .ws-panel {
+    flex: none;
+    min-width: 0;
+    border-top: 1px solid var(--rule);
+    border-left: 0;
+    transition: opacity 180ms ease;
+  }
+
+  .ws-panel[data-open="false"] {
+    display: none;
+  }
+
+  .panel {
+    min-width: 0;
+  }
+
+  .panel-body {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 720px) {
+  .ws-header,
+  .conv-scroll,
+  .ws-composer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .panel-body {
+    padding: 20px 16px 32px;
+  }
+}
+
+/* ---------------------------------------------------------------- submission history */
+
+/* The picker and Compare share the header's quiet action row, and keep to one line: the select shrinks first. */
+.hist-row {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hist-field {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.hist-field .hist-label {
+  flex: none;
+}
+
+.hist-label {
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+/* The select shrinks before the row wraps; its text is clipped, the full label is in the list. */
+.hist-select {
+  flex: 0 1 auto;
+  min-width: 8rem;
+  max-width: 100%;
+  text-overflow: ellipsis;
+  min-height: 40px;
+  padding: 0 6px 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.hist-select:disabled {
+  background: var(--ground);
+  color: var(--steel);
+  cursor: default;
+}
+
+.hist-quiet {
+  border-color: transparent;
+  background: none;
+  color: var(--indigo);
+}
+
+/* Quiet, so the row stays calm; the border marks it as a control without competing with the summary. */
+.hist-compare {
+  flex: none;
+  padding: 0 10px;
+  border-color: var(--rule);
+}
+
+.hist-compare[aria-expanded="true"] {
+  background: var(--ground);
+}
+
+.ws-button.hist-compare:disabled {
+  border-color: var(--rule);
+  background: none;
+  color: var(--steel);
+}
+
+.hist-hint {
+  margin: 8px 0 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.hist-earlier {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin: 8px 0 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.hist-earlier .hist-quiet {
+  margin-left: -6px;
+  padding: 0 8px;
+}
+
+.hist-loading {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.hist-loading:not(:empty) {
+  margin-bottom: 12px;
+}
+
+/* The previous steps stay on screen, dimmed, until the chosen submission's arrive. */
+.hist-steps[data-stale="true"] {
+  opacity: .5;
+}
+
+.hist-load-error {
+  margin: 0 0 16px;
+}
+
+/* The comparison sits between the header and the steps, as one ruled block. */
+.hist-diff {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0 0 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.hist-diff-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+
+.hist-diff-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+}
+
+.hist-diff-unreadable {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.hist-diff-same {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.hist-diff-rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.hist-diff-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  padding: 10px 0 10px 12px;
+  border-left: 2px solid var(--rule);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.hist-diff-row + .hist-diff-row {
+  margin-top: 6px;
+}
+
+.hist-diff-row[data-change="added"],
+.hist-diff-row[data-change="changed"] {
+  border-left-color: var(--indigo);
+}
+
+.hist-diff-row[data-change="removed"] {
+  border-left-color: var(--steel);
+}
+
+.hist-diff-row[data-change="unchanged"] {
+  color: var(--steel);
+}
+
+.hist-diff-mark {
+  font-weight: 600;
+}
+
+.hist-diff-details {
+  margin: 0 0 2px;
+  padding: 0;
+  list-style: none;
+  overflow-wrap: anywhere;
+}
+
+.hist-diff-details li {
+  position: relative;
+  padding-left: 12px;
+}
+
+.hist-diff-details li::before {
+  content: "";
+  position: absolute;
+  top: 0.65em;
+  left: 2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--steel);
+}
+
+.hist-diff-step {
+  color: var(--steel);
+}
+
+.hist-diff-row[data-change="removed"] .hist-diff-text {
+  color: var(--steel);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--steel) 60%, transparent);
+}
+
+/* "Built from" closes the tab: quiet until opened. */
+.hist-built {
+  margin-top: 20px;
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+  font-size: 0.875rem;
+}
+
+.hist-built-summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  color: var(--steel);
+  font-weight: 500;
+  cursor: pointer;
+  list-style: none;
+}
+
+.hist-built-summary::-webkit-details-marker {
+  display: none;
+}
+
+.hist-built-summary::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.hist-built[open] > .hist-built-summary::before {
+  transform: translateY(-2px) rotate(45deg);
+}
+
+.hist-built-summary:hover {
+  color: var(--ink);
+}
+
+.hist-built-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 4px 0 4px 12px;
+}
+
+.hist-built-lines,
+.hist-built-doclist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Label, digest, Copy: only the label wraps, so Copy stays on its row. */
+.hist-built-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0 12px;
+  min-height: 40px;
+}
+
+.hist-built-line + .hist-built-line {
+  border-top: 1px solid var(--rule);
+}
+
+.hist-built-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.hist-digest {
+  color: var(--steel);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.hist-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hist-copied {
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.hist-copy .hist-quiet {
+  padding: 0 10px;
+}
+
+/* A quiet fallback on its own line under the row: the full digest, selected, to copy by hand. */
+.hist-copy-fallback {
+  display: flex;
+  flex-direction: column;
+  grid-column: 1 / -1;
+  gap: 4px;
+  padding: 2px 0 10px;
+}
+
+.hist-copy-error {
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.hist-copy-field {
+  width: 100%;
+  min-height: 40px;
+  padding: 0 8px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.hist-built-head {
+  margin: 0;
+  color: var(--steel);
+}
+
+.hist-built-none,
+.hist-built-approval {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.hist-built-doclist .hist-doc {
+  margin-left: 0;
+}
+
+/* ---------------------------------------------------------------- plots, code and computed results */
+
+/* Plot series colours. The first is indigo; the other three are the plan's literals, lightened for
+   the dark theme. Each is at least 3:1 against --paper in its theme. */
+:root,
+:root[data-theme="light"] {
+  --plot-1: var(--indigo);
+  --plot-2: #B8860B;
+  --plot-3: #4F8A6B;
+  --plot-4: #8A4F7D;
+}
+
+@media (prefers-color-scheme: dark) {
+  /* Keep identical to :root[data-theme="dark"] below. */
+  :root:not([data-theme]) {
+    --plot-2: #D9A93A;
+    --plot-3: #7FBF9A;
+    --plot-4: #C98DBB;
+  }
+}
+
+:root[data-theme="dark"] {
+  --plot-2: #D9A93A;
+  --plot-3: #7FBF9A;
+  --plot-4: #C98DBB;
+}
+
+.compute {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.compute > .panel-heading {
+  margin-bottom: 0;
+}
+
+.compute-summary,
+.compute-note {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.compute-note {
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.compute-subhead {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.compute-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.compute-status {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.875rem;
+}
+
+.compute-error {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+/* A quiet steel note: sand is kept for material that isn't checked. */
+.compute-tag {
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.compute-tag-line {
+  align-self: flex-start;
+  margin: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+}
+
+.compute-table-wrap {
+  overflow-x: auto;
+}
+
+.compute-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.compute-table th,
+.compute-table td {
+  padding: 9px 12px 9px 0;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.compute-table thead th {
+  color: var(--steel);
+  font-weight: 500;
+}
+
+.compute-table tbody th {
+  font-weight: 500;
+}
+
+.compute-pending {
+  color: var(--steel);
+}
+
+.compute-result {
+  white-space: nowrap;
+}
+
+.compute-icon {
+  margin-right: 6px;
+  vertical-align: -3px;
+}
+
+.compute-result[data-passed="false"] {
+  color: var(--fail);
+}
+
+/* Code: Plex Mono in its own scroll region, keywords indigo, strings and comments steel. */
+.code-block {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 4px 2px 12px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.code-label {
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.code-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.code-status {
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.ws-button.code-copy {
+  border-color: transparent;
+  background: none;
+  color: var(--indigo);
+  padding: 0 10px;
+}
+
+.code-pre {
+  max-height: 22rem;
+  margin: 0;
+  padding: 12px;
+  overflow: auto;
+  background: var(--ground);
+  border-radius: 0 0 8px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  tab-size: 4;
+}
+
+.code-keyword {
+  color: var(--indigo);
+}
+
+.code-string,
+.code-comment {
+  color: var(--steel);
+}
+
+.code-error {
+  margin: 8px;
+}
+
+/* Results: the readings controls, the instrument folder and the computed answer. */
+.results-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+}
+
+.results-upload {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.results-upload-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.results-sample {
+  align-self: flex-end;
+}
+
+.results-folder {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+
+.results-folder-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.results-folder-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ws-button.results-analyze {
+  border-color: var(--rule);
+}
+
+.compute-alert {
+  align-self: stretch;
+}
+
+.results-out {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid var(--rule);
+}
+
+.results-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.sim-run {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+/* Plots: no animation; text stays at its size because the SVG takes the container's width. */
+.plot {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+}
+
+.plot-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.plot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--ink);
+  font-size: 0.8125rem;
+}
+
+.plot-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.plot-swatch {
+  flex: none;
+}
+
+.plot-box {
+  min-width: 0;
+}
+
+.plot-svg {
+  display: block;
+  height: auto;
+  overflow: visible;
+}
+
+.plot-grid line {
+  stroke: var(--rule);
+  stroke-width: 1;
+}
+
+.plot-axis {
+  stroke: var(--steel);
+  stroke-width: 1;
+}
+
+.plot-ticks text {
+  fill: var(--steel);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.plot-axis-label {
+  fill: var(--ink);
+  font-size: 12.5px;
+}
+
+.plot-points circle {
+  stroke: var(--paper);
+  stroke-width: 1;
+}
+
+.plot-line {
+  fill: none;
+  stroke-width: 2.25;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.plot-note {
+  margin: 0;
+  color: var(--steel);
+  font-size: 0.8125rem;
+}
+
+.plot-table-note {
+  padding: 8px 12px 0;
+}
+
+.ws-button.plot-toggle {
+  align-self: flex-start;
+  padding: 0 12px;
+}
+
+.plot-toggle[aria-expanded="true"] {
+  background: var(--ground);
+}
+
+.plot-data {
+  max-height: 20rem;
+  overflow: auto;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+
+.plot-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8125rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.plot-table caption {
+  padding: 8px 12px;
+  color: var(--steel);
+  text-align: left;
+}
+
+.plot-table th,
+.plot-table td {
+  padding: 5px 12px;
+  border-top: 1px solid var(--rule);
+  text-align: right;
+}
+
+.plot-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--paper);
+  color: var(--steel);
+  font-weight: 500;
+}
+
+.plot-table tbody th {
+  font-weight: 400;
+}

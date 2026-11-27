@@ -1,62 +1,93 @@
-# General analysis API
+# Lab Factory backend API
 
-One work order pins an uploaded protocol, a column mapping, optional reference-library editions, units, standards and the original batch of readings. The same endpoints support both example datasets in `examples/tabular/`. The caffeine protocol uses integrated HPLC peak areas. The density protocol uses net mass and measured volume. Both datasets are simulated.
+Open **Analysis** in the combined reviewer portal to upload a protocol and a CSV, inspect the worker’s numerical checks, and review a batch control. The browser and CLI use the same [simulated caffeine and density files](../public/examples/tabular/). [Start the local portal](../../README.md#run-the-app) · [Open the shared analysis demo](https://neal-lab-factory.vercel.app/#analysis)
 
-## Try the hosted service
+## Run the service
 
-Run these commands from `lab-factory/`. The client connects to the public demo without a reviewer name, password or cookie. Anyone with the URL can download uploaded files, inspect control reports, approve or reject submissions, and run released analyses. Use the simulated datasets below or other data you can share publicly.
+Run commands from `lab-factory/`. Install the locked environment with `uv sync --locked`. The ASGI application is `labfactory.hosted:application`. Start it behind an HTTPS reverse proxy with the public host preserved. For local development, bind the upstream server to loopback:
 
 ```sh
-uv sync --locked
-uv run --locked python examples/analysis_client.py create --example caffeine
-uv run --locked python examples/analysis_client.py create --example density
-uv run --locked python examples/analysis_client.py list
+uv run --locked uvicorn labfactory.hosted:application --host 127.0.0.1 --port 8000
 ```
 
-Set `order` to a returned ID. When the status is `in_review`, inspect the source, authored tests, artifact digest, and blind-control report. After reviewing the result you can approve the exact submission and run its original batch.
+Configure these environment variables before starting the service.
+
+| Variable | Purpose |
+| --- | --- |
+| `LABFACTORY_LOCAL_DB` | Absolute path to a local SQLite database for development. |
+| `LABFACTORY_PUBLIC_ORIGIN` | The HTTPS origin clients use. The MCP transport checks this host. |
+| `LABFACTORY_AGENTS` | JSON object mapping worker names to SHA-256 digests of distinct, high-entropy bearer tokens. |
+| `LABFACTORY_REVIEWERS` | JSON object mapping reviewer names to the salted password verifiers produced by `labfactory.hosted_auth.password_hash`. |
+| `LABFACTORY_SESSION_KEY` | Independent random secret of at least 32 characters for signing named reviewer sessions. |
+
+Generate a verifier for each identity using the hidden prompts below. Keep the original secrets in your secret manager. Give each worker only its own token.
+
+```sh
+uv run --locked python -c 'from getpass import getpass; from labfactory.hosted_auth import password_hash; print(password_hash(getpass("Reviewer password: ")))'
+uv run --locked python -c 'from getpass import getpass; from labfactory.hosted_auth import token_digest; print(token_digest(getpass("Worker token: ")))'
+```
+
+Reviewers sign in through `POST /api/login` with `name` and `password`. The server sets a Secure, HttpOnly cookie, so named sessions require HTTPS. For JSON writes, supply the service origin in `Origin` and use `Content-Type: application/json`. Workers authenticate separately with a bearer token at `/mcp`. Worker access is scoped to the lab deployment. A trusted worker can read work-order context across that lab, including the pinned SOPs in a linked experiment. The optional analysis author sends this context to its configured model.
+
+Setting `LABFACTORY_PUBLIC_REVIEW=1` gives anyone who can reach the service reviewer access to **all existing and future records**, including original uploads, control values and approvals. Reserve this mode for a dedicated demonstration database with shareable data. It still requires an agent token map for MCP.
+
+## From a procedure to a result
+
+1. Register the lab and experiment with `POST /api/context/lab` and `POST /api/context/experiment`. See the UV-visible examples in `examples/` for their JSON shapes.
+2. Read `GET /api/experiments/{id}` and request a procedure with `POST /api/orders`. Send `experiment_id`, `kind` set to `procedure`, `objective`, `expected_experiment_revision` and `expected_lab_revision`. If either revision changed after the read, the API returns HTTP 409. Refresh before retrying.
+3. A worker claims the order and submits it over MCP. Inspect `GET /api/orders/{id}` and `GET /api/orders/{id}/context`, then approve the numbered submission at `POST /api/orders/{id}/approve`.
+4. Supply `procedure_order_id` when uploading an analysis. The server verifies the released submission and pins the procedure artifact digest, lab revision and experiment revision. Omitting it creates a standalone analysis.
+5. Review the numbered analysis submission and its independent control report, approve it, and request a run. Each linked run receipt records the originating procedure, approved analysis digest and CSV digest. The experiment detail lists linked analyses so you can find them again after an SOP revision.
+
+The link records which procedure the reviewer selected. Physical acquisition and sample identity require evidence from the lab.
+
+## Analysis methods and reference selection
+
+The Lab Factory package implements the analysis-app output described in its [architecture design](specs/2026-11-25-lab-factory-architecture-design.md). Its work orders, storage and releases are separate from EVOLVE's B12 assay at the repository root. Within Lab Factory, an `analysis_app` uses the method bound to its experiment. Each method has its own input validation, verifier and execution endpoint.
+
+| Reviewer workflow | Backend contract |
+| --- | --- |
+| Simulated B12 | Create an order at `POST /api/b12/orders`, attach simulated readings and run a released analysis on an identified reading. The run records the approved source and pinned calibration. |
+| Simulated honey moisture | Create an order at `POST /api/honey/orders`. The work order pins the refractometer and the source editions used for the conversion. The verifier checks the submitted operations and numerical cases. Only a reviewed release can run at `POST /api/honey/orders/{id}/run`. |
+| Uploaded tabular data | Create an order at `POST /api/analysis/orders`. Map the columns, provide an independent control and review the submitted calculation. The run verifies the batch control before returning estimates. |
+| Published references for a procedure | Browse `GET /api/references` and `GET /api/references/search`, then send the selected records to `POST /api/references/orders`. The order retains the selected editions, publisher links and scope notes. The reviewer and worker can reopen the same citations after a catalog update. |
+
+## Upload and run an analysis
+
+The client requires `--url` before the subcommand. The commands below use the combined local portal. For a named deployment, set `lab_url` to the HTTPS origin of your lab. For the hosted public demo, use `https://neal-lab-factory.vercel.app` and upload only data you can share publicly. The two example datasets use simulated caffeine measurements and liquid density. For a named deployment it prompts for credentials or reads the reviewer name and password-file path from `LAB_FACTORY_REVIEWER` and `LAB_FACTORY_REVIEWER_PASSWORD_FILE`.
+
+```sh
+lab_url=http://127.0.0.1:8000
+uv run --locked python examples/analysis_client.py --url "$lab_url" create --example caffeine
+uv run --locked python examples/analysis_client.py --url "$lab_url" list
+```
+
+Use the order ID returned by the server to inspect, approve and run a submission. Substitute the number you actually reviewed:
 
 ```sh
 order=WO-N
-uv run --locked python examples/analysis_client.py show "$order"
-uv run --locked python examples/analysis_client.py approve "$order" --submission 1
-uv run --locked python examples/analysis_client.py run "$order" --submission 1
+uv run --locked python examples/analysis_client.py --url "$lab_url" show "$order"
+uv run --locked python examples/analysis_client.py --url "$lab_url" approve "$order" --submission 1
+uv run --locked python examples/analysis_client.py --url "$lab_url" run "$order" --submission 1
 ```
-
-For your own experiment, use `create --config mapping.json --protocol protocol.md --csv readings.csv --control certificate.json`. The config contains `objective`, `unit`, `mapping` and `range_gate`. The certificate contains numeric `expected` and `tolerance` on the reported sample basis. For a new batch use `run "$order" --submission 1 --csv next.csv --control next-certificate.json`.
-
-## HTTP contract
-
-Send JSON writes with the lab’s origin in the `Origin` header and `Content-Type: application/json`. A public deployment identifies itself with `"access_mode": "public"` at `GET /api/session`. Send reviewer requests directly. All public decisions use the same reviewer identity.
-
-Other deployments require named reviewer sign-in by default. There, use `POST /api/login` with `name` and `password` and keep the session cookie. To use the example client against a named deployment, pass `--url https://your-lab.example` before the command. Set `LAB_FACTORY_REVIEWER` or enter the reviewer name at its prompt. The client prompts for the password or reads the file named in `LAB_FACTORY_REVIEWER_PASSWORD_FILE`, and signs out after each command.
 
 | Method and path | Request or result |
 | --- | --- |
-| `POST /api/analysis/orders` | Send `objective, protocol_name, protocol, csv_name, csv, mapping, unit, control_expected, control_tolerance`. Optional `range_gate` (defaults true), `reference_ids` and a UUID `request_id`. Returns an open order ID. Reuse a request ID with the identical upload to retry creation. |
-| `GET /api/analysis` | Lists general analysis orders with their statuses. |
-| `GET /api/analysis/orders/{id}` | Returns the numbered submissions, exact source and tests, numerical control reports, approval history and run receipts. |
-| `GET /api/analysis/orders/{id}/uploads/protocol`, `.../uploads/readings` | Downloads the original UTF-8 protocol or CSV. |
-| `POST /api/analysis/orders/{id}/control` | After a used control and a failed or rejected submission, provide a fresh `signal, factor, expected, tolerance` before another blind verification. |
-| `POST /api/orders/{id}/approve` or `.../reject` | Send a positive integer `submission`; rejection also requires `reason`. Approval binds the reviewed artifact digest. |
-| `POST /api/analysis/orders/{id}/runs` | Send `submission` for the original batch. For a new batch also send `csv_name, csv, control_expected, control_tolerance`. The same released program receives the new standards. |
-| `GET /api/analysis/orders/{id}/runs/{run_id}/readings` | Downloads the CSV for a saved run. |
+| `POST /api/analysis/orders` | Supply the protocol and CSV text and filenames, `objective`, `unit`, `mapping`, `control_expected` and `control_tolerance`. Optional fields include `range_gate`, `reference_ids`, `procedure_order_id` and a UUID `request_id`. Retrying the identical request with that UUID returns the original order. |
+| `GET /api/analysis/orders/{id}` | Returns submissions, verification reports, approvals and saved runs. Linked orders expose `analysis.procedure`. |
+| `GET /api/analysis/orders/{id}/uploads/protocol` and `…/uploads/readings` | Download the original UTF-8 files. |
+| `POST /api/analysis/orders/{id}/control` | Supply a fresh control for program review after a used control and a failed or rejected submission. The original collection control remains attached to its readings. |
+| `POST /api/analysis/orders/{id}/runs` | Send `submission` for the original batch. For a new batch, add `csv_name`, `csv`, `control_expected` and `control_tolerance`. A failed batch control withholds the unknown sample results. |
+| `GET /api/analysis/orders/{id}/runs/{run_id}/readings` | Download the CSV identified by the saved receipt. |
 
-The intake accepts UTF-8 TXT/Markdown protocols and rectangular CSVs with unique headers and IDs. Map `id,role,signal` to the uploaded column names, and optionally `known,factor`. CSV roles are `standard`, `control`, and `unknown`. Enter known values on standard rows only. Each batch requires one control and at least one unknown. A missing factor mapping uses 1, so identify any required dilution or volume explicitly. The result unit and sample basis apply to the expected control value and its absolute tolerance. With the range gate enabled, at least two distinct standard signals are required and every evaluated signal must be within their interval. The direct-density example switches this gate off.
+The CSV mapping identifies sample ID, role, signal and optional standard value and dilution factor. Supply the expected control value separately, in the reported sample unit. Keep it out of the protocol, objective and worker-accessible SOPs. The worker receives the disclosed standards and protocol. The reviewer can inspect the batch control, its prediction and tolerance.
 
-## What the verifier establishes
+## Background analysis worker
 
-The Mac worker reads the disclosed protocol, mapping, standards, result unit and selected references through the existing four MCP tools. It writes a numerical Python function plus its explanation and tests. The host interprets a bounded arithmetic subset of Python with helpers for regression, reductions and scalar math. The execution environment supplies one anonymous signal and row factor at a time. The MCP author context omits the raw CSV, sample IDs, unknown readings, control readings and certificate values. Keep expected answers out of the uploaded protocol, objective and references. In the public demo anyone can use the reviewer API to download the CSV, inspect a completed control report, or replace an eligible used control. Keeping the check blind relies on the author using only the MCP interface.
+The local Mac author claims uploaded analysis orders over MCP using its own bearer token and submits code for review. See the [background worker setup](hosted.md#background-analysis-worker).
 
-Public test failures can be repaired with the same sealed control. Once a candidate reaches the blind check, its number, source digest, and control edition identify the attempt. The worker receives the decision, and the reviewer sees the assigned value, prediction, absolute error, tolerance and unit. Each new batch has its own control. A failed control withholds all unknowns. An individual out-of-range reading withholds that sample. Passing a simulated control tests the calculation at that point; physical instrument performance requires separate measurements.
+## Storage and recovery
 
-## Background author on the lab Mac
+For remote SQL, configure `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. A small hosted lab can instead use an 8 MiB SQLite snapshot in a private Blob store configured with `BLOB_READ_WRITE_TOKEN`. Changing backend selects a different database. Migrate and verify the records before switching.
 
-The Vercel service retains the orders. The user-selected author uses the existing local Codex sign-in and a dedicated MCP worker token. From a committed release on macOS, install it as the signed-in user's background job:
-
-```sh
-python3 scripts/install_analysis_worker.py --url https://neal-lab-factory.vercel.app/mcp \
-  --worker lab-agent --token-file "$HOME/.config/labfactory/neal-lab-factory/agent-token"
-launchctl print "gui/$(id -u)/com.labfactory.analysis-author"
-```
-
-It checks the queue at login and every 90 seconds while the Mac is awake and online. An interrupted claim can be resumed by the same worker. The installed worker uses a version-specific Python environment under `~/.local/share/labfactory/analysis-worker/`. Its logs are in the `logs/` subdirectory. An explicit `needs_input` stops that order for reviewer attention. Correct incomplete inputs by creating a new order with a revised protocol or mapping. To process one order manually, run `python -m labfactory.tabular_worker --url URL/mcp --worker NAME --token-file PATH --order WO-N` in the project environment.
+When Blob holds uploaded files, back up the database **and** every referenced `uploads/<sha256>` object under the snapshot prefix. This applies to both Blob snapshots and Turso with Blob uploads. Snapshot-only storage uses `labfactory/lab.sqlite3` by default. During recovery, restore the database and uploads to a private destination and verify that the protocol and readings download with the SHA-256 hashes from their saved records. With database-only storage, the original file bytes are stored in the database.

@@ -8,8 +8,9 @@ import math
 from uuid import UUID, uuid4
 
 from . import references, tabular_files
+from .artifacts import render_artifact
 from .checks import CheckResult, all_passed
-from .context import ContextError, Document, Experiment, Lab, canonical_digest, canonical_json
+from .context import ContextError, Document, Experiment, Lab, canonical_digest, canonical_json, to_dict
 from .store import NotFound
 from .workorders import WorkOrderError, WorkOrders
 
@@ -140,9 +141,14 @@ def _intake(store, order_id):
     return profile, batch
 
 
-def _latest_control(db, order_id):
-    row = db.execute("SELECT edition,value FROM tabular_controls WHERE work_order_id=? ORDER BY edition DESC LIMIT 1",
-                     (order_id,)).fetchone()
+def _stored_control(db, order_id, edition=None):
+    query = "SELECT edition,value FROM tabular_controls WHERE work_order_id=?"
+    if edition is None:
+        row = db.execute(query + " ORDER BY edition DESC LIMIT 1", (order_id,)).fetchone()
+    else:
+        row = db.execute(query + " AND edition=?", (order_id, edition)).fetchone()
+    if row is None:
+        raise WorkOrderError("The sealed control edition is missing.")
     value = json.loads(row["value"])
     stamp = value.pop("digest", None)
     if stamp != canonical_digest(value):
@@ -162,6 +168,8 @@ def _new_control(db, order_id, edition, control, reviewer):
 
 def _public_spec(profile, batch):
     fields = ("objective", "unit", "mapping", "range_gate", "protocol_digest", "references")
+    if "procedure" in profile:
+        fields += ("procedure",)
     return {**{k: profile[k] for k in fields}, "standards": batch["standards"]}
 
 
@@ -171,10 +179,46 @@ def _experiment(exp_id, profile, batch):
     return Experiment(exp_id, LAB.id, profile["objective"], profile["objective"], (), (document,))
 
 
+def _verified_release(orders, order):
+    number = order.released_submission
+    if order.status != "released" or number is None:
+        raise WorkOrderError(f"Work order {order.id} has no released submission.")
+    release = orders.submission(order.id, number)
+    approval = orders.db.execute(
+        "SELECT actor,note FROM events WHERE event='approved' AND work_order_id=? AND submission=?",
+        (order.id, number),
+    ).fetchone()
+    if not (approval and approval["note"] == release.artifact_digest == canonical_digest(release.artifact)
+            and release.passed and all_passed(release.results)):
+        raise WorkOrderError("The approved artifact digest or verification checks could not be verified.")
+    return release, approval["actor"]
+
+
+def _procedure_pin(store, order_id):
+    orders = WorkOrders(store)
+    order = orders.get(_text(order_id, "a procedure work order ID", 100))
+    if order.kind != "procedure":
+        raise WorkOrderError("Select a released procedure work order.")
+    release, _ = _verified_release(orders, order)
+    return {"order_id": order.id, "submission": release.number, "artifact_digest": release.artifact_digest,
+            "experiment_id": order.experiment_id, "experiment_revision": order.experiment_revision,
+            "lab_id": order.lab_id, "lab_revision": order.lab_revision}
+
+
+def _procedure_context(store, pin):
+    lab, _ = store.get_lab(pin["lab_id"], pin["lab_revision"])
+    experiment, _ = store.get_experiment(pin["experiment_id"], pin["experiment_revision"])
+    release = WorkOrders(store).submission(pin["order_id"], pin["submission"])
+    if pin["artifact_digest"] != canonical_digest(release.artifact):
+        raise WorkOrderError("The procedure instructions differ from the released artifact digest.")
+    return {"lab": to_dict(lab), "experiment": to_dict(experiment),
+            "instructions": render_artifact("procedure", release.artifact)}
+
+
 def create_order(store, reviewer, request):
     required = {"objective", "protocol_name", "protocol", "csv_name", "csv", "unit", "mapping",
                 "control_expected", "control_tolerance"}
-    if not required <= set(request) <= required | {"range_gate", "reference_ids", "request_id"}:
+    if not required <= set(request) <= required | {"range_gate", "reference_ids", "request_id", "procedure_order_id"}:
         raise ContextError("Supply protocol and CSV uploads, an objective, column mapping, result unit and control settings.")
     key = request.get("request_id")
     if key is not None:
@@ -199,10 +243,6 @@ def create_order(store, reviewer, request):
     profile = dict(objective=objective, unit=unit, mapping=mapping, range_gate=range_gate,
                    protocol_name=protocol_name, protocol_digest=tabular_files.digest(protocol), references=sources)
     exp_id = PREFIX + uuid4().hex
-    # The pinned public context contains no private bytes, filenames, row identifiers,
-    # controls or unknown readings. Pin only the values the author can use.
-    exp = _experiment(exp_id, profile, batch)
-    profile["intake_digest"] = canonical_digest({"profile": profile, "batch": batch})
     with store.transaction() as db:
         if key is not None:
             fingerprint = canonical_digest({k: v for k, v in request.items() if k != "request_id"})
@@ -212,6 +252,11 @@ def create_order(store, reviewer, request):
                 if fingerprint != prior["digest"]:
                     raise WorkOrderError("This request ID was already used for a different upload.")
                 return {"id": prior["work_order_id"]}
+        if "procedure_order_id" in request:
+            profile["procedure"] = _procedure_pin(store, request["procedure_order_id"])
+        # Only public inputs go in the experiment. Keep the private batch sealed in the intake.
+        exp = _experiment(exp_id, profile, batch)
+        profile["intake_digest"] = canonical_digest({"profile": profile, "batch": batch})
         tabular_files.save(db, protocol)
         tabular_files.save(db, request["csv"])
         store.put_lab(LAB)
@@ -229,8 +274,10 @@ def create_order(store, reviewer, request):
 def public_context(store, order):
     profile, batch = _intake(store, order.id)
     public = _public_spec(profile, batch)
+    if "procedure" in public:
+        public["procedure_context"] = _procedure_context(store, public["procedure"])
     latest = WorkOrders(store).submission(order.id)
-    edition, _ = _latest_control(store.connection, order.id)
+    edition, _ = _stored_control(store.connection, order.id)
     return {**public, "protocol": tabular_files.load(store.connection, profile["protocol_digest"]),
             "awaiting_fresh_control": order.status in ("open", "in_progress") and _used(store.connection, order.id, edition),
             "last_public_checks": [asdict(c) for c in latest.results] if latest else [],
@@ -263,7 +310,7 @@ def submission_checks(store, order, artifact, *, approval=None):
         return checks, None
     profile, batch = _intake(store, order.id)
     db = store.connection
-    edition, control = _latest_control(db, order.id)
+    edition, control = _stored_control(db, order.id)
     if approval is None and _used(db, order.id, edition):
         raise WorkOrderError("A fresh blind control from the reviewer is required before submitting another candidate.")
     report = _blind_check(artifact, profile, batch, control)
@@ -292,7 +339,7 @@ def replace_control(store, order_id, reviewer, data):
     with store.transaction() as db:
         _intake(store, order_id)
         order = WorkOrders(store).get(order_id)
-        edition, _ = _latest_control(db, order_id)
+        edition, _ = _stored_control(db, order_id)
         if order.status not in ("in_progress", "open") or not _used(db, order_id, edition):
             raise WorkOrderError("Replace a used blind control after a failed or rejected submission.")
         previous = db.execute("SELECT value FROM tabular_controls WHERE work_order_id=?", (order_id,))
@@ -304,7 +351,7 @@ def replace_control(store, order_id, reviewer, data):
 
 def reviewer_context(store, order):
     profile, batch = _intake(store, order.id)
-    edition, _ = _latest_control(store.connection, order.id)
+    edition, _ = _stored_control(store.connection, order.id)
     latest = WorkOrders(store).submission(order.id)
     return {**profile, "needs_input": latest.artifact.get("needs_input") if latest else None,
             "protocol": tabular_files.load(store.connection, profile["protocol_digest"]),
@@ -338,6 +385,28 @@ def list_runs(db, order_id):
     return [{**json.loads(row["receipt"]), "id": row["id"], "created_at": row["created_at"]} for row in rows]
 
 
+def _execution_batch(db, order_id, profile, original, request):
+    if "csv" in request:
+        uploaded, uploaded_control = _batch(request, profile["mapping"], profile["range_gate"])
+        if uploaded["csv_digest"] != original["csv_digest"]:
+            key = (order_id, uploaded["csv_digest"])
+            fingerprint = canonical_digest(uploaded_control)
+            db.execute("INSERT INTO tabular_batch_controls(work_order_id,csv_digest,control_digest) VALUES (?,?,?) "
+                       "ON CONFLICT(work_order_id,csv_digest) DO NOTHING", (*key, fingerprint))
+            pinned = db.execute("SELECT control_digest FROM tabular_batch_controls WHERE work_order_id=? AND csv_digest=?",
+                                key).fetchone()
+            if pinned["control_digest"] != fingerprint:
+                raise WorkOrderError("This batch already has a pinned control value and tolerance.")
+            tabular_files.save(db, request["csv"])
+            return uploaded, uploaded_control, {"source": "uploaded batch"}
+
+    # Later holdouts qualify revised programs. Only edition 1 belongs to the collected batch.
+    _, original_control = _stored_control(db, order_id, 1)
+    if "csv" in request and uploaded_control != original_control:
+        raise WorkOrderError("This is the original batch; its control and tolerance are already pinned.")
+    return original, original_control, {"source": "original batch", "edition": 1}
+
+
 def run(store, order_id, reviewer, request):
     from .tabular_analysis import evaluate
 
@@ -351,13 +420,8 @@ def run(store, order_id, reviewer, request):
         number = request["submission"]
         if order.status != "released" or number != order.released_submission:
             raise WorkOrderError("Approve this numbered submission before running it.")
-        release = orders.submission(order_id, number)
-        approval = db.execute("SELECT actor,note FROM events WHERE event='approved' AND work_order_id=? AND submission=?",
-                              (order_id, number)).fetchone()
-        if not (release and release.passed and approval and approval["note"] == release.artifact_digest
-                == canonical_digest(release.artifact) and all_passed(release.results)):
-            raise WorkOrderError("The approved artifact digest or verification checks could not be verified.")
-        edition, control = _latest_control(db, order_id)
+        release, approved_by = _verified_release(orders, order)
+        edition, control = _stored_control(db, order_id)
         report_row = db.execute("SELECT report FROM tabular_reports WHERE work_order_id=? AND submission=?",
                                 (order_id, number)).fetchone()
         sealed = json.loads(report_row["report"]) if report_row else {}
@@ -365,29 +429,14 @@ def run(store, order_id, reviewer, request):
                 or sealed.get("control_digest") != canonical_digest(control)
                 or sealed.get("artifact_digest") != release.artifact_digest):
             raise WorkOrderError("The release does not match the reviewed control and source.")
-        if new_fields <= request.keys():
-            new_batch, new_control = _batch(request, profile["mapping"], profile["range_gate"])
-            if new_batch["csv_digest"] == batch["csv_digest"] and new_control != control:
-                raise WorkOrderError("This is the original batch; its control and tolerance are already pinned.")
-            batch, control = new_batch, new_control
-            control_digest = canonical_digest(control)
-            db.execute("INSERT INTO tabular_batch_controls(work_order_id,csv_digest,control_digest) VALUES (?,?,?) "
-                       "ON CONFLICT(work_order_id,csv_digest) DO NOTHING", (order_id, batch["csv_digest"], control_digest))
-            pinned = db.execute("SELECT control_digest FROM tabular_batch_controls WHERE work_order_id=? AND csv_digest=?",
-                                (order_id, batch["csv_digest"])).fetchone()
-            if pinned["control_digest"] != control_digest:
-                raise WorkOrderError("This batch already has a pinned control value and tolerance.")
-            tabular_files.save(db, request["csv"])
+        batch, control, qc_source = _execution_batch(db, order_id, profile, batch, request)
         batch_digest = canonical_digest({"batch": batch, "control": control})
         prior = db.execute("SELECT id,receipt,created_at FROM tabular_runs WHERE work_order_id=? AND submission=? "
                            "AND batch_digest=? AND actor=?", (order_id, number, batch_digest, reviewer)).fetchone()
         if prior:
             return {**json.loads(prior["receipt"]), "id": prior["id"], "created_at": prior["created_at"]}
         qc = _blind_check(release.artifact, profile, batch, control)
-        if new_fields <= request.keys():
-            qc["source"] = "uploaded batch"
-        else:
-            qc.update(source="original batch" if edition == 1 else "replacement blind control", edition=edition)
+        qc.update(qc_source)
         results = []
         if qc["passed"]:
             for row in batch["unknowns"]:
@@ -398,14 +447,17 @@ def run(store, order_id, reviewer, request):
                 except ValueError as exc:
                     value, reason = None, str(exc)
                 results.append({**row, "value": value, "unit": profile["unit"], "reason": reason})
-        receipt = {"work_order_id": order_id, "submission": number, "actor": reviewer, "approved_by": approval["actor"],
+        receipt = {"work_order_id": order_id, "submission": number, "actor": reviewer, "approved_by": approved_by,
                    "worker": release.worker, "artifact_digest": release.artifact_digest,
                    "protocol_digest": profile["protocol_digest"], "csv_name": batch["csv_name"],
                    "csv_digest": batch["csv_digest"], "batch_digest": batch_digest,
                    "standards": batch["standards"], "unit": profile["unit"], "range_gate": profile["range_gate"],
                    "experiment_id": order.experiment_id, "experiment_revision": order.experiment_revision,
-                   "control": qc, "status": "estimated" if any(r["value"] is not None for r in results) else "withheld",
+                   "release_control_edition": edition, "control": qc,
+                   "status": "estimated" if any(r["value"] is not None for r in results) else "withheld",
                    "results": results}
+        if "procedure" in profile:
+            receipt["procedure"] = profile["procedure"]
         cursor = db.execute("INSERT INTO tabular_runs(work_order_id,submission,batch_digest,actor,receipt) VALUES (?,?,?,?,?)",
                             (order_id, number, batch_digest, reviewer, canonical_json(receipt)))
         row = db.execute("SELECT created_at FROM tabular_runs WHERE id=?", (cursor.lastrowid,)).fetchone()

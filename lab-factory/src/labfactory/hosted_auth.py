@@ -31,12 +31,12 @@ def token_digest(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
-def _identities(variable: str, pattern: re.Pattern[str]) -> dict[str, str]:
+def _identities(variable: str, pattern: re.Pattern[str], *, allow_empty: bool = False) -> dict[str, str]:
     try:
         data = json.loads(os.environ[variable], object_pairs_hook=unique_fields)
     except (ValueError, RecursionError):
         raise ValueError(f"Invalid identity map in {variable}") from None
-    if not isinstance(data, dict) or not data:
+    if not isinstance(data, dict) or (not data and not allow_empty):
         raise ValueError(f"Missing identities in {variable}")
     for name, value in data.items():
         if (not name.strip() or not name.isprintable() or not isinstance(value, str)
@@ -57,10 +57,13 @@ class Access:
 
     @classmethod
     def from_env(cls):
-        agents = _identities("LABFACTORY_AGENTS", _AGENT_DIGEST)
+        public_review = os.environ.get("LABFACTORY_PUBLIC_REVIEW") == "1"
+        local_review = (public_review and bool(os.environ.get("LABFACTORY_LOCAL_DB"))
+                        and "VERCEL" not in os.environ and "VERCEL_ENV" not in os.environ)
+        agents = _identities("LABFACTORY_AGENTS", _AGENT_DIGEST, allow_empty=local_review)
         if len(set(agents.values())) != len(agents):
             raise ValueError("Each agent must have a distinct token digest")
-        if os.environ.get("LABFACTORY_PUBLIC_REVIEW") == "1":
+        if public_review:
             return cls({}, agents, None)
         key = os.environ["LABFACTORY_SESSION_KEY"]
         if len(key) < 32:
