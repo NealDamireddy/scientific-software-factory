@@ -9,7 +9,7 @@ from starlette.testclient import TestClient
 
 from labfactory.artifacts import ARTIFACT_EXAMPLES
 from labfactory.context import canonical_digest
-from labfactory.hosted import application
+from labfactory.hosted import application, make_portal
 from labfactory.hosted_auth import SESSION_COOKIE, password_hash, token_digest
 from labfactory.store import Store
 from labfactory.workorders import WorkOrders
@@ -18,6 +18,28 @@ from labfactory.workorders import WorkOrders
 def test_api_only_host_returns_404_for_unregistered_routes(client):
     assert client.get("/").status_code == 404
     assert client.get("/api/missing").status_code == 404
+
+
+def test_combined_portal_mount_preserves_api_and_mcp_routes(tmp_path, monkeypatch):
+    public = tmp_path / "public"
+    archive = public / "evolve" / "b12"
+    archive.mkdir(parents=True)
+    (public / "index.html").write_text("<h1>Reviewer</h1>")
+    (archive / "index.html").write_text("<h1>Archived B12</h1>")
+    # Files cannot shadow service namespaces, even for an unregistered API path.
+    (public / "api").mkdir()
+    (public / "api" / "missing").write_text("not an API response")
+    monkeypatch.setenv("LABFACTORY_LOCAL_DB", str(tmp_path / "orders.sqlite"))
+    monkeypatch.setenv("LABFACTORY_PUBLIC_REVIEW", "1")
+    monkeypatch.setenv("LABFACTORY_AGENTS", "{}")
+    with TestClient(make_portal(public)) as local:
+        assert local.get("/").raise_for_status().text == "<h1>Reviewer</h1>"
+        assert local.get("/evolve/b12/").raise_for_status().text == "<h1>Archived B12</h1>"
+        assert local.get("/api/experiments").raise_for_status().json() == {"experiments": []}
+        missing = local.get("/api/missing")
+        assert missing.status_code == 404 and "error" in missing.json()
+        for path in ("/mcp", "/mcp/"):
+            assert local.post(path, json={}).status_code == 401
 
 
 def test_b12_browser_example_checks_approval_and_stores_result(client):

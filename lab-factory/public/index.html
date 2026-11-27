@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8f5">
+  <title>Lab Factory · Reviewer workspace</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/analysis.js" defer></script>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="masthead">
+    <div class="mast-inner">
+      <a href="#orders" aria-label="Lab Factory home" class="brand">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        Lab Factory
+      </a>
+      <nav id="nav" aria-label="Workspace" hidden>
+        <a href="#orders" data-tab="orders">Work orders</a>
+        <a href="#analysis" data-tab="analysis">Analysis</a>
+        <a href="#references" data-tab="references">References</a>
+        <a href="#honey" data-tab="honey">Honey moisture</a>
+        <a href="#b12" data-tab="b12">B12 analysis</a>
+        <a href="#context" data-tab="context">Lab context</a>
+        <a href="#agents" data-tab="agents">Agent access</a>
+        <a href="/evolve/">EVOLVE demos</a>
+      </nav>
+      <div id="account" hidden><span class="user-name" id="user-name"></span><button type="button" class="quiet" id="logout">Sign out</button></div>
+      <span class="portal-label" id="portal-label">Reviewer workspace</span>
+    </div>
+  </header>
+
+  <main id="main" tabindex="-1">
+    <div id="notice" class="notice" role="status" aria-live="polite" hidden></div>
+    <section id="signin" class="signin-grid" hidden aria-labelledby="signin-title">
+      <div class="signin-form">
+        <h1 id="signin-title">Reviewer sign-in</h1>
+        <p class="intro">Inspect agent submissions and release reviewed work for your lab.</p>
+        <form id="login-form" action="/api/login" method="post">
+          <label for="name">Reviewer name</label>
+          <input id="name" name="name" autocomplete="username" required>
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required>
+          <p id="login-error" class="form-error" role="alert" hidden></p>
+          <button type="submit" class="primary wide">Sign in <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="intro"><a href="/evolve/">Browse the EVOLVE demos and recorded evidence</a></p>
+      </div>
+      <figure class="instrument-card">
+        <figcaption><span class="lamp"></span> Example run plan</figcaption>
+        <div class="instrument-body">
+          <svg class="waveform" viewBox="0 0 420 120" aria-hidden="true" preserveAspectRatio="none">
+            <defs><pattern id="grid" width="28" height="24" patternUnits="userSpaceOnUse"><path d="M 28 0 L 0 0 0 24" fill="none" stroke="currentColor" stroke-width=".7"/></pattern></defs>
+            <rect width="420" height="120" fill="url(#grid)"/>
+            <path d="M0 96H176Q188 96 193 77L208 17Q210 9 212 17L227 77Q232 96 244 96H420" fill="none" stroke="#8de8bc" stroke-width="2.5"/>
+            <line x1="210" x2="210" y1="0" y2="120" stroke="#d5f6e4" stroke-dasharray="3 5" opacity=".55"/>
+          </svg>
+          <div class="readout"><strong>550</strong><span>nm</span></div>
+          <span class="instrument-label">Wavelength setting</span>
+        </div>
+        <dl class="instrument-meta"><div><dt>Instrument</dt><dd>uvvis-1</dd></div><div><dt>Command</dt><dd>read_absorbance</dd></div></dl>
+      </figure>
+    </section>
+
+    <section id="workspace" hidden aria-label="Reviewer workspace"></section>
+    <p id="loading" role="status">Opening workspace…</p>
+    <noscript>Enable JavaScript to sign in and review submissions.</noscript>
+  </main>
+
+  <dialog id="create-dialog" aria-labelledby="create-title">
+    <form id="create-form" method="post">
+      <div class="dialog-head"><h2 id="create-title">New procedure or run plan</h2><button class="icon-btn" type="button" data-close aria-label="Close">×</button></div>
+      <p class="muted">The new order pins the current lab and experiment revisions.</p>
+      <label for="experiment-id">Experiment ID</label><input id="experiment-id" name="experiment_id" required>
+      <label for="order-kind">Artifact</label><select id="order-kind" name="kind"><option value="run_plan">Run plan</option><option value="procedure">Procedure</option></select>
+      <label for="objective">Objective</label><textarea id="objective" name="objective" rows="3" required></textarea>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="dialog-actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary">Create order</button></div>
+    </form>
+  </dialog>
+  <dialog id="decision-dialog" aria-labelledby="decision-title">
+    <form id="decision-form" method="post">
+      <div class="dialog-head"><h2 id="decision-title"></h2><button class="icon-btn" type="button" data-close aria-label="Close">×</button></div>
+      <p id="decision-summary"></p>
+      <p class="field-caption">Artifact SHA-256</p><p class="digest mono" id="decision-digest"></p>
+      <div id="reason-field" hidden><label for="reason">Reason for rejection</label><textarea id="reason" name="reason" rows="3"></textarea></div>
+      <p class="form-error" role="alert" hidden></p>
+      <div class="dialog-actions"><button type="button" class="secondary" data-close>Cancel</button><button type="submit" class="primary" id="decision-submit"></button></div>
+    </form>
+  </dialog>
+</body>
+</html>

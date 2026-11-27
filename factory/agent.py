@@ -1,9 +1,7 @@
 """One bounded noninteractive Codex request, authenticated by the user's CLI."""
 import json
-import os
-from pathlib import Path
-import subprocess
-import tempfile
+
+from lab_codex_worker import run_worker
 
 from .context import dump
 
@@ -31,23 +29,19 @@ def generate(order, context, destination, base=None):
     dump(destination / "generation.json", {**receipt, "summary": message["summary"]})
 
 
+def _failure_message(result):
+    errors = [line for line in result.stderr.splitlines() if "error" in line.lower()]
+    return "Codex failed: " + (errors[-1][:350] if errors else f"exit {result.returncode}")
+
+
 def invoke_worker(prompt, schema):
     """Run a tool-free local coding worker and return its response and provenance."""
-    with tempfile.TemporaryDirectory() as temp:
-        work = Path(temp)
-        dump(work / "schema.json", schema)
-        args = ["codex", "exec", "--ignore-user-config", "--ignore-rules", "--ephemeral",
-                "--skip-git-repo-check", "--sandbox", "read-only", "-c", 'approval_policy="never"',
-                "-c", 'web_search="disabled"', "--disable", "shell_tool", "--disable", "unified_exec",
-                "--disable", "apps", "--disable", "plugins", "--disable", "skill_search",
-                "--output-schema", "schema.json", "--output-last-message", "answer.json", "-"]
-        env = {key: os.environ[key] for key in ("PATH","HOME","CODEX_HOME","TMPDIR","LANG") if key in os.environ}
-        version = subprocess.check_output(["codex","--version"], text=True, env=env, timeout=10).strip()
-        result = subprocess.run(args, input=prompt, capture_output=True, text=True, cwd=work, env=env, timeout=180)
-        if result.returncode or not (work / "answer.json").exists():
-            errors = [line for line in result.stderr.splitlines() if "error" in line.lower()]
-            raise RuntimeError("Codex failed: " + (errors[-1][:350] if errors else f"exit {result.returncode}"))
-        message = json.loads((work / "answer.json").read_text())
-        model = next((line.partition(":")[2].strip() for line in result.stderr.splitlines() if line.startswith("model:")), "CLI default (identifier unavailable)")
-        return message, {"method": "codex exec", "cli": version, "model": model,
-                         "attempts": 1, "timeout_s": 180, "tool_mode": "read-only, tool-free request"}
+    timeout = 180
+    response = run_worker(
+        prompt, json.dumps(schema, indent=2, ensure_ascii=False, allow_nan=False) + "\n",
+        timeout=timeout, failure_message=_failure_message, include_version=True,
+    )
+    model = next((line.partition(":")[2].strip() for line in response.stderr.splitlines() if line.startswith("model:")),
+                 "CLI default (identifier unavailable)")
+    return response.answer, {"method": "codex exec", "cli": response.cli_version, "model": model,
+                             "attempts": 1, "timeout_s": timeout, "tool_mode": "read-only, tool-free request"}

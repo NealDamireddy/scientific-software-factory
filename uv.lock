@@ -39,6 +39,11 @@ wheels = [
 ]
 
 [[package]]
+name = "lab-codex-worker"
+version = "0.1.0"
+source = { directory = "lab-factory/src" }
+
+[[package]]
 name = "psycopg"
 version = "3.3.9"
 source = { registry = "https://pypi.org/simple" }
@@ -233,6 +238,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "jsonschema" },
+    { name = "lab-codex-worker" },
 ]
 
 [package.optional-dependencies]
@@ -243,6 +249,7 @@ postgres = [
 [package.metadata]
 requires-dist = [
     { name = "jsonschema", specifier = "==4.26.0" },
+    { name = "lab-codex-worker", directory = "lab-factory/src" },
     { name = "psycopg", extras = ["binary"], marker = "extra == 'postgres'", specifier = "==3.3.9" },
 ]
 provides-extras = ["postgres"]

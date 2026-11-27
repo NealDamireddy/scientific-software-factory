@@ -1,0 +1,17 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "lab-codex-worker"
+version = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.hatch.build.targets.wheel]
+packages = ["lab_codex_worker"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/lab_codex_worker", "/pyproject.toml"]
+
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { file = "lab_codex_worker/**/*.py" }]

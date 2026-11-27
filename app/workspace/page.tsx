@@ -15,6 +15,7 @@ import type { FieldErrors, Mode, Snapshot, WorkspaceClient } from "./api";
 import { createFixtureClient } from "./fixture";
 import Editors from "./Editors";
 import RunViews from "./RunViews";
+import { evolvePath, inLabFactory } from "../paths";
 import "./workspace.css";
 
 type Scope = { mode: Mode; projectId: string };
@@ -243,13 +244,15 @@ export default function Workspace() {
   }
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const mode = params.get("mode") === "live" ? "live" : "fixture";
+    const requestedLive = params.get("mode") === "live";
+    const mode = requestedLive && !inLabFactory ? "live" : "fixture";
+    const project = inLabFactory && requestedLive ? null : params.get("project");
     setScope({
       mode,
       projectId:
-        params.get("project") || (mode === "fixture" ? initialProject : ""),
+        project || (mode === "fixture" ? initialProject : ""),
     });
-    setProjectInput(params.get("project") || "");
+    setProjectInput(project || "");
   }, []);
   function open(next: Scope) {
     setSessionMessage("");
@@ -264,7 +267,7 @@ export default function Workspace() {
   const mode = scope?.mode;
   const client = useMemo(
     () =>
-      mode !== "live" || preview
+      mode !== "live" || preview || inLabFactory
         ? createFixtureClient({ fault: () => faultRef.current || undefined })
         : createLiveClient(process.env.NEXT_PUBLIC_WORKSPACE_API_URL || ""),
     [mode, ended],
@@ -293,10 +296,11 @@ export default function Workspace() {
           </strong>
           <nav aria-label="Archive navigation">
             <Archive size={15} />
-            <a href="/">
+            {inLabFactory && <a href="/#orders">Lab Factory work orders</a>}
+            <a href={evolvePath("/")}>
               EPR archive <ArrowUpRight size={13} />
             </a>
-            <a href="/b12/">
+            <a href={evolvePath("/b12/")}>
               B12 archive <ArrowUpRight size={13} />
             </a>
           </nav>
@@ -340,7 +344,7 @@ export default function Workspace() {
           scope && (
             <>
               <div className="ws-scope">
-                <label>
+                {!inLabFactory && <label>
                   Data source
                   <select
                     value={scope.mode}
@@ -357,7 +361,7 @@ export default function Workspace() {
                       Live workspace
                     </option>
                   </select>
-                </label>
+                </label>}
                 {scope.mode === "fixture" ? (
                   <label>
                     Fixture project

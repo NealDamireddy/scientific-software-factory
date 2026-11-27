@@ -1,2 +1,5 @@
 /labfactory.db
 /labfactory.db-*
+/.vercel/
+/.env*
+/public/evolve/

@@ -22,7 +22,7 @@ def main():
         parser.error("Use a signed-in Mac with uv, Codex and an existing agent token file.")
     project = Path(__file__).resolve().parents[1]
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=project, text=True).strip()
-    if subprocess.check_output(["git", "status", "--porcelain", "--", "src/labfactory", "pyproject.toml", "uv.lock"],
+    if subprocess.check_output(["git", "status", "--porcelain", "--", "src", "pyproject.toml", "uv.lock"],
                                cwd=project, text=True):
         parser.error("Install the worker from a committed backend release.")
     root = Path.home() / ".local/share/labfactory/analysis-worker"

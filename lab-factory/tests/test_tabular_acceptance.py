@@ -17,7 +17,7 @@ from labfactory.hosted import application
 from labfactory.hosted_auth import password_hash, token_digest
 
 ORIGIN = "https://localhost"
-EXAMPLES = Path(__file__).parents[1] / "examples" / "tabular"
+EXAMPLES = Path(__file__).parents[1] / "public" / "examples" / "tabular"
 WORKER = "analyst"
 TOKEN = "disposable-stock-example-token"
 

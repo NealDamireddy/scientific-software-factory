@@ -1,5 +1,7 @@
 # Lab Factory backend API
 
+Open **Analysis** in the combined reviewer portal to upload a protocol and a CSV, inspect the worker’s numerical checks, and review a batch control. The browser and CLI use the same [simulated caffeine and density files](../public/examples/tabular/). [Start the local portal](../../README.md#run-the-app) · [Open the shared analysis demo](https://neal-lab-factory.vercel.app/#analysis)
+
 ## Run the service
 
 Run commands from `lab-factory/`. Install the locked environment with `uv sync --locked`. The ASGI application is `labfactory.hosted:application`. Start it behind an HTTPS reverse proxy with the public host preserved. For local development, bind the upstream server to loopback:
@@ -52,10 +54,10 @@ The Lab Factory package implements the analysis-app output described in its [arc
 
 ## Upload and run an analysis
 
-The client requires an explicit service origin. The two example datasets use simulated caffeine measurements and liquid density. For a named deployment it prompts for credentials or reads the reviewer name and password-file path from `LAB_FACTORY_REVIEWER` and `LAB_FACTORY_REVIEWER_PASSWORD_FILE`.
+The client requires `--url` before the subcommand. The commands below use the combined local portal. For a named deployment, set `lab_url` to the HTTPS origin of your lab. For the hosted public demo, use `https://neal-lab-factory.vercel.app` and upload only data you can share publicly. The two example datasets use simulated caffeine measurements and liquid density. For a named deployment it prompts for credentials or reads the reviewer name and password-file path from `LAB_FACTORY_REVIEWER` and `LAB_FACTORY_REVIEWER_PASSWORD_FILE`.
 
 ```sh
-lab_url=https://lab.example.org
+lab_url=http://127.0.0.1:8000
 uv run --locked python examples/analysis_client.py --url "$lab_url" create --example caffeine
 uv run --locked python examples/analysis_client.py --url "$lab_url" list
 ```
@@ -79,6 +81,10 @@ uv run --locked python examples/analysis_client.py --url "$lab_url" run "$order"
 | `GET /api/analysis/orders/{id}/runs/{run_id}/readings` | Download the CSV identified by the saved receipt. |
 
 The CSV mapping identifies sample ID, role, signal and optional standard value and dilution factor. Supply the expected control value separately, in the reported sample unit. Keep it out of the protocol, objective and worker-accessible SOPs. The worker receives the disclosed standards and protocol. The reviewer can inspect the batch control, its prediction and tolerance.
+
+## Background analysis worker
+
+The local Mac author claims uploaded analysis orders over MCP using its own bearer token and submits code for review. See the [background worker setup](hosted.md#background-analysis-worker).
 
 ## Storage and recovery
 
