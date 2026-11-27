@@ -1,22 +1,22 @@
 ---
 name: research-calibration
-description: "Compare a measurement with the applicable calibration interval. When a quantitative result depends on calibration standards."
+description: "Review calibration range and independent evidence for a reported result. When a quantitative result depends on calibration standards."
 ---
 
 # Calibration review
 
 ## Evidence to gather
 
-Eligible calibration standards, sample response and recorded units
+Eligible standards, sample response, applicable method revision and independent checks where relevant
 
 ## Review procedure
 
-1. Determine whether this result actually uses calibration standards. Retrieve this run’s standard pairs, sample reading, units, and the versioned method’s usable range if supplied. Keep original and repeat observations separate. For a time series without a calibration relationship, leave this check inapplicable.
+1. Identify the decision being made. Locating a response within the standards, estimating a quantity and releasing a result under a lab method require different evidence. Retrieve the method revision in effect for this run, the eligible standards, the sample, their units and the relationship fitted. Compare responses on the measured scale. Record the observed bounds and any narrower method limits, including their boundary convention.
 
-2. Identify the measured response interval from eligible standards. Apply a narrower usable interval when the method specifies one. Compare values on the same response scale, with the method’s boundary convention. For the illustrative B12 fixture the endpoints are inclusive. A sample of 1.250 AU exceeds a maximum of 0.850 AU. The maximum standard concentration is on a different axis and is unsuitable for this comparison.
+2. For a claim about accuracy or release, look for evidence independent of the observations used to fit the curve. A check material with a known assigned value can test a prediction. Compare the measured or back-calculated value with its assignment using the applicable method’s rule, units and tolerance. Identify which run and materials the check covers. A close fit, a repeat of an unknown, or a proposal to extend the curve answers a different question.
 
-3. Return the sample, lower and upper bounds, units, and references to the standards supporting each bound. Describe the outcome as within, below, above, or unassessed. An in-range sample alone establishes neither model validity nor measurement precision. If units, eligibility, or the relationship between sample and standards is unresolved, identify the missing evidence and stop before deriving a concentration. Anchor any finding to the sample run, preserving independent judgments for repeats.
+3. Give separate conclusions for range, the independent check, and the requested decision. Report a derived quantity only in units supported by the calibration. If method versions or records disagree, use documented applicability and authority to resolve them. If unresolved, show how the decision depends on the competing records and name the evidence that would resolve it. Cite the standards defining the bounds and the records supporting the decision.
 
 ## Expected result
 
-Range assessment and a review note
+Range and check assessments with a decision scoped to the method

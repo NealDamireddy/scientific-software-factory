@@ -41,9 +41,9 @@ export const builtinSkills: Omit<ResearchSkill, "evaluate">[] = [
     stage: "result",
     name: "Calibration review",
     description:
-      "Compare a measurement with the applicable calibration interval.",
-    input: "Eligible calibration standards, sample response and recorded units",
-    output: "Range assessment and a review note",
+      "Review calibration range and independent evidence for a reported result.",
+    input: "Eligible standards, sample response, applicable method revision and independent checks where relevant",
+    output: "Range and check assessments with a decision scoped to the method",
     whenToUse: "When a quantitative result depends on calibration standards.",
     instructions: playbooks["calibration"],
   },

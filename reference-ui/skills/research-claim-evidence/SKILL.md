@@ -1,21 +1,21 @@
 ---
 name: research-claim-evidence
-description: "Check a numeric claim against one observation or an explicitly requested group mean. When reviewing a reported result against its underlying individual or group measurements."
+description: "Review a reported result against the research question, comparison units and underlying measurements. When reviewing a reported result against its underlying individual or group measurements."
 ---
 
 # Claim-to-evidence review
 
 ## Evidence to gather
 
-An identified claim and original observation rows in recorded units.
+The claim, its population and time window, and the underlying observations with identity keys.
 
 ## Review procedure
 
-1. Separate the claim into observable statements. Identify the target (individual, group or comparison), quantity, units, scope and time. Ask which sample or statistic was intended when the wording allows multiple readings.
+1. Translate the request into a quantity the evidence can answer. Identify the population, unit of observation, unit being compared, time window and intended units. Ask what gets one vote in the calculation. For change over time, determine whether the question concerns the same subjects or the populations observed at each time. State the relevant denominator and exclusions.
 
-2. For a direct numeric claim, locate the unique observation for the same sample, quantity and unit. Cite file and row. For a derived claim, identify the source observations, recorded formula or statistic, exclusions and units before independently recomputing it. A matching number alone cannot establish sample identity. A group difference alone does not establish causation.
+2. Trace the claim to its records and independently recompute it. Use identity keys for paired measurements. For grouped records, choose weighting from the research question and documented analysis plan. If two interpretations give materially different answers and the context cannot resolve them, give the conditional results or ask the narrow question that distinguishes them. Keep measured values, derived quantities and assumptions distinguishable.
 
-3. Report supported, contradicted, or insufficient evidence for each statement. Show the recorded value or calculation and any unresolved identity or unit. The workspace CSV checker compares a direct claim with one traceable observation or, when explicitly requested, recomputes an arithmetic mean from every matching group row in the same unit. Keep any broader interpretation and researcher decision separate from that machine check.
+3. Report what the records support, contradict or leave unresolved. Cite the decisive observations or reproducible selection and the lab context that justifies it. Explain what would change the decision and preserve conclusions unaffected by missing evidence. The local CSV checker covers a direct observation or a single group mean. Broader scientific claims require agent reasoning over the relevant records.
 
 ## Expected result
 

@@ -1,22 +1,22 @@
 ---
 name: research-data-provenance
-description: "Check whether each observation identifies its source row and measurement. When reviewing observations from a supplied dataset."
+description: "Trace observations to sources and assess how gaps or corrections affect the claim. When reviewing observations from a supplied dataset."
 ---
 
 # Data intake and provenance
 
 ## Evidence to gather
 
-A named source and observations with source row, sample, measurement, value and unit.
+Original observations, identity keys, units and any source-linked corrections.
 
 ## Review procedure
 
-1. Inventory the files actually supplied, their recorded origin, headers and units. Preserve original row numbers. Use any supplied data dictionary to distinguish sample IDs from group labels and technical replicates from independent observations. State explicitly when the mapping or unit is undocumented.
+1. Identify the claim and trace its required fields to the records actually supplied. Use the data dictionary and stable source locations to distinguish a subject, event, sample, replicate and reading. Record units, identity links and transformations where they affect interpretation. Preserve the original value and locator alongside any correction.
 
-2. Trace each reviewed value to a file, row and measurement. Check missing or ambiguous identifiers, repeated keys, inconsistent units and changes introduced during conversion. Repeated group labels can be valid replicates: ask for a sample key before attributing a row to an individual. Keep raw values intact.
+2. For each missing or disputed field, ask which conclusions depend on it. A reading can support one calculation while its attribution to a particular source remains unresolved. Show which observations enter each conclusion and why. Avoid silently discarding usable measurements or filling missing fields from plausibility.
 
-3. Return the usable mappings, affected rows, and the smallest missing piece of evidence. A complete normalized table supports row traceability only; independent source authenticity or instrument identity requires separate evidence.
+3. When a note conflicts with a record, inspect its author, timing, scope and the lab’s correction or reconciliation procedure. An authorized, traceable amendment may supersede an earlier field. An unsupported note can justify an investigation. Cite both records, state what survives under either reading, and identify the smallest missing link that would change the decision.
 
 ## Expected result
 
-Traceability assessment with source-row references.
+Traceable conclusions, affected records and unresolved attribution.

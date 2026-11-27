@@ -1,0 +1,7 @@
+The three CSVs contain the real published measurements from R datasets 4.5.2. The following bench, method and analyst records and the review questions are illustrative. The bench observations, CSVs and method library are identical for all requests.
+
+Bench record F-17. Unknown U17 optical density 0.538. Independent check material Q17 has a separately assigned reference of 0.5000 mL carbohydrate-equivalent volume. Its recorded optical density is 0.460. Q17 was prepared independently, is outside the six fitted standards, and was measured on the same run as U17. The lab reports volume equivalents for this procedure.
+
+Method library CV revisions 1 and 2. Both specify ordinary least squares of optical density on standard volume with intercept and inversion for unknown/check volumes. Eligible responses lie within the inclusive observed standards. A run can report U17 in mL equivalent when U17 is in range and the absolute percentage error of Q17's back-calculated volume against its assigned volume is at or below the applicable tolerance. Revision 1 uses 5.0%. Revision 2 uses 2.0%. The effective revision is assigned per run. Both are available for different study tracks.
+
+Seismic archive policy S-4. A source field may be amended through a supervisor-approved log with the observation reference, replacement identifier and link to the original station register. A free-text analyst note is retained as a lead. No approved station amendment or station register is supplied.
