@@ -1,0 +1,292 @@
+{
+  "cleanup": {
+    "all_listeners_down": true,
+    "private_runtime_removed": true
+  },
+  "common": {
+    "access_mode": "private",
+    "downtime": {
+      "confirmed": true,
+      "observation": "connection unavailable"
+    },
+    "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+    "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+    "verification": {
+      "downtime_observed": true,
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "passed": true
+    },
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  },
+  "common_runner_sha256": "cab9b87b4b2cdfdc7f41fcc8a05bdeaec2798e3a8511d0414086869d026ae288",
+  "common_scenarios": {
+    "failed_candidate_approval_and_run_denied": "passed",
+    "full_outage_observed_and_canonical_outcome_recovered": "passed",
+    "incorrect_candidate_passes_authored_tests_and_fails_blind_control": "passed",
+    "named_reviewer_and_separate_mcp_identities": "passed",
+    "original_uploads_and_candidate_artifacts_match_fixture_bytes": "passed",
+    "released_caffeine_and_density_estimates_match_expected_values": "passed",
+    "saved_run_replay_and_original_csv_retrieval": "passed",
+    "stale_submission_approval_denied_and_exact_release_digest_approved": "passed",
+    "two_simultaneous_claims_yield_one_durable_winner": "passed",
+    "unauthenticated_mcp_denied_and_four_expected_tools_available": "passed",
+    "used_control_cannot_be_retried_until_replaced": "passed"
+  },
+  "deployment": "Two Uvicorn ASGI OS processes and one HTTP round-robin proxy on the same Mac; shared local SQLite WAL; separately invoked deterministic MCP worker",
+  "durations_ms": {
+    "cold_start": 1304.63,
+    "common_offline": 116.17,
+    "common_run": 432.55,
+    "common_verify_after_restart": 706.5,
+    "replacement_worker_start_to_exit": 1282.43,
+    "restore_services": 1607.76,
+    "stop_remaining_services": 403.76,
+    "stop_replica_a": 230.06
+  },
+  "initial_pids": {
+    "a": 1284,
+    "b": 1285,
+    "proxy": 1289
+  },
+  "inputs": {
+    "artifact_sha256": {
+      "caffeine": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+      "density": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+      "wrong": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2"
+    },
+    "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+    "source_file_sha256": {
+      "examples/tabular/caffeine/control.json": "7d179557228dc6352b11d3747d3ad451d4270c8c3b099191fe4086391b9c9d6e",
+      "examples/tabular/caffeine/protocol.md": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f",
+      "examples/tabular/caffeine/readings.csv": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+      "examples/tabular/density/control.json": "5a2d991a9cb397389dc5558dbcb9a622d381d5eb48881bbfaf2e486fa3f21b04",
+      "examples/tabular/density/protocol.md": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65",
+      "examples/tabular/density/readings.csv": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+      "examples/tabular/index.json": "50c4300c28e4d2507c27d5f1ffd763155fce3f79a605aea1964282c87e3a0f4b",
+      "tests/test_tabular_acceptance.py": "00e11bb9df00d2495b81596b0176d3c624c5b759a1737555f7ae02a417de2816"
+    },
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  },
+  "limitations": [
+    "Same-host local filesystem only. SQLite WAL needs local shared memory and permits one writer at a time.",
+    "The proxy, physical host and disk are single points of failure. No external SQL service or hosted staging was used.",
+    "Worker death was injected after confirmed claim and before submission. Recovery explicitly uses the same identity and target order.",
+    "The deterministic author replays the supplied candidate. The trial does not measure generation or queue throughput.",
+    "Times are single observations on loopback, including client and process overhead."
+  ],
+  "runtime": {
+    "arch": "arm64",
+    "mcp": "1.30.0",
+    "os": "Darwin",
+    "os_release": "25.2.0",
+    "python": "3.14.9",
+    "sqlite": "3.53.1",
+    "uvicorn": "0.54.0"
+  },
+  "scenarios": {
+    "full_service_restart": {
+      "all_offline_pids": {
+        "a": null,
+        "b": null,
+        "proxy": null
+      },
+      "database_after": {
+        "device": 16777231,
+        "inode": 55044368,
+        "journal_mode": "wal",
+        "quick_check": "ok"
+      },
+      "database_before": {
+        "device": 16777231,
+        "inode": 55044368,
+        "journal_mode": "wal",
+        "quick_check": "ok"
+      },
+      "new_pids": {
+        "a": 1395,
+        "b": 1396,
+        "proxy": 1399
+      },
+      "passed": true,
+      "samples": [
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 19.6,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "b",
+          "status": "in_progress",
+          "submissions": 0
+        },
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 17.5,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "a",
+          "status": "in_progress",
+          "submissions": 0
+        },
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 5.92,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "b",
+          "status": "in_progress",
+          "submissions": 0
+        },
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 5.29,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "a",
+          "status": "in_progress",
+          "submissions": 0
+        }
+      ]
+    },
+    "interrupted_worker": {
+      "claim_events": 1,
+      "control_passed": true,
+      "identity": "agent-a",
+      "numbered_submissions": 1,
+      "order": "WO-4",
+      "passed": true,
+      "replayed": {
+        "elapsed_ms": 120.62,
+        "event": "already_submitted",
+        "status": "in_review",
+        "work_order_id": "WO-4",
+        "worker_pid": 1403
+      },
+      "resumed": {
+        "action": "resumed",
+        "elapsed_ms": 158.18,
+        "event": "ready_after_claim",
+        "status": "in_progress",
+        "work_order_id": "WO-4",
+        "worker_pid": 1401
+      },
+      "submitted": {
+        "artifact_digest": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+        "elapsed_ms": 191.78,
+        "event": "submitted",
+        "passed": true,
+        "status": "in_review",
+        "submission": 1,
+        "work_order_id": "WO-4",
+        "worker_pid": 1401
+      },
+      "terminated": {
+        "exit_code": -9,
+        "marker": {
+          "action": "claimed",
+          "elapsed_ms": 61.3,
+          "event": "ready_after_claim",
+          "status": "in_progress",
+          "work_order_id": "WO-4",
+          "worker_pid": 1387
+        },
+        "start_to_kill_ms": 482.35
+      },
+      "unit": "g/mL",
+      "values": [
+        1.08,
+        0.8
+      ]
+    },
+    "one_replica_down": {
+      "a_listener_refused": true,
+      "passed": true,
+      "pids": {
+        "a": null,
+        "b": 1285,
+        "proxy": 1289
+      },
+      "samples": [
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 4.05,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "b",
+          "status": "in_progress",
+          "submissions": 0
+        },
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 2.89,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "b",
+          "status": "in_progress",
+          "submissions": 0
+        },
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 3.95,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "b",
+          "status": "in_progress",
+          "submissions": 0
+        },
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 2.28,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "b",
+          "status": "in_progress",
+          "submissions": 0
+        }
+      ]
+    },
+    "two_replica_reads": {
+      "passed": true,
+      "samples": [
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 3.8,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "a",
+          "status": "in_progress",
+          "submissions": 0
+        },
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 3.62,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "b",
+          "status": "in_progress",
+          "submissions": 0
+        },
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 3.03,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "a",
+          "status": "in_progress",
+          "submissions": 0
+        },
+        {
+          "body_sha256": "309dcdc78a97b65603fa80706ab6054c4620635b4455c8f5c8bdf1d3b3ababd2",
+          "elapsed_ms": 2.79,
+          "http_status": 200,
+          "order_id": "WO-4",
+          "replica": "b",
+          "status": "in_progress",
+          "submissions": 0
+        }
+      ]
+    }
+  },
+  "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+  "started_utc": "2026-11-26T07:40:25.177619+00:00",
+  "verified_archive_source_files": 8
+}

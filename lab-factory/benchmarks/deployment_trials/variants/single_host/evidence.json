@@ -1,0 +1,481 @@
+{
+  "acceptance": {
+    "access_mode": "private",
+    "base_url": "http://127.0.0.1:57742",
+    "downtime": {
+      "confirmed": true,
+      "observation": "connection unavailable"
+    },
+    "ids": {
+      "caffeine": "WO-1",
+      "density": "WO-2",
+      "race": "WO-3"
+    },
+    "outcome": {
+      "caffeine": {
+        "approval": {
+          "digest": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+          "submission": 2
+        },
+        "control_passed": true,
+        "history": [
+          [
+            "created",
+            null,
+            ""
+          ],
+          [
+            "claimed",
+            null,
+            ""
+          ],
+          [
+            "submitted",
+            1,
+            "failed"
+          ],
+          [
+            "submitted",
+            2,
+            "passed"
+          ],
+          [
+            "approved",
+            2,
+            "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0"
+          ]
+        ],
+        "replayed_receipt": true,
+        "run_batch_digest": "e935c8ca89a1cf817cd997dbf6c6eb576d94f36260a697db220711584d6dc002",
+        "submissions": [
+          {
+            "artifact_sha256": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2",
+            "control": {
+              "edition": 1,
+              "expected": 16.0,
+              "passed": false,
+              "predicted": 3280.0,
+              "tolerance": 0.25
+            },
+            "number": 1,
+            "passed": false
+          },
+          {
+            "artifact_sha256": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+            "control": {
+              "edition": 2,
+              "expected": 14.382,
+              "passed": true,
+              "predicted": 14.382,
+              "tolerance": 0.15
+            },
+            "number": 2,
+            "passed": true
+          }
+        ],
+        "unit": "mg/L",
+        "uploads": {
+          "csv": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+          "protocol": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f"
+        },
+        "values": [
+          24.0,
+          45.0
+        ]
+      },
+      "density": {
+        "approval": {
+          "digest": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+          "submission": 1
+        },
+        "control_passed": true,
+        "history": [
+          [
+            "created",
+            null,
+            ""
+          ],
+          [
+            "claimed",
+            null,
+            ""
+          ],
+          [
+            "submitted",
+            1,
+            "passed"
+          ],
+          [
+            "approved",
+            1,
+            "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2"
+          ]
+        ],
+        "replayed_receipt": true,
+        "run_batch_digest": "2eaaa06a8d2169e0bb14f1661af082bbf19ddb6a1613923c5f40e8403d39b538",
+        "submissions": [
+          {
+            "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+            "control": {
+              "edition": 1,
+              "expected": 0.9,
+              "passed": true,
+              "predicted": 0.9,
+              "tolerance": 0.01
+            },
+            "number": 1,
+            "passed": true
+          }
+        ],
+        "unit": "g/mL",
+        "uploads": {
+          "csv": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+          "protocol": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65"
+        },
+        "values": [
+          1.08,
+          0.8
+        ]
+      },
+      "race": {
+        "claim_events": 1,
+        "status": "in_progress",
+        "winners": 1
+      }
+    },
+    "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+    "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+    "verification": {
+      "downtime_observed": true,
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "passed": true
+    },
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  },
+  "acceptance_scenarios": {
+    "caffeine_results": "passed",
+    "concurrent_claim_one_durable_winner": "passed",
+    "density_candidate_control_and_approval": "passed",
+    "density_results": "passed",
+    "fixed_caffeine_candidate_passed_fresh_control": "passed",
+    "fresh_control_required_after_failed_blind_attempt": "passed",
+    "named_reviewer_login_and_bearer_only_mcp": "passed",
+    "observed_downtime_and_restored_canonical_outcome": "passed",
+    "only_passing_numbered_caffeine_submission_released": "passed",
+    "original_upload_and_archived_batch_hashes": "passed",
+    "replay_returns_original_receipts": "passed",
+    "wrong_candidate_rejected_by_held_back_control": "passed"
+  },
+  "authenticated_reads": {
+    "median_ms": 0.769,
+    "mode": "same authenticated HTTP client, sequential post-workload reads",
+    "orders": 3,
+    "route": "GET /api/orders",
+    "samples_ms": [
+      1.215,
+      0.928,
+      0.737,
+      0.785,
+      0.926,
+      0.693,
+      0.744,
+      0.655,
+      0.792,
+      0.799,
+      0.72,
+      0.753
+    ],
+    "status": 200
+  },
+  "checks": {
+    "common_offline": {
+      "mode": "offline",
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "status": "passed",
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    "common_run": {
+      "mode": "run",
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "status": "passed",
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    "verify_after_sigkill": {
+      "mode": "verify",
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "status": "passed",
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    "verify_existing_volume": {
+      "mode": "verify",
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "status": "passed",
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    },
+    "verify_restored_volume": {
+      "mode": "verify",
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "status": "passed",
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    }
+  },
+  "cleanup": {
+    "listener_closed": true,
+    "private_runtime_removed": true,
+    "services_stopped": true
+  },
+  "deployment": {
+    "cloud_vm_tested": false,
+    "entrypoint": "api.index:app",
+    "environment": {
+      "architecture": "arm64",
+      "os_version": "26.2",
+      "packages": {
+        "PyJWT": "2.15.1",
+        "httpx": "0.28.1",
+        "mcp": "1.30.0",
+        "starlette": "1.10.0",
+        "turso-serverless": "0.1.0",
+        "uvicorn": "0.54.0"
+      },
+      "python": "3.14.9",
+      "sqlite": "3.53.1",
+      "system": "Darwin"
+    },
+    "reviewer_mode": "private",
+    "storage": "private host directory, SQLite database and content-addressed uploads in SQLite",
+    "system": "single local host, detached POSIX supervisor and Uvicorn child",
+    "transport": "IPv4 loopback HTTP"
+  },
+  "inputs": {
+    "artifact_sha256": {
+      "caffeine": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+      "density": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+      "wrong": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2"
+    },
+    "candidate_source_sha256": {
+      "caffeine": "900e1a056b20adfc0e8e97c488baf87334ba2d9b04178cdde773d4abaf71996b",
+      "density": "0ed267e7932a9123b596ce8074e6f41222b36984f840f471173f010e9ec39d83",
+      "wrong": "4de082bd88686474bc0b361304903d872ad1e054af105b990d1eb97a46bbe2f5"
+    },
+    "entrypoint_sha256": "07f53396d6e7de8a637fc332839d6efaba55e1fba8b8ef7d30520ed1ccfa6e61",
+    "fresh_control_canonical_sha256": "91b97f6ee29ef7b382d9e5460e2b0f37e0fd084335bffc0175181d6d905db27c",
+    "manifest_sha256": "2f629fa8ee3b6118a43be340a18e3b0cc9d1858623f7968592de66d7a31a09d6",
+    "runner_sha256": "cab9b87b4b2cdfdc7f41fcc8a05bdeaec2798e3a8511d0414086869d026ae288",
+    "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+    "source_file_sha256": {
+      "examples/tabular/caffeine/control.json": "7d179557228dc6352b11d3747d3ad451d4270c8c3b099191fe4086391b9c9d6e",
+      "examples/tabular/caffeine/protocol.md": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f",
+      "examples/tabular/caffeine/readings.csv": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+      "examples/tabular/density/control.json": "5a2d991a9cb397389dc5558dbcb9a622d381d5eb48881bbfaf2e486fa3f21b04",
+      "examples/tabular/density/protocol.md": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65",
+      "examples/tabular/density/readings.csv": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+      "examples/tabular/index.json": "50c4300c28e4d2507c27d5f1ffd763155fce3f79a605aea1964282c87e3a0f4b",
+      "tests/test_tabular_acceptance.py": "00e11bb9df00d2495b81596b0176d3c624c5b759a1737555f7ae02a417de2816"
+    },
+    "uv_lock_sha256": "8491c54c596e304aaefc25b78f8b93a5ab1342026388bdb3e8b6a05282abf828",
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  },
+  "limitations": [
+    "One host, one run, one local filesystem; no rented VM, network gateway, TLS or client WAN.",
+    "No host reboot, power loss, disk loss, multi-host failover or sustained load measurement.",
+    "SIGKILL followed successful commits. No interrupted write or power-loss durability claim.",
+    "Supervisor is manually started. A supervisor or host outage requires operator restart.",
+    "Worker recovery supplied the fixed candidate. Model generation and background scheduling were unmeasured.",
+    "The backup and restored copy used separate directories on the same disk."
+  ],
+  "process_lifecycle": {
+    "cleanup_live": {
+      "generation": 0,
+      "port": 57742,
+      "ready": false,
+      "server_pid": null,
+      "supervisor_pid": null
+    },
+    "cleanup_restored": {
+      "generation": 0,
+      "port": 57742,
+      "ready": false,
+      "server_pid": null,
+      "supervisor_pid": null
+    },
+    "cold_package_and_start": {
+      "generation": 1,
+      "last_exit": null,
+      "port": 57742,
+      "ready": true,
+      "server_pid": 1809,
+      "supervisor_pid": 1808
+    },
+    "sigkill_to_ready": {
+      "generation": 2,
+      "last_exit": -9,
+      "port": 57742,
+      "ready": true,
+      "server_pid": 1814,
+      "supervisor_pid": 1808
+    },
+    "start_existing_volume": {
+      "generation": 1,
+      "last_exit": null,
+      "port": 57742,
+      "ready": true,
+      "server_pid": 1821,
+      "supervisor_pid": 1820
+    },
+    "start_restored_volume": {
+      "generation": 1,
+      "last_exit": null,
+      "port": 57742,
+      "ready": true,
+      "server_pid": 1839,
+      "supervisor_pid": 1838
+    },
+    "stop_for_offline_check": {
+      "generation": 0,
+      "port": 57742,
+      "ready": false,
+      "server_pid": null,
+      "supervisor_pid": null
+    },
+    "stop_original_for_restore": {
+      "generation": 0,
+      "port": 57742,
+      "ready": false,
+      "server_pid": null,
+      "supervisor_pid": null
+    }
+  },
+  "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+  "sqlite_snapshots": {
+    "after_full_restart": {
+      "database_bytes": 135168,
+      "foreign_key_check": "ok",
+      "integrity_check": "ok",
+      "logical_sha256": "5c8516b2e325db2fbde0f3c2f81a02c264b1224d445c178f90230fbca0d382d6",
+      "operation_ms": 8.601
+    },
+    "after_restored_verify": {
+      "database_bytes": 135168,
+      "foreign_key_check": "ok",
+      "integrity_check": "ok",
+      "logical_sha256": "5c8516b2e325db2fbde0f3c2f81a02c264b1224d445c178f90230fbca0d382d6",
+      "operation_ms": 9.196
+    },
+    "after_sigkill": {
+      "database_bytes": 135168,
+      "foreign_key_check": "ok",
+      "integrity_check": "ok",
+      "logical_sha256": "5c8516b2e325db2fbde0f3c2f81a02c264b1224d445c178f90230fbca0d382d6",
+      "operation_ms": 8.219
+    },
+    "before_crash": {
+      "database_bytes": 135168,
+      "foreign_key_check": "ok",
+      "integrity_check": "ok",
+      "logical_sha256": "5c8516b2e325db2fbde0f3c2f81a02c264b1224d445c178f90230fbca0d382d6",
+      "operation_ms": 9.153,
+      "table_counts": {
+        "b12_readings": 0,
+        "b12_results": 0,
+        "events": 11,
+        "honey_runs": 0,
+        "records": 5,
+        "reference_briefs": 0,
+        "submissions": 3,
+        "tabular_batch_controls": 0,
+        "tabular_controls": 3,
+        "tabular_files": 4,
+        "tabular_intakes": 2,
+        "tabular_reports": 3,
+        "tabular_requests": 0,
+        "tabular_runs": 2,
+        "work_orders": 3
+      },
+      "table_sha256": {
+        "b12_readings": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "b12_results": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "events": "062af9fafecf477fee42427290bcdc18eb20bfa3fc6455f7b473205cfb2b85cd",
+        "honey_runs": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "records": "25f367ba9a271b6b6732bf585a09fad606eeffa11c9a7822f232a3ab4576c850",
+        "reference_briefs": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "submissions": "6f3ba2f63b2533cf8980b60699363891a134df502c3eed1947875eccc1974524",
+        "tabular_batch_controls": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tabular_controls": "79f67b363111ccdc2de752e6f858b9820c899264991ec400d5b37b669d4df011",
+        "tabular_files": "b55621662be8a059b8404b72db34db793eecfa2efb74ed7e0ff2e77bba27f3a3",
+        "tabular_intakes": "d19f480a298504ca35499e7e0a9cd7cc1bf98fe6edc5cebe2c4ac175f02dc94c",
+        "tabular_reports": "a66ef060466d3886e37fb7a3897d7fa11a9d0caafe1e87ec6ae4f443f6d0e004",
+        "tabular_requests": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tabular_runs": "8e4122ddd2b29dc6d79b702f38923781c30845d085145484ac197d52d1aec0f3",
+        "work_orders": "40309346d892c4bea5508b29a34d542b4cf8dcbba789c89c94cb47c4effd7684"
+      }
+    },
+    "online_backup": {
+      "database_bytes": 135168,
+      "foreign_key_check": "ok",
+      "integrity_check": "ok",
+      "logical_sha256": "5c8516b2e325db2fbde0f3c2f81a02c264b1224d445c178f90230fbca0d382d6",
+      "operation_ms": 10.797
+    },
+    "restore_new_volume": {
+      "database_bytes": 135168,
+      "foreign_key_check": "ok",
+      "integrity_check": "ok",
+      "logical_sha256": "5c8516b2e325db2fbde0f3c2f81a02c264b1224d445c178f90230fbca0d382d6",
+      "operation_ms": 12.69
+    }
+  },
+  "started_at_utc": "2026-11-26T07:41:06.138464+00:00",
+  "timings_ms": {
+    "after_full_restart": 41.046,
+    "after_restored_verify": 43.186,
+    "after_sigkill": 38.618,
+    "before_crash": 43.918,
+    "cleanup_live": 54.223,
+    "cleanup_restored": 261.58,
+    "cold_package_and_start": 558.904,
+    "common_offline": 137.021,
+    "common_run": 275.352,
+    "online_backup": 44.344,
+    "restore_new_volume": 59.645,
+    "sigkill_to_ready": 693.011,
+    "start_existing_volume": 409.914,
+    "start_restored_volume": 461.779,
+    "stop_for_offline_check": 264.782,
+    "stop_original_for_restore": 262.745,
+    "verify_after_sigkill": 173.197,
+    "verify_existing_volume": 190.872,
+    "verify_restored_volume": 205.432,
+    "worker_death_and_resume": 757.325
+  },
+  "variant": "single_host",
+  "worker_recovery": {
+    "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+    "author": "Injected fixed workload density candidate",
+    "backend_worker": "labfactory.tabular_worker.process",
+    "blind_control_passed": true,
+    "claim_events": 1,
+    "final_status": "in_review",
+    "kill_to_verified_submission_seconds": 0.289312,
+    "model_generation": false,
+    "numerical_checks_passed": true,
+    "order_id": "WO-4",
+    "original_worker_exitcode": -9,
+    "original_worker_pid": 1848,
+    "replacement_worker_exitcode": 0,
+    "replacement_worker_pid": 1849,
+    "status": "pass",
+    "status_after_kill": "in_progress",
+    "submission_count": 1,
+    "submissions_after_kill": 0,
+    "transport": "MCP streamable HTTP",
+    "worker": "trial-resume-probe",
+    "worker_start_to_kill_seconds": 0.250582,
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  }
+}

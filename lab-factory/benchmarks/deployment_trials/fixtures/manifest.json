@@ -1,0 +1,19 @@
+{
+  "artifact_sha256": {
+    "caffeine": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+    "density": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+    "wrong": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2"
+  },
+  "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+  "source_file_sha256": {
+    "examples/tabular/caffeine/control.json": "7d179557228dc6352b11d3747d3ad451d4270c8c3b099191fe4086391b9c9d6e",
+    "examples/tabular/caffeine/protocol.md": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f",
+    "examples/tabular/caffeine/readings.csv": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+    "examples/tabular/density/control.json": "5a2d991a9cb397389dc5558dbcb9a622d381d5eb48881bbfaf2e486fa3f21b04",
+    "examples/tabular/density/protocol.md": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65",
+    "examples/tabular/density/readings.csv": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+    "examples/tabular/index.json": "50c4300c28e4d2507c27d5f1ffd763155fce3f79a605aea1964282c87e3a0f4b",
+    "tests/test_tabular_acceptance.py": "00e11bb9df00d2495b81596b0176d3c624c5b759a1737555f7ae02a417de2816"
+  },
+  "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+}

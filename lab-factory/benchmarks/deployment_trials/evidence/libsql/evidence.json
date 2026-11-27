@@ -1,0 +1,1145 @@
+{
+  "acceptance": {
+    "access_mode": "private",
+    "base_url": "http://127.0.0.1:61671",
+    "downtime": {
+      "confirmed": true,
+      "observation": "connection unavailable"
+    },
+    "ids": {
+      "caffeine": "WO-1",
+      "density": "WO-2",
+      "race": "WO-3"
+    },
+    "logical_request_sequence_sha256": "2fff2a02b9d5998848e53e14a6ebf155588b6dede6043bc7f14d8ebf516af942",
+    "outcome": {
+      "caffeine": {
+        "approval": {
+          "digest": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+          "submission": 2
+        },
+        "control_passed": true,
+        "history": [
+          [
+            "created",
+            null,
+            ""
+          ],
+          [
+            "claimed",
+            null,
+            ""
+          ],
+          [
+            "submitted",
+            1,
+            "failed"
+          ],
+          [
+            "submitted",
+            2,
+            "passed"
+          ],
+          [
+            "approved",
+            2,
+            "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0"
+          ]
+        ],
+        "replayed_receipt": true,
+        "run_batch_digest": "e935c8ca89a1cf817cd997dbf6c6eb576d94f36260a697db220711584d6dc002",
+        "submissions": [
+          {
+            "artifact_sha256": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2",
+            "control": {
+              "edition": 1,
+              "expected": 16.0,
+              "passed": false,
+              "predicted": 3280.0,
+              "tolerance": 0.25
+            },
+            "number": 1,
+            "passed": false
+          },
+          {
+            "artifact_sha256": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+            "control": {
+              "edition": 2,
+              "expected": 14.382,
+              "passed": true,
+              "predicted": 14.382,
+              "tolerance": 0.15
+            },
+            "number": 2,
+            "passed": true
+          }
+        ],
+        "unit": "mg/L",
+        "uploads": {
+          "csv": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+          "protocol": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f"
+        },
+        "values": [
+          24.0,
+          45.0
+        ]
+      },
+      "density": {
+        "approval": {
+          "digest": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+          "submission": 1
+        },
+        "control_passed": true,
+        "history": [
+          [
+            "created",
+            null,
+            ""
+          ],
+          [
+            "claimed",
+            null,
+            ""
+          ],
+          [
+            "submitted",
+            1,
+            "passed"
+          ],
+          [
+            "approved",
+            1,
+            "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2"
+          ]
+        ],
+        "replayed_receipt": true,
+        "run_batch_digest": "2eaaa06a8d2169e0bb14f1661af082bbf19ddb6a1613923c5f40e8403d39b538",
+        "submissions": [
+          {
+            "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+            "control": {
+              "edition": 1,
+              "expected": 0.9,
+              "passed": true,
+              "predicted": 0.9,
+              "tolerance": 0.01
+            },
+            "number": 1,
+            "passed": true
+          }
+        ],
+        "unit": "g/mL",
+        "uploads": {
+          "csv": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+          "protocol": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65"
+        },
+        "values": [
+          1.08,
+          0.8
+        ]
+      },
+      "race": {
+        "claim_events": 1,
+        "status": "in_progress",
+        "winners": 1
+      }
+    },
+    "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+    "outcome_v2": {
+      "caffeine": {
+        "analysis": {
+          "control_edition": 2,
+          "control_renewal_required": false,
+          "csv_digest": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+          "csv_name": "readings.csv",
+          "mapping": {
+            "factor": "dilution",
+            "id": "sample",
+            "known": "concentration",
+            "role": "role",
+            "signal": "area"
+          },
+          "needs_input": null,
+          "objective": "Estimate caffeine in the original coffee from integrated HPLC peak areas.",
+          "protocol": "# Caffeine in coffee by HPLC \u00b7 simulated lab protocol\n\nReport caffeine in the original coffee in mg/L. The input is the integrated caffeine peak area for each injection. Peak identification and integration are complete. There is one injection per row in this simulated batch.\n\nCalibrate the detector response against the standards run with this batch. Use unweighted ordinary least squares with peak area as the response and known vial concentration (mg/L) as the predictor. Retain the fitted intercept. Obtain the concentration in each injected vial from its measured area. The dilution column gives the ratio of final volume to original sample volume. Correct each vial concentration to its original-sample basis using that row's dilution. A dilution of one is an undiluted sample.\n\nUse the calibration interval of the batch. Withhold results for readings outside the range of standard signals. Positive dilutions are required. Report in mg/L without rounding intermediate results. Do not infer mass per serving or caffeine per mass of coffee. The reviewer supplies the independent control certificate separately.\n",
+          "protocol_digest": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f",
+          "protocol_name": "protocol.md",
+          "range_gate": true,
+          "references": [],
+          "standards_count": 5,
+          "unit": "mg/L",
+          "unknown_count": 2
+        },
+        "history": [
+          {
+            "actor": "@reviewer",
+            "event": "created",
+            "note": "",
+            "submission": null
+          },
+          {
+            "actor": "agent-a",
+            "event": "claimed",
+            "note": "",
+            "submission": null
+          },
+          {
+            "actor": "agent-a",
+            "event": "submitted",
+            "note": "failed",
+            "submission": 1
+          },
+          {
+            "actor": "agent-a",
+            "event": "submitted",
+            "note": "passed",
+            "submission": 2
+          },
+          {
+            "actor": "@reviewer",
+            "event": "approved",
+            "note": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+            "submission": 2
+          }
+        ],
+        "order": {
+          "experiment_id": "@experiment/caffeine",
+          "experiment_revision": 1,
+          "id": "@order/caffeine",
+          "kind": "analysis_app",
+          "lab_id": "tabular-workspace",
+          "lab_revision": 1,
+          "objective": "Estimate caffeine in the original coffee from integrated HPLC peak areas.",
+          "released_submission": 2,
+          "status": "released",
+          "worker": "agent-a"
+        },
+        "runs": [
+          {
+            "actor": "@reviewer",
+            "approved_by": "@reviewer",
+            "artifact_digest": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+            "batch_digest": "e935c8ca89a1cf817cd997dbf6c6eb576d94f36260a697db220711584d6dc002",
+            "control": {
+              "edition": 2,
+              "error": 0.0,
+              "expected": 14.382,
+              "factor": 2.0,
+              "passed": true,
+              "predicted": 14.382,
+              "reason": "",
+              "signal": 1478.2,
+              "source": "replacement blind control",
+              "tolerance": 0.15,
+              "unit": "mg/L"
+            },
+            "csv_digest": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+            "csv_name": "readings.csv",
+            "experiment_id": "@experiment/caffeine",
+            "experiment_revision": 1,
+            "id": "@original-run/caffeine",
+            "protocol_digest": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f",
+            "range_gate": true,
+            "results": [
+              {
+                "factor": 2.0,
+                "id": "Coffee A",
+                "reason": "",
+                "signal": 2440.0,
+                "unit": "mg/L",
+                "value": 24.0
+              },
+              {
+                "factor": 3.0,
+                "id": "Coffee B",
+                "reason": "",
+                "signal": 3040.0,
+                "unit": "mg/L",
+                "value": 45.0
+              }
+            ],
+            "standards": [
+              [
+                40.0,
+                0.0
+              ],
+              [
+                1040.0,
+                5.0
+              ],
+              [
+                2040.0,
+                10.0
+              ],
+              [
+                4040.0,
+                20.0
+              ],
+              [
+                6040.0,
+                30.0
+              ]
+            ],
+            "status": "estimated",
+            "submission": 2,
+            "unit": "mg/L",
+            "work_order_id": "@order/caffeine",
+            "worker": "agent-a"
+          }
+        ],
+        "submissions": [
+          {
+            "artifact": {
+              "explanation": "Apply the submitted method to one anonymous sample.",
+              "source": "def analyze(standards, signal, factor):\n    return signal * factor\n",
+              "tests": [
+                {
+                  "expected": 21,
+                  "factor": 3,
+                  "label": "Constructed sample 1",
+                  "signal": 7,
+                  "standards": [
+                    [
+                      2,
+                      0
+                    ],
+                    [
+                      12,
+                      4
+                    ]
+                  ]
+                },
+                {
+                  "expected": 300,
+                  "factor": 5,
+                  "label": "Constructed sample 2",
+                  "signal": 60,
+                  "standards": [
+                    [
+                      30,
+                      1
+                    ],
+                    [
+                      90,
+                      3
+                    ]
+                  ]
+                }
+              ]
+            },
+            "artifact_digest": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2",
+            "control": {
+              "artifact_digest": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2",
+              "control_digest": "3fef935d1fc65f43a84623cc1e0e80cd172a439edfcb8edbda6d538bc03110a0",
+              "edition": 1,
+              "error": 3264.0,
+              "expected": 16.0,
+              "factor": 2.0,
+              "passed": false,
+              "predicted": 3280.0,
+              "reason": "Absolute prediction error exceeds the frozen tolerance.",
+              "signal": 1640.0,
+              "tolerance": 0.25,
+              "unit": "mg/L"
+            },
+            "number": 1,
+            "passed": false,
+            "rendered": "{\n  \"explanation\": \"Apply the submitted method to one anonymous sample.\",\n  \"source\": \"def analyze(standards, signal, factor):\\n    return signal * factor\\n\",\n  \"tests\": [\n    {\n      \"expected\": 21,\n      \"factor\": 3,\n      \"label\": \"Constructed sample 1\",\n      \"signal\": 7,\n      \"standards\": [\n        [\n          2,\n          0\n        ],\n        [\n          12,\n          4\n        ]\n      ]\n    },\n    {\n      \"expected\": 300,\n      \"factor\": 5,\n      \"label\": \"Constructed sample 2\",\n      \"signal\": 60,\n      \"standards\": [\n        [\n          30,\n          1\n        ],\n        [\n          90,\n          3\n        ]\n      ]\n    }\n  ]\n}",
+            "results": [
+              {
+                "detail": "Expected 21, got 21.",
+                "name": "Agent test \u00b7 Constructed sample 1",
+                "passed": true
+              },
+              {
+                "detail": "Expected 300, got 300.",
+                "name": "Agent test \u00b7 Constructed sample 2",
+                "passed": true
+              },
+              {
+                "detail": "The sealed control did not pass; numerical details are available to the reviewer.",
+                "name": "Blind control",
+                "passed": false
+              }
+            ],
+            "work_order_id": "@order/caffeine",
+            "worker": "agent-a"
+          },
+          {
+            "artifact": {
+              "explanation": "Apply the submitted method to one anonymous sample.",
+              "source": "def analyze(standards, signal, factor):\n    signal_axis = column(standards, 0)\n    known_axis = column(standards, 1)\n    baseline = intercept(known_axis, signal_axis)\n    response = slope(known_axis, signal_axis)\n    return (signal - baseline) / response * factor\n",
+              "tests": [
+                {
+                  "expected": 6,
+                  "factor": 3,
+                  "label": "Constructed sample 1",
+                  "signal": 7,
+                  "standards": [
+                    [
+                      2,
+                      0
+                    ],
+                    [
+                      12,
+                      4
+                    ]
+                  ]
+                },
+                {
+                  "expected": 10,
+                  "factor": 5,
+                  "label": "Constructed sample 2",
+                  "signal": 60,
+                  "standards": [
+                    [
+                      30,
+                      1
+                    ],
+                    [
+                      90,
+                      3
+                    ]
+                  ]
+                }
+              ]
+            },
+            "artifact_digest": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+            "control": {
+              "artifact_digest": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+              "control_digest": "df89e7c7c8607b4e38244d97594a35dab0c15986bb5052f21d13927500d5c7da",
+              "edition": 2,
+              "error": 0.0,
+              "expected": 14.382,
+              "factor": 2.0,
+              "passed": true,
+              "predicted": 14.382,
+              "reason": "",
+              "signal": 1478.2,
+              "tolerance": 0.15,
+              "unit": "mg/L"
+            },
+            "number": 2,
+            "passed": true,
+            "rendered": "{\n  \"explanation\": \"Apply the submitted method to one anonymous sample.\",\n  \"source\": \"def analyze(standards, signal, factor):\\n    signal_axis = column(standards, 0)\\n    known_axis = column(standards, 1)\\n    baseline = intercept(known_axis, signal_axis)\\n    response = slope(known_axis, signal_axis)\\n    return (signal - baseline) / response * factor\\n\",\n  \"tests\": [\n    {\n      \"expected\": 6,\n      \"factor\": 3,\n      \"label\": \"Constructed sample 1\",\n      \"signal\": 7,\n      \"standards\": [\n        [\n          2,\n          0\n        ],\n        [\n          12,\n          4\n        ]\n      ]\n    },\n    {\n      \"expected\": 10,\n      \"factor\": 5,\n      \"label\": \"Constructed sample 2\",\n      \"signal\": 60,\n      \"standards\": [\n        [\n          30,\n          1\n        ],\n        [\n          90,\n          3\n        ]\n      ]\n    }\n  ]\n}",
+            "results": [
+              {
+                "detail": "Expected 6, got 6.",
+                "name": "Agent test \u00b7 Constructed sample 1",
+                "passed": true
+              },
+              {
+                "detail": "Expected 10, got 10.",
+                "name": "Agent test \u00b7 Constructed sample 2",
+                "passed": true
+              },
+              {
+                "detail": "Within the pinned tolerance.",
+                "name": "Blind control",
+                "passed": true
+              }
+            ],
+            "work_order_id": "@order/caffeine",
+            "worker": "agent-a"
+          }
+        ]
+      },
+      "density": {
+        "analysis": {
+          "control_edition": 1,
+          "control_renewal_required": false,
+          "csv_digest": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+          "csv_name": "readings.csv",
+          "mapping": {
+            "factor": "volume_ml",
+            "id": "specimen",
+            "known": "reference_density",
+            "role": "kind",
+            "signal": "mass_g"
+          },
+          "needs_input": null,
+          "objective": "Determine the density of each simulated liquid at 20 \u00b0C.",
+          "protocol": "# Density of liquids \u00b7 simulated lab protocol\n\nReport the mass of one millilitre of each simulated liquid at 20 \u00b0C in g/mL. For each specimen, the balance gives the net liquid mass in grams after the empty container was tared. The volume column records the actual dispensed volume in millilitres and must be positive. Express the measured mass per unit of the specimen's own volume.\n\nThe independently characterized check liquid provides a quality check. This direct measurement uses no fitted calibration or standard rows. Sample volumes may differ, so the mass alone is not a calibration-range criterion. Report the unrounded density. Temperature correction, buoyancy correction and physical-instrument validation are outside this simulation.\n",
+          "protocol_digest": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65",
+          "protocol_name": "protocol.md",
+          "range_gate": false,
+          "references": [],
+          "standards_count": 0,
+          "unit": "g/mL",
+          "unknown_count": 2
+        },
+        "history": [
+          {
+            "actor": "@reviewer",
+            "event": "created",
+            "note": "",
+            "submission": null
+          },
+          {
+            "actor": "agent-a",
+            "event": "claimed",
+            "note": "",
+            "submission": null
+          },
+          {
+            "actor": "agent-a",
+            "event": "submitted",
+            "note": "passed",
+            "submission": 1
+          },
+          {
+            "actor": "@reviewer",
+            "event": "approved",
+            "note": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+            "submission": 1
+          }
+        ],
+        "order": {
+          "experiment_id": "@experiment/density",
+          "experiment_revision": 1,
+          "id": "@order/density",
+          "kind": "analysis_app",
+          "lab_id": "tabular-workspace",
+          "lab_revision": 1,
+          "objective": "Determine the density of each simulated liquid at 20 \u00b0C.",
+          "released_submission": 1,
+          "status": "released",
+          "worker": "agent-a"
+        },
+        "runs": [
+          {
+            "actor": "@reviewer",
+            "approved_by": "@reviewer",
+            "artifact_digest": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+            "batch_digest": "2eaaa06a8d2169e0bb14f1661af082bbf19ddb6a1613923c5f40e8403d39b538",
+            "control": {
+              "edition": 1,
+              "error": 0.0,
+              "expected": 0.9,
+              "factor": 8.0,
+              "passed": true,
+              "predicted": 0.9,
+              "reason": "",
+              "signal": 7.2,
+              "source": "original batch",
+              "tolerance": 0.01,
+              "unit": "g/mL"
+            },
+            "csv_digest": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+            "csv_name": "readings.csv",
+            "experiment_id": "@experiment/density",
+            "experiment_revision": 1,
+            "id": "@original-run/density",
+            "protocol_digest": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65",
+            "range_gate": false,
+            "results": [
+              {
+                "factor": 12.5,
+                "id": "Liquid A",
+                "reason": "",
+                "signal": 13.5,
+                "unit": "g/mL",
+                "value": 1.08
+              },
+              {
+                "factor": 7.5,
+                "id": "Liquid B",
+                "reason": "",
+                "signal": 6.0,
+                "unit": "g/mL",
+                "value": 0.8
+              }
+            ],
+            "standards": [],
+            "status": "estimated",
+            "submission": 1,
+            "unit": "g/mL",
+            "work_order_id": "@order/density",
+            "worker": "agent-a"
+          }
+        ],
+        "submissions": [
+          {
+            "artifact": {
+              "explanation": "Apply the submitted method to one anonymous sample.",
+              "source": "def analyze(standards, signal, factor):\n    return signal / factor\n",
+              "tests": [
+                {
+                  "expected": 3,
+                  "factor": 2,
+                  "label": "Constructed sample 1",
+                  "signal": 6,
+                  "standards": []
+                },
+                {
+                  "expected": 1.5,
+                  "factor": 3,
+                  "label": "Constructed sample 2",
+                  "signal": 4.5,
+                  "standards": []
+                }
+              ]
+            },
+            "artifact_digest": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+            "control": {
+              "artifact_digest": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+              "control_digest": "cad91f453c1bc890c81be7367d0ec4bcedf8678023b73dc138922d606daa82f3",
+              "edition": 1,
+              "error": 0.0,
+              "expected": 0.9,
+              "factor": 8.0,
+              "passed": true,
+              "predicted": 0.9,
+              "reason": "",
+              "signal": 7.2,
+              "tolerance": 0.01,
+              "unit": "g/mL"
+            },
+            "number": 1,
+            "passed": true,
+            "rendered": "{\n  \"explanation\": \"Apply the submitted method to one anonymous sample.\",\n  \"source\": \"def analyze(standards, signal, factor):\\n    return signal / factor\\n\",\n  \"tests\": [\n    {\n      \"expected\": 3,\n      \"factor\": 2,\n      \"label\": \"Constructed sample 1\",\n      \"signal\": 6,\n      \"standards\": []\n    },\n    {\n      \"expected\": 1.5,\n      \"factor\": 3,\n      \"label\": \"Constructed sample 2\",\n      \"signal\": 4.5,\n      \"standards\": []\n    }\n  ]\n}",
+            "results": [
+              {
+                "detail": "Expected 3, got 3.",
+                "name": "Agent test \u00b7 Constructed sample 1",
+                "passed": true
+              },
+              {
+                "detail": "Expected 1.5, got 1.5.",
+                "name": "Agent test \u00b7 Constructed sample 2",
+                "passed": true
+              },
+              {
+                "detail": "Within the pinned tolerance.",
+                "name": "Blind control",
+                "passed": true
+              }
+            ],
+            "work_order_id": "@order/density",
+            "worker": "agent-a"
+          }
+        ]
+      },
+      "race": {
+        "history": [
+          {
+            "actor": "@reviewer",
+            "event": "created",
+            "note": "",
+            "submission": null
+          },
+          {
+            "actor": "@claim-winner",
+            "event": "claimed",
+            "note": "",
+            "submission": null
+          }
+        ],
+        "order": {
+          "experiment_id": "b12-vial-a",
+          "experiment_revision": 1,
+          "id": "@order/race",
+          "kind": "run_plan",
+          "lab_id": "emory-biophys",
+          "lab_revision": 1,
+          "objective": "Read the reference solution at 550 nm",
+          "released_submission": null,
+          "status": "in_progress",
+          "worker": "@claim-winner"
+        },
+        "submissions": []
+      }
+    },
+    "outcome_v2_sha256": "1f9c329696cbd96b9d55e7252617def798d1322d2559d2774c755f969abbc5e8",
+    "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+    "verification": {
+      "downtime_observed": true,
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "outcome_v2_sha256": "1f9c329696cbd96b9d55e7252617def798d1322d2559d2774c755f969abbc5e8",
+      "passed": true
+    },
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  },
+  "acceptance_run_failed_sql_http_requests": 0,
+  "acceptance_run_sql_posts_by_path": {
+    "/v3/cursor": 420,
+    "/v3/pipeline": 33
+  },
+  "acceptance_runner_sha256": "ab0ba48e3d87382c2ef42033853dd3340da02dab9c92966e686d6a1b67879614",
+  "acceptance_scenarios": {
+    "API offline confirmed": "pass",
+    "approve exact submission and digest": "pass",
+    "author receives protocol without expected held-back control": "pass",
+    "cold backup restored into a fresh directory reproduces canonical outcome": "pass",
+    "correct two numerical results for each analysis": "pass",
+    "intake caffeine and density": "pass",
+    "named reviewer gate and login": "pass",
+    "preserve receipt and original on replay": "pass",
+    "protocol and readings round-trip with pinned SHA256": "pass",
+    "reject approval and execution of failed revision": "pass",
+    "reject stale approval": "pass",
+    "replacement API reproduces canonical outcome": "pass",
+    "require fresh control after failed submission": "pass",
+    "restarted SQL reproduces canonical outcome": "pass",
+    "two simultaneous worker claims produce one persisted winner": "pass",
+    "two worker identities initialize and list four tools": "pass",
+    "unauthenticated MCP denied": "pass",
+    "verify corrected caffeine and density candidates": "pass",
+    "wrong candidate passes its own tests and fails independent control": "pass"
+  },
+  "analysis_worker_recovery": {
+    "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+    "author": "fixed shared density candidate",
+    "blind_control_passed": true,
+    "claim_events": 1,
+    "final_status": "in_review",
+    "kill_to_verified_submission_ms": 723.66,
+    "model_generation": false,
+    "order_id": "WO-5",
+    "original_exit_code": -9,
+    "original_pid": 7829,
+    "passed": true,
+    "replacement_exit_code": 0,
+    "replacement_found_via_in_progress_list": true,
+    "replacement_pid": 7852,
+    "replacement_spawn_to_verified_submission_ms": 684.17,
+    "reviewer_mode": "named",
+    "status": "pass",
+    "status_after_sigkill": "in_progress",
+    "submission_count": 1,
+    "submission_events": 1,
+    "submissions_after_sigkill": 0,
+    "transport": "authenticated streamable HTTP MCP",
+    "worker_function": "labfactory.tabular_worker.process",
+    "worker_identity": "agent-a",
+    "worker_spawn_to_confirmed_claim_ms": 592.93,
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  },
+  "backend_entry_point": "api.index:app",
+  "candidate_source_utf8_sha256": {
+    "caffeine": "900e1a056b20adfc0e8e97c488baf87334ba2d9b04178cdde773d4abaf71996b",
+    "density": "0ed267e7932a9123b596ce8074e6f41222b36984f840f471173f010e9ec39d83",
+    "wrong": "4de082bd88686474bc0b361304903d872ad1e054af105b990d1eb97a46bbe2f5"
+  },
+  "cold_backup_restore": {
+    "backup_manifest_matches_source": true,
+    "file_count": 9,
+    "image_bytes": 369816,
+    "image_manifest": {
+      "directories": [
+        "dbs",
+        "dbs/default",
+        "dbs/default/tmp",
+        "dbs/default/to_compact",
+        "metastore"
+      ],
+      "files": {
+        ".version": {
+          "bytes": 7,
+          "sha256": "52eb9b9dc88b7af9cebeb98605a30234d49c97fc8e5115e6cd9a8e69d2f32a3c"
+        },
+        "dbs/default/data": {
+          "bytes": 135168,
+          "sha256": "781af8d61731927a027a093a3c9ca12dd34f57104f87d9ce1f71a192ee08933d"
+        },
+        "dbs/default/data-shm": {
+          "bytes": 32768,
+          "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+        },
+        "dbs/default/data-wal": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        "dbs/default/stats.json": {
+          "bytes": 313,
+          "sha256": "5fdca676332f4c44bb0c651cf64b837c43a878624ab0a3ed782dd0a2401ffca0"
+        },
+        "dbs/default/wallog": {
+          "bytes": 136024,
+          "sha256": "6fbf1fdfd1ba7c038b2253bb13fee38acd6929e8750dc5883842d7c38f67e7d6"
+        },
+        "metastore/data": {
+          "bytes": 32768,
+          "sha256": "8f033bb352240ec627d15c46fca3b444135711b215472677c4a0e710c1600582"
+        },
+        "metastore/data-shm": {
+          "bytes": 32768,
+          "sha256": "c39e5d778957ac6b76e9013caaf247734ec3dbe784851fa9929c9914c0e5ce9c"
+        },
+        "metastore/data-wal": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      }
+    },
+    "limitations": [
+      "Requires SQL downtime for a stable source image.",
+      "Off-host disaster recovery and online backup were untested."
+    ],
+    "method": "quiesced complete sqld directory copy",
+    "restore_manifest_matches_source": true,
+    "scope": "same host and filesystem; caller stopped sqld before copying",
+    "status": "pass",
+    "timings_ms": {
+      "backup_copy_ms": 22.058,
+      "backup_verification_ms": 4.118,
+      "copy_and_verification_total_ms": 41.603,
+      "restore_copy_ms": 7.879,
+      "restore_verification_ms": 1.645,
+      "source_manifest_ms": 2.253
+    }
+  },
+  "db_file_sizes_after_shutdown": {
+    ".version": 7,
+    "dbs/default/data": 135168,
+    "dbs/default/data-shm": 32768,
+    "dbs/default/data-wal": 0,
+    "dbs/default/stats.json": 313,
+    "dbs/default/wallog": 136024,
+    "metastore/data": 32768,
+    "metastore/data-shm": 32768,
+    "metastore/data-wal": 0
+  },
+  "deployment_type": "Local stateless ASGI API + independent official libSQL sqld over TLS/Hrana v3",
+  "engine": {
+    "archive_sha256": "ced2a9d65a5d4b6bd72c67e98ad6c63139e2a139d91769f07fdd15be935381dd",
+    "binary_sha256": "cc075b5bf145e5e750afd2941f390b46dbfe9ae47158d95ab637a00559681054",
+    "classification": "official self-hosted libSQL sqld",
+    "native_jwt_with_token_http": 200,
+    "native_jwt_without_token_http": 401,
+    "source": "https://github.com/tursodatabase/libsql/releases/tag/libsql-server-v0.24.32",
+    "version": "sqld sqld 0.24.32 (40c272de 2025-02-14)"
+  },
+  "fresh_control_canonical_json_sha256": "91b97f6ee29ef7b382d9e5460e2b0f37e0fd084335bffc0175181d6d905db27c",
+  "host": {
+    "machine": "arm64",
+    "os": "Darwin",
+    "packages": {
+      "PyJWT": "2.15.1",
+      "cryptography": "50.0.2",
+      "httpx": "0.28.1",
+      "mcp": "1.30.0",
+      "turso-serverless": "0.1.0",
+      "uvicorn": "0.54.0"
+    },
+    "python": "3.14.9",
+    "release": "25.2.0"
+  },
+  "hosted_local_db_or_blob_environment_set": false,
+  "hosted_preview": {
+    "reason": "No dedicated, authorized hosted credentials or preview supplied.",
+    "status": "unverified"
+  },
+  "inputs": {
+    "artifact_sha256": {
+      "caffeine": "70a2d1891a5feaff5d129280562bb6e01930480a9cf2b7359dea2d47b43db1e0",
+      "density": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+      "wrong": "6e2d4e0507e25d38829986a12ea441ff726aa99cf7d1187cbd5cccc821dd0ec2"
+    },
+    "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+    "source_file_sha256": {
+      "examples/tabular/caffeine/control.json": "7d179557228dc6352b11d3747d3ad451d4270c8c3b099191fe4086391b9c9d6e",
+      "examples/tabular/caffeine/protocol.md": "c61cdde1a1e81ab2bd7b061e0c8f1a26ea112940caad3ee3fab5aca64d87928f",
+      "examples/tabular/caffeine/readings.csv": "c6fb55d8a1b33bd5ea0635a87e69498b9f5781dcb0b78dee892974a4f1ae217e",
+      "examples/tabular/density/control.json": "5a2d991a9cb397389dc5558dbcb9a622d381d5eb48881bbfaf2e486fa3f21b04",
+      "examples/tabular/density/protocol.md": "0cf4ba70121ceb73ca980b1bb97e0a7403ef2bd577c1287e360c5fc1eadebd65",
+      "examples/tabular/density/readings.csv": "228d40dc07ec118fa54b9ef84b76ab4d9ba83e6ee97931fd5a11267c9bc0586a",
+      "examples/tabular/index.json": "50c4300c28e4d2507c27d5f1ffd763155fce3f79a605aea1964282c87e3a0f4b",
+      "tests/test_tabular_acceptance.py": "00e11bb9df00d2495b81596b0176d3c624c5b759a1737555f7ae02a417de2816"
+    },
+    "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+  },
+  "operational_checks": {
+    "all_child_processes_reaped": true,
+    "api_kill_signal": "SIGKILL",
+    "api_session_with_sql_down_http": 200,
+    "api_work_dirs_after_run": {
+      "api_initial": [],
+      "api_peer": [],
+      "api_replacement": []
+    },
+    "api_workers_alive_across_sql_restart": true,
+    "database_backed_read_with_sql_down_http": 503,
+    "distinct_live_api_workers_same_released_order": true,
+    "fingerprint_after_api_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+    "fingerprint_after_cold_restore": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+    "fingerprint_after_sql_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+    "order_counts_verified": 3,
+    "scratch_removed": true,
+    "sql_kill_signal": "SIGKILL",
+    "sql_pid_alive_across_api_restart": true,
+    "supplemental_cross_worker_claim": {
+      "claim_events_per_origin": {
+        "peer": 1,
+        "primary": 1
+      },
+      "create_http_status": 201,
+      "identical_order_details": true,
+      "responses": {
+        "peer": {
+          "claim_result": "already_claimed",
+          "mcp_http_status": 200,
+          "read_http_status": 200,
+          "worker": "agent-b"
+        },
+        "primary": {
+          "claim_result": "in_progress",
+          "mcp_http_status": 200,
+          "read_http_status": 200,
+          "worker": "agent-a"
+        }
+      },
+      "status": "pass",
+      "supplemental_order_id": "WO-4",
+      "winner": "agent-a",
+      "winner_count": 1
+    }
+  },
+  "process_ids": {
+    "api_initial": 7594,
+    "api_peer": 7665,
+    "api_replacement": 7631,
+    "sql_initial": 7585,
+    "sql_reopened": 7679,
+    "sql_restored": 7718,
+    "sql_tls": 7593
+  },
+  "proxy_stats": {
+    "by_path": {
+      "/v3/cursor": 1078,
+      "/v3/pipeline": 88
+    },
+    "by_status": {
+      "200": 1165,
+      "503": 1
+    },
+    "failed_requests": 1,
+    "requests": 1166,
+    "snapshot_number": 2,
+    "successful_requests": 1165,
+    "unexpected_paths": 0,
+    "upstream_transport_failures": 1
+  },
+  "reviewer_gate_without_session_http": 401,
+  "samples": [
+    {
+      "acceptance_run_failed_sql_http_requests": 0,
+      "acceptance_run_sql_posts_by_path": {
+        "/v3/cursor": 420,
+        "/v3/pipeline": 33
+      },
+      "acceptance_runner_sha256": "ab0ba48e3d87382c2ef42033853dd3340da02dab9c92966e686d6a1b67879614",
+      "analysis_worker_recovery": {
+        "artifact_sha256": "148111c400254491b5a23baef5935a3c68f76965ed38e468431127e8a7fc96a2",
+        "author": "fixed shared density candidate",
+        "blind_control_passed": true,
+        "claim_events": 1,
+        "final_status": "in_review",
+        "kill_to_verified_submission_ms": 723.66,
+        "model_generation": false,
+        "order_id": "WO-5",
+        "original_exit_code": -9,
+        "original_pid": 7829,
+        "passed": true,
+        "replacement_exit_code": 0,
+        "replacement_found_via_in_progress_list": true,
+        "replacement_pid": 7852,
+        "replacement_spawn_to_verified_submission_ms": 684.17,
+        "reviewer_mode": "named",
+        "status": "pass",
+        "status_after_sigkill": "in_progress",
+        "submission_count": 1,
+        "submission_events": 1,
+        "submissions_after_sigkill": 0,
+        "transport": "authenticated streamable HTTP MCP",
+        "worker_function": "labfactory.tabular_worker.process",
+        "worker_identity": "agent-a",
+        "worker_spawn_to_confirmed_claim_ms": 592.93,
+        "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+      },
+      "cold_backup_restore": {
+        "backup_manifest_matches_source": true,
+        "file_count": 9,
+        "image_bytes": 369816,
+        "image_manifest": {
+          "directories": [
+            "dbs",
+            "dbs/default",
+            "dbs/default/tmp",
+            "dbs/default/to_compact",
+            "metastore"
+          ],
+          "files": {
+            ".version": {
+              "bytes": 7,
+              "sha256": "52eb9b9dc88b7af9cebeb98605a30234d49c97fc8e5115e6cd9a8e69d2f32a3c"
+            },
+            "dbs/default/data": {
+              "bytes": 135168,
+              "sha256": "781af8d61731927a027a093a3c9ca12dd34f57104f87d9ce1f71a192ee08933d"
+            },
+            "dbs/default/data-shm": {
+              "bytes": 32768,
+              "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+            },
+            "dbs/default/data-wal": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            },
+            "dbs/default/stats.json": {
+              "bytes": 313,
+              "sha256": "5fdca676332f4c44bb0c651cf64b837c43a878624ab0a3ed782dd0a2401ffca0"
+            },
+            "dbs/default/wallog": {
+              "bytes": 136024,
+              "sha256": "6fbf1fdfd1ba7c038b2253bb13fee38acd6929e8750dc5883842d7c38f67e7d6"
+            },
+            "metastore/data": {
+              "bytes": 32768,
+              "sha256": "8f033bb352240ec627d15c46fca3b444135711b215472677c4a0e710c1600582"
+            },
+            "metastore/data-shm": {
+              "bytes": 32768,
+              "sha256": "c39e5d778957ac6b76e9013caaf247734ec3dbe784851fa9929c9914c0e5ce9c"
+            },
+            "metastore/data-wal": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          }
+        },
+        "limitations": [
+          "Requires SQL downtime for a stable source image.",
+          "Off-host disaster recovery and online backup were untested."
+        ],
+        "method": "quiesced complete sqld directory copy",
+        "restore_manifest_matches_source": true,
+        "scope": "same host and filesystem; caller stopped sqld before copying",
+        "status": "pass",
+        "timings_ms": {
+          "backup_copy_ms": 22.058,
+          "backup_verification_ms": 4.118,
+          "copy_and_verification_total_ms": 41.603,
+          "restore_copy_ms": 7.879,
+          "restore_verification_ms": 1.645,
+          "source_manifest_ms": 2.253
+        }
+      },
+      "downtime": {
+        "confirmed": true,
+        "observation": "connection unavailable"
+      },
+      "operational_checks": {
+        "all_child_processes_reaped": true,
+        "api_kill_signal": "SIGKILL",
+        "api_session_with_sql_down_http": 200,
+        "api_work_dirs_after_run": {
+          "api_initial": [],
+          "api_peer": [],
+          "api_replacement": []
+        },
+        "api_workers_alive_across_sql_restart": true,
+        "database_backed_read_with_sql_down_http": 503,
+        "distinct_live_api_workers_same_released_order": true,
+        "fingerprint_after_api_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "fingerprint_after_cold_restore": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "fingerprint_after_sql_restart": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "order_counts_verified": 3,
+        "scratch_removed": true,
+        "sql_kill_signal": "SIGKILL",
+        "sql_pid_alive_across_api_restart": true,
+        "supplemental_cross_worker_claim": {
+          "claim_events_per_origin": {
+            "peer": 1,
+            "primary": 1
+          },
+          "create_http_status": 201,
+          "identical_order_details": true,
+          "responses": {
+            "peer": {
+              "claim_result": "already_claimed",
+              "mcp_http_status": 200,
+              "read_http_status": 200,
+              "worker": "agent-b"
+            },
+            "primary": {
+              "claim_result": "in_progress",
+              "mcp_http_status": 200,
+              "read_http_status": 200,
+              "worker": "agent-a"
+            }
+          },
+          "status": "pass",
+          "supplemental_order_id": "WO-4",
+          "winner": "agent-a",
+          "winner_count": 1
+        }
+      },
+      "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+      "process_ids": {
+        "api_initial": 7594,
+        "api_peer": 7665,
+        "api_replacement": 7631,
+        "sql_initial": 7585,
+        "sql_reopened": 7679,
+        "sql_restored": 7718,
+        "sql_tls": 7593
+      },
+      "proxy_stats": {
+        "by_path": {
+          "/v3/cursor": 1078,
+          "/v3/pipeline": 88
+        },
+        "by_status": {
+          "200": 1165,
+          "503": 1
+        },
+        "failed_requests": 1,
+        "requests": 1166,
+        "snapshot_number": 2,
+        "successful_requests": 1165,
+        "unexpected_paths": 0,
+        "upstream_transport_failures": 1
+      },
+      "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+      "sample": 1,
+      "timings_ms": {
+        "acceptance_offline_ms": 252.14,
+        "acceptance_run_ms": 920.43,
+        "acceptance_verify_after_api_replacement_ms": 755.72,
+        "acceptance_verify_after_cold_restore_ms": 921.43,
+        "acceptance_verify_after_sql_restart_ms": 814.07,
+        "api_kill_to_database_backed_read_including_offline_probe_ms": 737.44,
+        "cold_backup_and_restore_stop_to_database_backed_read_ms": 536.01,
+        "initial_api_spawn_to_database_backed_read_ms": 544.66,
+        "replacement_api_spawn_to_database_backed_read_ms": 480.73,
+        "sql_kill_to_database_backed_read_including_probes_ms": 1083.85,
+        "sql_respawn_to_database_backed_read_ms": 1070.53,
+        "storage_outage_request_ms": 7.2
+      },
+      "verification": {
+        "downtime_observed": true,
+        "outcome_sha256": "fbcbe5d9a473506b746e2de497749faf587d7c32100721994e8502370fce8b67",
+        "outcome_v2_sha256": "1f9c329696cbd96b9d55e7252617def798d1322d2559d2774c755f969abbc5e8",
+        "passed": true
+      },
+      "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+    }
+  ],
+  "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+  "storage_path": "labfactory.hosted_storage.run_store -> turso_serverless.Connection -> HTTPS Hrana",
+  "timings_ms": {
+    "acceptance_offline_ms": 252.14,
+    "acceptance_run_ms": 920.43,
+    "acceptance_verify_after_api_replacement_ms": 755.72,
+    "acceptance_verify_after_cold_restore_ms": 921.43,
+    "acceptance_verify_after_sql_restart_ms": 814.07,
+    "api_kill_to_database_backed_read_including_offline_probe_ms": 737.44,
+    "cold_backup_and_restore_stop_to_database_backed_read_ms": 536.01,
+    "initial_api_spawn_to_database_backed_read_ms": 544.66,
+    "replacement_api_spawn_to_database_backed_read_ms": 480.73,
+    "sql_kill_to_database_backed_read_including_probes_ms": 1083.85,
+    "sql_respawn_to_database_backed_read_ms": 1070.53,
+    "storage_outage_request_ms": 7.2
+  }
+}

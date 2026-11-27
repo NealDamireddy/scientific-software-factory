@@ -1,0 +1,42 @@
+{
+  "application_assets_manifest_sha256": "b600f6d42ab234dad257dead9f0d92f46d84e705b6c3d5834dcf3b3d058cfce0",
+  "application_assets_verified": 59,
+  "baseline_preview": "dpl_9SbYEZcMiG2xc6akg3xB478aEV1b",
+  "before_and_after_equal": true,
+  "build_cli_version": "66.6.0",
+  "build_python": "3.12",
+  "cli_version": "54.18.4",
+  "cost_observation": "Used an existing Pro trial; project creation did not change a plan. No invoice or per-project cost attribution was measured.",
+  "detailed_outcome_sha256": "1f9c329696cbd96b9d55e7252617def798d1322d2559d2774c755f969abbc5e8",
+  "downtime": {
+    "confirmed": true,
+    "observation": "Vercel 404 DEPLOYMENT_NOT_FOUND"
+  },
+  "final_acceptance_sha256": "ab0ba48e3d87382c2ef42033853dd3340da02dab9c92966e686d6a1b67879614",
+  "first_acceptance_version": "cab9b87b4b2cdfdc7f41fcc8a05bdeaec2798e3a8511d0414086869d026ae288",
+  "initialization": {
+    "contained_test_credentials": false,
+    "deployment": "dpl_CUDWYYvug38Uq7RpLkxMU3WmG6Mq",
+    "explicit_cli_target": "preview",
+    "reported_target": "production",
+    "workload_sent": false
+  },
+  "isolation": {
+    "all_app_and_storage_credentials_scoped_to_preview": true,
+    "platform_protection_enabled": true,
+    "store_access": "private",
+    "synthetic_reviewer_and_two_agents": true,
+    "test_project": "lf-trial-62badef-nr77ey7q",
+    "test_store_name": "lf-trial-62badef-nr77ey7q"
+  },
+  "logical_request_sequence_sha256": "2fff2a02b9d5998848e53e14a6ebf155588b6dede6043bc7f14d8ebf516af942",
+  "provider": "Vercel Functions and private Vercel Blob (real hosted services)",
+  "region": "iad1",
+  "replacement_preview": "dpl_4eE8Af5dirb6RZrHfFHdugkCSbG4",
+  "request_sequence_sha256": "aab0510e295999dd4baed668d379bbe3ab29ee241c5c86b5cddfeed5f32acae6",
+  "source_archive_differences": [
+    "Vercel link appended a local ignore rule to .gitignore"
+  ],
+  "source_commit": "62badef1d608d94903da475bfd2b689cb80f9c49",
+  "workload_sha256": "22adbb480970b1b8e0c11b0c4ff1681e6b085bf27a9f6b38ce20d16986b07282"
+}
