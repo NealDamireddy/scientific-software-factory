@@ -1,4 +1,5 @@
 :root {
+  --desktop-scale: 0.67;
   --ink: #242426;
   --muted: #56575f;
   --subtle: #83848c;
@@ -23,4 +24,11 @@
   --motion: 140ms;
   --sidebar-width: clamp(245px, 22.42vw, 342px);
   --ui-font: var(--font-geist, "Geist"), Arial, sans-serif;
+}
+
+/* Apply the reviewed desktop density across the shell, charts and dialogs. */
+@media (min-width: 961px) {
+  html {
+    zoom: var(--desktop-scale);
+  }
 }

@@ -834,7 +834,7 @@ button {
     transform: translateY(0);
   }
 }
-@media (max-width: 1200px) {
+@media (max-width: 960px) {
   .ws-home,
   .ws-page {
     width: calc(100% - 90px);
