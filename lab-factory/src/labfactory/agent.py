@@ -4,6 +4,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from functools import wraps
 
+from . import analysis_requests, offline_app, stage_plot
 from .artifacts import ARTIFACT_EXAMPLES, ArtifactError
 from .context import to_dict
 from .store import NotFound, Store
@@ -49,10 +50,16 @@ class AgentTools:
 
     @_return_domain_errors
     def list_work_orders(self, status: str = "open") -> list[dict] | dict:
-        return [asdict(order) for order in self._orders.list(status)]
+        return [asdict(order) for order in self._orders.list(status)] + analysis_requests.listing(self._store, status)
 
     @_return_domain_errors
     def get_work_order_context(self, work_order_id: str) -> dict:
+        if work_order_id.startswith(analysis_requests.PREFIXES):
+            request = analysis_requests.detail(self._store, work_order_id)
+            kind = analysis_requests.kind(work_order_id)
+            return {"work_order": {**{k: request[k] for k in ("id", "status", "worker")}, "claim_id": request["turn"]},
+                    kind: {k: request[k] for k in ("objective", "contexts", "turn", "history")},
+                    "instructions": offline_app.INSTRUCTIONS if kind == "offline_app" else stage_plot.INSTRUCTIONS}
         # Read status, pins, and rejection history at the same point in time.
         with self._store.read_transaction():
             order = self._orders.get(work_order_id)
@@ -103,12 +110,20 @@ class AgentTools:
 
     @_return_domain_errors
     def claim_work_order(self, work_order_id: str, worker: str, untagged_artifact: dict | None = None) -> dict:
+        if work_order_id.startswith(analysis_requests.PREFIXES):
+            if untagged_artifact is not None:
+                raise WorkOrderError("Start the analysis request before authoring its artifact.")
+            return analysis_requests.claim(self._store, work_order_id, worker)
         with self._store.transaction():
             order = self._orders.claim(work_order_id, worker, untagged_artifact=untagged_artifact)
             return {**asdict(order), "claim_id": self._orders.active_claim_id(order)}
 
     @_return_domain_errors
     def submit_artifact(self, work_order_id: str, worker: str, artifact: dict, claim_id: int | None = None) -> dict:
+        if work_order_id.startswith(analysis_requests.PREFIXES):
+            if type(claim_id) != int or claim_id != artifact.get("turn"):
+                raise WorkOrderError("Supply the claim ID for this analysis turn.")
+            return analysis_requests.submit(self._store, work_order_id, worker, artifact)
         submission = self._orders.submit(work_order_id, worker, artifact, claim_id)
         return {
             "status": "in_review" if submission.passed else "in_progress",

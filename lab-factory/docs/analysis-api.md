@@ -95,3 +95,21 @@ When Blob holds uploaded files, back up the database **and** every referenced `u
 ### Skill versions on uploaded analysis orders
 
 The authenticated order-creation request accepts an optional `skills` array containing the enabled instructions selected for that order. Each entry supplies `id`, `name`, `whenToUse`, and `instructions`. The server calculates a SHA-256 version for each entry and checks any supplied version. The order retains the original instructions. The reviewer can inspect them in the analysis details, and the coding worker receives them with the public experiment fields on every authoring attempt, including retries. Later workspace edits apply to new orders. Orders created without skills continue to work.
+
+## Project-based offline applications
+
+A signed-in researcher can submit a plain-language objective to `POST /api/analysis/apps`. Send the usual same-origin JSON header and a fresh UUID. For example:
+
+```json
+{
+  "request_id": "eeab0128-ded3-4e60-bb07-92cbe406d25c",
+  "objective": "Align my repeated spectra, plot the combined profile and export the numbers.",
+  "project": {"experiment_id": "repeat-spectra"}
+}
+```
+
+The response contains the request ID. The backend pins the saved experiment, its assigned instruments, lab revision, and project documents at creation. Supply `experiment_document_ids` to narrow the project documents or `lab_document_ids` to include selected lab manuals. Supply `lab_revision` and `experiment_revision` to select older records.
+
+The existing authenticated analysis worker discovers these requests in its MCP queue. Read `GET /api/analysis/apps/{id}` for the pinned context, status, and turn history. At `needs_input`, send `{"turn": 1, "answer": "..."}` to `POST /api/analysis/apps/{id}/answers` with the displayed turn number. The same worker command processes the reopened request. At `ready`, download `GET /api/analysis/apps/{id}/app`. The SHA-256 in the detail response covers the exact downloaded bytes.
+
+This path targets offline HTML and JavaScript. The worker authors the analysis, figure, and controls. The backend packages the document in a sandboxed frame and serves an attachment. A ready artifact is a review candidate. Its digest identifies the downloaded bytes. Scientific acceptance requires running independent inputs. Downloading a candidate creates no approved release record. The existing stage recipe uses the same request lifecycle at `/api/analysis/drift`. A completed spectroscopy trial, its control data, and replay instructions are in [the repeated spectra benchmark](../benchmarks/repeated_spectra/README.md).

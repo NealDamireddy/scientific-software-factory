@@ -29,6 +29,24 @@ _TEST = _object({"label": _TEXT, "standards": _array(_array(_NUMBER)), "signal":
 _SCHEMA = _object({"question": _TEXT, "source": _TEXT, "explanation": _TEXT, "tests": _array(_TEST)})
 
 
+def generate_plot(context, feedback=None):
+    from .stage_plot import RUN_FIELDS
+    fields = {k: _TEXT for k in sorted(RUN_FIELDS)}
+    fields.update(context_number={"type": "integer"}, ticks_per_mm=_NUMBER, origin_mm=_NUMBER, interval_seconds=_NUMBER)
+    schema = _object({"question": _TEXT, "summary": _TEXT, "axis": {"type": "string", "enum": ["pending", "order", "elapsed"]},
+                      "runs": _array(_object(fields))})
+    prompt = context["instructions"] + "\n" + json.dumps({"work": context["drift_plot"], "validation": feedback})
+    return run_worker(prompt, json.dumps(schema), timeout=210, temp_prefix="lab-drift-",
+                      failure_message=lambda r: f"Drift plot author exited {r.returncode}.").answer
+
+
+def generate_app(context, feedback=None):
+    schema = _object({"question": _TEXT, "summary": _TEXT, "html": _TEXT})
+    prompt = context["instructions"] + "\n" + json.dumps({"request": context["offline_app"], "feedback": feedback})
+    return run_worker(prompt, json.dumps(schema), timeout=300, temp_prefix="lab-offline-app-",
+                      failure_message=lambda r: f"Offline app author exited {r.returncode}.").answer
+
+
 def generate(context, feedback=None):
     """The model receives only the author projection and uses no tools or workspace."""
     analysis = dict(context["analysis"])
@@ -73,6 +91,24 @@ async def process(session, order_id, worker, author=generate):
     args = {"work_order_id": order_id, "worker": worker}
     context = await _call(session, "get_work_order_context", {"work_order_id": order_id})
     order = context["work_order"]
+    for kind, field, generate_decision in (("offline_app", "app", generate_app), ("drift_plot", "plot", generate_plot)):
+        if kind in context:
+            if order["status"] == "open":
+                order = await _call(session, "claim_work_order", args)
+            elif order["status"] != "in_progress" or order["worker"] != worker:
+                return False
+            turn = context[kind]["turn"]
+            if turn != order["claim_id"]:
+                return False
+            feedback = None
+            for _ in range(3):
+                decision = await asyncio.to_thread(generate_decision, context, feedback)
+                result = await _call(session, "submit_artifact", {**args, "claim_id": turn,
+                                     "artifact": {"turn": turn, field: decision}})
+                if "retry" not in result:
+                    return True
+                feedback = result["retry"]
+            raise RuntimeError(f"Worker submission failed validation: {feedback}")
     analysis = context.get("analysis")
     if not analysis or analysis.get("awaiting_fresh_control") or analysis.get("needs_input"):
         return False
@@ -117,7 +153,8 @@ async def once(url, token, worker, order_id=None):
                 for status in ("open", "in_progress"):
                     orders = await _call(session, "list_work_orders", {"status": status})
                     for item in orders:
-                        if (item["kind"] == "analysis_app" and item["experiment_id"].startswith("tabular-")
+                        if ((item["kind"] in ("drift_plot", "offline_app") or
+                             item["kind"] == "analysis_app" and item["experiment_id"].startswith("tabular-"))
                                 and (status == "open" or item["worker"] == worker)):
                             if await process(session, item["id"], worker):
                                 return True

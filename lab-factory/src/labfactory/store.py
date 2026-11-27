@@ -24,6 +24,18 @@ class NotFound(LookupError):
 
 
 _SCHEMA = {
+    "drift_requests": """
+    CREATE TABLE IF NOT EXISTS drift_requests (
+        id TEXT PRIMARY KEY, actor TEXT NOT NULL, request_digest TEXT NOT NULL, objective TEXT NOT NULL,
+        contexts TEXT NOT NULL, status TEXT NOT NULL, worker TEXT, turn INTEGER NOT NULL DEFAULT 1,
+        html TEXT, artifact_digest TEXT, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )""",
+    "drift_turns": """
+    CREATE TABLE IF NOT EXISTS drift_turns (
+        request_id TEXT NOT NULL REFERENCES drift_requests(id), turn INTEGER NOT NULL,
+        worker TEXT NOT NULL, submission TEXT NOT NULL, answer TEXT, answered_by TEXT,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY(request_id, turn)
+    )""",
     "records": """
     CREATE TABLE IF NOT EXISTS records (
         kind TEXT NOT NULL,
@@ -303,10 +315,10 @@ class Store:
         data, revision = self._read_revision("lab", lab_id, number)
         return lab_from_dict(data), revision
 
-    def lab_for_experiment(self, exp: Experiment) -> tuple[Lab, Revision]:
-        """Load the current lab and validate the experiment's instrument references."""
+    def lab_for_experiment(self, exp: Experiment, number: int | None = None) -> tuple[Lab, Revision]:
+        """Load the selected lab revision and validate the experiment's instrument references."""
         try:
-            lab, revision = self.get_lab(exp.lab_id)
+            lab, revision = self.get_lab(exp.lab_id, number)
         except NotFound as exc:
             raise ContextError(str(exc)) from exc
         for instrument_id in exp.instrument_ids:

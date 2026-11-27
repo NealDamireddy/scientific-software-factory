@@ -1,0 +1,42 @@
+{
+  "lab": {
+    "id": "spectroscopy",
+    "name": "Spectroscopy bench",
+    "instruments": [
+      {
+        "id": "energy-scanner",
+        "name": "Scanning spectrometer",
+        "model": "Simulation S1",
+        "firmware": "1",
+        "parameters": [],
+        "commands": [],
+        "notes": "One energy scan per UTF-8 comma-separated file. Runs are independently calibrated."
+      }
+    ],
+    "documents": []
+  },
+  "experiment": {
+    "id": "repeat-spectra",
+    "title": "Repeat energy spectra",
+    "lab_id": "spectroscopy",
+    "goal": "Combine repeated scans into one intensity profile after removing the energy offset of each acquisition.",
+    "instrument_ids": [
+      "energy-scanner"
+    ],
+    "documents": [
+      {
+        "id": "export-guide",
+        "kind": "manual",
+        "title": "S1 scan export",
+        "source": "Synthetic instrument manual",
+        "text": "Each file contains energy_eV (laboratory energy), marker_eV (the observed elastic-line energy, constant within each file), det_ct (detector counts) and mon_ct (incident monitor counts). These are raw counts. Corrected scan points nominally share a grid. The analysis station supports offline HTML with JavaScript."
+      }
+    ]
+  },
+  "objective": "Make me an offline app to align and combine my repeated spectra, plot the result, and export the numbers.",
+  "question": "What rule should the app use to combine scans? Should it subtract each file’s elastic-line marker so the line sits at 0 eV, pair corrected points within a tolerance you specify (or interpolate onto a grid you specify), and compute intensity as Σdet_ct/Σmon_ct, as the equal-weight mean of det_ct/mon_ct, or by another rule?",
+  "answer": "Set each file's zero to its own marker_eV: corrected energy = energy_eV minus marker_eV. Combine all selected scans at matching corrected energies using sum(det_ct)/sum(mon_ct). Require identical grids within 1e-8 eV, no interpolation or extrapolation. Reject a scan set with mismatched grids, duplicate corrected energies, inconsistent markers, nonfinite data, negative detector counts or nonpositive monitors. No background correction, smoothing, uncertainties or fitting. Plot the combined profile and export a CSV with corrected energy in eV and normalized intensity, one row per bin. Use every row, and identify the contributing files.",
+  "worker_summary": "The S1 records establish that each UTF-8 CSV is one independently calibrated scan with laboratory energy and a file-constant elastic-line marker in eV, plus raw detector and incident-monitor counts. The reviewer specified subtracting each scan’s own marker, matching corrected grids within an absolute tolerance of 1e-8 eV, and computing each bin as Σdet_ct/Σmon_ct. The app sorts each scan by corrected energy, pairs points by rank, and requires the full spread across scans in each bin to meet the tolerance. For reproducible CSV coordinates, it uses the corrected energies from the first file in the selection. Every valid data row contributes once. The app identifies the contributing files and their markers, plots the combined profile, and exports one row per bin with corrected energy in eV and intensity in detector counts per incident-monitor count. All processing and downloads run locally in the browser.",
+  "request_id": "APP-7edc571a-8209-4572-9027-87813f96f40a",
+  "download_sha256": "50f611e8abba990099bfed838826f4748836aba5cdce5c2b98493dca128308b4"
+}
