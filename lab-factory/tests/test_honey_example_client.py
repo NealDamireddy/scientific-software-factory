@@ -60,6 +60,10 @@ def test_sender_preserves_caller_binding(sender, monkeypatch, order_context, sta
         expected.insert(1, "claim_work_order")
     assert [name for name, args in calls] == expected
     submitted = {"work_order_id": "WO-1", "worker": "agent", "artifact": artifact}
+    if status == "open":
+        assert calls[1][1] == {
+            "work_order_id": "WO-1", "worker": "agent", "untagged_artifact": artifact,
+        }
     if claim_id is not None:
         submitted["claim_id"] = claim_id
     assert calls[-1][1] == submitted

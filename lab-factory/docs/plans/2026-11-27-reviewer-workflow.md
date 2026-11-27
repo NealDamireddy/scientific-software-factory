@@ -1,6 +1,6 @@
 # Lab Factory core and reviewer workflow
 
-Updated November 27, 2026. The implementation baseline is `62badef`. The [architecture design](../specs/2026-11-25-lab-factory-architecture-design.md) describes the original core. This checkout also includes hosted review, pinned references, and analysis workers.
+Updated November 27, 2026. The original review used `62badef`. The integrated branch includes the shipped web UI and backend from `main` at `10bad3f`. The [architecture design](../specs/2026-11-25-lab-factory-architecture-design.md) describes the original core. This checkout also includes hosted review, pinned references, and analysis workers.
 
 ## Existing behavior to preserve
 
@@ -20,9 +20,11 @@ The procedure matcher recognizes digits with an optional decimal fraction, optio
 
 ## Abandoned claim recovery
 
-An operator can return an in-progress order to the queue with a reason. The local CLI and hosted reviewer workflow must identify the claim being acted on, so a stale review cannot release a subsequent claim. Preserve the order ID, both pinned revisions, submission numbering and history. Record the reviewer, previous worker and reason atomically. A replacement identity can claim and submit. A late submission by the former worker must fail without adding a submission or event. Recovery remains a reviewer action. Workers retain the four existing MCP tools. A worker captures its claim ID before starting work and submits that ID with the result. If the same identity returns after displacement, a delayed submission carrying the old ID or omitting the ID must fail without a state change. Preserve compatibility for legacy clients whose identity has a single unambiguous claim.
+An operator can return an in-progress order to the queue with a reason. The local CLI and hosted reviewer workflow must identify the claim being acted on, so a stale review cannot release a subsequent claim. Preserve the order ID, both pinned revisions, submission numbering and history. Record the reviewer, previous worker and reason atomically. A replacement identity can claim and submit. A late submission by the former worker must fail without adding a submission or event. Recovery remains a reviewer action. Workers retain the four existing MCP tools. A worker captures its claim ID before starting work and submits that ID with the result. If the same identity returns after displacement, a delayed submission carrying the old ID or omitting the ID after a manual requeue must fail without a state change. Preserve compatibility for legacy clients whose identity has a single unambiguous claim.
 
-Verify recovery both before the first submission and after failed checks. Exercise wrong-state and stale requests, persistence on reopen, and a race between recovery and a passing submission. Confirm that hosted access uses the existing reviewer policy.
+Verify recovery both before the first submission and after failed checks. Exercise wrong-state and stale requests, persistence on reopen, and a race between recovery and a passing submission. Confirm that hosted access uses the existing reviewer policy. The portal displays the age and UTC start time of the active claim. The reviewer decides when to recover it.
+
+Rejection reopens an order for revision. For an untagged retry, compare the incoming artifact digest with artifacts previously rejected for that worker on that order. A match leaves the order, submissions and history intact. A changed artifact from a legacy client remains eligible for the normal checks. A submission explicitly bound to the current claim can intentionally repeat the original artifact. Untagged content changes alone cannot establish which claim produced them.
 
 ## Pinned citation lookup
 
@@ -41,6 +43,8 @@ Use the same committed baseline for four isolated checkouts. One implementer and
 | Can workers edit a neighboring checkout? | Each of the four workspace-write sandboxes permitted a local write and denied a write to a neighboring checkout. |
 | Does lookup keep the original evidence? | All six CLI cases in `test_citation_lookup_acceptance.py` failed against the baseline. They passed after implementation, including different pinned lab and experiment revision numbers, later edits, a collision and a database reopen. |
 | Can a reviewer recover work and preserve its history? | Eight cases in `test_claim_recovery_acceptance.py` failed against the baseline. Its existing MCP access check already passed. The completed recovery tests exercise the audit event, original pins, failed submissions, a different replacement worker and a race with a passing submission. |
-| Can delayed work cross a same-identity reclaim? | The verifier reproduced acceptance of stale tagged and untagged payloads in the first implementation. Both are refused by the repaired server. A current tagged payload and a legacy first claim still pass. The original successful-reclaim case now supplies the replacement's saved ID. The four regression cases are in `test_claim_generation_acceptance.py`. |
+| Can delayed work cross a same-identity reclaim after manual requeue? | The verifier reproduced acceptance of stale tagged and untagged payloads in the first implementation. Both are refused by the repaired server. A current tagged payload and a legacy first claim still pass. The original successful-reclaim case now supplies the replacement's saved ID. The four regression cases are in `test_claim_generation_acceptance.py`. |
+
+During PR review, two additional cases failed on the port to `main`. An untagged retry reinstated a rejected artifact, and an ineligible prebuilt upload acquired a claim before failing. The focused regression suite is in `tests/test_review_followup.py`. The uploader now checks eligibility inside the claim transaction, and submission checks the digest again before writing.
 
 From `lab-factory/`, run `uv run --locked pytest tests -q` to repeat the package checks. The portal recovery flow was also exercised in Chromium against a disposable local deployment.

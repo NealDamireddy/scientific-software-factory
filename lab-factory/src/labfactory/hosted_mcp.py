@@ -101,11 +101,19 @@ def _agent_server(run_store, agent_name: str, security: TransportSecuritySetting
         return await stored(lambda agent: agent.get_work_order_context(work_order_id))
 
     @server.tool()
-    async def claim_work_order(work_order_id: str, worker: str) -> dict:
-        """Claim an open order using your authenticated agent name and return its claim ID."""
+    async def claim_work_order(work_order_id: str, worker: str, untagged_artifact: dict | None = None) -> dict:
+        """Claim an open order under your authenticated name and return its claim ID.
+
+        For a prebuilt untagged upload, provide untagged_artifact to check eligibility before claiming.
+        """
         if worker != agent_name:
             return {"error": "worker must match the authenticated agent name"}
-        return await stored(lambda agent: agent.claim_work_order(work_order_id, worker), write=True)
+        if untagged_artifact is not None and (error := _artifact_limit_error(untagged_artifact)):
+            return {"error": error}
+        return await stored(
+            lambda agent: agent.claim_work_order(work_order_id, worker, untagged_artifact=untagged_artifact),
+            write=True,
+        )
 
     @server.tool()
     async def submit_artifact(work_order_id: str, worker: str, artifact: dict, claim_id: StrictInt | None = None) -> dict:

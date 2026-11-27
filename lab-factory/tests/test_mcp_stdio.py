@@ -175,14 +175,18 @@ def test_prebuilt_source_retries_keep_their_original_binding(tmp_path, monkeypat
         assert orders.get("WO-1").status == "open"
         assert orders.history("WO-1") == history
 
-    # Even an upload that takes the reopened order must submit without a claim ID.
     for _ in range(2):
         assert asyncio.run(submit(db, "WO-1", source)) == 1
         assert "claim_id is required" in capsys.readouterr().err
+        with Store(db) as store:
+            orders = WorkOrders(store)
+            assert orders.get("WO-1").status == "open"
+            assert orders.history("WO-1") == history
+            assert orders.submissions("WO-1") == []
 
     with Store(db) as store:
         orders = WorkOrders(store)
-        current = orders.active_claim_id(orders.get("WO-1"))
+        current = orders.active_claim_id(orders.claim("WO-1", worker))
         assert current == first + 1
         assert orders.submissions("WO-1") == []
 

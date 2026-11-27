@@ -1,4 +1,5 @@
 import asyncio
+from copy import deepcopy
 import json
 import sys
 
@@ -6,8 +7,12 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 import pytest
 
+from labfactory.store import Store
+from labfactory.workorders import WorkOrders
+
 from test_claim_recovery_acceptance import (
-    FORMER, ORDER, PLAN, active_claim, cli, db, requeue_args, snapshot, successful,
+    FORMER, ORDER, PLAN, REPLACEMENT, REVIEWER, active_claim, claim, cli, db,
+    requeue_args, snapshot, submit, successful, worker_call,
 )
 
 
@@ -87,3 +92,47 @@ def test_submission_claim_generation(db, submission):
                     assert (history[-1]["event"], history[-1]["actor"]) == ("submitted", FORMER)
 
     asyncio.run(exercise())
+
+
+def test_rejected_digests_only_fence_untagged_retries_by_the_same_worker(db, monkeypatch):
+    def reject(number):
+        with Store(db) as store:
+            WorkOrders(store).reject(ORDER, REVIEWER, number, "Revise the plan")
+
+    def unexpected_check(*args):
+        pytest.fail("A fenced retry reached artifact checks")
+
+    claim(db)
+    assert submit(db)["passed"]
+    reject(1)
+
+    before = snapshot(db)
+    reordered = dict(reversed(list(PLAN.items())))
+    denied_claim = worker_call(db, "claim_work_order", FORMER, reordered)
+    assert "previously rejected" in denied_claim["error"]
+    assert snapshot(db) == before
+
+    corrected = deepcopy(PLAN)
+    corrected["steps"][0]["settings"][0]["value"] += 1
+    second_claim = worker_call(db, "claim_work_order", FORMER, corrected)["claim_id"]
+    with monkeypatch.context() as patch:
+        patch.setattr(WorkOrders, "_check", unexpected_check)
+        before = snapshot(db)
+        assert "previously rejected" in submit(db, artifact=reordered)["error"]
+        assert snapshot(db) == before
+    assert submit(db, artifact=corrected)["passed"]
+    reject(2)
+
+    current = claim(db)["claim_id"]
+    with monkeypatch.context() as patch:
+        patch.setattr(WorkOrders, "_check", unexpected_check)
+        before = snapshot(db)
+        for old_artifact in (PLAN, corrected):
+            assert "previously rejected" in submit(db, artifact=old_artifact)["error"]
+        stale = worker_call(db, "submit_artifact", FORMER, PLAN, second_claim)
+        assert "no longer active" in stale["error"]
+        assert snapshot(db) == before
+    assert worker_call(db, "submit_artifact", FORMER, PLAN, current)["passed"]
+    reject(3)
+    claim(db, REPLACEMENT)
+    assert submit(db, REPLACEMENT)["passed"]

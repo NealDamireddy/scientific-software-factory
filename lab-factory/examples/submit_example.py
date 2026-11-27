@@ -35,7 +35,7 @@ async def submit_prebuilt(session, order, args, artifact, claim_id):
             raise ExampleError(f"claim {claim_id} is no longer active for {order_id}")
         args = {**args, "claim_id": claim_id}
     if order["status"] == "open":
-        await call(session, "claim_work_order", args)
+        await call(session, "claim_work_order", {**args, "untagged_artifact": artifact})
     elif order["status"] != "in_progress" or order["worker"] != args["worker"]:
         raise ExampleError(f"{order_id} is unavailable to this worker")
     # An untagged prebuilt upload must go through the server's ambiguity check.

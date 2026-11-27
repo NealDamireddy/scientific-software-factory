@@ -168,9 +168,12 @@ class WorkOrders:
         if changed.rowcount != 1:
             raise WorkOrderError(f"{id} is {self.get(id).status}, expected {expected}")
 
-    def claim(self, id: str, worker: str) -> WorkOrder:
+    def claim(self, id: str, worker: str, *, untagged_artifact: dict | None = None) -> WorkOrder:
         _actor(worker)
         with self.store.transaction():
+            if untagged_artifact is not None:
+                self._require_untagged_claim(id, worker)
+                self._require_new_untagged_digest(id, worker, canonical_digest(untagged_artifact))
             self._transition(id, "open", "in_progress", worker)
             self._event(id, "claimed", worker)
             return self.get(id)
@@ -215,6 +218,21 @@ class WorkOrders:
                 return True
         return False
 
+    def _require_untagged_claim(self, id: str, worker: str) -> None:
+        if self._was_displaced(id, worker):
+            raise WorkOrderError(f"claim_id is required after recovery of an earlier claim by {worker} on {id}")
+
+    def _require_new_untagged_digest(self, id: str, worker: str, fingerprint: str) -> None:
+        rejected = self.db.execute(
+            """SELECT 1 FROM events e
+               JOIN submissions s ON s.work_order_id=e.work_order_id AND s.number=e.submission
+               WHERE e.work_order_id=? AND e.event='rejected'
+                 AND s.worker=? AND s.artifact_digest=? LIMIT 1""",
+            (id, worker, fingerprint),
+        ).fetchone()
+        if rejected is not None:
+            raise WorkOrderError(f"claim_id is required to resubmit an artifact previously rejected for {worker} on {id}")
+
     def submit(self, id: str, worker: str, artifact: dict, claim_id: int | None = None) -> Submission:
         with self.store.transaction():
             order = self.get(id)
@@ -227,12 +245,14 @@ class WorkOrders:
                     raise WorkOrderError("provide a positive claim ID")
                 if self.active_claim_id(order) != claim_id:
                     raise WorkOrderError(f"claim {claim_id} is no longer active for {id}")
-            elif self._was_displaced(id, worker):
-                raise WorkOrderError(f"claim_id is required after recovery of an earlier claim by {worker} on {id}")
+            else:
+                self._require_untagged_claim(id, worker)
             # Validate and persist the same snapshot, including its original JSON types.
             data = deepcopy(artifact)
             body = canonical_json(data)
             fingerprint = canonical_digest(data)
+            if claim_id is None:
+                self._require_new_untagged_digest(id, worker, fingerprint)
             from . import tabular_service
 
             report = None

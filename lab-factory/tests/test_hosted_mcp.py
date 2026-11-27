@@ -55,7 +55,7 @@ async def call(session, name, arguments):
     return json.loads(result.content[0].text)
 
 
-def test_streamable_http_bound_worker_and_persistent_submission(hosted):
+def test_streamable_http_bound_worker_and_persistent_submission(hosted, tmp_path):
     async def run():
         async with agent(hosted, "example-token-A") as first, agent(hosted, "example-token-B") as second:
             tools = await first.list_tools()
@@ -73,6 +73,17 @@ def test_streamable_http_bound_worker_and_persistent_submission(hosted):
             assert passed["status"] == "in_review" and passed["passed"]
         async with agent(hosted, "example-token-B") as new_session:
             assert (await call(new_session, "get_work_order_context", work_id))["work_order"]["status"] == "in_review"
+        with Store(tmp_path / "lab.db") as store:
+            orders = WorkOrders(store)
+            orders.reject(pending["id"], "Reviewer", passed["submission"], "Revise the plan")
+            history = orders.history(pending["id"])
+        async with agent(hosted, "example-token-A") as retry:
+            denied = await call(retry, "claim_work_order", {**claim_a, "untagged_artifact": artifact})
+            assert "previously rejected" in denied["error"]
+        with Store(tmp_path / "lab.db") as store:
+            orders = WorkOrders(store)
+            assert orders.get(pending["id"]).status == "open"
+            assert orders.history(pending["id"]) == history
 
     asyncio.run(run())
 

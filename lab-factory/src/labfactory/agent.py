@@ -102,9 +102,9 @@ class AgentTools:
             return context
 
     @_return_domain_errors
-    def claim_work_order(self, work_order_id: str, worker: str) -> dict:
+    def claim_work_order(self, work_order_id: str, worker: str, untagged_artifact: dict | None = None) -> dict:
         with self._store.transaction():
-            order = self._orders.claim(work_order_id, worker)
+            order = self._orders.claim(work_order_id, worker, untagged_artifact=untagged_artifact)
             return {**asdict(order), "claim_id": self._orders.active_claim_id(order)}
 
     @_return_domain_errors
