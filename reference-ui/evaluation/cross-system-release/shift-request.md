@@ -1,0 +1,1 @@
+Please sign off, or put on hold, the conductivity reports for BW-731, BW-744, BW-752 and BW-760. What could the water lab stand behind at 00:15 UTC on 17 April 2026, and what had changed by 18:00 UTC that day? Leave the next shift enough evidence to defend each decision and follow up anything still open.

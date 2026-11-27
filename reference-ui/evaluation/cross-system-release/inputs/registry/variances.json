@@ -1,0 +1,20 @@
+[
+  {
+    "id": "VR-29",
+    "run": "AQ-509",
+    "field": "H limit",
+    "value": "1.50%",
+    "signed": "QA-A",
+    "recorded": "2026-04-16T18:32Z",
+    "reason": "project-specific precision agreement; all other fields inherit"
+  },
+  {
+    "id": "VR-30",
+    "run": "AQ-512",
+    "field": "H limit",
+    "value": "3.00%",
+    "signed": null,
+    "recorded": "2026-04-16T18:42Z",
+    "reason": "request only"
+  }
+]
