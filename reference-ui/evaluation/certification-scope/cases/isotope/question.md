@@ -1,0 +1,3 @@
+An environmental isotope lab is updating its reference-material register. The draft row reads “IAEA-600 caffeine, IAEA-certified calibrant for both carbon and oxygen. Enter −27.73 ± 0.07‰ for carbon and −3.48 ± 0.53‰ for oxygen. List carbon under VPDB. Use 0.25 mg portions for both measurements.”
+
+Would you sign off on this entry for the next organic-material batch? Give the analyst the wording and practical changes you would authorize, with the supporting records. The worksheet will be used with an elemental analyzer for carbon and a pyrolyzer for oxygen, each coupled to an isotope ratio mass spectrometer.
