@@ -95,6 +95,18 @@ uv run --locked labfactory --db "$db" wo show WO-1
 
 Look for `released: submission 1 by Local reviewer` and the approved artifact’s SHA-256 digest in the history. To run the tests, use `uv run --locked pytest -v`.
 
+During local review, use [`wo citation`](#inspect-a-pinned-citation) to read a cited document.
+
+### Inspect a pinned citation
+
+Run `labfactory --db PATH wo citation ORDER DOCUMENT_ID` to see the document's origin, record ID and revision, document ID, kind, title, source, and full stored text. For example, inspect the lab SOP pinned to the quickstart order.
+
+```sh
+uv run --locked labfactory --db "$db" wo citation WO-1 sop-cuvette
+```
+
+The document ID must match exactly one document across the order's pinned lab and experiment revisions. Unknown IDs and IDs found in both records produce an error.
+
 ## Connect a coding agent
 
 Use absolute paths to the project and the database containing your lab’s work orders. To connect Claude Code to the quickstart database from the same shell, run

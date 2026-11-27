@@ -27,6 +27,9 @@ def _parser() -> argparse.ArgumentParser:
     create.add_argument("--objective", required=True)
     wo.add_parser("list").add_argument("--status")
     wo.add_parser("show").add_argument("id")
+    citation = wo.add_parser("citation", help="show a document from the pinned context")
+    citation.add_argument("order", metavar="ORDER")
+    citation.add_argument("document_id", metavar="DOCUMENT_ID")
     for decision in ("approve", "reject"):
         review = wo.add_parser(decision)
         review.add_argument("id")
@@ -102,6 +105,16 @@ def _operate(args, store: Store) -> None:
             print(f"{order.id} {order.kind} {order.status} · {_one_line(order.objective)}")
     elif args.command == "show":
         print(_show(orders, args.id))
+    elif args.command == "citation":
+        citation = orders.citation(args.order, args.document_id)
+        document = citation.document
+        print(f"{citation.origin} {citation.record_id} revision {citation.revision}")
+        print(f"document: {_one_line(document.id)}")
+        print(f"kind: {document.kind}")
+        print(f"title: {_one_line(document.title)}")
+        print(f"source: {_one_line(document.source)}")
+        print()
+        sys.stdout.write(document.text)
     elif args.command == "approve":
         order = orders.approve(args.id, args.by, args.submission)
         print(f"{order.id} released: submission {args.submission} by {args.by}")

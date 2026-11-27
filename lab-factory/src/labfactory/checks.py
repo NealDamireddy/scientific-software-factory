@@ -6,6 +6,7 @@ from fractions import Fraction
 import re
 
 from .artifacts import AnalysisApp, Procedure, ProcedureStep, RunPlan, Setting, format_citation, format_number
+from .citations import CitationError, CitationIndex
 from .context import Command, Experiment, Instrument, Lab
 from .units import UNIT_SPELLINGS, UnitError, convert_exact, is_known_unit
 
@@ -100,14 +101,13 @@ def _command_checks(
     return results
 
 
-def _procedure_checks(prefix: str, step: ProcedureStep, document_counts: Counter[str]) -> list[CheckResult]:
+def _procedure_checks(prefix: str, step: ProcedureStep, citations: CitationIndex) -> list[CheckResult]:
     citation_errors = []
     for document_id in step.citations:
-        count = document_counts[document_id]
-        if count == 0:
-            citation_errors.append(f"unknown document {format_citation(document_id)}")
-        elif count > 1:
-            citation_errors.append(f"ambiguous document {format_citation(document_id)} in pinned context")
+        try:
+            citations.resolve(document_id)
+        except CitationError as error:
+            citation_errors.append(str(error))
     if not step.citations:
         citation_errors.append("no citation")
     citation_detail = ", ".join(citation_errors or map(format_citation, step.citations))
@@ -144,11 +144,11 @@ def check_artifact(artifact: RunPlan | Procedure | AnalysisApp, lab: Lab, experi
             ))
         return results
 
-    document_counts = Counter(document.id for document in (*lab.documents, *experiment.documents))
+    citations = CitationIndex(lab, experiment)
     results = []
     for index, step in enumerate(artifact.steps, start=1):
         prefix = f"step {index}: "
-        results.extend(_procedure_checks(prefix, step, document_counts))
+        results.extend(_procedure_checks(prefix, step, citations))
         action = step.action
         if action is not None:
             instrument, listed = _instrument_check(lab, experiment, action.instrument_id, prefix + "instrument listed")

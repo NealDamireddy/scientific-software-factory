@@ -9,7 +9,8 @@ import sqlite3
 
 from .artifacts import ArtifactError, KINDS, parse_artifact
 from .checks import CheckResult, all_passed, check_artifact
-from .context import ContextError, Experiment, Lab, canonical_digest, canonical_json
+from .citations import CitationIndex
+from .context import ContextError, Document, Experiment, Lab, canonical_digest, canonical_json
 from .store import NotFound, Store
 
 
@@ -29,6 +30,14 @@ class WorkOrder:
     status: str
     worker: str | None
     released_submission: int | None
+
+
+@dataclass(frozen=True)
+class PinnedCitation:
+    origin: str
+    record_id: str
+    revision: int
+    document: Document
 
 
 @dataclass(frozen=True)
@@ -126,6 +135,14 @@ class WorkOrders:
 
     def pinned_context(self, id: str) -> tuple[Lab, Experiment]:
         return self._context_for(self.get(id))
+
+    def citation(self, id: str, document_id: str) -> PinnedCitation:
+        order = self.get(id)
+        lab, experiment = self._context_for(order)
+        origin, document = CitationIndex(lab, experiment).resolve(document_id)
+        if origin == "lab":
+            return PinnedCitation(origin, lab.id, order.lab_revision, document)
+        return PinnedCitation(origin, experiment.id, order.experiment_revision, document)
 
     def _context_for(self, order: WorkOrder) -> tuple[Lab, Experiment]:
         lab, _ = self.store.get_lab(order.lab_id, order.lab_revision)
