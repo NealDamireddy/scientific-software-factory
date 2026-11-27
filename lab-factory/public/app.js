@@ -238,6 +238,23 @@ function configureDecision(kind, order, number, digest) {
   byId("decision-submit").className = approve ? "primary" : "danger";
 }
 
+function claimAge(claimedAt) {
+  const timestamp = Date.parse(claimedAt);
+  if (!Number.isFinite(timestamp)) return element("span", "Claim time unavailable", "muted");
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+  let age = "just now";
+  if (minutes > 0) {
+    const [amount, unit] = minutes < 60 ? [minutes, "minute"]
+      : minutes < 1440 ? [Math.floor(minutes / 60), "hour"]
+        : [Math.floor(minutes / 1440), "day"];
+    age = amount + " " + unit + (amount === 1 ? "" : "s") + " ago";
+  }
+  const precise = claimedAt.replace("T", " ").replace(/Z$/, " UTC");
+  const time = element("time", "Claimed " + age + " (" + precise + ")", "muted");
+  time.dateTime = claimedAt;
+  return time;
+}
+
 function openClaimRecovery(order) {
   configureDecision("requeue", order, order.claim_id, "");
   byId("decision-title").textContent = "Requeue claim " + order.claim_id + "?";
@@ -384,7 +401,10 @@ function showOrder(data, assay) {
   if (brief && !honey) workspace.append(referenceBrief(brief));
   if (order.claim_id != null) {
     const actions = element("div", undefined, "review-actions");
-    actions.append(button("Requeue claim " + order.claim_id, "danger-outline", () => openClaimRecovery(order)));
+    actions.append(
+      button("Requeue claim " + order.claim_id, "danger-outline", () => openClaimRecovery(order)),
+      claimAge(order.claimed_at),
+    );
     workspace.append(actions);
   }
   if (honey && order.status === "released") {
