@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
+import { evolvePath } from "./paths";
 import {X,Play,Download,Check,ShieldCheck,Terminal,ArrowRight,AlertCircle,LoaderCircle} from "lucide-react";
 export function Dialog({title,close,children,large=false}) {
   const ref=useRef();
@@ -27,7 +28,7 @@ export function RunConsole({run,close}) {
     if(unit!==expected){setState("blocked");setResult({error:"Unit mismatch. The registered reference and acquisition metadata require "+expected+". This order declares "+unit+"."});return}
     if(custom){setState("handoff");return}
     setState("running");
-    worker.current=new Worker("/replay.mjs",{type:"module"});
+    worker.current=new Worker(evolvePath("/replay.mjs"),{type:"module"});
     const finish=value=>{clearTimeout(timer.current);worker.current?.terminate();worker.current=null;setResult(value);setState(value.error||!value.passed?"failed":"done")};
     worker.current.onmessage=e=>finish(e.data);
     worker.current.onerror=e=>finish({error:e.message||"Python worker could not start."});

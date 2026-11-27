@@ -12,6 +12,7 @@ dependencies = [
     "pyjwt>=2.10,<3",
     "starlette>=0.49,<2",
     "turso-serverless==0.1.0",
+    "uvicorn>=0.30,<1",
 ]
 
 [project.scripts]
@@ -21,8 +22,11 @@ labfactory = "labfactory.cli:main"
 dev = ["pytest"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/labfactory"]
+packages = ["src/labfactory", "src/lab_codex_worker"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "examples/uvvis-lab.json" = "labfactory/examples/uvvis-lab.json"
 "examples/b12-experiment.json" = "labfactory/examples/b12-experiment.json"
+
+[tool.uv]
+cache-keys = [{ file = "pyproject.toml" }, { file = "src/**/*.py" }, { file = "src/**/*.json" }]

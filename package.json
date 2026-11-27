@@ -3,12 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "npm start",
+    "dev:evolve": "next dev",
     "build": "next build",
-    "start": "next start",
+    "build:lab": "node lab-factory/scripts/build_portal.mjs",
+    "prestart": "npm run build:lab",
+    "start": "uv run --locked --project lab-factory python lab-factory/scripts/serve_portal.py",
     "prebuild": "node scripts/prepare-web.mjs",
-    "predev": "node scripts/prepare-web.mjs",
-    "test": "playwright test"
+    "predev:evolve": "node scripts/prepare-web.mjs",
+    "test": "playwright test",
+    "test:lab": "playwright test --config playwright.integrated.config.mjs"
   },
   "dependencies": {
     "@fontsource-variable/instrument-sans": "5.3.0",

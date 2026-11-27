@@ -1,122 +1,46 @@
-# EVOLVE — A software factory for lab instruments
+# Lab Factory
 
-EVOLVE turns a scientist’s measurement request into a tested analysis app. A coding worker writes the Python analysis, the instrument recipe and the result view. The factory checks the recipe against the instrument’s capabilities, runs the generated Python offline against independent reference cases, and releases the source revision that passes.
+Lab Factory brings work orders, review and experiment evidence into one web app. Start at **Work orders** to review lab procedures and analysis software. Choose **EVOLVE demos** to replay a recorded experiment or explore the simulated researcher workspace. [Lab Factory guide](lab-factory/README.md)
 
-**Watch the software change during an experiment.** A researcher asks for the concentration of a mystery vitamin B12 sample. The first app measures it on a **simulated 550 nm spectrophotometer** and withholds the estimate because the reading exceeds the calibration range. Once the principal investigator approves dilution, EVOLVE builds a second version while the researcher prepares the vial. The factory tests the new version on 2× and 4× dilutions and reruns the original direct-sample checks. A reviewer can trace the final estimate back to the readings, the dilution volumes, the frozen calibration and the exact Python that produced it. [Completed run](public/b12/completed.json)
+## Run the app
 
-## What we built at EVOLVE
-
-For the November 13–14, 2026 hackathon theme **“Build your own software factory,”** we built the lab and instrument registry, simulated instruments, work-order pipeline, code-generation and verification steps, approval workflow, and replayable evidence workbench. On the first evening, we used the same factory to build two electron paramagnetic resonance (EPR) apps. One measures spectral linewidth. The other fits signal intensity against inverse temperature. The B12 experiment added a second instrument and demonstrated how the factory revises an app when the experiment changes. [EPR work orders](orders/) · [B12 rehearsal](docs/DEMO-RUNBOOK.md)
-
-**We used no pre-existing team materials.** An earlier team project, Flipper AI, inspired the idea of checking software against a specific instrument’s capabilities. Codex generated the scientific applications from project-specific inputs. [Generation records](generated/) · [Project notices](docs/NOTICE.md)
-
-## Run the demo
-
-From this repository's root on the presenter laptop:
+With Node.js, npm and uv installed, run these commands from the repository root.
 
 ```sh
-uv run --frozen python -m factory.demo
+npm ci
+npm start
 ```
 
-Open **http://127.0.0.1:8765/**. The launcher checks the Python environment,
-archived-source and calibration digests, actual offline sandbox behavior, exact
-replay of the saved results, and Codex installation/login before opening the
-service. It does not generate software during these checks.
+Open [Lab Factory on localhost](http://127.0.0.1:8000/). The local reviewer saves work orders in `runs/lab-factory/portal.sqlite3`. The EVOLVE workbench at `/evolve/` serves recorded evidence from the same site. Its researcher workspace uses simulated data in the browser tab.
 
-You need [uv](https://docs.astral.sh/uv/getting-started/installation/), Python
-3.11–3.14, an authenticated Codex CLI, and macOS Seatbelt (`sandbox-exec`) or Linux
-bubblewrap (`bwrap`) with working namespaces. Fresh generation needs the coding
-worker's model connection. Scientific execution is offline; EVOLVE does not call
-8090. The readiness check does **not** prove model connectivity or build latency.
+| What do you want to do? | Where to start |
+| --- | --- |
+| Try a protocol and CSV with simulated caffeine or density readings | [Upload and review an analysis](lab-factory/docs/analysis-api.md) |
+| Create a local work order, connect an agent, or review a submission | [Local quickstart](lab-factory/README.md#local-quickstart) |
+| Find an instrument manual or published method for an experiment | [Reference library guide](lab-factory/README.md#find-evidence-for-an-experiment) |
+| Explore the standalone researcher UI with sample projects, browser-side analysis and simulation | [Researcher web UI](lab-factory/web/README.md) |
+| Watch a simulated experiment change an analysis app, or replay its evidence | [EVOLVE demo and evidence workbench](EVOLVE.md) |
 
-To check without starting a service or creating a scientific task:
+The shared portal uses public reviewer access. Anyone with its URL can read uploads and make review decisions. Use the supplied examples or data you can share publicly. [Deployment and access](lab-factory/docs/hosted.md)
+
+## Working in the repository
+
+**Lab Factory** lives in `lab-factory/`. Its [Python service, CLI and MCP tools](lab-factory/src/labfactory/) and [reviewer portal](lab-factory/public/) share one deployment. To run its tests, start at the repository root.
 
 ```sh
-uv run --frozen python -m factory.demo --check
+cd lab-factory
+uv sync --locked
+uv run --locked pytest tests
 ```
 
-### Previous-run fallback, without Codex
+**EVOLVE** supplies the demos. Its Python instrument presenter lives in `factory/`, the web workbench in `app/`, and the recorded runs in `public/b12/` and `public/evidence/`. `npm run build:lab` builds the demo pages into Lab Factory’s static assets. Fresh instrument simulation and app generation run with the local Python presenter. [EVOLVE setup, replay and verification](EVOLVE.md)
 
-```sh
-uv run --frozen python -m factory.demo --archive-only
-```
+If you also see `evolve-ui/` in your working directory, it is a separate local Git checkout.
 
-The local presenter always includes the committed **Previous completed run**, even
-with an empty live store. Its original task IDs, source revisions, measurements,
-and evidence stay read-only and are not copied into or promoted as live releases.
-Archive-only mode disables fresh generation. If the sandbox is unavailable, you
-can still inspect and download the run, but cannot re-execute its Python. Recorded
-replay outcomes describe the original run, not a new execution.
+Both apps use the [local Codex worker launcher](lab-factory/src/lab_codex_worker/). Lab Factory includes it in its Python package, and EVOLVE installs it from this repository with `uv sync --locked`. Each app supplies its own prompt, response schema and timeout.
 
-During live generation, select a previous run, then **View fresh task** to return
-to the same live task. All live evidence remains in `runs/b12`; never delete it to
-recover from a startup error. Use `--port 8766` or `--store runs/b12-rehearsal-02`
-when you deliberately need a different port or a separate rehearsal store.
+Both projects have a B12 example. In Lab Factory, a reviewer checks a submitted calculation and runs it on three supplied absorbance readings. In EVOLVE, a simulated instrument measures a sample, the first app withholds an out-of-range result, and an approved dilution prompts a second app revision. Each project has its own release records. [Lab Factory B12 walkthrough](lab-factory/README.md#try-the-simulated-b12-analysis) · [EVOLVE completed run](public/b12/completed.json)
 
-**[Five-minute rehearsal and troubleshooting](docs/DEMO-RUNBOOK.md)**
+## License
 
-## Researcher workspace
-
-Open `/workspace/` for the UV–Vis researcher interface. **Fixture demo** keeps revisions and saved runs in the current browser tab. The fixture controls can return access or service failures. End session clears demo changes. The EPR workbench at `/` and the B12 archive at `/b12/` retain their recorded workflows.
-
-The preset specifications and approvals come from the WO-8 service. Its calibration fixture supplies the complete synthetic frozen fit. Their digests and corresponding records are in [the producer fixture](fixtures/workspace/producer-records.json). Regenerate it with `python -m tests.test_workspace_golden --write` in the project Python environment. Specifications created or edited in a browser tab have fixture-local records and approvals.
-
-**Live workspace** uses the versioned workspace API at the same origin, or at the trusted origin supplied through `NEXT_PUBLIC_WORKSPACE_API_URL` at build time. It sends the workspace session cookie and requires a project ID. Vercel previews use fixtures only and display the source commit from `VERCEL_GIT_COMMIT_SHA`. Live smoke testing requires the authenticated WO-12 service and WO-11 evidence endpoint.
-
-Run `npm ci`, `npx playwright install chromium`, `npm run build` and `uv run --frozen npm test` to exercise the production export. Browser tests use isolated fixture data and intercepted API responses. The Python producer independently verifies downloaded session evidence.
-
-## Verify and reproduce
-
-```sh
-uv run --frozen python -m unittest discover -s tests -v
-uv run --frozen python -m factory.replay_bundle public/b12/completed.json
-uv run --frozen python -m factory.benchmark public/b12/completed.json --out runs/b12-evaluation-01
-```
-
-Run scientific tests on a host where the runner can apply its own sandbox. Missing
-or blocked isolation is a failure, not permission to execute generated code
-without it. Each benchmark needs a new output directory; existing output is never
-overwritten.
-
-The four held-out simulated vials have a committed MAE of approximately
-0.00554 mg/L against a 1 mg/L engineering target. The six published commercial
-means have a MAE of approximately 4.71980 mg/L, including two explicitly labeled
-benchmark-only extrapolations that the released assay withheld. This is not
-physical-instrument validation. See [retained evaluation](public/b12/evaluation/report.json).
-
-The existing static EPR/B12 workbench remains available with `npm ci` and
-`npm run dev`; `npm run build` exports it to `out/`. Node and the web build are not
-required for the local B12 demo. The lower-level `python -m factory.lab` entry point
-remains available without the launcher's readiness checks or bundled fallback.
-
-For serial virtual UV–Vis experiments, see the [local scheduler and two-experiment test](docs/EXPERIMENT-SCHEDULER.md).
-
-## Third-party software, services and data
-
-| Tool or material | Use in EVOLVE | License or governing terms |
-| --- | --- | --- |
-| 8090 Software Factory and MCP | Requirements, blueprints and engineering work orders used to build EVOLVE | Sponsor-provided service under the Hackathon Participant Agreement, §11. [Event rules](https://evolve-8090.devpost.com/rules) |
-| 8090 Software Factory plugin | Work-order skill and templates in `.agents/skills/software-factory/` | MIT. Copyright (c) 2026 8090 Solutions Inc. [Upstream license](https://github.com/8090-inc/software-factory-plugin/blob/main/LICENSE) |
-| OpenAI Codex CLI and hosted model | Development assistance and generation of candidate apps. The EPR generation records identify `gpt-6.1-sol`. | CLI under [Apache-2.0](https://github.com/openai/codex/blob/main/LICENSE). Model access under the applicable [OpenAI terms](https://openai.com/policies/). |
-| CPython and uv | Local scientific runtime and reproducible environment | Python Software Foundation License and bundled notices. uv is available under MIT or Apache-2.0. |
-| jsonschema, jsonschema-specifications, attrs, referencing, rpds-py | Validate lab records and work orders | MIT. The conditional typing-extensions dependency uses the Python Software Foundation License. |
-| macOS Seatbelt or Linux bubblewrap | Isolate generated Python during verification and replay | Seatbelt is supplied under the macOS software license. bubblewrap uses [LGPL-2.0-or-later](https://github.com/containers/bubblewrap/blob/main/bubblewrap.c). |
-| Node.js, npm CLI, Next.js, React and React DOM | Build and serve the evidence workbench | Node.js, Next.js, React and React DOM use MIT with applicable bundled notices. npm CLI uses Artistic-2.0. |
-| Pyodide | Replay archived Python in the browser | MPL-2.0. Bundled CPython, Emscripten and other components retain their upstream licenses. [Pyodide distribution](https://github.com/pyodide/pyodide) |
-| Lucide React and Instrument Sans via Fontsource | Interface icons and typeface | Lucide uses ISC with MIT notices for Feather-derived icons. Instrument Sans uses SIL Open Font License 1.1. |
-| TypeScript, @types/node and @types/react | Type-check the researcher workspace | TypeScript uses Apache-2.0. Both type definition packages use MIT. |
-| Playwright and Chromium | Browser tests | Playwright uses Apache-2.0. Chromium uses a BSD-style license with additional component notices. |
-| GitHub, GitHub CLI and GitHub Actions | Source hosting, review and automated tests | GitHub CLI, actions/checkout, actions/setup-node and astral-sh/setup-uv use MIT. Hosted services follow the [GitHub terms](https://docs.github.com/en/site-policy/github-terms/github-terms-of-service). |
-| Vercel and Vercel CLI | Web hosting and deployment | CLI under [Apache-2.0](https://github.com/vercel/vercel/blob/main/packages/cli/package.json). Hosting under [Vercel’s terms](https://vercel.com/legal/terms). |
-
-The Python and JavaScript lockfiles identify the resolved package versions and transitive dependencies. [uv.lock](uv.lock) · [package-lock.json](package-lock.json)
-
-**Scientific sources.** The external B12 benchmark transcribes six mean absorbances and their concentration labels from the commercial-instrument column of Table 1 in Laganovska et al., *Portable low-cost open-source wireless spectrophotometer for fast and reliable measurements* (2020). The simulated readings are generated separately. The B12 design notes cite the absorption coefficient from Ahmad et al., and the EPR instrument record credits Bruker’s *Xenon* primer for linewidth background. [Laganovska et al.](https://pmc.ncbi.nlm.nih.gov/articles/PMC9041175/) · [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) · [B12 design references](docs/B12-DEMO-PLAN.md) · [EPR instrument record](registry/instrument.json)
-
-## Event use and credentials
-
-The local demo uses simulated instruments and needs no 8090 credentials. At the event, use only designated EVOLVE areas and the equipment, systems and networks provided for the event. For fresh generation, authenticate Codex locally. Keep API keys, credentials and access tokens out of source files, evidence exports, screenshots and presentations. Local `.env*` files are excluded by [.gitignore](.gitignore).
-
-## Project license
-
-Copyright (c) 2026 Scientific Software Factory contributors. The team licenses its hackathon contributions under the [MIT License](LICENSE). Third-party software, services and data retain the licenses and terms listed above.
+[MIT License](LICENSE) · [EVOLVE third-party notices and scientific sources](EVOLVE.md#third-party-software-services-and-data)

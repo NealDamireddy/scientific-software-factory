@@ -10,7 +10,7 @@ from urllib.parse import quote, urlsplit
 import httpx
 
 
-EXAMPLES = Path(__file__).with_name("tabular")
+EXAMPLES = Path(__file__).resolve().parents[1] / "public" / "examples" / "tabular"
 
 
 def upload(path):
@@ -26,7 +26,7 @@ def create_request(args):
     if args.example:
         entry = next((e for e in read_json(EXAMPLES / "index.json") if e["folder"] == args.example), None)
         if entry is None:
-            raise ValueError("Unknown example. Choose a folder listed in examples/tabular/index.json.")
+            raise ValueError("Unknown example. Choose a folder listed in public/examples/tabular/index.json.")
         folder = EXAMPLES / entry["folder"]
         config = {k: entry[k] for k in ("objective", "unit", "mapping", "range_gate")}
         protocol, csv, certificate = folder / "protocol.md", folder / "readings.csv", folder / "control.json"

@@ -85,6 +85,11 @@ jobs:
       - run: npm run build
       - run: npx --no-install playwright install --with-deps chromium
       - run: uv run --frozen npm test
+      - name: Build and exercise the combined reviewer portal
+        run: |
+          uv sync --locked --project lab-factory --python 3.13
+          npm run build:lab
+          npm run test:lab
       - name: Verify isolated preview and deployment source
         env:
           VERCEL_ENV: preview

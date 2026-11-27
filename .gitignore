@@ -17,3 +17,9 @@ playwright-report/
 *.tsbuildinfo
 
 next-env.d.ts
+
+# Local checkouts, settings and Git bundle
+/evolve-ui/
+/.claude/worktrees/
+/.claude/settings.local.json
+/workspace-ui.bundle

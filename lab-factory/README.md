@@ -1,6 +1,80 @@
 # Lab Factory
 
-Lab Factory stores immutable revisions of lab and experiment records and pins both when you create a work order. An agent claims the order over MCP and submits a procedure or run plan for checks against the pinned context. A local reviewer can inspect each submission, reject it with a reason, or release a passing submission by number.
+Lab Factory stores immutable revisions of lab and experiment records and pins both when you create a work order. An agent claims the order over MCP and submits a procedure, run plan or analysis for checks against that context. A reviewer can inspect each submission, reject it with a reason, or release a passing submission by number. [Open the reviewer portal](https://neal-lab-factory.vercel.app/)
+
+## Shared lab on Vercel
+
+The shared demo opens with public reviewer access. Anyone with the URL can download existing and new uploads, inspect control reports, replace a used control when the workflow allows it, approve or reject submissions, and run released analyses. Public decisions use one shared reviewer identity. Use data you can share publicly.
+
+Choose **EVOLVE demos** for the EPR workbench, recorded B12 experiment and simulated UV–Vis workspace. These pages use the same site as the reviewer. Choose **B12 analysis** in the reviewer to start a new analysis order, or open the recorded dilution experiment from that page. [Start the combined app locally](../README.md#run-the-app)
+
+### Upload a protocol and readings
+
+Use the [general analysis API and reviewer quickstart](docs/analysis-api.md) to submit a protocol and CSV, inspect a worker-written analysis and compare its prediction with a blind control before approval. Caffeine calibration and direct liquid density use the same backend.
+
+### Find evidence for an experiment
+
+Open the [reference library](https://neal-lab-factory.vercel.app/#references). Leave **All instruments** selected if you do not know the model, choose a technique, or filter by a model number. Enter an objective or choose an example such as **Caffeine in coffee** or **Identify a polymer**. Each finding links to its source and identifies the relevant pages, edition, model relationship and limits.
+
+After choosing a model, use **Browse experiments** to see objectives with a manual, a published method and primary research. For instance, the Hanna HI96800 offers honey moisture and juice soluble solids. The Olympus CX23 offers honey pollen identification and leaf stomatal density. The Agilent 7890B offers beverage ethanol, vegetable-oil fatty acids and olive-oil aroma. Each guide lists the additional equipment or sample conditions that matter. The selection is saved with the exact references you pin.
+
+For the Agilent 1260 Infinity Binary LC, the coffee search pairs the instrument guide with an Agilent method that used that system and independent research on different equipment. Compare the equipment, sample and calibration before adopting a method. Select the records you want and choose **Create order with sources**. The reviewer and a connected agent can reopen the same record versions and cite them in a procedure submission.
+
+To run the same search locally through an MCP client, run these commands from `lab-factory/`. Omit the objective and instrument arguments to list all available models and technique scopes.
+
+```sh
+uv sync --locked
+uv run --locked python examples/find_references.py --instrument agilent-1260-infinity-binary-lc "Measure caffeine in coffee"
+uv run --locked python examples/find_references.py --instrument hanna-hi96800 "Measure honey moisture"
+```
+
+### Review and run the honey moisture analysis
+
+1. Open [Honey moisture](https://neal-lab-factory.vercel.app/#honey) and select an order marked **In review**. The submission shows how the agent uses each of four publications, its calculation, its conversion table, and its numerical tests.
+2. Inspect the numbered submission. The independent checks compare all 61 table entries with the International Honey Commission table and all 601 possible mean readings with the expected one-decimal results. Choose **Approve submission** and then **Approve and release** when you are satisfied.
+3. Enter `1.4914` and `1.4916` as two simulated measurements of the same sample on the Hanna HI96800 nD20 scale at 20 °C. Choose **Calculate honey moisture**. The result is **18.0 g water per 100 g honey**. Reopen the order to see the inputs, result, reviewer and approved artifact digest.
+
+**Create honey analysis order** opens a fresh order for a connected coding agent. It pins the instrument, objective and four source records. The agent reads the linked publications, writes a calculation and numerical tests, and submits them over MCP. The example submitted for this demonstration is in `examples/honey-analysis.json`. To replay it on a new open order, run the following from `lab-factory/` with your issued agent token in `LAB_FACTORY_AGENT_TOKEN`. Replace `WO-N` with the new order ID and use the worker name assigned to your token.
+
+```sh
+uv sync --locked
+uv run --locked python examples/submit_honey_analysis.py WO-N --worker lab-agent --url https://neal-lab-factory.vercel.app/mcp
+```
+
+### Try the simulated B12 analysis
+
+Use this example to review a calculation and run it on supplied absorbance readings. To see a simulated instrument acquire readings and a coding worker build a second app after dilution approval, open the [EVOLVE demo guide](../EVOLVE.md#run-the-demo).
+
+1. Open [B12 analysis](https://neal-lab-factory.vercel.app/#b12). **Start B12 example** opens a fresh review of the bundled Codex-written Python and runs the factory’s independent reference tests. You can also open an analysis order already submitted by a connected agent.
+2. Enter three simulated absorbance readings in AU. Try `0.1020`, `0.1024`, and `0.1028`. Save the readings. They stay with the order while you review the source.
+3. Inspect the exact Python, worker, numbered submission and reference results. The tests cover both calibration endpoints, unequal readings, a different slope, and a nonzero intercept. Approve the displayed submission and confirm your decision.
+4. Select **Run analysis** on the saved readings. The example returns **16 mg/L**. Try `0.09`, `0.10`, and `0.16` on the same release to see the third replicate put the sample outside the calibrated range. The result and its provenance remain available when you reopen the order.
+
+The fixture represents absorbance at 550 nm with a fixed simulated slope of 0.0064 AU per mg/L and zero intercept. All three readings must lie between 0.0192 and 0.1536 AU, inclusive. The evaluator interprets a bounded arithmetic subset of Python and checks each returned concentration against the frozen calibration. Scope is simulated absorbance inputs. The app records the input readings, pinned context, calibration, reviewer, and digest of the source that produced each result.
+
+### Work orders and agents
+
+Open the [reviewer portal](https://neal-lab-factory.vercel.app/). The portal shows work orders, numbered submissions, checked instructions, artifacts and decision history. Under **Lab context**, create an example using the UV-visible spectrophotometer, or import your own lab and experiment JSON and create an order in **Work orders**.
+
+To submit a newly created example from this directory, set `LAB_FACTORY_AGENT_TOKEN` to your issued agent token. Supply the open order ID shown in the portal and the worker name assigned to that token.
+
+```sh
+uv sync --locked
+read -r 'order?Open example work order ID: '
+uv run --locked python examples/submit_remote_example.py "$order" \
+  --url https://neal-lab-factory.vercel.app/mcp --worker lab-agent
+```
+
+The prompt above uses zsh. In the browser, open the order and select **Refresh**. Inspect the instrument, command, wavelength, checks and digest, then approve the numbered submission or reject it with a reason. The portal opens the latest submission first and loads earlier artifacts and history on demand. A rejection reopens the order for an agent. The history records the reviewer identity used for each decision and the digest of each approved artifact.
+
+To connect a Codex agent from a shell that has the token, run
+
+```sh
+codex mcp add lab-factory --url https://neal-lab-factory.vercel.app/mcp \
+  --bearer-token-env-var LAB_FACTORY_AGENT_TOKEN
+```
+
+Launch the agent from that environment. Its worker name is listed under **Agent access**. Your deployment administrator issues each worker its own token. [Hosted deployment and access management](docs/hosted.md)
 
 ## Local quickstart
 
@@ -27,7 +101,7 @@ Look for `released: submission 1 by Local reviewer` and the approved artifact’
 
 ## Web UI
 
-The browser interface lives in `web/`. See [web/README.md](web/README.md).
+The combined reviewer portal runs at `/` and links to the EVOLVE evidence demos at `/evolve/`. The standalone researcher interface in `web/` provides sample projects, procedure and run-plan review, and browser-side analysis and simulation. To launch its sample mode or develop against its live API contract, see the [researcher web UI guide](web/README.md).
 
 ## Reviewer API and remote workers
 

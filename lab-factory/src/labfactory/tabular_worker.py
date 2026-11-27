@@ -5,12 +5,11 @@ import asyncio
 import json
 import os
 from pathlib import Path
-import subprocess
 import sys
-import tempfile
 from urllib.parse import urlsplit
 
 import httpx
+from lab_codex_worker import run_worker
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
@@ -45,23 +44,10 @@ def generate(context, feedback=None):
         "specific scientific question and use empty strings/array for the other fields.\n"
         + json.dumps(payload, ensure_ascii=False)
     )
-    with tempfile.TemporaryDirectory(prefix="lab-author-") as scratch:
-        work = Path(scratch)
-        (work / "schema.json").write_text(json.dumps(_SCHEMA))
-        command = [
-            "codex", "exec", "--ignore-user-config", "--ignore-rules", "--ephemeral",
-            "--skip-git-repo-check", "--sandbox", "read-only", "-c", 'approval_policy="never"',
-            "-c", 'web_search="disabled"', "--disable", "shell_tool", "--disable", "unified_exec",
-            "--disable", "apps", "--disable", "plugins", "--disable", "skill_search",
-            "--output-schema", "schema.json", "--output-last-message", "answer.json", "-",
-        ]
-        # The existing CLI sign-in is local. Reviewer and MCP credentials never enter the author process.
-        env = {k: os.environ[k] for k in ("HOME", "PATH", "LANG", "TMPDIR", "CODEX_HOME") if k in os.environ}
-        proc = subprocess.run(command, cwd=work, env=env, input=prompt, capture_output=True,
-                              text=True, timeout=210)
-        if proc.returncode or not (work / "answer.json").exists():
-            raise RuntimeError(f"Codex author exited without a submission (exit {proc.returncode}); check CLI sign-in.")
-        answer = json.loads((work / "answer.json").read_text())
+    answer = run_worker(
+        prompt, json.dumps(_SCHEMA), timeout=210, temp_prefix="lab-author-",
+        failure_message=lambda result: f"Codex author exited without a submission (exit {result.returncode}); check CLI sign-in.",
+    ).answer
     question = answer.pop("question")
     return {"needs_input": question} if question.strip() else answer
 

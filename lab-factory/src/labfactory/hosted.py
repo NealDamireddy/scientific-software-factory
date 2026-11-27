@@ -11,7 +11,8 @@ from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
-from starlette.routing import Route
+from starlette.routing import Mount, Route
+from starlette.staticfiles import StaticFiles
 
 from . import b12_service, experiment_catalog, honey_service, reference_orders, references, tabular_service
 from .artifacts import render_artifact
@@ -507,3 +508,19 @@ async def application(scope, receive, send):
         await mcp(scope, receive, send)
     else:
         await reviewer_api(scope, receive, send)
+
+
+def make_portal(public_directory: Path):
+    """Serve the reviewer and its static assets on the same origin as the API and MCP."""
+    static = Starlette(
+        routes=[Mount("/", app=StaticFiles(directory=public_directory, html=True))],
+        exception_handlers={HTTPException: domain_error},
+    )
+
+    async def portal(scope, receive, send):
+        if scope["type"] != "http" or scope["path"].split("/", 2)[1] in {"api", "mcp"}:
+            await application(scope, receive, send)
+        else:
+            await static(scope, receive, send)
+
+    return portal

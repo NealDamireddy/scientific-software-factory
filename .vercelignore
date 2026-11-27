@@ -8,3 +8,15 @@ out
 public/runtime
 __pycache__
 *.pyc
+
+# The root UV lock needs the shared worker package.
+/lab-factory/*
+!/lab-factory/src
+/lab-factory/src/*
+!/lab-factory/src/pyproject.toml
+!/lab-factory/src/lab_codex_worker
+
+# Local checkout artifacts
+/evolve-ui
+/.claude
+/workspace-ui.bundle
