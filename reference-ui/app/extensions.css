@@ -1,0 +1,191 @@
+.ext-row {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.ext-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--muted);
+}
+.ext-icon svg {
+  width: 23px;
+  height: 23px;
+  stroke-width: 1.6;
+}
+.ext-copy {
+  flex: 1;
+  min-width: 0;
+}
+.ext-copy h3,
+.ext-title {
+  margin: 0;
+  font-weight: 570;
+  font-size: 20px;
+  letter-spacing: -0.035em;
+}
+.ext-copy p,
+.ext-description,
+.ext-harness-record > span {
+  display: block;
+  margin: 4px 0 0;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+.ext-row > .ws-button {
+  flex: none;
+}
+.ext-status {
+  display: inline-flex;
+  gap: 7px;
+  align-items: center;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.ext-status i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+}
+.ext-page .ext-group {
+  margin-top: 42px;
+}
+.ext-disclosure {
+  text-align: left;
+  padding: 6px;
+  border-radius: var(--radius-small);
+}
+.ext-disclosure:hover {
+  background: var(--panel);
+}
+.ext-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.ext-title svg {
+  color: var(--subtle);
+}
+.ext-disclosure[aria-expanded="true"] .ext-title svg {
+  transform: rotate(180deg);
+}
+.ws-app .ext-switch {
+  flex: none;
+  width: 40px;
+  height: 24px;
+  padding: 3px;
+  background: var(--active);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.ws-app .ext-switch[aria-checked="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.ext-switch span {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  transition: transform var(--motion);
+  box-shadow: 0 1px 2px #0002;
+}
+.ext-switch[aria-checked="true"] span {
+  transform: translateX(15px);
+}
+.ext-details:not([hidden]) {
+  display: grid;
+  grid-template-columns: 75px 1fr;
+  gap: 9px;
+  margin: 0;
+  padding: 18px 24px 18px 70px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.ext-details dt {
+  color: var(--muted);
+}
+.ext-details dd {
+  margin: 0;
+}
+.ext-harness {
+  border-bottom: 1px solid var(--line);
+  padding: 20px 0;
+}
+.ext-harness h3 {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 17px;
+  letter-spacing: -0.025em;
+  margin: 0;
+}
+.ext-harness h3 svg {
+  color: var(--muted);
+}
+.ws-dialog .ext-harness p {
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 8px 0 14px;
+}
+.ext-harness .ws-field {
+  margin-top: 12px;
+}
+.ext-harness-record {
+  margin: 14px 0;
+}
+.ext-harness-record strong {
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.ext-harness-record > span {
+  font-size: 13px;
+}
+.ext-harness-actions {
+  display: flex;
+  gap: 8px;
+}
+@media (max-width: 550px) {
+  .ext-row {
+    gap: 10px;
+    padding: 17px 0;
+  }
+  .ext-icon {
+    width: 34px;
+    height: 34px;
+  }
+  .ext-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+  .ext-copy h3,
+  .ext-title {
+    font-size: 17px;
+  }
+  .ext-copy p,
+  .ext-description {
+    font-size: 14px;
+  }
+  .ext-row > .ws-button {
+    padding: 7px 8px;
+    font-size: 12px;
+  }
+  .ext-details:not([hidden]) {
+    padding: 15px;
+    grid-template-columns: 54px 1fr;
+  }
+}

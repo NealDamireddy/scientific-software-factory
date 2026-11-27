@@ -20,6 +20,8 @@ import {
   ChevronDown,
   ChevronRight,
   CircleDot,
+  Cable,
+  Blocks,
   FileText,
   FlaskConical,
   Folder,
@@ -31,6 +33,17 @@ import {
   SquarePlus,
   X,
 } from "lucide-react";
+import {
+  ResourceForm,
+  type KnowledgeRecord,
+  type InstrumentRecord,
+} from "./resource-form";
+import {
+  defaultExtensions,
+  ExtensionPage,
+  HarnessSettings,
+  type ExtensionState,
+} from "./extensions";
 import ExperimentDetail from "./experiment-detail";
 import {
   advanceWorkspace,
@@ -42,7 +55,13 @@ import "./workspace.css";
 
 const baseProjects = ["Coomassie reduction", "B12 quantification"];
 const key = "emory.research.workspace.v1";
-const articles = [
+const demoInstrument: InstrumentRecord = {
+  id: "uv-vis",
+  name: "UV–Vis spectrometer",
+  measurement: "Absorbance spectroscopy",
+  location: "",
+};
+const sampleArticles: KnowledgeRecord[] = [
   {
     title: "Reading an absorbance time course",
     category: "Method note",
@@ -76,15 +95,29 @@ const articles = [
     ],
   },
 ];
-type DialogName = "search" | "project" | "settings" | "reset" | "mode" | null;
+type DialogName =
+  | "search"
+  | "project"
+  | "settings"
+  | "reset"
+  | "mode"
+  | "add-instrument"
+  | "add-knowledge"
+  | null;
 type Popup = "instrument" | "project" | "workspace" | null;
 type Saved = {
+  extensions: ExtensionState;
+  knowledge: KnowledgeRecord[];
+  instruments: InstrumentRecord[];
   projects: string[];
   experiments: Experiment[];
   objective: string;
   selectedProject: string;
 };
 const initial: Saved = {
+  extensions: defaultExtensions,
+  knowledge: [],
+  instruments: [],
   projects: baseProjects,
   experiments: initialExperiments,
   objective: "",
@@ -192,6 +225,27 @@ export default function Workspace() {
   const item = decode(encoded);
   const project = section === "project" ? item : "";
   const experiment = saved.experiments.find((e) => e.id === item);
+  const articles = [...saved.knowledge, ...sampleArticles];
+  const instruments = [demoInstrument, ...saved.instruments];
+  const instrument = instruments.find((record) => record.id === item);
+  const visibleInstruments = instruments.filter((record) =>
+    [record.name, record.measurement, record.location]
+      .join(" ")
+      .toLowerCase()
+      .includes(listQuery.trim().toLowerCase()),
+  );
+  const visibleArticles = articles.filter((record) =>
+    [
+      record.title,
+      record.topic,
+      record.category,
+      record.description,
+      ...record.paragraphs,
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(listQuery.trim().toLowerCase()),
+  );
   const article = articles.find((a) => a.title === item);
   const activeRun = saved.experiments.find((e) => e.status === "Running");
   const activeRunId = activeRun?.id;
@@ -439,6 +493,8 @@ export default function Workspace() {
     </button>
   );
   const headerName: Record<string, string> = {
+    connectors: "Connectors",
+    skills: "Skills",
     home: "Overview",
     experiments: "All experiments",
     project: "Projects",
@@ -449,6 +505,8 @@ export default function Workspace() {
     article: "Lab knowledge",
   };
   const results = [
+    { label: "Connectors", group: "Workspace", to: "connectors" },
+    { label: "Skills", group: "Workspace", to: "skills" },
     ...saved.experiments.map((e) => ({
       label: e.title,
       group: "Experiment",
@@ -459,11 +517,11 @@ export default function Workspace() {
       group: "Project",
       to: routeFor("project", p),
     })),
-    {
-      label: "UV–Vis spectrometer",
+    ...instruments.map((record) => ({
+      label: record.name,
       group: "Instrument",
-      to: "instrument/uv-vis",
-    },
+      to: routeFor("instrument", record.id),
+    })),
     ...articles.map((a) => ({
       label: a.title,
       group: "Knowledge",
@@ -586,6 +644,12 @@ export default function Workspace() {
               section === "knowledge" || section === "article",
               () => go("knowledge"),
             )}
+            {nav("Connectors", <Cable />, section === "connectors", () =>
+              go("connectors"),
+            )}
+            {nav("Skills", <Blocks />, section === "skills", () =>
+              go("skills"),
+            )}
             {nav("Settings", <CircleDot />, dialog === "settings", () =>
               show("settings"),
             )}
@@ -613,7 +677,14 @@ export default function Workspace() {
             Simulation mode
           </button>
         </header>
-        {section === "home" ? (
+        {section === "connectors" || section === "skills" ? (
+          <ExtensionPage
+            section={section}
+            value={saved.extensions}
+            onChange={(extensions) => update({ extensions })}
+            openSettings={() => show("settings")}
+          />
+        ) : section === "home" ? (
           <div className="ws-home">
             <h1>What are you investigating?</h1>
             <div
@@ -823,33 +894,66 @@ export default function Workspace() {
         ) : section === "instruments" ? (
           <div className="ws-page">
             <div className="ws-eyebrow">Workspace</div>
-            <h1>Instruments</h1>
+            <div className="ws-pagehead">
+              <h1>Instruments</h1>
+              <button
+                className="ws-button primary"
+                onClick={() => show("add-instrument")}
+              >
+                <Plus size={16} />
+                Add instrument
+              </button>
+            </div>
             <p className="ws-lede">
-              Browse equipment available in this research workspace.
+              Browse equipment in this research workspace.
             </p>
+            <div className="ws-toolbar">
+              <label className="ws-inputgroup">
+                <Search size={17} />
+                <input
+                  aria-label="Search instruments"
+                  placeholder="Find an instrument…"
+                  value={listQuery}
+                  onChange={(e) => setListQuery(e.target.value)}
+                />
+              </label>
+            </div>
             <div className="ws-sectionhead">
               <h2>Workspace instruments</h2>
-              <span>1 instrument</span>
-            </div>
-            <button
-              className="ws-resource"
-              onClick={() => go("instrument/uv-vis")}
-            >
-              <span className="ws-resourceicon">
-                <FlaskConical />
-              </span>
               <span>
-                <strong>UV–Vis spectrometer</strong>
-                <small>Absorbance spectroscopy</small>
+                {visibleInstruments.length}{" "}
+                {visibleInstruments.length === 1 ? "instrument" : "instruments"}
               </span>
-              <span className={"ws-status " + (activeRun ? "busy" : "")}>
-                <i />
-                {activeRun ? "In use" : "Available"}
-              </span>
-              <ChevronRight size={20} />
-            </button>
+            </div>
+            {visibleInstruments.map((record) => (
+              <button
+                key={record.id}
+                className="ws-resource"
+                onClick={() => go(routeFor("instrument", record.id))}
+              >
+                <span className="ws-resourceicon">
+                  <FlaskConical />
+                </span>
+                <span>
+                  <strong>{record.name}</strong>
+                  <small>{record.measurement}</small>
+                </span>
+                {record.id === demoInstrument.id ? (
+                  <span className={"ws-status " + (activeRun ? "busy" : "")}>
+                    <i />
+                    {activeRun ? "In use" : "Available"}
+                  </span>
+                ) : (
+                  <span className="ws-status">Inventory only</span>
+                )}
+                <ChevronRight size={20} />
+              </button>
+            ))}
+            {!visibleInstruments.length && (
+              <p className="ws-lede">No matching instruments.</p>
+            )}
           </div>
-        ) : section === "instrument" ? (
+        ) : section === "instrument" && instrument ? (
           <div className="ws-page">
             <button className="ws-back" onClick={() => go("instruments")}>
               <ArrowLeft size={15} />
@@ -858,47 +962,81 @@ export default function Workspace() {
             <div className="ws-pagehead">
               <div>
                 <div className="ws-eyebrow">Instrument profile</div>
-                <h1>UV–Vis spectrometer</h1>
+                <h1>{instrument.name}</h1>
               </div>
-              <button className="ws-button primary" onClick={() => compose()}>
-                <Plus size={16} />
-                New experiment
-              </button>
+              {instrument.id === demoInstrument.id && (
+                <button className="ws-button primary" onClick={() => compose()}>
+                  <Plus size={16} />
+                  New experiment
+                </button>
+              )}
             </div>
             <p className="ws-lede">
-              Simulated absorbance measurements for time courses and
-              concentration analysis.
+              {instrument.id === demoInstrument.id
+                ? "Simulated absorbance measurements for time courses and concentration analysis."
+                : "Workspace inventory record. Experiment simulation is available for the demo UV–Vis spectrometer."}
             </p>
             <dl className="ws-definitions">
               <div>
                 <dt>Instrument status</dt>
                 <dd>
-                  <span className={"ws-status " + (activeRun ? "busy" : "")}>
-                    <i />
-                    {activeRun ? "In use" : "Available"}
-                  </span>
+                  {instrument.id === demoInstrument.id ? (
+                    <span className={"ws-status " + (activeRun ? "busy" : "")}>
+                      <i />
+                      {activeRun ? "In use" : "Available"}
+                    </span>
+                  ) : (
+                    "Inventory only"
+                  )}
                 </dd>
               </div>
               <div>
                 <dt>Measurement</dt>
-                <dd>UV–visible absorbance</dd>
+                <dd>
+                  {instrument.id === demoInstrument.id
+                    ? "UV–visible absorbance"
+                    : instrument.measurement}
+                </dd>
               </div>
               <div>
                 <dt>Data source</dt>
-                <dd>Illustrative simulation</dd>
+                <dd>
+                  {instrument.id === demoInstrument.id
+                    ? "Illustrative simulation"
+                    : "Workspace inventory"}
+                </dd>
               </div>
+              {instrument.location && (
+                <div>
+                  <dt>Location</dt>
+                  <dd>{instrument.location}</dd>
+                </div>
+              )}
             </dl>
-            <div className="ws-sectionhead">
-              <h2>Recent experiments</h2>
-            </div>
-            {saved.experiments.slice(0, 3).map(row)}
+            {instrument.id === demoInstrument.id && (
+              <>
+                <div className="ws-sectionhead">
+                  <h2>Recent experiments</h2>
+                </div>
+                {saved.experiments.slice(0, 3).map(row)}
+              </>
+            )}
           </div>
         ) : section === "knowledge" ? (
           <div className="ws-page">
             <div className="ws-eyebrow">Workspace</div>
-            <h1>Lab knowledge</h1>
+            <div className="ws-pagehead">
+              <h1>Lab knowledge</h1>
+              <button
+                className="ws-button primary"
+                onClick={() => show("add-knowledge")}
+              >
+                <Plus size={16} />
+                Add knowledge
+              </button>
+            </div>
             <p className="ws-lede">
-              Method notes and interpretation guides for the demo workspace.
+              Method notes and interpretation guides for your workspace.
             </p>
             <div className="ws-toolbar">
               <label className="ws-inputgroup">
@@ -911,35 +1049,27 @@ export default function Workspace() {
                 />
               </label>
             </div>
-            {articles
-              .filter((a) =>
-                (a.title + a.topic)
-                  .toLowerCase()
-                  .includes(listQuery.toLowerCase()),
-              )
-              .map((a) => (
-                <button
-                  className="ws-resource"
-                  key={a.title}
-                  onClick={() => go(routeFor("article", a.title))}
-                >
-                  <span className="ws-resourceicon">
-                    <BookOpen />
-                  </span>
-                  <span>
-                    <strong>{a.title}</strong>
-                    <small>
-                      {a.category} · {a.topic}
-                    </small>
-                  </span>
-                  <ChevronRight className="ws-end" size={20} />
-                </button>
-              ))}
-            {!articles.some((a) =>
-              (a.title + a.topic)
-                .toLowerCase()
-                .includes(listQuery.toLowerCase()),
-            ) && <p className="ws-lede">No matching guides.</p>}
+            {visibleArticles.map((a) => (
+              <button
+                className="ws-resource"
+                key={a.title}
+                onClick={() => go(routeFor("article", a.title))}
+              >
+                <span className="ws-resourceicon">
+                  <BookOpen />
+                </span>
+                <span>
+                  <strong>{a.title}</strong>
+                  <small>
+                    {a.category} · {a.topic}
+                  </small>
+                </span>
+                <ChevronRight className="ws-end" size={20} />
+              </button>
+            ))}
+            {!visibleArticles.length && (
+              <p className="ws-lede">No matching guides.</p>
+            )}
           </div>
         ) : section === "article" && article ? (
           <article className="ws-page ws-article">
@@ -949,13 +1079,20 @@ export default function Workspace() {
             </button>
             <div className="ws-eyebrow">{article.category}</div>
             <h1>{article.title}</h1>
-            <p className="ws-lede">{article.description}</p>
+            {article.description && (
+              <p className="ws-lede">{article.description}</p>
+            )}
             <div className="ws-articlemeta">
               <FileText size={15} />
-              Illustrative reference <span>·</span> {article.topic}
+              {sampleArticles.includes(article)
+                ? "Illustrative reference"
+                : "Workspace note"}{" "}
+              <span>·</span> {article.topic}
             </div>
-            {article.paragraphs.map((p) => (
-              <p key={p}>{p}</p>
+            {article.paragraphs.map((p, i) => (
+              <p key={i} className="ws-note-paragraph">
+                {p}
+              </p>
             ))}
             <button
               className="ws-button"
@@ -1019,6 +1156,38 @@ export default function Workspace() {
           </div>
         </Modal>
       )}
+      {dialog === "add-instrument" && (
+        <Modal title="Add instrument" close={() => setDialog(null)}>
+          <ResourceForm
+            kind="instrument"
+            names={instruments.map((i) => i.name)}
+            onCancel={() => setDialog(null)}
+            onSave={(record) => {
+              setSaved((old) => ({
+                ...old,
+                instruments: [...old.instruments, record],
+              }));
+              go(routeFor("instrument", record.id));
+            }}
+          />
+        </Modal>
+      )}
+      {dialog === "add-knowledge" && (
+        <Modal title="Add lab knowledge" close={() => setDialog(null)}>
+          <ResourceForm
+            kind="knowledge"
+            names={articles.map((a) => a.title)}
+            onCancel={() => setDialog(null)}
+            onSave={(record) => {
+              setSaved((old) => ({
+                ...old,
+                knowledge: [record, ...old.knowledge],
+              }));
+              go(routeFor("article", record.title));
+            }}
+          />
+        </Modal>
+      )}
       {dialog === "project" && (
         <Modal title="Create project" close={() => setDialog(null)}>
           <form onSubmit={saveProject}>
@@ -1050,7 +1219,15 @@ export default function Workspace() {
         </Modal>
       )}
       {dialog === "settings" && (
-        <Modal title="Workspace settings" close={() => setDialog(null)}>
+        <Modal
+          title="Workspace settings"
+          close={() => setDialog(null)}
+          className="ws-settings-modal"
+        >
+          <HarnessSettings
+            value={saved.extensions}
+            onChange={(extensions) => update({ extensions })}
+          />
           <dl className="ws-definitions">
             <div>
               <dt>Workspace</dt>

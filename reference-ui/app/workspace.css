@@ -1142,3 +1142,19 @@ button {
     scroll-behavior: auto !important;
   }
 }
+
+.ws-dialog.ws-settings-modal {
+  width: min(580px, calc(100vw - 32px));
+}
+
+@media (max-width: 960px) and (max-height: 740px) {
+  .ws-sidebar {
+    overflow-y: auto;
+  }
+  .ws-projects {
+    min-height: 120px;
+  }
+  .ws-bottom {
+    flex-shrink: 0;
+  }
+}
