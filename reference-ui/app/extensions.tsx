@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Archive,
   ArrowUpRight,
@@ -12,200 +12,404 @@ import {
   FileCheck2,
   Plug,
   Terminal,
+  Plus,
+  Wrench,
 } from "lucide-react";
 import "./extensions.css";
 
-type Harness = { name: string; endpoint: string };
-export type ExtensionState = {
-  harness: Harness | null;
-  connectors: string[];
-  skills: string[];
-};
-export const defaultExtensions: ExtensionState = {
-  harness: null,
-  connectors: [],
-  skills: ["calibration", "evidence"],
-};
+import Modal from "./modal";
+import { ExtensionForm, endpointError } from "./extension-form";
+import {
+  builtinConnectors,
+  builtinSkills,
+  isValidEndpoint,
+  type ExtensionState,
+  type CustomConnector,
+  type CustomSkill,
+} from "./extension-model";
+export type { ExtensionState } from "./extension-model";
+export { defaultExtensions } from "./extension-model";
 
 type Props = {
   value: ExtensionState;
   onChange: (value: ExtensionState) => void;
 };
-const sources = [
-  {
-    id: "notebook",
-    name: "Lab notebook",
-    icon: BookOpen,
-    description:
-      "Protocol notes and sample annotations from a shared notebook.",
-  },
-  {
-    id: "archive",
-    name: "Instrument archive",
-    icon: Archive,
-    description: "Measurement files and instrument run records.",
-  },
-];
-const skills = [
-  {
-    id: "calibration",
-    name: "Calibration review",
-    icon: ChartNoAxesCombined,
-    description: "Check sample readings against a calibration range.",
-    input: "Calibration standards and sample absorbance",
-    output: "Range assessment and a review note",
-  },
-  {
-    id: "evidence",
-    name: "Evidence summary",
-    icon: FileCheck2,
-    description: "Summarize the records behind an experiment result.",
-    input: "Run history, source readings, and reviewer decisions",
-    output: "A summary with references to the underlying records",
-  },
-  {
-    id: "method",
-    name: "Method comparison",
-    icon: ClipboardList,
-    description: "Compare two versions of an experimental method.",
-    input: "Two method records",
-    output: "A list of changes to parameters and interpretation",
-  },
-];
+const catalogIcons: Record<string, typeof Plug> = {
+  notebook: BookOpen,
+  archive: Archive,
+  calibration: ChartNoAxesCombined,
+  evidence: FileCheck2,
+  method: ClipboardList,
+};
+const sources = builtinConnectors.map((entry) => ({
+  ...entry,
+  icon: catalogIcons[entry.id] ?? Plug,
+}));
+const skills = builtinSkills.map((entry) => ({
+  ...entry,
+  icon: catalogIcons[entry.id] ?? Wrench,
+}));
 function toggle(items: string[], id: string) {
   return items.includes(id)
     ? items.filter((item) => item !== id)
     : [...items, id];
 }
+type Section = "connectors" | "skills";
+type EntryDialog =
+  { action: "edit" | "remove"; id: string } | { action: "add" };
 export function ExtensionPage({
   section,
   value,
   onChange,
   openSettings,
-}: Props & { section: "connectors" | "skills"; openSettings: () => void }) {
+  selectedId,
+}: Props & {
+  section: Section;
+  openSettings: () => void;
+  selectedId?: string;
+}) {
   const [expanded, setExpanded] = useState<string | null>(null);
-  if (section === "connectors")
+  const [dialog, setDialog] = useState<EntryDialog | null>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
+  const isConnector = section === "connectors";
+  const kind = isConnector ? "connector" : "skill";
+  const entries = isConnector ? value.customConnectors : value.customSkills;
+  const editId = dialog && dialog.action !== "add" ? dialog.id : undefined;
+  const current = entries.find((entry) => entry.id === editId);
+  const names = [
+    ...(isConnector ? sources : skills),
+    ...entries.filter((entry) => entry.id !== editId),
+  ].map((entry) => entry.name);
+  function reveal(id: string) {
+    setExpanded(id);
+    requestAnimationFrame(() => {
+      const row = document.getElementById("extension-" + id);
+      row?.focus({ preventScroll: true });
+      row?.scrollIntoView({ block: "nearest" });
+    });
+  }
+  useEffect(() => {
+    setDialog(null);
+    if (selectedId) reveal(selectedId);
+    else setExpanded(null);
+  }, [section, selectedId]);
+  function saveConnector(entry: CustomConnector) {
+    const customConnectors = current
+      ? value.customConnectors.map((old) => (old.id === entry.id ? entry : old))
+      : [...value.customConnectors, entry];
+    onChange({ ...value, customConnectors });
+    setDialog(null);
+    reveal(entry.id);
+  }
+  function saveSkill(entry: CustomSkill) {
+    const customSkills = current
+      ? value.customSkills.map((old) => (old.id === entry.id ? entry : old))
+      : [...value.customSkills, entry];
+    onChange({
+      ...value,
+      customSkills,
+      skills: current ? value.skills : [...value.skills, entry.id],
+    });
+    setDialog(null);
+    reveal(entry.id);
+  }
+  function remove() {
+    if (!current) return;
+    if (isConnector)
+      onChange({
+        ...value,
+        customConnectors: value.customConnectors.filter(
+          (entry) => entry.id !== current.id,
+        ),
+        connectors: value.connectors.filter((id) => id !== current.id),
+      });
+    else
+      onChange({
+        ...value,
+        customSkills: value.customSkills.filter(
+          (entry) => entry.id !== current.id,
+        ),
+        skills: value.skills.filter((id) => id !== current.id),
+      });
+    setExpanded(null);
+    setDialog(null);
+    requestAnimationFrame(() => addButton.current?.focus());
+  }
+  function access(id: string, name: string) {
+    const enabled = value[section].includes(id);
+    const change = () =>
+      onChange({ ...value, [section]: toggle(value[section], id) });
+    return isConnector ? (
+      <button
+        className="ws-button"
+        aria-label={(enabled ? "Disconnect " : "Connect ") + name}
+        onClick={change}
+      >
+        {enabled ? <Check size={15} /> : <Plug size={15} />}{" "}
+        {enabled ? "Disconnect" : "Connect"}
+      </button>
+    ) : (
+      <button
+        className="ext-switch"
+        role="switch"
+        aria-checked={enabled}
+        aria-label={name}
+        onClick={change}
+      >
+        <span />
+      </button>
+    );
+  }
+  function customRow(entry: CustomConnector | CustomSkill) {
+    const open = expanded === entry.id;
     return (
-      <section className="ws-page ext-page">
-        <h1>Connectors</h1>
-        <p className="ws-lede">
-          Manage the tools and data sources available to this workspace.
-        </p>
-        <div className="ws-sectionhead">
-          <h2>Coding harness</h2>
-        </div>
+      <div
+        key={entry.id}
+        id={"extension-" + entry.id}
+        className="ext-record"
+        tabIndex={-1}
+        aria-label={entry.name}
+      >
         <div className="ext-row">
           <span className="ext-icon">
-            <Terminal />
+            {isConnector ? <Plug /> : <Wrench />}
           </span>
-          <div className="ext-copy">
-            <h3>{value.harness?.name || "Custom coding harness"}</h3>
-            <p>
-              {value.harness
-                ? value.harness.endpoint
-                : "Connect your own coding environment through MCP."}
-            </p>
-            {value.harness && (
+          <button
+            className="ext-copy ext-disclosure"
+            aria-expanded={open}
+            aria-controls={"detail-" + entry.id}
+            onClick={() => setExpanded(open ? null : entry.id)}
+          >
+            <span className="ext-title">
+              {entry.name}
+              <ChevronDown size={15} />
+            </span>
+            <span className="ext-description">
+              {"endpoint" in entry
+                ? entry.description || entry.endpoint
+                : entry.whenToUse}
+            </span>
+            {isConnector && value.connectors.includes(entry.id) && (
               <small className="ext-status">
                 <i />
                 Simulated connection
               </small>
             )}
-          </div>
-          <button className="ws-button" onClick={openSettings}>
-            {value.harness ? "Manage" : "Configure"} <ArrowUpRight size={15} />
           </button>
+          {access(entry.id, entry.name)}
         </div>
-        <div className="ws-sectionhead ext-group">
-          <h2>Demo data sources</h2>
+        <div className="ext-expanded" hidden={!open} id={"detail-" + entry.id}>
+          <dl className="ext-details">
+            <dt>{"endpoint" in entry ? "MCP endpoint" : "Instructions"}</dt>
+            <dd>{"endpoint" in entry ? entry.endpoint : entry.instructions}</dd>
+          </dl>
+          <div className="ext-row-actions">
+            <button
+              className="ws-button"
+              onClick={() => setDialog({ action: "edit", id: entry.id })}
+            >
+              Edit {kind}
+            </button>
+            <button
+              className="ws-button"
+              onClick={() => setDialog({ action: "remove", id: entry.id })}
+            >
+              Remove {kind}
+            </button>
+          </div>
         </div>
-        {sources.map(({ id, name, icon: Icon, description }) => {
-          const connected = value.connectors.includes(id);
-          return (
-            <div key={id} className="ext-row">
+      </div>
+    );
+  }
+  return (
+    <section className="ws-page ext-page">
+      <div className="ws-pagehead">
+        <h1>{isConnector ? "Connectors" : "Skills"}</h1>
+        <button
+          ref={addButton}
+          className="ws-button primary"
+          onClick={() => setDialog({ action: "add" })}
+        >
+          <Plus size={16} />
+          Add {kind}
+        </button>
+      </div>
+      <p className="ws-lede">
+        {isConnector
+          ? "Manage the tools and data sources available to this workspace."
+          : "Choose the research skills enabled in this demo workspace."}
+      </p>
+      {entries.length > 0 && (
+        <>
+          <div className="ws-sectionhead">
+            <h2>{isConnector ? "Your connectors" : "Custom skills"}</h2>
+            {!isConnector && (
+              <span>
+                {
+                  value.customSkills.filter((skill) =>
+                    value.skills.includes(skill.id),
+                  ).length
+                }{" "}
+                enabled
+              </span>
+            )}
+          </div>
+          {entries.map(customRow)}
+        </>
+      )}
+      {isConnector ? (
+        <>
+          <div
+            className={"ws-sectionhead" + (entries.length ? " ext-group" : "")}
+          >
+            <h2>Coding harness</h2>
+          </div>
+          <div className="ext-row" id="extension-harness" tabIndex={-1}>
+            <span className="ext-icon">
+              <Terminal />
+            </span>
+            <div className="ext-copy">
+              <h3>{value.harness?.name || "Custom coding harness"}</h3>
+              <p>
+                {value.harness
+                  ? value.harness.endpoint
+                  : "Connect your own coding environment through MCP."}
+              </p>
+              {value.harness && (
+                <small className="ext-status">
+                  <i />
+                  Simulated connection
+                </small>
+              )}
+            </div>
+            <button className="ws-button" onClick={openSettings}>
+              {value.harness ? "Manage" : "Configure"}{" "}
+              <ArrowUpRight size={15} />
+            </button>
+          </div>
+          <div className="ws-sectionhead ext-group">
+            <h2>Demo data sources</h2>
+          </div>
+          {sources.map(({ id, name, icon: Icon, description }) => (
+            <div
+              key={id}
+              id={"extension-" + id}
+              tabIndex={-1}
+              className="ext-row"
+            >
               <span className="ext-icon">
                 <Icon />
               </span>
               <div className="ext-copy">
                 <h3>{name}</h3>
                 <p>{description}</p>
-                {connected && (
+                {value.connectors.includes(id) && (
                   <small className="ext-status">
                     <i />
                     Simulated connection
                   </small>
                 )}
               </div>
-              <button
-                className="ws-button"
-                aria-label={(connected ? "Disconnect " : "Connect ") + name}
-                onClick={() =>
-                  onChange({
-                    ...value,
-                    connectors: toggle(value.connectors, id),
-                  })
-                }
-              >
-                {connected ? <Check size={15} /> : <Plug size={15} />}{" "}
-                {connected ? "Disconnect" : "Connect"}
-              </button>
+              {access(id, name)}
             </div>
-          );
-        })}
-      </section>
-    );
-  return (
-    <section className="ws-page ext-page">
-      <h1>Skills</h1>
-      <p className="ws-lede">
-        Choose the research skills enabled in this demo workspace.
-      </p>
-      <div className="ws-sectionhead">
-        <h2>Workspace skills</h2>
-        <span>{value.skills.length} enabled</span>
-      </div>
-      {skills.map(({ id, name, icon: Icon, description, input, output }) => {
-        const enabled = value.skills.includes(id),
-          open = expanded === id;
-        return (
-          <div className="ext-skill" key={id}>
-            <div className="ext-row">
-              <span className="ext-icon">
-                <Icon />
-              </span>
-              <button
-                className="ext-disclosure ext-copy"
-                aria-expanded={open}
-                aria-controls={"skill-" + id}
-                onClick={() => setExpanded(open ? null : id)}
-              >
-                <span className="ext-title">
-                  {name}
-                  <ChevronDown size={15} />
-                </span>
-                <span className="ext-description">{description}</span>
-              </button>
-              <button
-                className="ext-switch"
-                role="switch"
-                aria-checked={enabled}
-                aria-label={name}
-                onClick={() =>
-                  onChange({ ...value, skills: toggle(value.skills, id) })
-                }
-              >
-                <span />
-              </button>
-            </div>
-            <dl className="ext-details" id={"skill-" + id} hidden={!open}>
-              <dt>Inputs</dt>
-              <dd>{input}</dd>
-              <dt>Output</dt>
-              <dd>{output}</dd>
-            </dl>
+          ))}
+        </>
+      ) : (
+        <>
+          <div
+            className={"ws-sectionhead" + (entries.length ? " ext-group" : "")}
+          >
+            <h2>Workspace skills</h2>
+            <span>
+              {skills.filter((skill) => value.skills.includes(skill.id)).length}{" "}
+              enabled
+            </span>
           </div>
-        );
-      })}
+          {skills.map(
+            ({ id, name, icon: Icon, description, input, output }) => {
+              const open = expanded === id;
+              return (
+                <div
+                  className="ext-skill"
+                  key={id}
+                  id={"extension-" + id}
+                  tabIndex={-1}
+                >
+                  <div className="ext-row">
+                    <span className="ext-icon">
+                      <Icon />
+                    </span>
+                    <button
+                      className="ext-disclosure ext-copy"
+                      aria-expanded={open}
+                      aria-controls={"skill-" + id}
+                      onClick={() => setExpanded(open ? null : id)}
+                    >
+                      <span className="ext-title">
+                        {name}
+                        <ChevronDown size={15} />
+                      </span>
+                      <span className="ext-description">{description}</span>
+                    </button>
+                    {access(id, name)}
+                  </div>
+                  <dl className="ext-details" id={"skill-" + id} hidden={!open}>
+                    <dt>Inputs</dt>
+                    <dd>{input}</dd>
+                    <dt>Output</dt>
+                    <dd>{output}</dd>
+                  </dl>
+                </div>
+              );
+            },
+          )}
+        </>
+      )}
+      {dialog &&
+        (dialog.action === "remove" ? (
+          current && (
+            <Modal title={"Remove " + kind + "?"} close={() => setDialog(null)}>
+              <p>Remove “{current.name}” from this workspace?</p>
+              <div className="ws-actions">
+                <button
+                  autoFocus
+                  className="ws-button"
+                  onClick={() => setDialog(null)}
+                >
+                  Cancel
+                </button>
+                <button className="ws-button primary" onClick={remove}>
+                  Remove {kind}
+                </button>
+              </div>
+            </Modal>
+          )
+        ) : (
+          <Modal
+            title={(current ? "Edit " : "Add ") + kind}
+            close={() => setDialog(null)}
+          >
+            {isConnector ? (
+              <ExtensionForm
+                kind="connector"
+                names={names}
+                record={value.customConnectors.find(
+                  (entry) => entry.id === editId,
+                )}
+                save={saveConnector}
+                cancel={() => setDialog(null)}
+              />
+            ) : (
+              <ExtensionForm
+                kind="skill"
+                names={names}
+                record={value.customSkills.find((entry) => entry.id === editId)}
+                save={saveSkill}
+                cancel={() => setDialog(null)}
+              />
+            )}
+          </Modal>
+        ))}
     </section>
   );
 }
@@ -230,21 +434,8 @@ export function HarnessSettings({ value, onChange }: Props) {
       setError("Enter a name for your harness.");
       return;
     }
-    try {
-      const url = new URL(address);
-      if (
-        !["http:", "https:"].includes(url.protocol) ||
-        !url.hostname ||
-        url.username ||
-        url.password ||
-        url.search ||
-        url.hash
-      )
-        throw new Error();
-    } catch {
-      setError(
-        "Enter an HTTP or HTTPS endpoint without credentials, query parameters, or a fragment.",
-      );
+    if (!isValidEndpoint(address)) {
+      setError(endpointError);
       return;
     }
     onChange({ ...value, harness: { name: label, endpoint: address } });

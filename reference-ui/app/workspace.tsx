@@ -31,7 +31,7 @@ import {
   SlidersHorizontal,
   SquareMinus,
   SquarePlus,
-  X,
+  Download,
 } from "lucide-react";
 import {
   ResourceForm,
@@ -44,6 +44,8 @@ import {
   HarnessSettings,
   type ExtensionState,
 } from "./extensions";
+import Modal from "./modal";
+import { normalizeExtensions, buildAgentContext } from "./extension-model";
 import ExperimentDetail from "./experiment-detail";
 import {
   advanceWorkspace,
@@ -151,59 +153,6 @@ function ChartMark({ rising }: { rising: boolean }) {
     </span>
   );
 }
-function Modal({
-  title,
-  close,
-  children,
-  className = "",
-}: {
-  title: string;
-  close: () => void;
-  children: ReactNode;
-  className?: string;
-}) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    el?.showModal();
-    return () => el?.close();
-  }, []);
-  return (
-    <dialog
-      ref={ref}
-      className={"ws-dialog " + className}
-      onCancel={(event) => {
-        event.preventDefault();
-        close();
-      }}
-      onClick={(event) => {
-        if (event.target === ref.current) {
-          const rect = ref.current.getBoundingClientRect();
-          if (
-            event.clientX < rect.left ||
-            event.clientX > rect.right ||
-            event.clientY < rect.top ||
-            event.clientY > rect.bottom
-          )
-            close();
-        }
-      }}
-      aria-label={title}
-    >
-      <div className="ws-dialoghead">
-        <h2>{title}</h2>
-        <button
-          className="ws-iconbutton"
-          aria-label="Close dialog"
-          onClick={close}
-        >
-          <X size={19} />
-        </button>
-      </div>
-      {children}
-    </dialog>
-  );
-}
 export default function Workspace() {
   const [saved, setSaved] = useState<Saved>(initial);
   const [loaded, setLoaded] = useState(false);
@@ -270,7 +219,11 @@ export default function Workspace() {
       if (raw) {
         const v = JSON.parse(raw);
         if (Array.isArray(v.projects) && Array.isArray(v.experiments))
-          setSaved({ ...initial, ...v });
+          setSaved({
+            ...initial,
+            ...v,
+            extensions: normalizeExtensions(v.extensions),
+          });
       }
     } catch {}
     const onLocation = () => {
@@ -300,6 +253,7 @@ export default function Workspace() {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
+        if (document.querySelector("dialog[open]:not(.ws-searchmodal)")) return;
         setDialog((d) => (d === "search" ? null : "search"));
         setQuery("");
         setPopup(null);
@@ -507,6 +461,16 @@ export default function Workspace() {
   const results = [
     { label: "Connectors", group: "Workspace", to: "connectors" },
     { label: "Skills", group: "Workspace", to: "skills" },
+    ...saved.extensions.customConnectors.map((record) => ({
+      label: record.name,
+      group: "Connector",
+      to: routeFor("connectors", record.id),
+    })),
+    ...saved.extensions.customSkills.map((record) => ({
+      label: record.name,
+      group: "Skill",
+      to: routeFor("skills", record.id),
+    })),
     ...saved.experiments.map((e) => ({
       label: e.title,
       group: "Experiment",
@@ -679,7 +643,9 @@ export default function Workspace() {
         </header>
         {section === "connectors" || section === "skills" ? (
           <ExtensionPage
+            key={section}
             section={section}
+            selectedId={item}
             value={saved.extensions}
             onChange={(extensions) => update({ extensions })}
             openSettings={() => show("settings")}
@@ -1228,6 +1194,37 @@ export default function Workspace() {
             value={saved.extensions}
             onChange={(extensions) => update({ extensions })}
           />
+          <section className="ws-agent-context">
+            <h3>Coding agent handoff</h3>
+            <p>
+              Give your coding agent this JSON file with the enabled skills,
+              their instructions, and the workspace’s simulated connections.
+            </p>
+            <button
+              className="ws-button"
+              onClick={() => {
+                const file = new Blob(
+                  [
+                    JSON.stringify(
+                      buildAgentContext(saved.extensions),
+                      null,
+                      2,
+                    ) + "\n",
+                  ],
+                  { type: "application/json" },
+                );
+                const url = URL.createObjectURL(file);
+                const link = document.createElement("a");
+                link.href = url;
+                link.download = "workspace-agent-context.json";
+                link.click();
+                window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+              }}
+            >
+              <Download size={16} />
+              Download agent context
+            </button>
+          </section>
           <dl className="ws-definitions">
             <div>
               <dt>Workspace</dt>

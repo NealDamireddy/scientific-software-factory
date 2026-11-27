@@ -1158,3 +1158,17 @@ button {
     flex-shrink: 0;
   }
 }
+
+.ws-agent-context {
+  padding: 20px 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.ws-agent-context h3 {
+  margin: 0;
+  font-weight: 590;
+  font-size: 18px;
+}
+.ws-agent-context p {
+  margin: 6px 0 14px;
+}

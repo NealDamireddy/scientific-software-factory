@@ -189,3 +189,60 @@
     grid-template-columns: 54px 1fr;
   }
 }
+
+.ext-page .ws-pagehead {
+  margin-bottom: 8px;
+}
+.ext-page [tabindex="-1"]:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-small);
+}
+.ext-title {
+  overflow-wrap: anywhere;
+}
+.ext-title svg {
+  flex-shrink: 0;
+}
+.ext-expanded {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+.ext-expanded .ext-details {
+  grid-template-columns: minmax(90px, max-content) minmax(0, 1fr);
+  border: 0;
+}
+.ext-details dd {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.ext-row-actions {
+  display: flex;
+  gap: 8px;
+  padding: 0 16px 18px 70px;
+}
+.ext-form {
+  display: grid;
+  gap: 14px;
+}
+.ext-form .ws-actions {
+  margin-top: 4px;
+}
+.ext-form textarea {
+  font: inherit;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 10px;
+  resize: vertical;
+  background: var(--surface);
+  color: var(--ink);
+}
+.ws-dialog .ext-form p {
+  margin: 0;
+  font-size: 14px;
+}
+@media (max-width: 550px) {
+  .ext-row-actions {
+    padding-left: 15px;
+  }
+}

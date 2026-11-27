@@ -27,3 +27,9 @@ npm run build
 npm run typecheck
 npm start
 ```
+
+## Give a coding agent workspace context
+
+Create a reusable procedure in **Skills** and enable it. Add a service in **Connectors** and choose **Connect** to include its simulated connection. Open **Settings → Download agent context** and give the JSON file to your coding agent. Export a fresh copy after changing the workspace.
+
+The export contains the active skill instructions and when to apply them, alongside the selected connector descriptions and any configured endpoint. A coding agent can use it to select a workflow or plan an integration. A simulated connector describes configuration only. A live implementation would need its own authenticated MCP client and tool discovery.
