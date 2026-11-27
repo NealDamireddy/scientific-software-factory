@@ -56,11 +56,19 @@ class Amount:
 
 
 @dataclass(frozen=True)
+class Evidence:
+    document: str
+    passage: int
+    quote: str
+
+
+@dataclass(frozen=True)
 class ProcedureStep:
     text: str
     citations: tuple[str, ...]
     action: Action | None = None
     amounts: tuple[Amount, ...] = ()
+    evidence: tuple[Evidence, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -131,14 +139,22 @@ def _action(value: object) -> Action:
     )
 
 
+def _evidence(value: object) -> Evidence:
+    data = _fields(value, ("document", "passage", "quote"))
+    if type(data["passage"]) is not int or data["passage"] < 1:
+        raise ArtifactError("passage must be a positive integer")
+    return Evidence(_label(data["document"], "document"), data["passage"], _label(data["quote"], "quote"))
+
+
 def _procedure_step(value: object) -> ProcedureStep:
-    data = _fields(value, ("text",), ("citations", "action", "amounts"))
+    data = _fields(value, ("text",), ("citations", "action", "amounts", "evidence"))
     if not isinstance(data["text"], str):
         raise ArtifactError("text must be a string")
     return ProcedureStep(
         text=data["text"],
         citations=_items(data.get("citations", []), "citations", lambda c: _label(c, "citation")),
         action=_action(data["action"]) if data.get("action") is not None else None,
+        evidence=_items(data.get("evidence", []), "evidence", _evidence),
         amounts=_items(data.get("amounts", []), "amounts", _amount),
     )
 
@@ -197,6 +213,8 @@ def render_step(step: ProcedureStep) -> list[str]:
         lines.append(f"Notes, not checked by code: {notes}")
     if step.citations:
         lines.append("Citations: " + ", ".join(map(format_citation, step.citations)))
+    for item in step.evidence:
+        lines.append(f"Source {format_citation(item.document)}, passage {item.passage}: {item.quote}")
     return lines
 
 
@@ -217,6 +235,8 @@ def render_run_plan(plan: RunPlan) -> str:
 
 
 def render_artifact(kind: str, data: dict, *, experiment_id: str | None = None) -> str:
+    if kind == "procedure" and set(data) == {"needs_input"}:
+        return "Source needed: " + repr(data["needs_input"])
     if kind == "analysis_app":
         from .honey_service import EXPERIMENT_ID
 

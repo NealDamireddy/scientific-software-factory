@@ -158,6 +158,23 @@ class WorkOrders:
 
             honey_service.require_context(lab, exp, self.store.reference_brief(order.id))
             return check(data)
+        if order.kind == "procedure":
+            from . import procedure_drafts
+            draft = procedure_drafts.info(self.store, order.id)
+            if draft and draft["next_order"]:
+                raise WorkOrderError(f"Continue drafting on {draft['next_order']}")
+            if draft and isinstance(data, dict) and set(data) == {"needs_input"}:
+                return procedure_drafts.question_check(data)
+            procedure = parse_artifact(order.kind, data)
+            results = check_artifact(procedure, lab, exp)
+            if draft or any(step.evidence for step in procedure.steps):
+                results.extend(procedure_drafts.evidence_checks(procedure, lab, exp, required=bool(draft)))
+            if draft:
+                from . import decision_evidence
+                from .paper_review import saved_checks
+                results.extend(saved_checks(self.store, order.id, data, procedure, lab, exp))
+                results.extend(decision_evidence.saved_checks(self.store, order.id, data))
+            return results
         return check_artifact(parse_artifact(order.kind, data), lab, exp)
 
     def _transition(self, id, expected, status, worker, released=None):
