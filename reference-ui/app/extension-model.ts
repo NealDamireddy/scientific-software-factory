@@ -1,3 +1,6 @@
+import { researchSkills } from "./review-skills/catalog.ts";
+import type { ResearchSkill, Family, Stage } from "./review-skills/types";
+
 export type Harness = { name: string; endpoint: string };
 type Connector = { id: string; name: string; description: string };
 export type CustomConnector = Connector & { endpoint: string };
@@ -30,9 +33,11 @@ export const builtinConnectors: Connector[] = [
   },
 ];
 
-export const builtinSkills = [
+export const builtinSkills: Omit<ResearchSkill, "evaluate">[] = [
   {
     id: "calibration",
+    family: "Analysis & results",
+    stage: "result",
     name: "Calibration review",
     description: "Check sample readings against a calibration range.",
     input: "Calibration standards and sample absorbance",
@@ -44,6 +49,8 @@ export const builtinSkills = [
   },
   {
     id: "evidence",
+    family: "Evidence & reproducibility",
+    stage: "result",
     name: "Evidence summary",
     description: "Summarize the records behind an experiment result.",
     input: "Run history, source readings, and reviewer decisions",
@@ -55,6 +62,8 @@ export const builtinSkills = [
   },
   {
     id: "method",
+    family: "Scientific review",
+    stage: "repeat",
     name: "Method comparison",
     description: "Compare two versions of an experimental method.",
     input: "Two method records",
@@ -64,6 +73,7 @@ export const builtinSkills = [
     instructions:
       "Identify both revision identifiers. Compare recorded parameters field by field, including units, and describe changes that affect interpretation. If a value or revision is missing, mark the comparison incomplete. Reference the two source records in the summary.",
   },
+  ...researchSkills.map(({ evaluate, ...definition }) => definition),
 ];
 
 export const defaultExtensions: ExtensionState = {
@@ -200,13 +210,16 @@ export type AgentContext = {
   executionAuthority: "none";
   harness: Harness | null;
   connectors: (Connector & { endpoint?: string })[];
-  skills: CustomSkill[];
+  skills: (CustomSkill & {
+    source?: "builtin";
+    family?: Family;
+    stage?: Stage;
+  })[];
 };
 
 export function buildAgentContext(state: ExtensionState): AgentContext {
   const saved = normalizeExtensions(state);
   const connectors = [...builtinConnectors, ...saved.customConnectors];
-  const skills = [...builtinSkills, ...saved.customSkills];
   return {
     schemaVersion: 1,
     simulationOnly: true,
@@ -215,13 +228,21 @@ export function buildAgentContext(state: ExtensionState): AgentContext {
     connectors: connectors
       .filter((item) => saved.connectors.includes(item.id))
       .map((item) => ({ ...item })),
-    skills: skills
-      .filter((item) => saved.skills.includes(item.id))
-      .map(({ id, name, whenToUse, instructions }) => ({
-        id,
-        name,
-        whenToUse,
-        instructions,
-      })),
+    skills: [
+      ...builtinSkills
+        .filter((skill) => saved.skills.includes(skill.id))
+        .map(({ id, name, whenToUse, instructions, family, stage }) => ({
+          id,
+          name,
+          whenToUse,
+          instructions,
+          family,
+          stage,
+          source: "builtin" as const,
+        })),
+      ...saved.customSkills
+        .filter((skill) => saved.skills.includes(skill.id))
+        .map((skill) => ({ ...skill })),
+    ],
   };
 }

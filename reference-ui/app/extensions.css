@@ -246,3 +246,117 @@
     padding-left: 15px;
   }
 }
+
+.ext-family {
+  border-bottom: 1px solid var(--line);
+}
+.ext-family h3 {
+  margin: 0;
+}
+.ws-app .ext-family-toggle {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  text-align: left;
+  padding: 16px 8px;
+  border-radius: var(--radius-small);
+  font-size: 18px;
+  font-weight: 550;
+}
+.ext-family-toggle:hover {
+  background: var(--panel);
+}
+.ext-family-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+}
+.ext-family-name {
+  flex: 1;
+  letter-spacing: -0.025em;
+}
+.ext-family-count,
+.ext-trigger {
+  font-size: 14px;
+  font-weight: 450;
+  color: var(--muted);
+}
+.ext-family-chevron,
+.ext-trigger {
+  flex: none;
+}
+.ext-family-chevron {
+  color: var(--subtle);
+}
+.ext-family-toggle[aria-expanded="true"] .ext-family-chevron {
+  transform: rotate(180deg);
+}
+.ext-family-skill {
+  margin-left: 54px;
+}
+.ext-family-skill > .ext-row {
+  padding: 11px 8px 11px 0;
+  gap: 14px;
+  border-top: 1px solid var(--line);
+  border-bottom: 0;
+}
+.ext-family-skill .ext-title {
+  font-size: 17px;
+}
+.ext-family-skill .ext-description {
+  font-size: 14px;
+  line-height: 1.4;
+}
+.ext-family-skill .ext-skill-details:not([hidden]) {
+  grid-template-columns: 88px 1fr;
+  padding: 16px 18px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+@media (max-width: 550px) {
+  .ws-app .ext-family-toggle {
+    gap: 8px;
+    padding: 14px 0;
+    font-size: 16px;
+  }
+  .ext-family-icon {
+    width: 28px;
+    height: 28px;
+  }
+  .ext-family-count {
+    font-size: 12px;
+  }
+  .ext-family-skill {
+    margin-left: 10px;
+  }
+  .ext-family-skill > .ext-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 3px 8px;
+  }
+  .ext-family-skill .ext-disclosure {
+    padding-bottom: 0;
+  }
+  .ext-family-skill .ext-trigger {
+    grid-area: 2/1;
+    padding-left: 6px;
+    font-size: 12px;
+  }
+  .ext-family-skill .ext-switch {
+    grid-area: 1/2 / span 2/3;
+  }
+  .ext-family-skill .ext-skill-details:not([hidden]) {
+    grid-template-columns: 70px 1fr;
+    padding: 12px;
+    gap: 8px;
+  }
+}

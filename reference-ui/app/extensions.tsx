@@ -13,11 +13,14 @@ import {
   Plug,
   Terminal,
   Plus,
+  ShieldCheck,
+  Microscope,
   Wrench,
 } from "lucide-react";
 import "./extensions.css";
 
 import Modal from "./modal";
+import type { Family, Stage } from "./review-skills/types";
 import { ExtensionForm, endpointError } from "./extension-form";
 import {
   builtinConnectors,
@@ -37,18 +40,29 @@ type Props = {
 const catalogIcons: Record<string, typeof Plug> = {
   notebook: BookOpen,
   archive: Archive,
-  calibration: ChartNoAxesCombined,
-  evidence: FileCheck2,
-  method: ClipboardList,
 };
 const sources = builtinConnectors.map((entry) => ({
   ...entry,
   icon: catalogIcons[entry.id] ?? Plug,
 }));
-const skills = builtinSkills.map((entry) => ({
-  ...entry,
-  icon: catalogIcons[entry.id] ?? Wrench,
+const familyIcons = {
+  "Lab knowledge": BookOpen,
+  "Experiment planning": ClipboardList,
+  "Instruments & execution": Microscope,
+  "Analysis & results": ChartNoAxesCombined,
+  "Scientific review": ShieldCheck,
+  "Evidence & reproducibility": FileCheck2,
+} satisfies Record<Family, typeof Plug>;
+const families = (Object.keys(familyIcons) as Family[]).map((name) => ({
+  name,
+  icon: familyIcons[name],
+  skills: builtinSkills.filter((skill) => skill.family === name),
 }));
+const triggerLabel: Record<Stage, string> = {
+  start: "Run start",
+  result: "Result available",
+  repeat: "Repeat run",
+};
 function toggle(items: string[], id: string) {
   return items.includes(id)
     ? items.filter((item) => item !== id)
@@ -69,6 +83,7 @@ export function ExtensionPage({
   selectedId?: string;
 }) {
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [openFamily, setOpenFamily] = useState<Family | null>(null);
   const [dialog, setDialog] = useState<EntryDialog | null>(null);
   const addButton = useRef<HTMLButtonElement>(null);
   const isConnector = section === "connectors";
@@ -77,10 +92,12 @@ export function ExtensionPage({
   const editId = dialog && dialog.action !== "add" ? dialog.id : undefined;
   const current = entries.find((entry) => entry.id === editId);
   const names = [
-    ...(isConnector ? sources : skills),
+    ...(isConnector ? sources : builtinSkills),
     ...entries.filter((entry) => entry.id !== editId),
   ].map((entry) => entry.name);
   function reveal(id: string) {
+    const family = builtinSkills.find((skill) => skill.id === id)?.family;
+    if (family) setOpenFamily(family);
     setExpanded(id);
     requestAnimationFrame(() => {
       const row = document.getElementById("extension-" + id);
@@ -321,48 +338,117 @@ export function ExtensionPage({
           >
             <h2>Workspace skills</h2>
             <span>
-              {skills.filter((skill) => value.skills.includes(skill.id)).length}{" "}
+              {
+                builtinSkills.filter((skill) => value.skills.includes(skill.id))
+                  .length
+              }{" "}
               enabled
             </span>
           </div>
-          {skills.map(
-            ({ id, name, icon: Icon, description, input, output }) => {
-              const open = expanded === id;
-              return (
-                <div
-                  className="ext-skill"
-                  key={id}
-                  id={"extension-" + id}
-                  tabIndex={-1}
-                >
-                  <div className="ext-row">
-                    <span className="ext-icon">
-                      <Icon />
-                    </span>
-                    <button
-                      className="ext-disclosure ext-copy"
-                      aria-expanded={open}
-                      aria-controls={"skill-" + id}
-                      onClick={() => setExpanded(open ? null : id)}
+          <div className="ext-families">
+            {families.map(
+              ({ name: family, icon: Icon, skills: members }, index) => {
+                const familyOpen = openFamily === family;
+                const familyId = "skill-family-" + index;
+                return (
+                  <section className="ext-family" key={family}>
+                    <h3>
+                      <button
+                        id={familyId + "-title"}
+                        className="ext-family-toggle"
+                        aria-expanded={familyOpen}
+                        aria-controls={familyId}
+                        onClick={() =>
+                          setOpenFamily(familyOpen ? null : family)
+                        }
+                      >
+                        <span className="ext-family-icon">
+                          <Icon size={20} aria-hidden />
+                        </span>
+                        <span className="ext-family-name">{family}</span>
+                        <span className="ext-family-count">
+                          {
+                            members.filter((skill) =>
+                              value.skills.includes(skill.id),
+                            ).length
+                          }{" "}
+                          of {members.length} enabled
+                        </span>
+                        <ChevronDown
+                          size={16}
+                          aria-hidden
+                          className="ext-family-chevron"
+                        />
+                      </button>
+                    </h3>
+                    <div
+                      id={familyId}
+                      hidden={!familyOpen}
+                      aria-labelledby={familyId + "-title"}
                     >
-                      <span className="ext-title">
-                        {name}
-                        <ChevronDown size={15} />
-                      </span>
-                      <span className="ext-description">{description}</span>
-                    </button>
-                    {access(id, name)}
-                  </div>
-                  <dl className="ext-details" id={"skill-" + id} hidden={!open}>
-                    <dt>Inputs</dt>
-                    <dd>{input}</dd>
-                    <dt>Output</dt>
-                    <dd>{output}</dd>
-                  </dl>
-                </div>
-              );
-            },
-          )}
+                      {members.map(
+                        ({
+                          id,
+                          name,
+                          description,
+                          input,
+                          output,
+                          stage,
+                          whenToUse,
+                          instructions,
+                        }) => {
+                          const open = expanded === id;
+                          return (
+                            <div
+                              className="ext-family-skill"
+                              key={id}
+                              id={"extension-" + id}
+                              tabIndex={-1}
+                            >
+                              <div className="ext-row">
+                                <button
+                                  className="ext-disclosure ext-copy"
+                                  aria-expanded={open}
+                                  aria-controls={"skill-" + id}
+                                  onClick={() => setExpanded(open ? null : id)}
+                                >
+                                  <span className="ext-title">
+                                    {name}
+                                    <ChevronDown size={14} />
+                                  </span>
+                                  <span className="ext-description">
+                                    {description}
+                                  </span>
+                                </button>
+                                <span className="ext-trigger">
+                                  {triggerLabel[stage]}
+                                </span>
+                                {access(id, name)}
+                              </div>
+                              <dl
+                                className="ext-details ext-skill-details"
+                                id={"skill-" + id}
+                                hidden={!open}
+                              >
+                                <dt>When to use</dt>
+                                <dd>{whenToUse}</dd>
+                                <dt>Inputs</dt>
+                                <dd>{input}</dd>
+                                <dt>Output</dt>
+                                <dd>{output}</dd>
+                                <dt>Instructions</dt>
+                                <dd>{instructions}</dd>
+                              </dl>
+                            </div>
+                          );
+                        },
+                      )}
+                    </div>
+                  </section>
+                );
+              },
+            )}
+          </div>
         </>
       )}
       {dialog &&

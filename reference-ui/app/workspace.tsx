@@ -45,7 +45,11 @@ import {
   type ExtensionState,
 } from "./extensions";
 import Modal from "./modal";
-import { normalizeExtensions, buildAgentContext } from "./extension-model";
+import {
+  builtinSkills,
+  normalizeExtensions,
+  buildAgentContext,
+} from "./extension-model";
 import ExperimentDetail from "./experiment-detail";
 import {
   advanceWorkspace,
@@ -466,7 +470,7 @@ export default function Workspace() {
       group: "Connector",
       to: routeFor("connectors", record.id),
     })),
-    ...saved.extensions.customSkills.map((record) => ({
+    ...[...builtinSkills, ...saved.extensions.customSkills].map((record) => ({
       label: record.name,
       group: "Skill",
       to: routeFor("skills", record.id),

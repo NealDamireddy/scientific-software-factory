@@ -25,6 +25,7 @@ Open the localhost address printed by Next.js. The app includes its Geist font f
 ```sh
 npm run build
 npm run typecheck
+node --experimental-strip-types --test app/*.test.mjs app/review-skills/*.test.mjs
 npm start
 ```
 
@@ -32,6 +33,6 @@ npm start
 
 Create a reusable procedure in **Skills** and enable it. Add a service in **Connectors** and choose **Connect** to include its simulated connection. Start an experiment to capture the current selection for the simulated coding agent. Each run keeps its own snapshot in Evidence, so later edits apply to subsequent runs. **Settings → Download agent context** also provides a manual copy of the current configuration.
 
-In Evidence, expand a run under **Agent context by run** to inspect the instructions, selected connectors, and any simulated review findings. Calibration review and Evidence summary can produce findings from the illustrative readings. Custom skills appear as loaded instructions.
+In Evidence, expand a run under **Agent context by run** to inspect the instructions, selected connectors, and any simulated review findings. The nine built-in skills are grouped by family in Skills. Enable individual checks before starting the experiment. Three can review setup at run start, three review results, and three compare an approved repeat. Each applicable check records its stage, verdict and evidence references. Custom skills appear as loaded instructions.
 
 The export contains the active skill instructions and when to apply them, alongside the selected connector descriptions and any configured endpoint. A coding agent can use it to select a workflow or plan an integration. A simulated connector describes configuration only. A live implementation would need its own authenticated MCP client and tool discovery.

@@ -718,3 +718,10 @@
     font-size: 16.5px;
   }
 }
+.ex-check-stage,
+.ex-check-refs {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.93em;
+}

@@ -27,6 +27,10 @@ import {
 import {
   cancel,
   prepareRunContext,
+  pendingReview,
+  simulationInstrument,
+  repeatDilutionFactor,
+  resultConcentration,
   sampleOriginal,
   sampleRepeat,
   type RunContext,
@@ -60,10 +64,6 @@ const stages = [
   "Check sample",
   "Verify result",
 ];
-const resultConcentration = Number(
-  (((sampleRepeat - 0.05) / 0.08) * 2).toFixed(1),
-);
-
 function statusTone(status: Experiment["status"]) {
   return status === "Verified"
     ? "good"
@@ -262,10 +262,12 @@ function ContextRecord({
   title,
   context,
   checks,
+  run,
 }: {
   title: string;
   context?: RunContext;
   checks?: AgentCheck[];
+  run?: Run;
 }) {
   if (!context)
     return (
@@ -316,6 +318,7 @@ function ContextRecord({
         {skills.length === 0 && <p>No enabled skills.</p>}
         {skills.map((skill) => {
           const check = checks?.find((c) => c.skillId === skill.id);
+          const [label, detail] = run ? pendingReview(skill, run) : ["", ""];
           return (
             <div className="ex-context-entry" key={skill.id}>
               <strong>{skill.name}</strong>
@@ -327,8 +330,32 @@ function ContextRecord({
               </p>
               {checks && (
                 <p className="ex-application">
-                  <b>{check ? "Simulated check" : "Loaded only"}</b>{" "}
-                  {check?.finding ?? "Instructions included as reference."}
+                  <b>
+                    {check
+                      ? {
+                          clear: "Checked",
+                          finding: "Finding",
+                          unassessed: "Unassessed",
+                        }[check.verdict ?? "clear"]
+                      : label}
+                  </b>{" "}
+                  {check?.finding ?? detail}
+                  {check?.stage && (
+                    <span className="ex-check-stage">
+                      {
+                        {
+                          start: "Run start",
+                          result: "Result review",
+                          repeat: "Repeat review",
+                        }[check.stage]
+                      }
+                    </span>
+                  )}
+                  {check?.references?.length ? (
+                    <span className="ex-check-refs">
+                      <b>Evidence</b> {check.references.join(" · ")}
+                    </span>
+                  ) : null}
                 </p>
               )}
             </div>
@@ -357,7 +384,7 @@ function Evidence({ e }: { e: Experiment }) {
         name: methodName(e.kind),
         version: "1.0",
         wavelengthNm: wavelength(e.kind),
-        instrument: "UV–Vis spectrometer",
+        instrument: simulationInstrument,
       },
       runs: e.runs.map((run) => ({
         ...run,
@@ -366,7 +393,8 @@ function Evidence({ e }: { e: Experiment }) {
           ? {
               sampleAbsorbanceAU:
                 run.mode === "original" ? sampleOriginal : sampleRepeat,
-              dilutionFactor: run.mode === "original" ? 1 : 2,
+              dilutionFactor:
+                run.mode === "original" ? 1 : repeatDilutionFactor,
             }
           : {}),
       })),
@@ -413,6 +441,7 @@ function Evidence({ e }: { e: Experiment }) {
             <ContextRecord
               key={r.number}
               title={`Run ${r.number} · ${r.mode === "original" ? "Original sample" : "Diluted repeat"}`}
+              run={r}
               context={r.agentContext}
               checks={r.agentChecks ?? []}
             />
@@ -504,7 +533,7 @@ export default function ExperimentDetail({
       <div className="ex-meta">
         <span>
           <FlaskConical size={15} />
-          UV–Vis spectrometer
+          {simulationInstrument}
         </span>
         <span>
           <Layers size={15} />
