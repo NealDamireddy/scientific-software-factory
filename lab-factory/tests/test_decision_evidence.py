@@ -123,7 +123,7 @@ def test_model_manual_on_instrument_step():
     assert all(c.passed for c in decision_evidence.checks(artifact, plan, reviewed))
 
 
-@pytest.mark.parametrize("failure_stage", ["planning", "late_question", "outage"])
+@pytest.mark.parametrize("failure_stage", ["planning", "late_question", "unverified_draft", "outage"])
 def test_verification_recovery_can_be_answered(tmp_path, monkeypatch, failure_stage):
     body = json.loads(FIXTURE.read_text())
     db = str(tmp_path/"recovery.sqlite")
@@ -144,6 +144,10 @@ def test_verification_recovery_can_be_answered(tmp_path, monkeypatch, failure_st
                  "instrument_manuals": []}]
 
     def author(context, feedback):
+        if not context["answer_document_id"] and failure_stage == "unverified_draft":
+            return {"steps": [{"text": "Measure both filters.", "evidence": [], "citations": [],
+                               "action": {"instrument_id": "photometer-1", "command": "read_transmittance",
+                                          "settings": [{"parameter": "wavelength", "value": 999, "unit": "nm"}]}}]}
         if not context["answer_document_id"]:
             return {"needs_input": "Does the retired setting apply?", "question_kind": "missing_method_detail"}
         ref, = context["decisions"][0]["evidence"]
@@ -168,7 +172,7 @@ def test_verification_recovery_can_be_answered(tmp_path, monkeypatch, failure_st
             return
         assert res.status_code == 201 and start["state"] == "needs_input"
         assert start["input_kind"] == "missing_method_detail" and "wavelength (nm)" in start["question"]
-        assert "retired" not in start["question"] and "520" not in start["question"]
+        assert "retired" not in start["question"] and "520" not in start["question"] and "999" not in start["question"]
         assert start == api.post(PATH, json=body).json()
         assert not start["submission"]["passed"] and set(start["submission"]["artifact"]) == {"needs_input"}
         parent = start["order"]["id"]

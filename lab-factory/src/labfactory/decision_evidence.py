@@ -32,7 +32,7 @@ class InvalidDecision(ValueError):
     topic = ""
 
 
-def recovery_gap(lab, experiment, context, index, topic, *, confirm_setting=True):
+def recovery_gap(lab, experiment, context, index, topic, *, confirm_setting=True, setting_only=False):
     """Build a question, never a method value, from the assigned action and study records."""
     study_ids = {d.id for d in experiment.documents}
     study = [p for p in passages(lab, experiment) if p["document"] in study_ids]
@@ -56,6 +56,8 @@ def recovery_gap(lab, experiment, context, index, topic, *, confirm_setting=True
         question = (f"Which project-authorized {label} ({unit}) applies to the {device.model} measurement? "
                     "Please supply the setting or the method passage that specifies it.")
         evidence = [{"document": p["document"], "passage": p["passage"], "quote": p["text"]} for p in refs[:1]]
+    elif setting_only:
+        return None
     else:
         # Do not echo a rejected model finding, value, or proposed question as fact.
         subject = topic or experiment.title

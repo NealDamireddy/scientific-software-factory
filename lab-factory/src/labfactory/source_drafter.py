@@ -230,10 +230,15 @@ def complete(run_store, pending):
                 continue
             if attempt == 0:
                 continue
-            if rejected_decision is None:
+            if rejected_decision is not None:
+                gap = decision_evidence.recovery_gap(lab, exp, context, len(plan) + 1,
+                                                     rejected_decision["search"], confirm_setting=False)
+            elif report is None and not context["answer_document_id"]:
+                # Even if the author never produced a reviewable draft, intake can
+                # ask for a setting explicitly identified by this study and device.
+                gap = decision_evidence.recovery_gap(lab, exp, context, len(plan) + 1, "", setting_only=True)
+            if gap is None:
                 raise DraftUnavailable("The source drafter failed verification twice. Retry the same request.")
-            gap = decision_evidence.recovery_gap(lab, exp, context, len(plan) + 1, rejected_decision["search"],
-                                                 confirm_setting=False)
             plan.append(gap)
             candidate, input_kind = {"needs_input": gap["question"]}, gap["status"]
             report = decision_report = None
