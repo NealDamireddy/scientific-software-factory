@@ -6,7 +6,8 @@ const statuses = {open: "Open", in_progress: "In progress", in_review: "In revie
 const kinds = {run_plan: "Run plan", procedure: "Procedure", analysis_app: "B12 analysis app"};
 const honeyGuide = {instrument: "hanna-hi96800", q: "Measure honey moisture"};
 const isHoneyOrder = order => order.kind === "analysis_app" && order.experiment_id === "honey-moisture-sim-v1";
-const artifactName = order => isHoneyOrder(order) ? "Honey moisture analysis" : kinds[order.kind] || order.kind;
+const isTabularOrder = order => order.kind === "analysis_app" && order.experiment_id.startsWith("tabular-");
+const artifactName = order => isTabularOrder(order) ? "Tabular analysis" : isHoneyOrder(order) ? "Honey moisture analysis" : kinds[order.kind] || order.kind;
 let reviewer = null;
 let agentNames = [];
 let generation = 0;
@@ -171,9 +172,14 @@ function openOrder(id) {
   else location.hash = hash;
 }
 
+function latestOrder(id) {
+  return api("orders/" + encodeURIComponent(id) + "?submission=latest");
+}
+
 function showOrders(orders) {
   const mainHeading = heading("Work orders", refreshButton(),
-    button("Create order", "primary", () => openForm(byId("create-dialog"))));
+    analysisLink("New analysis", "#analysis/new"),
+    button("New procedure or run plan", "primary", () => openForm(byId("create-dialog"))));
   const summary = element("dl", undefined, "stats");
   for (const [key, label] of Object.entries(statuses)) {
     definition(summary, label, orders.filter((order) => order.status === key).length, "stat");
@@ -218,20 +224,54 @@ function showOrders(orders) {
   if (!orders.length) workspace.append(examplePanel());
 }
 
+function configureDecision(kind, order, number, digest) {
+  decision = {kind, order: order.id, number, reviewer};
+  const approve = kind === "approve";
+  const requeue = kind === "requeue";
+  byId("decision-digest-label").hidden = requeue;
+  byId("decision-digest").hidden = requeue;
+  byId("decision-digest").textContent = digest;
+  byId("reason-field").hidden = approve;
+  byId("reason-label").textContent = requeue ? "Reason for requeue" : "Reason for rejection";
+  byId("reason").required = !approve;
+  byId("decision-submit").textContent = requeue ? "Requeue order" : approve ? "Approve and release" : "Reject and reopen";
+  byId("decision-submit").className = approve ? "primary" : "danger";
+}
+
+function claimAge(claimedAt) {
+  const timestamp = Date.parse(claimedAt);
+  if (!Number.isFinite(timestamp)) return element("span", "Claim time unavailable", "muted");
+  const minutes = Math.max(0, Math.floor((Date.now() - timestamp) / 60000));
+  let age = "just now";
+  if (minutes > 0) {
+    const [amount, unit] = minutes < 60 ? [minutes, "minute"]
+      : minutes < 1440 ? [Math.floor(minutes / 60), "hour"]
+        : [Math.floor(minutes / 1440), "day"];
+    age = amount + " " + unit + (amount === 1 ? "" : "s") + " ago";
+  }
+  const precise = claimedAt.replace("T", " ").replace(/Z$/, " UTC");
+  const time = element("time", "Claimed " + age + " (" + precise + ")", "muted");
+  time.dateTime = claimedAt;
+  return time;
+}
+
+function openClaimRecovery(order) {
+  configureDecision("requeue", order, order.claim_id, "");
+  byId("decision-title").textContent = "Requeue claim " + order.claim_id + "?";
+  byId("decision-summary").textContent = "Return " + order.id + " to the queue and release " + order.worker + "'s claim.";
+  openForm(byId("decision-dialog"));
+}
+
 function openDecision(kind, order, submission) {
-  decision = {kind, order: order.id, number: submission.number, reviewer};
+  configureDecision(kind, order, submission.number, submission.artifact_digest);
   const approve = kind === "approve";
   const label = approve ? "Approve submission" : "Reject submission";
   byId("decision-title").textContent = label + " " + submission.number + "?";
   byId("decision-summary").textContent = approve
     ? "Release " + order.id + " submission " + submission.number + " as " + reviewer + "."
     : "Reopen " + order.id + " as " + reviewer + " and send feedback on submission " + submission.number + " to the next worker.";
-  byId("decision-digest").textContent = submission.artifact_digest;
-  byId("reason-field").hidden = approve;
-  byId("reason").required = !approve;
-  byId("decision-submit").textContent = approve ? "Approve and release" : "Reject and reopen";
-  byId("decision-submit").className = approve ? "primary" : "danger";
   openForm(byId("decision-dialog"));
+  if (!approve && isTabularOrder(order)) byId("decision-summary").textContent = "Reopen " + order.id + " submission " + submission.number + " as " + reviewer + ". Keep blind control values out of feedback for the worker.";
 }
 
 function honeySubmission(artifact, brief) {
@@ -308,7 +348,9 @@ function submissionView(order, submission, latest, brief) {
     section.append(head);
   }
   const body = element("div", undefined, "details-content");
-  if (isHoneyOrder(order)) {
+  if (isTabularOrder(order)) {
+    body.append(tabularSubmission(submission));
+  } else if (isHoneyOrder(order)) {
     body.append(honeySubmission(submission.artifact, brief));
   } else if (order.kind === "analysis_app") {
     const source = element("pre", undefined, "analysis-source");
@@ -340,9 +382,10 @@ function submissionView(order, submission, latest, brief) {
 function showOrder(data, assay) {
   const {order, submissions, history, reference_brief: brief} = data;
   const honey = isHoneyOrder(order);
+  const tabular = isTabularOrder(order);
   const back = element("div", undefined, "nav-back");
-  const link = element("a", honey ? "← Honey moisture" : brief ? "← Reference library" : assay ? "← B12 analysis" : "← Work orders");
-  link.href = honey ? "#honey" : brief ? "#references?" + new URLSearchParams({instrument: brief.instrument.id, q: brief.query}) :
+  const link = element("a", tabular ? "← Analysis workspace" : honey ? "← Honey moisture" : brief ? "← Reference library" : assay ? "← B12 analysis" : "← Work orders");
+  link.href = tabular ? "#analysis" : honey ? "#honey" : brief ? "#references?" + new URLSearchParams({instrument: brief.instrument.id, q: brief.query}) :
     assay ? "#b12" : "#orders";
   back.append(link);
   const statusLine = element("div", undefined, "order-title");
@@ -352,8 +395,18 @@ function showOrder(data, assay) {
   definition(meta, "Experiment", order.experiment_id + " · revision " + order.experiment_revision);
   definition(meta, "Lab", order.lab_id + " · revision " + order.lab_revision);
   definition(meta, "Worker", order.worker || "Unclaimed");
+  if (order.claim_id != null) definition(meta, "Claim", order.claim_id);
   workspace.replaceChildren(back, statusLine, heading(order.objective, refreshButton()), meta);
+  if (tabular) renderTabularOrder(data);
   if (brief && !honey) workspace.append(referenceBrief(brief));
+  if (order.claim_id != null) {
+    const actions = element("div", undefined, "review-actions");
+    actions.append(
+      button("Requeue claim " + order.claim_id, "danger-outline", () => openClaimRecovery(order)),
+      claimAge(order.claimed_at),
+    );
+    workspace.append(actions);
+  }
   if (honey && order.status === "released") {
     workspace.append(honeyReadingEntry(order));
     if (data.runs.length) workspace.append(honeyRuns(data.runs));
@@ -364,7 +417,7 @@ function showOrder(data, assay) {
   const sorted = submissions.slice().sort((a,b) => b.number - a.number);
   if (!sorted.length) {
     const empty = panel("Submissions");
-    empty.append(element("p", order.status === "open"
+    empty.append(element("p", tabular ? (order.status === "open" ? "Queued for a coding worker. This page updates when the worker claims the order." : "The worker has claimed the order and is preparing a submission.") : order.status === "open"
       ? "This order is open for an agent to claim." : "Waiting for the claiming agent to submit an artifact.", "empty"));
     if (assay || honey) {
       const connect = element("a", "Connect a coding agent");
@@ -461,8 +514,14 @@ function showAnalysisOrders(data, tab) {
   const intro = honey
     ? "Open an order to review the agent’s calculation and its tests. Once you approve a submission, enter two simulated Hanna HI96800 readings to estimate grams of water per 100 grams of honey."
     : "Start a fresh review of the agent-written Python, or reopen an existing order. Each new example tests the source again before you approve it and calculate a concentration from simulated readings.";
+  const description = element("p", intro, "assay-intro");
+  if (!honey) {
+    const archive = element("a", "View the recorded EVOLVE dilution experiment");
+    archive.href = "/evolve/b12/";
+    description.append(" ", archive, ".");
+  }
   workspace.replaceChildren(heading(honey ? "Honey moisture analysis" : "Vitamin B12 analysis", references, refreshButton(), create),
-    element("p", intro, "assay-intro"), list);
+    description, list);
 }
 
 const sourceTypes = {manual: "Instrument manuals", procedure: "Published procedures", paper: "Research papers"};
@@ -1047,7 +1106,7 @@ async function navigate() {
   const hash = location.hash.slice(1);
   const route = hash.split("?")[0];
   const isOrder = hash.startsWith("order/");
-  const tab = ["context","agents","b12","honey","references"].includes(route) ? route : "orders";
+  const tab = route === "analysis/new" ? "analysis" : ["context","agents","b12","honey","references","analysis"].includes(route) ? route : "orders";
   function selectTab(active) {
     for (const link of byId("nav").querySelectorAll("a")) {
       if (link.dataset.tab === active) link.setAttribute("aria-current", "page");
@@ -1056,16 +1115,22 @@ async function navigate() {
   }
   selectTab(tab);
   notify("");
-  const page = {orders:"Work orders",context:"Lab context",agents:"Agent access",b12:"Vitamin B12 analysis",honey:"Honey moisture analysis",references:"Reference library"}[tab];
+  const page = {orders:"Work orders",context:"Lab context",agents:"Agent access",b12:"Vitamin B12 analysis",honey:"Honey moisture analysis",analysis:"Analysis workspace",references:"Reference library"}[tab];
   document.title = page + " · Lab Factory";
   workspace.setAttribute("aria-busy","true");
   try {
     if (isOrder || tab === "orders") {
       workspace.replaceChildren(element("p", "Loading work orders…", "muted"));
       const id = isOrder ? decodeURIComponent(hash.slice(6)) : "";
-      const data = await api(isOrder ? "orders/" + encodeURIComponent(id) + "?submission=latest" : "orders");
+      const data = isOrder ? await latestOrder(id) : await api("orders");
       if (generation !== request) return;
       if (isOrder) {
+        if (isTabularOrder(data.order)) {
+          selectTab("analysis");
+          showTabularOrder(data, request);
+          document.title = id + " · Lab Factory";
+          return;
+        }
         const honey = isHoneyOrder(data.order);
         const assay = data.order.kind === "analysis_app" && !honey ? await api("b12/orders/" + encodeURIComponent(id) + "/readings") : null;
         if (generation !== request) return;
@@ -1075,6 +1140,12 @@ async function navigate() {
         showOrder(data, assay); document.title = data.order.id + " · Lab Factory";
       }
       else showOrders(data.orders);
+    } else if (tab === "analysis") {
+      if (route === "analysis/new") showTabularIntake();
+      else {
+        const data = await api("analysis");
+        if (generation === request) showTabularOrders(data);
+      }
     } else if (tab === "b12" || tab === "honey") {
       workspace.replaceChildren(element("p", "Loading analysis orders…", "muted"));
       const data = await api(tab);
@@ -1104,6 +1175,7 @@ async function loadSession() {
   byId("loading").hidden = true;
   byId("portal-label").hidden = true;
   byId("user-name").textContent = reviewer;
+  byId("logout").hidden = session.access_mode === "public";
   for (const node of [workspace,byId("nav"),byId("account")]) node.hidden = false;
   await navigate();
 }
@@ -1127,17 +1199,19 @@ handleForm(byId("create-form"), async (fields) => {
 });
 handleForm(byId("decision-form"), async (fields) => {
   const {kind, order, number, reviewer: expectedReviewer} = decision;
-  const payload = {submission: number, expected_reviewer: expectedReviewer};
-  if (kind === "reject") {
+  const requeue = kind === "requeue";
+  const payload = {[requeue ? "claim_id" : "submission"]: number, expected_reviewer: expectedReviewer};
+  if (kind !== "approve") {
     payload.reason = String(fields.get("reason")).trim();
-    if (!payload.reason) throw new Error("Enter the reason for rejection.");
+    if (!payload.reason) throw new Error(requeue ? "Enter the reason for requeue." : "Enter the reason for rejection.");
   }
   await post("orders/" + encodeURIComponent(order) + "/" + kind, payload);
   byId("decision-dialog").close();
   await navigate();
-  notify(order + " submission " + number + (kind === "approve" ? " released." : " rejected. Order reopened."));
+  notify(requeue ? order + " returned to the queue." :
+    order + " submission " + number + (kind === "approve" ? " released." : " rejected. Order reopened."));
   if (kind === "approve" && location.hash === "#order/" + encodeURIComponent(order)) {
-    (byId("honey-readings") || byId("b12-datasets"))?.focus();
+    (byId("tabular-run") || byId("honey-readings") || byId("b12-datasets"))?.focus();
   }
 });
 for (const close of document.querySelectorAll("[data-close]")) {

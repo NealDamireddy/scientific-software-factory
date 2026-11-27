@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 from anyio import to_thread
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from pydantic import StrictInt
 from starlette.datastructures import Headers
 from starlette.exceptions import HTTPException
 from starlette.responses import JSONResponse
@@ -100,20 +101,28 @@ def _agent_server(run_store, agent_name: str, security: TransportSecuritySetting
         return await stored(lambda agent: agent.get_work_order_context(work_order_id))
 
     @server.tool()
-    async def claim_work_order(work_order_id: str, worker: str) -> dict:
-        """Claim an open order using the name assigned to your agent credential."""
+    async def claim_work_order(work_order_id: str, worker: str, untagged_artifact: dict | None = None) -> dict:
+        """Claim an open order under your authenticated name and return its claim ID.
+
+        For a prebuilt untagged upload, provide untagged_artifact to check eligibility before claiming.
+        """
         if worker != agent_name:
             return {"error": "worker must match the authenticated agent name"}
-        return await stored(lambda agent: agent.claim_work_order(work_order_id, worker), write=True)
+        if untagged_artifact is not None and (error := _artifact_limit_error(untagged_artifact)):
+            return {"error": error}
+        return await stored(
+            lambda agent: agent.claim_work_order(work_order_id, worker, untagged_artifact=untagged_artifact),
+            write=True,
+        )
 
     @server.tool()
-    async def submit_artifact(work_order_id: str, worker: str, artifact: dict) -> dict:
-        """Submit a candidate as its claiming agent and return numbered check results."""
+    async def submit_artifact(work_order_id: str, worker: str, artifact: dict, claim_id: StrictInt | None = None) -> dict:
+        """Submit with the claim ID captured before starting work. Reuse the ID on retries."""
         if worker != agent_name:
             return {"error": "worker must match the authenticated agent name"}
         if error := _artifact_limit_error(artifact):
             return {"error": error}
-        return await stored(lambda agent: agent.submit_artifact(work_order_id, worker, artifact), write=True)
+        return await stored(lambda agent: agent.submit_artifact(work_order_id, worker, artifact, claim_id), write=True)
 
     reference_resources.register(server)
     return server

@@ -58,7 +58,7 @@ class AgentTools:
             order = self._orders.get(work_order_id)
             lab, experiment = self._orders.pinned_context(work_order_id)
             context = {
-                "work_order": asdict(order),
+                "work_order": {**asdict(order), "claim_id": self._orders.active_claim_id(order)},
                 "lab": to_dict(lab),
                 "experiment": to_dict(experiment),
                 "artifact_example": deepcopy(ARTIFACT_EXAMPLES[order.kind]),
@@ -102,12 +102,14 @@ class AgentTools:
             return context
 
     @_return_domain_errors
-    def claim_work_order(self, work_order_id: str, worker: str) -> dict:
-        return asdict(self._orders.claim(work_order_id, worker))
+    def claim_work_order(self, work_order_id: str, worker: str, untagged_artifact: dict | None = None) -> dict:
+        with self._store.transaction():
+            order = self._orders.claim(work_order_id, worker, untagged_artifact=untagged_artifact)
+            return {**asdict(order), "claim_id": self._orders.active_claim_id(order)}
 
     @_return_domain_errors
-    def submit_artifact(self, work_order_id: str, worker: str, artifact: dict) -> dict:
-        submission = self._orders.submit(work_order_id, worker, artifact)
+    def submit_artifact(self, work_order_id: str, worker: str, artifact: dict, claim_id: int | None = None) -> dict:
+        submission = self._orders.submit(work_order_id, worker, artifact, claim_id)
         return {
             "status": "in_review" if submission.passed else "in_progress",
             "passed": submission.passed,

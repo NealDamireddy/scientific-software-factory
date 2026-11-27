@@ -5,6 +5,7 @@ from contextlib import asynccontextmanager
 from hashlib import sha256
 import json
 from pathlib import Path
+from uuid import uuid4
 
 import httpx
 from mcp import ClientSession
@@ -16,7 +17,7 @@ from labfactory.hosted import application
 from labfactory.hosted_auth import password_hash, token_digest
 
 ORIGIN = "https://localhost"
-EXAMPLES = Path(__file__).parents[1] / "examples" / "tabular"
+EXAMPLES = Path(__file__).parents[1] / "public" / "examples" / "tabular"
 WORKER = "analyst"
 TOKEN = "disposable-stock-example-token"
 
@@ -139,7 +140,9 @@ async def caffeine_workflow():
         (await reviewer.post(decision, json={**decision_body, "submission": 2})).raise_for_status()
 
         old = (await reviewer.post(path + "/runs", json={"submission": 2})).raise_for_status().json()
-        assert old["control"]["edition"] == 2 and old["control"]["passed"]
+        assert old["release_control_edition"] == 2
+        assert old["control"]["edition"] == 1 and old["control"]["passed"]
+        assert old["control"]["signal"] == 1770.7 and old["control"]["expected"] == request["control_expected"]
         assert [r["value"] for r in old["results"]] == pytest.approx([24, 45])
         assert old["artifact_digest"] == canonical_digest(correct)
         assert old["csv_digest"] == sha256(request["csv"].encode()).hexdigest()
@@ -195,3 +198,65 @@ async def density_workflow():
 
 def test_density_from_different_protocol_and_headers_through_identical_endpoints(configured):
     asyncio.run(density_workflow())
+
+
+@pytest.mark.parametrize("public", [False, True], ids=["named", "public"])
+def test_linked_uploads_follow_released_pins_across_context_edits(
+        configured, monkeypatch, public, uvvis_lab_dict, b12_experiment_dict):
+    if public:
+        monkeypatch.setenv("LABFACTORY_PUBLIC_REVIEW", "1")
+    asyncio.run(linked_uploads(uvvis_lab_dict, b12_experiment_dict))
+
+
+async def linked_uploads(lab, exp):
+    async with clients() as (reviewer, _, session):
+        async def post(path, data):
+            return (await reviewer.post(path, json=data)).raise_for_status().json()
+
+        await post("/api/context/lab", lab)
+        await post("/api/context/experiment", exp)
+        procedure = (await post("/api/orders", {"kind": "procedure", "experiment_id": exp["id"],
+                                                "objective": "Review optical handling"}))["id"]
+        path = "/api/analysis/orders"
+        request = dict(example("caffeine"), procedure_order_id=procedure, request_id=str(uuid4()))
+        assert (await reviewer.post(path, json=request)).status_code == 409
+        args = {"work_order_id": procedure, "worker": WORKER}
+        await call(session, "claim_work_order", args)
+        artifact = {"steps": [{"text": "Record the optical reading.", "citations": ["sop-cuvette"]}]}
+        await call(session, "submit_artifact", {**args, "artifact": artifact})
+        assert (await reviewer.post(path, json=request)).status_code == 409
+        await post("/api/orders/" + procedure + "/reject", {"submission": 1, "reason": "Clarify the instruction."})
+        await call(session, "claim_work_order", args)
+        artifact["steps"][0]["text"] = "Record the blank-corrected reading."
+        await call(session, "submit_artifact", {**args, "artifact": artifact})
+        await post("/api/orders/" + procedure + "/approve", {"submission": 2})
+        pin = {"order_id": procedure, "submission": 2, "artifact_digest": canonical_digest(artifact),
+               "experiment_id": exp["id"], "experiment_revision": 1, "lab_id": lab["id"], "lab_revision": 1}
+        before = await post(path, request)
+        revised_lab = {**lab, "documents": [{**lab["documents"][0], "text": "Revised SOP."}]}
+        assert (await post("/api/context/lab", revised_lab))["revision"] == 2
+        assert (await post("/api/context/experiment", {**exp, "goal": "A new goal."}))["revision"] == 2
+        assert await post(path, request) == before
+        after = await post(path, {**request, "request_id": str(uuid4())})
+        assert before != after
+        for upload in (before, after):
+            detail_path = path + "/" + upload["id"]
+            assert (await reviewer.get(detail_path)).json()["analysis"]["procedure"] == pin
+            ctx = (await call(session, "get_work_order_context", {"work_order_id": upload["id"]}))["analysis"]
+            assert ctx["procedure"] == pin
+            assert ctx["procedure_context"]["lab"] == lab and ctx["procedure_context"]["experiment"] == exp
+            assert artifact["steps"][0]["text"] in ctx["procedure_context"]["instructions"]
+            assert_private(ctx, ["QC-A", "private-export.csv", "Coffee A"])
+        args = {"work_order_id": after["id"], "worker": WORKER}
+        await call(session, "claim_work_order", args)
+        assert (await call(session, "submit_artifact", {**args, "artifact": calibrated_candidate()}))["passed"]
+        await post("/api/orders/" + after["id"] + "/approve", {"submission": 1})
+        detail_path = path + "/" + after["id"]
+        receipt = await post(detail_path + "/runs", {"submission": 1})
+        assert receipt["procedure"] == pin
+        assert (await reviewer.get(detail_path)).json()["runs"] == [receipt]
+        assert await post(detail_path + "/runs", {"submission": 1}) == receipt
+        for changes, status in [({"procedure_order_id": after["id"], "request_id": str(uuid4())}, 409),
+                                ({"procedure_order_id": "WO-missing", "request_id": str(uuid4())}, 404),
+                                ({"procedure_order_id": after["id"]}, 409), ({"procedure": pin}, 400)]:
+            assert (await reviewer.post(path, json={**request, **changes})).status_code == status

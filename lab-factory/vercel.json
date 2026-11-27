@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
+  "buildCommand": "node scripts/build_portal.mjs",
   "outputDirectory": "public",
   "regions": ["iad1"],
   "functions": {
@@ -18,8 +19,13 @@
     {"source": "/(.*)", "headers": [
       {"key": "Referrer-Policy", "value": "no-referrer"},
       {"key": "X-Content-Type-Options", "value": "nosniff"},
-      {"key": "X-Frame-Options", "value": "DENY"},
+      {"key": "X-Frame-Options", "value": "DENY"}
+    ]},
+    {"source": "/((?!evolve/replay\\.mjs$).*)", "headers": [
       {"key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"}
+    ]},
+    {"source": "/evolve/replay.mjs", "headers": [
+      {"key": "Content-Security-Policy", "value": "default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'"}
     ]}
   ]
 }

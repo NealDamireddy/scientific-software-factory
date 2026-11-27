@@ -1,20 +1,42 @@
 import json
 import runpy
 import sys
+from argparse import Namespace
 from pathlib import Path
 
 import httpx
 import pytest
+from starlette.testclient import TestClient
+
+from labfactory.hosted import make_portal
 
 
 CLIENT = Path(__file__).resolve().parents[1] / "examples" / "analysis_client.py"
+
+
+def test_portal_examples_match_cli_uploads():
+    create_request = runpy.run_path(str(CLIENT))["create_request"]
+    with TestClient(make_portal(CLIENT.parents[1] / "public")) as portal:
+        catalog = portal.get("/examples/tabular/index.json").raise_for_status().json()
+        assert {"caffeine", "density"} <= {example["folder"] for example in catalog}
+        for example in catalog:
+            folder = example["folder"]
+            path = f"/examples/tabular/{folder}"
+            payload = create_request(Namespace(example=folder, request_id=None))
+            for field in ("objective", "unit", "mapping", "range_gate"):
+                assert payload[field] == example[field]
+            for field in ("protocol", "csv"):
+                download = portal.get(f"{path}/{payload[field + '_name']}").raise_for_status()
+                assert download.content == payload[field].encode("utf-8")
+            control = portal.get(f"{path}/control.json").raise_for_status().json()
+            assert (payload["control_expected"], payload["control_tolerance"]) == (control["expected"], control["tolerance"])
 
 
 def run_client(monkeypatch, args, handler):
     real_client = httpx.Client
     transport = httpx.MockTransport(handler)
     monkeypatch.setattr(httpx, "Client", lambda **kw: real_client(transport=transport, **kw))
-    monkeypatch.setattr(sys, "argv", [str(CLIENT), *args])
+    monkeypatch.setattr(sys, "argv", [str(CLIENT), "--url", "https://lab.example.test", *args])
     runpy.run_path(str(CLIENT), run_name="__main__")
 
 
@@ -34,7 +56,7 @@ def test_public_reviewer_skips_credentials_and_session_mutations(monkeypatch, tm
         calls.append((request.method, request.url.path))
         if request.url.path == "/api/session":
             return httpx.Response(200, json={"access_mode": "public", "reviewer": "Public reviewer"})
-        assert request.headers["origin"] == "https://neal-lab-factory.vercel.app"
+        assert request.headers["origin"] == "https://lab.example.test"
         assert json.loads(request.content) == {"submission": 2}
         return httpx.Response(200, json={"approved": 2})
 

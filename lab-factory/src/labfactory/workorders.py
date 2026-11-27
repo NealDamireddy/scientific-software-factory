@@ -9,7 +9,8 @@ import sqlite3
 
 from .artifacts import ArtifactError, KINDS, parse_artifact
 from .checks import CheckResult, all_passed, check_artifact
-from .context import ContextError, Experiment, Lab, canonical_digest, canonical_json
+from .citations import CitationIndex
+from .context import ContextError, Document, Experiment, Lab, canonical_digest, canonical_json
 from .store import NotFound, Store
 
 
@@ -29,6 +30,14 @@ class WorkOrder:
     status: str
     worker: str | None
     released_submission: int | None
+
+
+@dataclass(frozen=True)
+class PinnedCitation:
+    origin: str
+    record_id: str
+    revision: int
+    document: Document
 
 
 @dataclass(frozen=True)
@@ -127,6 +136,14 @@ class WorkOrders:
     def pinned_context(self, id: str) -> tuple[Lab, Experiment]:
         return self._context_for(self.get(id))
 
+    def citation(self, id: str, document_id: str) -> PinnedCitation:
+        order = self.get(id)
+        lab, experiment = self._context_for(order)
+        origin, document = CitationIndex(lab, experiment).resolve(document_id)
+        if origin == "lab":
+            return PinnedCitation(origin, lab.id, order.lab_revision, document)
+        return PinnedCitation(origin, experiment.id, order.experiment_revision, document)
+
     def _context_for(self, order: WorkOrder) -> tuple[Lab, Experiment]:
         lab, _ = self.store.get_lab(order.lab_id, order.lab_revision)
         experiment, _ = self.store.get_experiment(order.experiment_id, order.experiment_revision)
@@ -151,24 +168,91 @@ class WorkOrders:
         if changed.rowcount != 1:
             raise WorkOrderError(f"{id} is {self.get(id).status}, expected {expected}")
 
-    def claim(self, id: str, worker: str) -> WorkOrder:
+    def claim(self, id: str, worker: str, *, untagged_artifact: dict | None = None) -> WorkOrder:
         _actor(worker)
         with self.store.transaction():
+            if untagged_artifact is not None:
+                self._require_untagged_claim(id, worker)
+                self._require_new_untagged_digest(id, worker, canonical_digest(untagged_artifact))
             self._transition(id, "open", "in_progress", worker)
             self._event(id, "claimed", worker)
             return self.get(id)
 
-    def submit(self, id: str, worker: str, artifact: dict) -> Submission:
+    def active_claim_id(self, order: WorkOrder) -> int | None:
+        """Read the claim number from the same transaction as the order snapshot."""
+        if order.status != "in_progress":
+            return None
+        # The per-order ordinal survives database reopen and SQLite rowid changes.
+        count = self.db.execute(
+            "SELECT COUNT(*) FROM events WHERE work_order_id=? AND event='claimed'", (order.id,)
+        ).fetchone()[0]
+        return count or None
+
+    def requeue(self, id: str, person: str, claim_id: int, reason: str) -> WorkOrder:
+        _actor(person)
+        if type(claim_id) is not int or claim_id < 1:
+            raise WorkOrderError("provide a positive claim ID")
+        if not isinstance(reason, str) or not reason.strip():
+            raise WorkOrderError("requeue needs a reason")
+        with self.store.transaction():
+            order = self.get(id)
+            if order.status != "in_progress":
+                raise WorkOrderError(f"{id} is {order.status}, expected in_progress")
+            if self.active_claim_id(order) != claim_id:
+                raise WorkOrderError(f"claim {claim_id} is no longer active for {id}")
+            self._transition(id, "in_progress", "open", None)
+            self._event(id, "requeued", person, note=f"Claim {claim_id} held by {order.worker}: {reason}")
+            return self.get(id)
+
+    def _was_displaced(self, id: str, worker: str) -> bool:
+        # The requeue actor is the reviewer. Its preceding claim identifies the worker,
+        # including for recovery events recorded before submissions carried a claim ID.
+        claimed_by = None
+        for event, actor in self.db.execute(
+            """SELECT event, actor FROM events WHERE work_order_id=?
+               AND event IN ('claimed', 'requeued') ORDER BY rowid""", (id,)
+        ):
+            if event == "claimed":
+                claimed_by = actor
+            elif claimed_by == worker:
+                return True
+        return False
+
+    def _require_untagged_claim(self, id: str, worker: str) -> None:
+        if self._was_displaced(id, worker):
+            raise WorkOrderError(f"claim_id is required after recovery of an earlier claim by {worker} on {id}")
+
+    def _require_new_untagged_digest(self, id: str, worker: str, fingerprint: str) -> None:
+        rejected = self.db.execute(
+            """SELECT 1 FROM events e
+               JOIN submissions s ON s.work_order_id=e.work_order_id AND s.number=e.submission
+               WHERE e.work_order_id=? AND e.event='rejected'
+                 AND s.worker=? AND s.artifact_digest=? LIMIT 1""",
+            (id, worker, fingerprint),
+        ).fetchone()
+        if rejected is not None:
+            raise WorkOrderError(f"claim_id is required to resubmit an artifact previously rejected for {worker} on {id}")
+
+    def submit(self, id: str, worker: str, artifact: dict, claim_id: int | None = None) -> Submission:
         with self.store.transaction():
             order = self.get(id)
             if order.status != "in_progress":
                 raise WorkOrderError(f"{id} is {order.status}, expected in_progress")
             if worker != order.worker:
                 raise WorkOrderError(f"{id} belongs to {order.worker}")
+            if claim_id is not None:
+                if type(claim_id) is not int or claim_id < 1:
+                    raise WorkOrderError("provide a positive claim ID")
+                if self.active_claim_id(order) != claim_id:
+                    raise WorkOrderError(f"claim {claim_id} is no longer active for {id}")
+            else:
+                self._require_untagged_claim(id, worker)
             # Validate and persist the same snapshot, including its original JSON types.
             data = deepcopy(artifact)
             body = canonical_json(data)
             fingerprint = canonical_digest(data)
+            if claim_id is None:
+                self._require_new_untagged_digest(id, worker, fingerprint)
             from . import tabular_service
 
             report = None

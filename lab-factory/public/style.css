@@ -213,3 +213,35 @@ dialog::backdrop {background:#0e241a82}
   .checks li {grid-template-columns:60px minmax(0,1fr)}.checks .check-detail {grid-column:2}.instrument-meta {gap:22px}
   .dialog-actions,.review-actions {gap:8px}.portal-label {font-size:.77rem}
 }
+
+.tabular-form {max-width:1000px}
+.analysis-group {min-width:0;margin:1.5rem 0 0;padding:0 0 1.4rem;border:0;border-bottom:1px solid var(--line)}
+.analysis-group legend {margin:0 0 .5rem;padding:0;color:var(--green);font-weight:650;font-size:1.13rem}
+.analysis-group .muted,.analysis-batch-form>.muted {font-size:.91rem;max-width:85ch}
+.analysis-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px}
+.analysis-field {min-width:0}
+.analysis-field>input,.analysis-field>textarea,.analysis-field>select {display:block;margin-top:5px;font-weight:400}
+.analysis-field textarea[name=csv] {font: .85rem/1.5 var(--mono)}
+.analysis-preview {margin-top:12px;background:#f6f8f5;border-radius:5px;overflow:hidden}
+.analysis-preview>p {padding:.7rem .9rem}
+.analysis-preview td,.analysis-preview th {padding:.35rem .7rem}
+.analysis-preview table {width:auto;min-width:100%}
+.analysis-checkbox {display:flex;align-items:center;flex-direction:row-reverse;justify-content:flex-end;gap:8px}
+.analysis-checkbox input {width:17px;height:17px;min-height:0;margin:0;accent-color:var(--green)}
+.analysis-examples {display:flex;align-items:flex-end;flex-wrap:wrap;gap:7px 14px;padding:0 0 18px;border-bottom:1px solid var(--line)}
+.analysis-examples label {margin:0}.analysis-example-links {display:flex;gap:10px 16px;flex-wrap:wrap;margin:14px 0;font-size:.9rem}
+.tabular-form>.primary,.analysis-batch-form>.primary {margin-top:15px}
+.blind-report {border-left:3px solid #79a48d;background:#eff6f0;padding:14px 16px;margin:0 0 18px}
+.blind-report.is-fail {border-color:#aa4c47;background:#fff3f2}
+.blind-report h3 {display:inline-block;margin:0 .8rem 0 0}
+.blind-report .muted {margin-top:9px}
+.details-content>h3:not(:first-child) {margin-top:15px}
+#tabular-run .analysis-disclosure {margin-top:18px}
+@media (min-width:931px) and (max-width:1120px) {
+  .mast-inner {flex-wrap:wrap;gap:0 12px;padding-top:8px}
+  nav {order:3;width:100%;min-height:42px}
+}
+@media(max-width:600px) {
+  .analysis-grid {grid-template-columns:minmax(0,1fr)}
+  .analysis-preview th,.analysis-preview td {padding:.4rem .55rem}
+}

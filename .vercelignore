@@ -8,3 +8,17 @@ out
 public/runtime
 __pycache__
 *.pyc
+
+# Local state and generated outputs of nested projects
+**/.venv
+**/.env*
+**/node_modules
+**/.next
+**/out
+**/.vercel
+/lab-factory/labfactory.db*
+
+# Local checkout artifacts
+/evolve-ui
+/.claude
+/workspace-ui.bundle

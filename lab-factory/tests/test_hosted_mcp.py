@@ -55,7 +55,7 @@ async def call(session, name, arguments):
     return json.loads(result.content[0].text)
 
 
-def test_streamable_http_bound_worker_and_persistent_submission(hosted):
+def test_streamable_http_bound_worker_and_persistent_submission(hosted, tmp_path):
     async def run():
         async with agent(hosted, "example-token-A") as first, agent(hosted, "example-token-B") as second:
             tools = await first.list_tools()
@@ -73,6 +73,51 @@ def test_streamable_http_bound_worker_and_persistent_submission(hosted):
             assert passed["status"] == "in_review" and passed["passed"]
         async with agent(hosted, "example-token-B") as new_session:
             assert (await call(new_session, "get_work_order_context", work_id))["work_order"]["status"] == "in_review"
+        with Store(tmp_path / "lab.db") as store:
+            orders = WorkOrders(store)
+            orders.reject(pending["id"], "Reviewer", passed["submission"], "Revise the plan")
+            history = orders.history(pending["id"])
+        async with agent(hosted, "example-token-A") as retry:
+            denied = await call(retry, "claim_work_order", {**claim_a, "untagged_artifact": artifact})
+            assert "previously rejected" in denied["error"]
+        with Store(tmp_path / "lab.db") as store:
+            orders = WorkOrders(store)
+            assert orders.get(pending["id"]).status == "open"
+            assert orders.history(pending["id"]) == history
+
+    asyncio.run(run())
+
+
+@pytest.mark.parametrize("replacement", ["agent-a", "agent-b"])
+def test_http_submission_is_bound_to_current_claim(hosted, tmp_path, replacement):
+    async def run():
+        order_id = "WO-1"
+        args = {"work_order_id": order_id}
+        async with agent(hosted, "example-token-A") as original:
+            first = await call(original, "claim_work_order", {**args, "worker": "agent-a"})
+        with Store(tmp_path / "lab.db") as store:
+            WorkOrders(store).requeue(order_id, "Reviewer", first["claim_id"], "Timeout")
+
+        token = "example-token-A" if replacement == "agent-a" else "example-token-B"
+        async with agent(hosted, token) as session:
+            current = await call(session, "claim_work_order", {**args, "worker": replacement})
+            context = await call(session, "get_work_order_context", args)
+            assert first["claim_id"] != current["claim_id"] == context["work_order"]["claim_id"]
+            submission = {**args, "worker": replacement, "artifact": context["artifact_example"]}
+            with Store(tmp_path / "lab.db") as store:
+                history = WorkOrders(store).history(order_id)
+            stale = await call(session, "submit_artifact", {**submission, "claim_id": first["claim_id"]})
+            assert "no longer active" in stale["error"]
+            if replacement == "agent-a":
+                missing = await call(session, "submit_artifact", submission)
+                assert "claim_id is required" in missing["error"]
+                submission["claim_id"] = current["claim_id"]
+            with Store(tmp_path / "lab.db") as store:
+                orders = WorkOrders(store)
+                assert orders.history(order_id) == history
+                assert orders.submissions(order_id) == []
+            accepted = await call(session, "submit_artifact", submission)
+            assert accepted["passed"] and accepted["submission"] == 1
 
     asyncio.run(run())
 

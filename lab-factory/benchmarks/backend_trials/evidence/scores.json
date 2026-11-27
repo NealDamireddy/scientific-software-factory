@@ -1,0 +1,2227 @@
+{
+  "memory": {
+    "lexical": {
+      "passed": 14,
+      "total": 16,
+      "candidate_sha256": "e3c4a4b94d551f50a57b067a0e3a34e8c8b3ffc8059fa5fc2f59affcd1f182ea",
+      "grader_sha256": "b106f75d98ff23bc785b005c68091a9d06f5bae76432e89038f612badf190119",
+      "cases": [
+        {
+          "case": "pinned historical manual",
+          "passed": true,
+          "detail": "returned ['prism@1']; required prefix ['prism@1']; allowed ['prism@1']"
+        },
+        {
+          "case": "current manual and model exclusion",
+          "passed": true,
+          "detail": "returned ['prism@4']; required prefix ['prism@4']; allowed ['prism@4']"
+        },
+        {
+          "case": "revision input order independent",
+          "passed": true,
+          "detail": "returned ['prism@4']; required prefix ['prism@4']; allowed ['prism@4']"
+        },
+        {
+          "case": "shared source eligible",
+          "passed": true,
+          "detail": "returned ['bath@2']; required prefix ['bath@2']; allowed ['bath@2']"
+        },
+        {
+          "case": "no applicable model",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "no source yet at pinned date",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "retired text cannot win",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "unrelated request",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "unspecified task",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "empty request",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "duplicate source deduplicated",
+          "passed": true,
+          "detail": "returned ['bath@2']; required prefix ['bath@2']; allowed ['bath@2']"
+        },
+        {
+          "case": "actual catalog model and method",
+          "passed": true,
+          "detail": "returned ['agilent-caffeine-in-coffee-din-20481@1']; required prefix ['agilent-caffeine-in-coffee-din-20481@1']; allowed ['agilent-caffeine-in-coffee-din-20481@1']"
+        },
+        {
+          "case": "actual catalog shared method",
+          "passed": true,
+          "detail": "returned ['oecd-fruit-soluble-solids@1']; required prefix ['oecd-fruit-soluble-solids@1']; allowed ['hanna-hi96800-manual@1', 'oecd-fruit-soluble-solids@1']"
+        },
+        {
+          "case": "actual catalog manual retrieval",
+          "passed": true,
+          "detail": "returned ['hanna-hi96800-manual@1']; required prefix ['hanna-hi96800-manual@1']; allowed ['hanna-hi96800-manual@1', 'oecd-fruit-soluble-solids@1']"
+        },
+        {
+          "case": "paraphrased topic",
+          "passed": false,
+          "detail": "returned []; required prefix ['solution@2']; allowed ['solution@2']"
+        },
+        {
+          "case": "result cap for equally useful sources",
+          "passed": false,
+          "detail": "returned []; required prefix None; allowed ['optical-0@1', 'optical-1@1', 'optical-2@1', 'optical-3@1', 'optical-4@1']"
+        }
+      ]
+    },
+    "concept": {
+      "passed": 14,
+      "total": 16,
+      "candidate_sha256": "c05e3696613ef5c8768e64ed0594ce75572c8bff0f9b3d0489864e0e0b2c2d09",
+      "grader_sha256": "b106f75d98ff23bc785b005c68091a9d06f5bae76432e89038f612badf190119",
+      "cases": [
+        {
+          "case": "pinned historical manual",
+          "passed": true,
+          "detail": "returned ['prism@1']; required prefix ['prism@1']; allowed ['prism@1']"
+        },
+        {
+          "case": "current manual and model exclusion",
+          "passed": true,
+          "detail": "returned ['prism@4']; required prefix ['prism@4']; allowed ['prism@4']"
+        },
+        {
+          "case": "revision input order independent",
+          "passed": true,
+          "detail": "returned ['prism@4']; required prefix ['prism@4']; allowed ['prism@4']"
+        },
+        {
+          "case": "shared source eligible",
+          "passed": true,
+          "detail": "returned ['bath@2']; required prefix ['bath@2']; allowed ['bath@2']"
+        },
+        {
+          "case": "no applicable model",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "no source yet at pinned date",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "retired text cannot win",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "unrelated request",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "unspecified task",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "empty request",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "duplicate source deduplicated",
+          "passed": true,
+          "detail": "returned ['bath@2']; required prefix ['bath@2']; allowed ['bath@2']"
+        },
+        {
+          "case": "actual catalog model and method",
+          "passed": true,
+          "detail": "returned ['agilent-caffeine-in-coffee-din-20481@1']; required prefix ['agilent-caffeine-in-coffee-din-20481@1']; allowed ['agilent-caffeine-in-coffee-din-20481@1']"
+        },
+        {
+          "case": "actual catalog shared method",
+          "passed": true,
+          "detail": "returned ['oecd-fruit-soluble-solids@1']; required prefix ['oecd-fruit-soluble-solids@1']; allowed ['hanna-hi96800-manual@1', 'oecd-fruit-soluble-solids@1']"
+        },
+        {
+          "case": "actual catalog manual retrieval",
+          "passed": false,
+          "detail": "returned []; required prefix ['hanna-hi96800-manual@1']; allowed ['hanna-hi96800-manual@1', 'oecd-fruit-soluble-solids@1']"
+        },
+        {
+          "case": "paraphrased topic",
+          "passed": false,
+          "detail": "returned []; required prefix ['solution@2']; allowed ['solution@2']"
+        },
+        {
+          "case": "result cap for equally useful sources",
+          "passed": true,
+          "detail": "returned ['optical-0@1', 'optical-1@1', 'optical-2@1']; required prefix None; allowed ['optical-0@1', 'optical-1@1', 'optical-2@1', 'optical-3@1', 'optical-4@1']"
+        }
+      ]
+    },
+    "graph": {
+      "passed": 14,
+      "total": 16,
+      "candidate_sha256": "bd47867f8768f38392bd78021df7ec9258127f69df28cb14715920901b29161b",
+      "grader_sha256": "b106f75d98ff23bc785b005c68091a9d06f5bae76432e89038f612badf190119",
+      "cases": [
+        {
+          "case": "pinned historical manual",
+          "passed": true,
+          "detail": "returned ['prism@1']; required prefix ['prism@1']; allowed ['prism@1']"
+        },
+        {
+          "case": "current manual and model exclusion",
+          "passed": true,
+          "detail": "returned ['prism@4']; required prefix ['prism@4']; allowed ['prism@4']"
+        },
+        {
+          "case": "revision input order independent",
+          "passed": true,
+          "detail": "returned ['prism@4']; required prefix ['prism@4']; allowed ['prism@4']"
+        },
+        {
+          "case": "shared source eligible",
+          "passed": true,
+          "detail": "returned ['bath@2']; required prefix ['bath@2']; allowed ['bath@2']"
+        },
+        {
+          "case": "no applicable model",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "no source yet at pinned date",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "retired text cannot win",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "unrelated request",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "unspecified task",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "empty request",
+          "passed": true,
+          "detail": "returned []; required prefix []; allowed []"
+        },
+        {
+          "case": "duplicate source deduplicated",
+          "passed": true,
+          "detail": "returned ['bath@2']; required prefix ['bath@2']; allowed ['bath@2']"
+        },
+        {
+          "case": "actual catalog model and method",
+          "passed": true,
+          "detail": "returned ['agilent-caffeine-in-coffee-din-20481@1']; required prefix ['agilent-caffeine-in-coffee-din-20481@1']; allowed ['agilent-caffeine-in-coffee-din-20481@1']"
+        },
+        {
+          "case": "actual catalog shared method",
+          "passed": true,
+          "detail": "returned ['oecd-fruit-soluble-solids@1']; required prefix ['oecd-fruit-soluble-solids@1']; allowed ['hanna-hi96800-manual@1', 'oecd-fruit-soluble-solids@1']"
+        },
+        {
+          "case": "actual catalog manual retrieval",
+          "passed": false,
+          "detail": "returned []; required prefix ['hanna-hi96800-manual@1']; allowed ['hanna-hi96800-manual@1', 'oecd-fruit-soluble-solids@1']"
+        },
+        {
+          "case": "paraphrased topic",
+          "passed": false,
+          "detail": "returned []; required prefix ['solution@2']; allowed ['solution@2']"
+        },
+        {
+          "case": "result cap for equally useful sources",
+          "passed": true,
+          "detail": "returned ['optical-0@1', 'optical-1@1', 'optical-2@1']; required prefix None; allowed ['optical-0@1', 'optical-1@1', 'optical-2@1', 'optical-3@1', 'optical-4@1']"
+        }
+      ]
+    }
+  },
+  "review": {
+    "transaction": {
+      "passed": 10,
+      "total": 10,
+      "candidate_sha256": "f142e08a78840fbd5b5002085e8a91e2537e0b41d7a7a636d321d11ad217241f",
+      "grader_sha256": "79b824f947f926def474bc7a411b570e1a1c0e52374ada39feaa68c94b03854d",
+      "cases": [
+        {
+          "case": "persistent creation state",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "four concurrent claimants",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "role and lifecycle preconditions",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "claim owner governs submission",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "agent cannot decide",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "released digest immutable",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "rejection and stale decisions",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "duplicate retries have one event",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "restart between every operation",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "work orders isolated",
+          "passed": true,
+          "detail": "observed expected state and events"
+        }
+      ]
+    },
+    "replay": {
+      "passed": 10,
+      "total": 10,
+      "candidate_sha256": "52d8ebca524e3a089986591b8f7f1e7378f4c0c89ad5e8179f062e1bca8a2036",
+      "grader_sha256": "79b824f947f926def474bc7a411b570e1a1c0e52374ada39feaa68c94b03854d",
+      "cases": [
+        {
+          "case": "persistent creation state",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "four concurrent claimants",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "role and lifecycle preconditions",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "claim owner governs submission",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "agent cannot decide",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "released digest immutable",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "rejection and stale decisions",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "duplicate retries have one event",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "restart between every operation",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "work orders isolated",
+          "passed": true,
+          "detail": "observed expected state and events"
+        }
+      ]
+    },
+    "constraints": {
+      "passed": 10,
+      "total": 10,
+      "candidate_sha256": "b346c5ffe4eb7103f5840fadbca059309a7485889921b8cb516f529be0ad8ce2",
+      "grader_sha256": "79b824f947f926def474bc7a411b570e1a1c0e52374ada39feaa68c94b03854d",
+      "cases": [
+        {
+          "case": "persistent creation state",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "four concurrent claimants",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "role and lifecycle preconditions",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "claim owner governs submission",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "agent cannot decide",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "released digest immutable",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "rejection and stale decisions",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "duplicate retries have one event",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "restart between every operation",
+          "passed": true,
+          "detail": "observed expected state and events"
+        },
+        {
+          "case": "work orders isolated",
+          "passed": true,
+          "detail": "observed expected state and events"
+        }
+      ]
+    }
+  },
+  "author": {
+    "templates": {
+      "passed": 3,
+      "total": 10,
+      "candidate_sha256": "c4a32962d46b5dc1a5e6fc8feb1fa3b2f8236592a4c6cfd6942cf65201983205",
+      "grader_sha256": "72183c6c985ea867d3cee23298b98ee70d40f42f8657965e858d9bf64a30b89c",
+      "cases": [
+        {
+          "case": "calibration_with_dilution",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "calibration_paraphrase",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "inverse_calibration_noisy_standards",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "direct_density",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "density_paraphrase",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "constant_blank_then_dilution",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "blank_changed_between_protocols",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "clarify_missing_blank",
+          "passed": true,
+          "detail": "Requested clarification"
+        },
+        {
+          "case": "clarify_missing_factor_basis",
+          "passed": true,
+          "detail": "Requested clarification"
+        },
+        {
+          "case": "clarify_missing_mass_units",
+          "passed": true,
+          "detail": "Requested clarification"
+        }
+      ]
+    },
+    "compiler": {
+      "passed": 6,
+      "total": 10,
+      "candidate_sha256": "904c3e06748451cc0dc97e126f09819de5050a95c26b3730bffba316c24f6077",
+      "grader_sha256": "72183c6c985ea867d3cee23298b98ee70d40f42f8657965e858d9bf64a30b89c",
+      "cases": [
+        {
+          "case": "calibration_with_dilution",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "calibration_paraphrase",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "inverse_calibration_noisy_standards",
+          "passed": true,
+          "detail": "2/2 independent numerical predictions matched"
+        },
+        {
+          "case": "direct_density",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "density_paraphrase",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "constant_blank_then_dilution",
+          "passed": true,
+          "detail": "3/3 independent numerical predictions matched"
+        },
+        {
+          "case": "blank_changed_between_protocols",
+          "passed": true,
+          "detail": "2/2 independent numerical predictions matched"
+        },
+        {
+          "case": "clarify_missing_blank",
+          "passed": true,
+          "detail": "Requested clarification"
+        },
+        {
+          "case": "clarify_missing_factor_basis",
+          "passed": true,
+          "detail": "Requested clarification"
+        },
+        {
+          "case": "clarify_missing_mass_units",
+          "passed": true,
+          "detail": "Requested clarification"
+        }
+      ]
+    },
+    "synthesis": {
+      "passed": 3,
+      "total": 10,
+      "candidate_sha256": "b371dd129ea3f51bee61a02387583c5a7e99ca9318c80cc43d81ac2ce59e81c8",
+      "grader_sha256": "72183c6c985ea867d3cee23298b98ee70d40f42f8657965e858d9bf64a30b89c",
+      "cases": [
+        {
+          "case": "calibration_with_dilution",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "calibration_paraphrase",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "inverse_calibration_noisy_standards",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "direct_density",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "density_paraphrase",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "constant_blank_then_dilution",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "blank_changed_between_protocols",
+          "passed": false,
+          "detail": "KeyError: 'source'"
+        },
+        {
+          "case": "clarify_missing_blank",
+          "passed": true,
+          "detail": "Requested clarification"
+        },
+        {
+          "case": "clarify_missing_factor_basis",
+          "passed": true,
+          "detail": "Requested clarification"
+        },
+        {
+          "case": "clarify_missing_mass_units",
+          "passed": true,
+          "detail": "Requested clarification"
+        }
+      ]
+    }
+  },
+  "verify": {
+    "controls": {
+      "passed": 15,
+      "total": 17,
+      "candidate_sha256": "4d7ad3977b50627d3b454ecabfdac6036fea3eeeba43cea0b3bd55cf88c8a415",
+      "grader_sha256": "15d4f246af02c1cfe1fb6df4023fabf89b5ab46744350311da5acc36607c97a3",
+      "cases": [
+        {
+          "case": "correct_multiple_controls",
+          "passed": true,
+          "detail": "Expected release with 39; received {'decision': 'release', 'value': 39.0}"
+        },
+        {
+          "case": "inclusive_domain_boundary",
+          "passed": true,
+          "detail": "Expected release with 31.5; received {'decision': 'release', 'value': 31.5}"
+        },
+        {
+          "case": "inclusive_absolute_tolerance",
+          "passed": false,
+          "detail": "Expected release with 6; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "midpoint_only_impostor",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "last_control_just_outside_tolerance",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "hold_out_of_domain_sample",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "hold_out_of_domain_control",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "numerical_pole_at_sample",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "overflow_at_sample",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "decreasing_without_shape_constraint",
+          "passed": true,
+          "detail": "Expected release with 12.5; received {'decision': 'release', 'value': 12.5}"
+        },
+        {
+          "case": "negative_is_valid_without_property",
+          "passed": true,
+          "detail": "Expected release with -6.5; received {'decision': 'release', 'value': -6.5}"
+        },
+        {
+          "case": "nonnegative_constraint_between_controls",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "nondecreasing_constraint_between_controls",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "valid_curved_response",
+          "passed": true,
+          "detail": "Expected release with 42.5; received {'decision': 'release', 'value': 42.5}"
+        },
+        {
+          "case": "no_independent_controls",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "narrow_negative_between_levels",
+          "passed": false,
+          "detail": "Expected withhold and no result; received {'decision': 'release', 'value': 8.274539900899999}"
+        },
+        {
+          "case": "nearby_strictly_positive_curve",
+          "passed": true,
+          "detail": "Expected release with 8.27454; received {'decision': 'release', 'value': 8.2745399125}"
+        }
+      ]
+    },
+    "interval": {
+      "passed": 17,
+      "total": 17,
+      "candidate_sha256": "3cc47f89aac55d739f78caa8cb075b016d59ed9976d0f403da1db93859f02eda",
+      "grader_sha256": "15d4f246af02c1cfe1fb6df4023fabf89b5ab46744350311da5acc36607c97a3",
+      "cases": [
+        {
+          "case": "correct_multiple_controls",
+          "passed": true,
+          "detail": "Expected release with 39; received {'decision': 'release', 'value': 39.0}"
+        },
+        {
+          "case": "inclusive_domain_boundary",
+          "passed": true,
+          "detail": "Expected release with 31.5; received {'decision': 'release', 'value': 31.5}"
+        },
+        {
+          "case": "inclusive_absolute_tolerance",
+          "passed": true,
+          "detail": "Expected release with 6; received {'decision': 'release', 'value': 6.0}"
+        },
+        {
+          "case": "midpoint_only_impostor",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "last_control_just_outside_tolerance",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "hold_out_of_domain_sample",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "hold_out_of_domain_control",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "numerical_pole_at_sample",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "overflow_at_sample",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "decreasing_without_shape_constraint",
+          "passed": true,
+          "detail": "Expected release with 12.5; received {'decision': 'release', 'value': 12.5}"
+        },
+        {
+          "case": "negative_is_valid_without_property",
+          "passed": true,
+          "detail": "Expected release with -6.5; received {'decision': 'release', 'value': -6.5}"
+        },
+        {
+          "case": "nonnegative_constraint_between_controls",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "nondecreasing_constraint_between_controls",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "valid_curved_response",
+          "passed": true,
+          "detail": "Expected release with 42.5; received {'decision': 'release', 'value': 42.5}"
+        },
+        {
+          "case": "no_independent_controls",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "narrow_negative_between_levels",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "nearby_strictly_positive_curve",
+          "passed": true,
+          "detail": "Expected release with 8.27454; received {'decision': 'release', 'value': 8.2745399125}"
+        }
+      ]
+    },
+    "metamorphic": {
+      "passed": 16,
+      "total": 17,
+      "candidate_sha256": "a2cdc180a072039fd4b12756c2273ad520a3260c0a78f402b0d4d2ad4b076aa8",
+      "grader_sha256": "15d4f246af02c1cfe1fb6df4023fabf89b5ab46744350311da5acc36607c97a3",
+      "cases": [
+        {
+          "case": "correct_multiple_controls",
+          "passed": true,
+          "detail": "Expected release with 39; received {'decision': 'release', 'value': 39}"
+        },
+        {
+          "case": "inclusive_domain_boundary",
+          "passed": true,
+          "detail": "Expected release with 31.5; received {'decision': 'release', 'value': 31.5}"
+        },
+        {
+          "case": "inclusive_absolute_tolerance",
+          "passed": false,
+          "detail": "Expected release with 6; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "midpoint_only_impostor",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "last_control_just_outside_tolerance",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "hold_out_of_domain_sample",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "hold_out_of_domain_control",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "numerical_pole_at_sample",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "overflow_at_sample",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "decreasing_without_shape_constraint",
+          "passed": true,
+          "detail": "Expected release with 12.5; received {'decision': 'release', 'value': 12.5}"
+        },
+        {
+          "case": "negative_is_valid_without_property",
+          "passed": true,
+          "detail": "Expected release with -6.5; received {'decision': 'release', 'value': -6.5}"
+        },
+        {
+          "case": "nonnegative_constraint_between_controls",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "nondecreasing_constraint_between_controls",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "valid_curved_response",
+          "passed": true,
+          "detail": "Expected release with 42.5; received {'decision': 'release', 'value': 42.5}"
+        },
+        {
+          "case": "no_independent_controls",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "narrow_negative_between_levels",
+          "passed": true,
+          "detail": "Expected withhold and no result; received {'decision': 'withhold', 'value': None}"
+        },
+        {
+          "case": "nearby_strictly_positive_curve",
+          "passed": true,
+          "detail": "Expected release with 8.27454; received {'decision': 'release', 'value': 8.2745399125}"
+        }
+      ]
+    }
+  },
+  "trace": {
+    "trapezoid": {
+      "passed": 13,
+      "total": 13,
+      "candidate_sha256": "919e80f5bcdbf19026a49413258f847f8e1b0d3a0a519222f185ed7a6fb5e8f0",
+      "grader_sha256": "7235ec66ebc504f429b8cedff60b17f3de73b72af4462b6fbe9245b147e8adda",
+      "cases": [
+        {
+          "case": "single_peak",
+          "passed": true,
+          "detail": "Expected area 15 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 15.0}"
+        },
+        {
+          "case": "sloping_baseline",
+          "passed": true,
+          "detail": "Expected area 15 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 15.0}"
+        },
+        {
+          "case": "irregular_times",
+          "passed": true,
+          "detail": "Expected area 7.5 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 7.5}"
+        },
+        {
+          "case": "neighbor_outside_window",
+          "passed": true,
+          "detail": "Expected area 8 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 7.999999999999999}"
+        },
+        {
+          "case": "shallow_peak_on_large_background",
+          "passed": true,
+          "detail": "Expected area 0.125 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 0.125}"
+        },
+        {
+          "case": "overlapping_peaks",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "flat_trace",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "linear_background_without_peak",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "window_partly_unobserved",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "off_grid_boundary",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "reversed_time_axis",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "duplicate_timestamp",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "mismatched_columns",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        }
+      ]
+    },
+    "shape": {
+      "passed": 13,
+      "total": 13,
+      "candidate_sha256": "37a5e58307038ac466cb29ffd6be343f75ef9326cd085fa310640f4a0d8ca052",
+      "grader_sha256": "7235ec66ebc504f429b8cedff60b17f3de73b72af4462b6fbe9245b147e8adda",
+      "cases": [
+        {
+          "case": "single_peak",
+          "passed": true,
+          "detail": "Expected area 15 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 15.0}"
+        },
+        {
+          "case": "sloping_baseline",
+          "passed": true,
+          "detail": "Expected area 15 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 15.0}"
+        },
+        {
+          "case": "irregular_times",
+          "passed": true,
+          "detail": "Expected area 7.5 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 7.5}"
+        },
+        {
+          "case": "neighbor_outside_window",
+          "passed": true,
+          "detail": "Expected area 8 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 7.999999999999999}"
+        },
+        {
+          "case": "shallow_peak_on_large_background",
+          "passed": true,
+          "detail": "Expected area 0.125 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 0.125}"
+        },
+        {
+          "case": "overlapping_peaks",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "flat_trace",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "linear_background_without_peak",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "window_partly_unobserved",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "off_grid_boundary",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "reversed_time_axis",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "duplicate_timestamp",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "mismatched_columns",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        }
+      ]
+    },
+    "segments": {
+      "passed": 13,
+      "total": 13,
+      "candidate_sha256": "45f8d87fdcb59954a01478d919ef7e5d6f1f406445dc97b82c29b4b934297111",
+      "grader_sha256": "7235ec66ebc504f429b8cedff60b17f3de73b72af4462b6fbe9245b147e8adda",
+      "cases": [
+        {
+          "case": "single_peak",
+          "passed": true,
+          "detail": "Expected area 15 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 15.0}"
+        },
+        {
+          "case": "sloping_baseline",
+          "passed": true,
+          "detail": "Expected area 15 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 15.0}"
+        },
+        {
+          "case": "irregular_times",
+          "passed": true,
+          "detail": "Expected area 7.5 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 7.5}"
+        },
+        {
+          "case": "neighbor_outside_window",
+          "passed": true,
+          "detail": "Expected area 8 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 7.999999999999999}"
+        },
+        {
+          "case": "shallow_peak_on_large_background",
+          "passed": true,
+          "detail": "Expected area 0.125 (rtol 1e-6, atol 1e-8); received {'status': 'ok', 'area': 0.125}"
+        },
+        {
+          "case": "overlapping_peaks",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "flat_trace",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "linear_background_without_peak",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "window_partly_unobserved",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "off_grid_boundary",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "reversed_time_axis",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "duplicate_timestamp",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        },
+        {
+          "case": "mismatched_columns",
+          "passed": true,
+          "detail": "Expected needs_input and no area; received {'status': 'needs_input', 'area': None}"
+        }
+      ]
+    }
+  },
+  "plan": {
+    "rules": {
+      "passed": 15,
+      "total": 15,
+      "candidate_sha256": "c9fc416f780ab8c1a0a82fd8c8d4bc75015779c3b99fb5626d0371caa9b9b590",
+      "grader_sha256": "0516b2f8da0bb26a809f8f9e3f17aea781230de07b67b398c3e9abdb70ec0591",
+      "cases": [
+        {
+          "case": "unreleased stays draft",
+          "passed": true,
+          "detail": "draft, 2 checked step(s)"
+        },
+        {
+          "case": "offline stays draft",
+          "passed": true,
+          "detail": "draft, 2 checked step(s)"
+        },
+        {
+          "case": "released simulation preserves precision and order",
+          "passed": true,
+          "detail": "simulated, 2 checked step(s)"
+        },
+        {
+          "case": "document IDs follow the pinned inputs",
+          "passed": true,
+          "detail": "simulated, 1 checked step(s)"
+        },
+        {
+          "case": "inclusive bounds in reverse optical conversion",
+          "passed": true,
+          "detail": "simulated, 2 checked step(s)"
+        },
+        {
+          "case": "Celsius to kelvin at upper bound",
+          "passed": true,
+          "detail": "simulated, 1 checked step(s)"
+        },
+        {
+          "case": "kelvin to Celsius at lower bound",
+          "passed": true,
+          "detail": "simulated, 1 checked step(s)"
+        },
+        {
+          "case": "unknown command after valid step",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "just above range after conversion",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "incompatible physical units",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "unsupported unit",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "missing value",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "value on parameterless read",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "nonfinite value",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "unreleased plan still validates every step",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        }
+      ]
+    },
+    "typed": {
+      "passed": 15,
+      "total": 15,
+      "candidate_sha256": "d580126a5fd7af6654144f4b62c98b813663a66ddc775372e26ff4ea66e07b20",
+      "grader_sha256": "0516b2f8da0bb26a809f8f9e3f17aea781230de07b67b398c3e9abdb70ec0591",
+      "cases": [
+        {
+          "case": "unreleased stays draft",
+          "passed": true,
+          "detail": "draft, 2 checked step(s)"
+        },
+        {
+          "case": "offline stays draft",
+          "passed": true,
+          "detail": "draft, 2 checked step(s)"
+        },
+        {
+          "case": "released simulation preserves precision and order",
+          "passed": true,
+          "detail": "simulated, 2 checked step(s)"
+        },
+        {
+          "case": "document IDs follow the pinned inputs",
+          "passed": true,
+          "detail": "simulated, 1 checked step(s)"
+        },
+        {
+          "case": "inclusive bounds in reverse optical conversion",
+          "passed": true,
+          "detail": "simulated, 2 checked step(s)"
+        },
+        {
+          "case": "Celsius to kelvin at upper bound",
+          "passed": true,
+          "detail": "simulated, 1 checked step(s)"
+        },
+        {
+          "case": "kelvin to Celsius at lower bound",
+          "passed": true,
+          "detail": "simulated, 1 checked step(s)"
+        },
+        {
+          "case": "unknown command after valid step",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "just above range after conversion",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "incompatible physical units",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "unsupported unit",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "missing value",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "value on parameterless read",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "nonfinite value",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "unreleased plan still validates every step",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        }
+      ]
+    },
+    "preflight": {
+      "passed": 15,
+      "total": 15,
+      "candidate_sha256": "9d944c6f1e9595e3b2c8953b316313d646ec6cc565583dd111ec61a35c7eaf1d",
+      "grader_sha256": "0516b2f8da0bb26a809f8f9e3f17aea781230de07b67b398c3e9abdb70ec0591",
+      "cases": [
+        {
+          "case": "unreleased stays draft",
+          "passed": true,
+          "detail": "draft, 2 checked step(s)"
+        },
+        {
+          "case": "offline stays draft",
+          "passed": true,
+          "detail": "draft, 2 checked step(s)"
+        },
+        {
+          "case": "released simulation preserves precision and order",
+          "passed": true,
+          "detail": "simulated, 2 checked step(s)"
+        },
+        {
+          "case": "document IDs follow the pinned inputs",
+          "passed": true,
+          "detail": "simulated, 1 checked step(s)"
+        },
+        {
+          "case": "inclusive bounds in reverse optical conversion",
+          "passed": true,
+          "detail": "simulated, 2 checked step(s)"
+        },
+        {
+          "case": "Celsius to kelvin at upper bound",
+          "passed": true,
+          "detail": "simulated, 1 checked step(s)"
+        },
+        {
+          "case": "kelvin to Celsius at lower bound",
+          "passed": true,
+          "detail": "simulated, 1 checked step(s)"
+        },
+        {
+          "case": "unknown command after valid step",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "just above range after conversion",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "incompatible physical units",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "unsupported unit",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "missing value",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "value on parameterless read",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "nonfinite value",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        },
+        {
+          "case": "unreleased plan still validates every step",
+          "passed": true,
+          "detail": "needs_input, 0 checked step(s)"
+        }
+      ]
+    }
+  },
+  "ops": {
+    "leases": {
+      "passed": 8,
+      "total": 8,
+      "candidate_sha256": "df25b8371b83dd8558ff672acec9c1e57f79df7febd4935e32a9acdda9d2255a",
+      "grader_sha256": "9ee076e0331dcf3a8260d98f064a6b1f6aee4b8303a9856d06937b4546a7544c",
+      "cases": [
+        {
+          "case": "enqueue retry and payload conflict",
+          "passed": true,
+          "detail": "matching repeat accepted; conflicting payload refused"
+        },
+        {
+          "case": "offline queue and fresh process recovery",
+          "passed": true,
+          "detail": "fresh processes recovered queued work after simulated downtime"
+        },
+        {
+          "case": "concurrent lease claimants",
+          "passed": true,
+          "detail": "three independent processes raced; one won and committed its result"
+        },
+        {
+          "case": "lease identity checks",
+          "passed": true,
+          "detail": "worker and lease token were both checked"
+        },
+        {
+          "case": "expiry and stale finisher",
+          "passed": true,
+          "detail": "expiry boundary enforced and stale writer fenced after reassignment"
+        },
+        {
+          "case": "same worker recovery with fresh token",
+          "passed": true,
+          "detail": "a restarted worker using its old token could not finish"
+        },
+        {
+          "case": "lost finish acknowledgement and retry",
+          "passed": true,
+          "detail": "exact completion replay accepted; completed result remained immutable"
+        },
+        {
+          "case": "restore two persisted states",
+          "passed": true,
+          "detail": "SQLite backup restored one completed result and one queued job"
+        }
+      ]
+    },
+    "journal": {
+      "passed": 8,
+      "total": 8,
+      "candidate_sha256": "543b967ccb5011206fc3c9854eafb7280ca9418cd2f92780a52a0679741f273f",
+      "grader_sha256": "9ee076e0331dcf3a8260d98f064a6b1f6aee4b8303a9856d06937b4546a7544c",
+      "cases": [
+        {
+          "case": "enqueue retry and payload conflict",
+          "passed": true,
+          "detail": "matching repeat accepted; conflicting payload refused"
+        },
+        {
+          "case": "offline queue and fresh process recovery",
+          "passed": true,
+          "detail": "fresh processes recovered queued work after simulated downtime"
+        },
+        {
+          "case": "concurrent lease claimants",
+          "passed": true,
+          "detail": "three independent processes raced; one won and committed its result"
+        },
+        {
+          "case": "lease identity checks",
+          "passed": true,
+          "detail": "worker and lease token were both checked"
+        },
+        {
+          "case": "expiry and stale finisher",
+          "passed": true,
+          "detail": "expiry boundary enforced and stale writer fenced after reassignment"
+        },
+        {
+          "case": "same worker recovery with fresh token",
+          "passed": true,
+          "detail": "a restarted worker using its old token could not finish"
+        },
+        {
+          "case": "lost finish acknowledgement and retry",
+          "passed": true,
+          "detail": "exact completion replay accepted; completed result remained immutable"
+        },
+        {
+          "case": "restore two persisted states",
+          "passed": true,
+          "detail": "SQLite backup restored one completed result and one queued job"
+        }
+      ]
+    },
+    "outbox": {
+      "passed": 8,
+      "total": 8,
+      "candidate_sha256": "d808af70fa6798dc53f0c86d79a253cd7a76e1f5b7c6fc5236afd9205ec247d7",
+      "grader_sha256": "9ee076e0331dcf3a8260d98f064a6b1f6aee4b8303a9856d06937b4546a7544c",
+      "cases": [
+        {
+          "case": "enqueue retry and payload conflict",
+          "passed": true,
+          "detail": "matching repeat accepted; conflicting payload refused"
+        },
+        {
+          "case": "offline queue and fresh process recovery",
+          "passed": true,
+          "detail": "fresh processes recovered queued work after simulated downtime"
+        },
+        {
+          "case": "concurrent lease claimants",
+          "passed": true,
+          "detail": "three independent processes raced; one won and committed its result"
+        },
+        {
+          "case": "lease identity checks",
+          "passed": true,
+          "detail": "worker and lease token were both checked"
+        },
+        {
+          "case": "expiry and stale finisher",
+          "passed": true,
+          "detail": "expiry boundary enforced and stale writer fenced after reassignment"
+        },
+        {
+          "case": "same worker recovery with fresh token",
+          "passed": true,
+          "detail": "a restarted worker using its old token could not finish"
+        },
+        {
+          "case": "lost finish acknowledgement and retry",
+          "passed": true,
+          "detail": "exact completion replay accepted; completed result remained immutable"
+        },
+        {
+          "case": "restore two persisted states",
+          "passed": true,
+          "detail": "SQLite backup restored one completed result and one queued job"
+        }
+      ]
+    }
+  },
+  "draft": {
+    "extract": {
+      "passed": 14,
+      "total": 16,
+      "candidate_sha256": "b78c482f6ce409c600481858017bb1ab9516467b3718d0ebe258ff16bf54f563",
+      "grader_sha256": "8fe13c744f957ca27d4910da64936f3e84ca499d008246529ff755f0241865f9",
+      "cases": [
+        {
+          "case": "prose instructions with a precise setting",
+          "passed": true,
+          "detail": "draft, 3 step(s)"
+        },
+        {
+          "case": "purpose selects one of two valid procedures",
+          "passed": true,
+          "detail": "draft, 2 step(s)"
+        },
+        {
+          "case": "shared SOP and model-specific capabilities",
+          "passed": false,
+          "detail": "ValueError: expected draft; got {'status': 'needs_input', 'steps': []}"
+        },
+        {
+          "case": "temperature method on another instrument",
+          "passed": false,
+          "detail": "ValueError: expected draft; got {'status': 'needs_input', 'steps': []}"
+        },
+        {
+          "case": "superseded and future SOPs excluded",
+          "passed": true,
+          "detail": "draft, 2 step(s)"
+        },
+        {
+          "case": "historical snapshot recovers earlier SOP",
+          "passed": true,
+          "detail": "draft, 3 step(s)"
+        },
+        {
+          "case": "exact manual supports the cited steps",
+          "passed": true,
+          "detail": "draft, 3 step(s)"
+        },
+        {
+          "case": "manual for a different model",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "current manual rules out the older permissible range",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "out-of-range SOP setting",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "explicitly unsupported requested command",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "conflicting independent SOPs for the same goal",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "ambiguous goal with competing procedures",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "method unrelated to the requested goal",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "no numerical target in the procedure",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "manual alone cannot supply a method",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        }
+      ]
+    },
+    "grammar": {
+      "passed": 10,
+      "total": 16,
+      "candidate_sha256": "af6702e021def118db7e896e0032881f8975370bf5fec9091ab6612aff910c99",
+      "grader_sha256": "8fe13c744f957ca27d4910da64936f3e84ca499d008246529ff755f0241865f9",
+      "cases": [
+        {
+          "case": "prose instructions with a precise setting",
+          "passed": false,
+          "detail": "ValueError: expected draft; got {'status': 'needs_input', 'steps': []}"
+        },
+        {
+          "case": "purpose selects one of two valid procedures",
+          "passed": true,
+          "detail": "draft, 2 step(s)"
+        },
+        {
+          "case": "shared SOP and model-specific capabilities",
+          "passed": false,
+          "detail": "ValueError: expected draft; got {'status': 'needs_input', 'steps': []}"
+        },
+        {
+          "case": "temperature method on another instrument",
+          "passed": false,
+          "detail": "ValueError: expected draft; got {'status': 'needs_input', 'steps': []}"
+        },
+        {
+          "case": "superseded and future SOPs excluded",
+          "passed": false,
+          "detail": "ValueError: expected draft; got {'status': 'needs_input', 'steps': []}"
+        },
+        {
+          "case": "historical snapshot recovers earlier SOP",
+          "passed": false,
+          "detail": "ValueError: expected draft; got {'status': 'needs_input', 'steps': []}"
+        },
+        {
+          "case": "exact manual supports the cited steps",
+          "passed": false,
+          "detail": "ValueError: expected draft; got {'status': 'needs_input', 'steps': []}"
+        },
+        {
+          "case": "manual for a different model",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "current manual rules out the older permissible range",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "out-of-range SOP setting",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "explicitly unsupported requested command",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "conflicting independent SOPs for the same goal",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "ambiguous goal with competing procedures",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "method unrelated to the requested goal",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "no numerical target in the procedure",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "manual alone cannot supply a method",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        }
+      ]
+    },
+    "evidence": {
+      "passed": 14,
+      "total": 16,
+      "candidate_sha256": "89e33fe53912405cc9364fa6593709e98ec13db083a2610d74f3c5464ee46b70",
+      "grader_sha256": "8fe13c744f957ca27d4910da64936f3e84ca499d008246529ff755f0241865f9",
+      "cases": [
+        {
+          "case": "prose instructions with a precise setting",
+          "passed": true,
+          "detail": "draft, 3 step(s)"
+        },
+        {
+          "case": "purpose selects one of two valid procedures",
+          "passed": true,
+          "detail": "draft, 2 step(s)"
+        },
+        {
+          "case": "shared SOP and model-specific capabilities",
+          "passed": false,
+          "detail": "ValueError: expected draft; got {'status': 'needs_input', 'steps': []}"
+        },
+        {
+          "case": "temperature method on another instrument",
+          "passed": false,
+          "detail": "ValueError: expected draft; got {'status': 'needs_input', 'steps': []}"
+        },
+        {
+          "case": "superseded and future SOPs excluded",
+          "passed": true,
+          "detail": "draft, 2 step(s)"
+        },
+        {
+          "case": "historical snapshot recovers earlier SOP",
+          "passed": true,
+          "detail": "draft, 3 step(s)"
+        },
+        {
+          "case": "exact manual supports the cited steps",
+          "passed": true,
+          "detail": "draft, 3 step(s)"
+        },
+        {
+          "case": "manual for a different model",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "current manual rules out the older permissible range",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "out-of-range SOP setting",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "explicitly unsupported requested command",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "conflicting independent SOPs for the same goal",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "ambiguous goal with competing procedures",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "method unrelated to the requested goal",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "no numerical target in the procedure",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        },
+        {
+          "case": "manual alone cannot supply a method",
+          "passed": true,
+          "detail": "needs_input, 0 step(s)"
+        }
+      ]
+    }
+  },
+  "access": {
+    "roles": {
+      "passed": 18,
+      "total": 18,
+      "candidate_sha256": "d0aa339717f4cab4e9c6c996fc81cef31950df552b9f1a0d5df12f2b979b7680",
+      "grader_sha256": "4bb7558c7a803001feee9bad38820c07b1182640b427f460b533150bf67d95e2",
+      "cases": [
+        {
+          "case": "public_demo read_library",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo read_upload",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo see_control",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo approve",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo work_context",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo claim",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo cross-lab records",
+          "passed": true,
+          "detail": "42/42 decisions correct"
+        },
+        {
+          "case": "public_demo approval preconditions",
+          "passed": true,
+          "detail": "12/12 decisions correct"
+        },
+        {
+          "case": "public_demo unavailable actions",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab read_library",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab read_upload",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab see_control",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab approve",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab work_context",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab claim",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab cross-lab records",
+          "passed": true,
+          "detail": "42/42 decisions correct"
+        },
+        {
+          "case": "private_lab approval preconditions",
+          "passed": true,
+          "detail": "12/12 decisions correct"
+        },
+        {
+          "case": "private_lab unavailable actions",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        }
+      ]
+    },
+    "capabilities": {
+      "passed": 18,
+      "total": 18,
+      "candidate_sha256": "019ab526b986ce0e8a77fc6675f8c5b7612296263267fb2b049b9a3408c12b08",
+      "grader_sha256": "4bb7558c7a803001feee9bad38820c07b1182640b427f460b533150bf67d95e2",
+      "cases": [
+        {
+          "case": "public_demo read_library",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo read_upload",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo see_control",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo approve",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo work_context",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo claim",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo cross-lab records",
+          "passed": true,
+          "detail": "42/42 decisions correct"
+        },
+        {
+          "case": "public_demo approval preconditions",
+          "passed": true,
+          "detail": "12/12 decisions correct"
+        },
+        {
+          "case": "public_demo unavailable actions",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab read_library",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab read_upload",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab see_control",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab approve",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab work_context",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab claim",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab cross-lab records",
+          "passed": true,
+          "detail": "42/42 decisions correct"
+        },
+        {
+          "case": "private_lab approval preconditions",
+          "passed": true,
+          "detail": "12/12 decisions correct"
+        },
+        {
+          "case": "private_lab unavailable actions",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        }
+      ]
+    },
+    "policy": {
+      "passed": 18,
+      "total": 18,
+      "candidate_sha256": "a6a018ef5580cbc6aa9a7c710bd6ef3d1ffcccabaac73ded4e8b5fdda84cfd0f",
+      "grader_sha256": "4bb7558c7a803001feee9bad38820c07b1182640b427f460b533150bf67d95e2",
+      "cases": [
+        {
+          "case": "public_demo read_library",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo read_upload",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo see_control",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo approve",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo work_context",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo claim",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "public_demo cross-lab records",
+          "passed": true,
+          "detail": "42/42 decisions correct"
+        },
+        {
+          "case": "public_demo approval preconditions",
+          "passed": true,
+          "detail": "12/12 decisions correct"
+        },
+        {
+          "case": "public_demo unavailable actions",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab read_library",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab read_upload",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab see_control",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab approve",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab work_context",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab claim",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        },
+        {
+          "case": "private_lab cross-lab records",
+          "passed": true,
+          "detail": "42/42 decisions correct"
+        },
+        {
+          "case": "private_lab approval preconditions",
+          "passed": true,
+          "detail": "12/12 decisions correct"
+        },
+        {
+          "case": "private_lab unavailable actions",
+          "passed": true,
+          "detail": "7/7 decisions correct"
+        }
+      ]
+    }
+  },
+  "storage": {
+    "snapshot": {
+      "passed": 7,
+      "total": 8,
+      "candidate_sha256": "ab1fe348b7c07874f9403d9b1cceec6886860ebb96d5848cdafe6a4d718f526a",
+      "grader_sha256": "c8bbac14cd6293cf0045d60f7a2e12c70d836a4511097178a79deb51b3e5dcb9",
+      "cases": [
+        {
+          "case": "missing record in a new root",
+          "passed": true,
+          "detail": "missing lookup left empty inventory intact"
+        },
+        {
+          "case": "binary data and sorted enumeration",
+          "passed": true,
+          "detail": "empty and non-text records round-tripped with exact hashes"
+        },
+        {
+          "case": "immutable key retries",
+          "passed": true,
+          "detail": "same content retry accepted; conflicting revision preserved original data"
+        },
+        {
+          "case": "independent keys with equal content",
+          "passed": true,
+          "detail": "both logical keys resolve to the independently verified original bytes"
+        },
+        {
+          "case": "restart recovery across processes",
+          "passed": true,
+          "detail": "fresh sibling processes wrote and recovered identical content"
+        },
+        {
+          "case": "concurrent conflicting publication",
+          "passed": true,
+          "detail": "two OS processes contended; the one acknowledged payload survived"
+        },
+        {
+          "case": "12 MiB of unique incompressible data",
+          "passed": false,
+          "detail": "15/24 half-MiB writes accepted; 15 verified"
+        },
+        {
+          "case": "atomicity of refusals under cumulative load",
+          "passed": true,
+          "detail": "15 accepted records intact, 9 capacity refusals"
+        }
+      ]
+    },
+    "database": {
+      "passed": 8,
+      "total": 8,
+      "candidate_sha256": "81cd66e7e6fd54b17ba069e909386704244a652d58db71241e5af7e9f05f7dcf",
+      "grader_sha256": "c8bbac14cd6293cf0045d60f7a2e12c70d836a4511097178a79deb51b3e5dcb9",
+      "cases": [
+        {
+          "case": "missing record in a new root",
+          "passed": true,
+          "detail": "missing lookup left empty inventory intact"
+        },
+        {
+          "case": "binary data and sorted enumeration",
+          "passed": true,
+          "detail": "empty and non-text records round-tripped with exact hashes"
+        },
+        {
+          "case": "immutable key retries",
+          "passed": true,
+          "detail": "same content retry accepted; conflicting revision preserved original data"
+        },
+        {
+          "case": "independent keys with equal content",
+          "passed": true,
+          "detail": "both logical keys resolve to the independently verified original bytes"
+        },
+        {
+          "case": "restart recovery across processes",
+          "passed": true,
+          "detail": "fresh sibling processes wrote and recovered identical content"
+        },
+        {
+          "case": "concurrent conflicting publication",
+          "passed": true,
+          "detail": "two OS processes contended; the one acknowledged payload survived"
+        },
+        {
+          "case": "12 MiB of unique incompressible data",
+          "passed": true,
+          "detail": "24/24 half-MiB writes accepted; 24 verified"
+        },
+        {
+          "case": "atomicity of refusals under cumulative load",
+          "passed": true,
+          "detail": "24 accepted records intact, 0 capacity refusals"
+        }
+      ]
+    },
+    "objects": {
+      "passed": 8,
+      "total": 8,
+      "candidate_sha256": "85b3f99e08a254a341d2af929e3ce6af67750fffb34a1293dd15704c2d559e47",
+      "grader_sha256": "c8bbac14cd6293cf0045d60f7a2e12c70d836a4511097178a79deb51b3e5dcb9",
+      "cases": [
+        {
+          "case": "missing record in a new root",
+          "passed": true,
+          "detail": "missing lookup left empty inventory intact"
+        },
+        {
+          "case": "binary data and sorted enumeration",
+          "passed": true,
+          "detail": "empty and non-text records round-tripped with exact hashes"
+        },
+        {
+          "case": "immutable key retries",
+          "passed": true,
+          "detail": "same content retry accepted; conflicting revision preserved original data"
+        },
+        {
+          "case": "independent keys with equal content",
+          "passed": true,
+          "detail": "both logical keys resolve to the independently verified original bytes"
+        },
+        {
+          "case": "restart recovery across processes",
+          "passed": true,
+          "detail": "fresh sibling processes wrote and recovered identical content"
+        },
+        {
+          "case": "concurrent conflicting publication",
+          "passed": true,
+          "detail": "two OS processes contended; the one acknowledged payload survived"
+        },
+        {
+          "case": "12 MiB of unique incompressible data",
+          "passed": true,
+          "detail": "24/24 half-MiB writes accepted; 24 verified"
+        },
+        {
+          "case": "atomicity of refusals under cumulative load",
+          "passed": true,
+          "detail": "24 accepted records intact, 0 capacity refusals"
+        }
+      ]
+    }
+  }
+}

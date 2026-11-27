@@ -1,6 +1,7 @@
 import {readFileSync,readdirSync} from "node:fs";
 import path from "node:path";
 import Workbench from "./workbench";
+import { evolvePath } from "./paths";
 const read = file => JSON.parse(readFileSync(file,"utf8"));
 export default function Page() {
   const root = path.join(process.cwd(),"public","evidence");
@@ -14,7 +15,7 @@ export default function Page() {
         points:csv.slice(1).map(line=>line.split(",").map(Number)),
         output:report.status==="verified"?read(path.join(folder,"output.json")):null,
         generation:report.source_revision?read(path.join(folder,"generation.json")):null,
-        folder:"/evidence/"+project+"/"+id});
+        folder:evolvePath("/evidence/"+project+"/"+id)});
     }
   }
   return <Workbench runs={runs.sort((a,b)=>b.report.created_utc.localeCompare(a.report.created_utc))}/>;

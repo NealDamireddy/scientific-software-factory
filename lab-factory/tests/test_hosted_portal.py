@@ -2,16 +2,44 @@ from copy import deepcopy
 import json
 import os
 from pathlib import Path
+from urllib.parse import quote
 
 import pytest
 from starlette.testclient import TestClient
 
 from labfactory.artifacts import ARTIFACT_EXAMPLES
 from labfactory.context import canonical_digest
-from labfactory.hosted import application
+from labfactory.hosted import application, make_portal
 from labfactory.hosted_auth import SESSION_COOKIE, password_hash, token_digest
 from labfactory.store import Store
 from labfactory.workorders import WorkOrders
+
+
+def test_api_only_host_returns_404_for_unregistered_routes(client):
+    assert client.get("/").status_code == 404
+    assert client.get("/api/missing").status_code == 404
+
+
+def test_combined_portal_mount_preserves_api_and_mcp_routes(tmp_path, monkeypatch):
+    public = tmp_path / "public"
+    archive = public / "evolve" / "b12"
+    archive.mkdir(parents=True)
+    (public / "index.html").write_text("<h1>Reviewer</h1>")
+    (archive / "index.html").write_text("<h1>Archived B12</h1>")
+    # Files cannot shadow service namespaces, even for an unregistered API path.
+    (public / "api").mkdir()
+    (public / "api" / "missing").write_text("not an API response")
+    monkeypatch.setenv("LABFACTORY_LOCAL_DB", str(tmp_path / "orders.sqlite"))
+    monkeypatch.setenv("LABFACTORY_PUBLIC_REVIEW", "1")
+    monkeypatch.setenv("LABFACTORY_AGENTS", "{}")
+    with TestClient(make_portal(public)) as local:
+        assert local.get("/").raise_for_status().text == "<h1>Reviewer</h1>"
+        assert local.get("/evolve/b12/").raise_for_status().text == "<h1>Archived B12</h1>"
+        assert local.get("/api/experiments").raise_for_status().json() == {"experiments": []}
+        missing = local.get("/api/missing")
+        assert missing.status_code == 404 and "error" in missing.json()
+        for path in ("/mcp", "/mcp/"):
+            assert local.post(path, json={}).status_code == 401
 
 
 def test_b12_browser_example_checks_approval_and_stores_result(client):
@@ -263,6 +291,90 @@ def test_context_imports_pin_the_order_and_render_procedure(client, uvvis_lab_di
     assert second["lab_revision"] == second["experiment_revision"] == 2
 
 
+def test_experiment_discovery_and_pinned_order_context(client, uvvis_lab_dict, b12_experiment_dict):
+    experiment = {**b12_experiment_dict, "id": "rack 1/α?#"}
+    detail_url = "/api/experiments/" + quote(experiment["id"], safe="")
+    for path in ("/api/experiments", detail_url, "/api/orders/WO-1/context"):
+        assert client.get(path).status_code == 401
+    login(client)
+    assert client.get("/api/experiments").json() == {"experiments": []}
+    assert client.get(detail_url).status_code == client.get("/api/orders/WO-1/context").status_code == 404
+    assert client.post("/api/context/lab", json=uvvis_lab_dict).is_success
+    assert client.post("/api/context/experiment", json=experiment).is_success
+    assert client.post("/api/b12/orders", json={"mode": "agent"}).is_success
+    assert client.get("/api/experiments").json() == {"experiments": [
+        {"id": experiment["id"], "title": experiment["title"], "lab_id": experiment["lab_id"], "revision": 1}
+    ]}
+    payload = {"experiment_id": experiment["id"], "kind": "procedure", "objective": "Review a cuvette procedure"}
+    procedure = client.post("/api/orders", json=payload).json()["id"]
+    assert client.post("/api/orders", json={**payload, "kind": "run_plan"}).is_success
+    assert client.post("/api/context/experiment", json={**experiment, "title": "Revised title"}).is_success
+    assert client.post("/api/context/lab", json={**uvvis_lab_dict, "documents": []}).is_success
+    detail = client.get(detail_url).json()
+    assert [row["id"] for row in detail["orders"]] == [procedure]
+    assert detail["experiment"]["title"] == "Revised title" and detail["lab"]["documents"] == []
+    assert detail["lab_revision"] == detail["experiment_revision"] == 2
+    latest, = client.get("/api/experiments").json()["experiments"]
+    assert latest["title"] == "Revised title" and latest["revision"] == 2
+    pinned = client.get(f"/api/orders/{procedure}/context").json()
+    assert pinned == {"experiment": experiment, "experiment_revision": 1, "lab": uvvis_lab_dict, "lab_revision": 1}
+
+
+def test_order_creation_requires_current_displayed_revisions_when_supplied(client):
+    login(client)
+    assert client.post("/api/example", json={}).is_success
+    payload = {"experiment_id": "b12-vial-a", "kind": "procedure", "objective": "Review cuvette handling"}
+    detail = client.get("/api/experiments/b12-vial-a").json()
+    assert client.post("/api/context/lab", json={**detail["lab"], "name": "Revised lab"}).is_success
+    for invalid in ({"expected_lab_revision": 2}, {"expected_experiment_revision": 1},
+                    {"expected_lab_revision": True, "expected_experiment_revision": 1},
+                    {"expected_lab_revision": 2, "expected_experiment_revision": 0}):
+        assert client.post("/api/orders", json={**payload, **invalid}).status_code == 400
+    for exp_revision, lab_revision in ((1, 1), (2, 2)):
+        stale = {**payload, "expected_experiment_revision": exp_revision, "expected_lab_revision": lab_revision}
+        assert client.post("/api/orders", json=stale).status_code == 409
+    assert client.get("/api/experiments/b12-vial-a").json()["orders"] == []
+    current = client.post("/api/orders", json={**payload, "expected_experiment_revision": 1, "expected_lab_revision": 2})
+    assert current.status_code == 201
+    order, = client.get("/api/experiments/b12-vial-a").json()["orders"]
+    assert (order["id"], order["experiment_revision"], order["lab_revision"]) == (current.json()["id"], 1, 2)
+
+
+def test_experiment_lists_only_its_linked_analyses_newest_first(client, uvvis_lab_dict, b12_experiment_dict):
+    login(client)
+    client.post("/api/context/lab", json=uvvis_lab_dict).raise_for_status()
+    procedures = {}
+    for experiment_id in ("assay-one", "assay-two"):
+        client.post("/api/context/experiment", json={**b12_experiment_dict, "id": experiment_id}).raise_for_status()
+        order = client.post("/api/orders", json={
+            "experiment_id": experiment_id, "kind": "procedure", "objective": "Read the reference solution",
+        }).raise_for_status().json()["id"]
+        submit_candidate(order, "procedure", "worker-a", 550)
+        client.post(f"/api/orders/{order}/approve", json={"submission": 1}).raise_for_status()
+        procedures[experiment_id] = order
+
+    upload = {
+        "objective": "Calculate concentration", "protocol_name": "protocol.txt", "protocol": "Use each signal.",
+        "csv_name": "readings.csv", "csv": "id,role,signal,known,factor\nc,control,5,,1\nu,unknown,3,,1\n",
+        "mapping": {name: name for name in ("id", "role", "signal", "known", "factor")},
+        "unit": "mg/L", "range_gate": False, "control_expected": 5, "control_tolerance": 0.1,
+    }
+    expected = {"assay-one": [], "assay-two": []}
+    for experiment_id in ("assay-one", None, "assay-two", "assay-one"):
+        request = dict(upload)
+        if experiment_id:
+            request["procedure_order_id"] = procedures[experiment_id]
+        analysis_id = client.post("/api/analysis/orders", json=request).raise_for_status().json()["id"]
+        if experiment_id:
+            expected[experiment_id].insert(0, {"id": analysis_id, "procedure_order_id": procedures[experiment_id],
+                                               "status": "open"})
+    for experiment_id, links in expected.items():
+        detail = client.get("/api/experiments/" + experiment_id).raise_for_status().json()
+        assert detail["analyses"] == links
+        assert [row["id"] for row in detail["orders"]] == [procedures[experiment_id]]
+    assert {r["id"] for r in client.get("/api/experiments").json()["experiments"]} == set(procedures)
+
+
 def test_numbered_review_preserves_submissions_and_records_exact_digest(client):
     login(client)
     res = client.post("/api/example", json={})
@@ -342,3 +454,54 @@ def test_large_order_uses_indexed_submission_and_history_pages(client):
         assert page["submissions"] == []
         history = page["history"] + history
     assert history == full["history"]
+
+
+@pytest.mark.parametrize("public", [False, True])
+def test_requeue_uses_displayed_claim_and_reviewer_policy(client, monkeypatch, public):
+    if public:
+        monkeypatch.setenv("LABFACTORY_PUBLIC_REVIEW", "1")
+        monkeypatch.delenv("LABFACTORY_REVIEWERS")
+        monkeypatch.delenv("LABFACTORY_SESSION_KEY")
+    else:
+        denied = client.post("/api/orders/WO-1/requeue", json={"claim_id": 1, "reason": "Timeout"},
+                             headers={"Authorization": "Bearer " + AGENT_TOKEN})
+        assert denied.status_code == 401
+        login(client)
+    reviewer = "Public reviewer" if public else "Ada"
+    created = client.post("/api/example", json={})
+    assert created.status_code == 201
+    id = created.json()["id"]
+    path = f"/api/orders/{id}"
+    with Store(os.environ["LABFACTORY_LOCAL_DB"]) as store:
+        WorkOrders(store).claim(id, "spectrometer-agent")
+        with store.transaction():
+            store.connection.execute(
+                "UPDATE events SET at='2026-11-25 19:20:21' WHERE work_order_id=? AND event='claimed'", (id,),
+            )
+    detail = client.get(path + "?submission=latest").json()
+    assert detail["submissions"] == []
+    assert detail["order"]["claimed_at"] == "2026-11-25T19:20:21Z"
+    payload = {"claim_id": detail["order"]["claim_id"], "reason": "Timeout", "expected_reviewer": reviewer}
+    assert client.post(path + "/requeue", json={**payload, "claim_id": True}).status_code == 400
+    assert client.post(path + "/requeue", json={**payload, "reason": " "}).status_code == 409
+    assert client.post(path + "/requeue", json={**payload, "expected_reviewer": "Other"}).status_code == 409
+    assert client.post(path + "/requeue", json=payload, headers={"Origin": "https://other.test"}).status_code == 403
+    assert client.post(path + "/requeue", json=payload).json() == {"id": id, "status": "open"}
+    detail = client.get(path).json()
+    assert detail["order"]["claim_id"] is None and detail["order"]["worker"] is None
+    assert detail["order"]["claimed_at"] is None
+    event = detail["history"][-1]
+    assert event["event"] == "requeued" and event["actor"] == reviewer
+    assert "spectrometer-agent" in event["note"] and "Timeout" in event["note"]
+    with Store(os.environ["LABFACTORY_LOCAL_DB"]) as store:
+        WorkOrders(store).claim(id, "spectrometer-agent")
+        with store.transaction():
+            # A clock correction must not make the first claim look active again.
+            store.connection.execute(
+                "UPDATE events SET at='2026-11-25 18:19:20' WHERE rowid=last_insert_rowid()",
+            )
+    replacement = client.get(path).json()
+    assert replacement["order"]["claim_id"] != payload["claim_id"]
+    assert replacement["order"]["claimed_at"] == "2026-11-25T18:19:20Z"
+    assert client.post(path + "/requeue", json=payload).status_code == 409
+    assert client.get(path).json() == replacement

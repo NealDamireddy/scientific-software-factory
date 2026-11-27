@@ -224,3 +224,87 @@ def test_approval_rechecks_legacy_submission_against_original_pins(
     artifact["steps"][0]["citations"] = ["b12-protocol"]
     assert orders.submit(order.id, "next-worker", artifact).passed
     assert orders.approve(order.id, "reviewer", 2).released_submission == 2
+
+
+def test_requeue_preserves_pins_attempts_and_claim_identity(tmp_path, uvvis_lab_dict, b12_experiment_dict):
+    path = tmp_path / "recovery.db"
+    with Store(path) as store:
+        store.put_lab(lab_from_dict(uvvis_lab_dict))
+        store.put_experiment(experiment_from_dict(b12_experiment_dict))
+        orders = WorkOrders(store)
+        original = create(orders)
+        id = original.id
+        with pytest.raises(WorkOrderError, match="expected in_progress"):
+            orders.requeue(id, "Ada", 1, "Abandoned")
+        first = orders.active_claim_id(orders.claim(id, "worker"))
+        with pytest.raises(WorkOrderError, match="needs a reason"):
+            orders.requeue(id, "Ada", first, " ")
+        orders.requeue(id, "Ada", first, "Disconnected")
+        second = orders.active_claim_id(orders.claim(id, "worker"))
+        before_submission = orders.history(id)
+        with pytest.raises(WorkOrderError, match="no longer active"):
+            orders.submit(id, "worker", plan(), claim_id=first)
+        with pytest.raises(WorkOrderError, match="claim_id is required"):
+            orders.submit(id, "worker", plan())
+        assert orders.history(id) == before_submission
+        assert orders.submissions(id) == []
+        failed = orders.submit(id, "worker", plan(800), claim_id=second)
+        assert not failed.passed
+        history = orders.history(id)
+        uvvis_lab_dict["instruments"][0]["parameters"][0]["maximum"] = 900
+        store.put_lab(lab_from_dict(uvvis_lab_dict))
+        b12_experiment_dict["goal"] = "Updated goal"
+        store.put_experiment(experiment_from_dict(b12_experiment_dict))
+
+    with Store(path) as store:
+        orders = WorkOrders(store)
+        assert first != second == orders.active_claim_id(orders.get(id))
+        with pytest.raises(WorkOrderError, match="no longer active"):
+            orders.requeue(id, "Ada", first, "Stale request")
+        assert orders.history(id) == history
+        assert orders.requeue(id, "Ada", second, "Timed out") == original
+        event = orders.history(id)[-1]
+        assert event["event"] == "requeued" and event["actor"] == "Ada"
+        assert "worker" in event["note"] and "Timed out" in event["note"]
+        orders.claim(id, "replacement")
+        with pytest.raises(WorkOrderError, match="belongs to replacement"):
+            orders.submit(id, "worker", plan())
+        assert orders.submissions(id) == [failed]
+        assert orders.history(id)[:-2] == history
+        assert [e["event"] for e in orders.history(id)[-2:]] == ["requeued", "claimed"]
+        passing = orders.submit(id, "replacement", plan())
+        assert passing.passed and passing.number == 2
+        with pytest.raises(WorkOrderError, match="expected in_progress"):
+            orders.requeue(id, "Ada", second, "Already submitted")
+
+
+def test_requeue_races_passing_submission(tmp_path, uvvis_lab_dict, b12_experiment_dict):
+    path = tmp_path / "race.db"
+    with Store(path) as store:
+        store.put_lab(lab_from_dict(uvvis_lab_dict))
+        store.put_experiment(experiment_from_dict(b12_experiment_dict))
+        orders = WorkOrders(store)
+        id = create(orders).id
+        claim_id = orders.active_claim_id(orders.claim(id, "worker"))
+        barrier = threading.Barrier(2)
+
+        def attempt(action):
+            with Store(path) as contender:
+                barrier.wait(timeout=5)
+                try:
+                    action(WorkOrders(contender))
+                except WorkOrderError:
+                    return False
+                return True
+
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            requeued, submitted = pool.map(attempt, [
+                lambda orders: orders.requeue(id, "Ada", claim_id, "Abandoned"),
+                lambda orders: orders.submit(id, "worker", plan()),
+            ])
+        assert requeued != submitted
+        assert len(orders.submissions(id)) == int(submitted)
+        assert orders.get(id).status == ("open" if requeued else "in_review")
+        assert [e["event"] for e in orders.history(id)] == [
+            "created", "claimed", "requeued" if requeued else "submitted",
+        ]

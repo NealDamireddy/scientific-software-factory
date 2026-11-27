@@ -1,0 +1,348 @@
+{
+  "attempts": {
+    "05ccf602fdeb8f0f416fac10f76dbf624515f60b7c433efb810535088a85bf26": [
+      {
+        "artifact": {
+          "needs_input": "What mass unit does the balance export use for the signal field, grams or milligrams?"
+        },
+        "cli_version": "codex-cli 0.167.0",
+        "driver_sha256": "64f187d41ed5b5d0312831d7e4a62d442695cbe763b44e432d15a2f4dfbb13fd",
+        "elapsed_seconds": 12.165,
+        "started_utc": "2026-11-26T07:33:19.438285+00:00"
+      }
+    ],
+    "09a40a93ef93d180e5917dffb8fe06fcc9c6bb8347895a3f30bc470af038da16": [
+      {
+        "artifact": {
+          "explanation": "Subtract the protocol’s fixed 1.125 mAU offset from the measured signal, then multiply by the dimensionless fold dilution. The result is in mAU. The protocol specifies a fixed offset, so batch standards are unused.",
+          "source": "def analyze(standards, signal, factor):\n    corrected_signal = signal - 1.125\n    return corrected_signal * factor",
+          "tests": [
+            {
+              "expected": 36,
+              "factor": 4,
+              "label": "Fourfold dilution gives a 9 mAU increase above the offset before dilution correction",
+              "signal": 10.125,
+              "standards": [
+                [
+                  1.125,
+                  0
+                ],
+                [
+                  11.125,
+                  10
+                ]
+              ]
+            },
+            {
+              "expected": 1.25,
+              "factor": 2.5,
+              "label": "Fractional fold dilution with a different batch",
+              "signal": 1.625,
+              "standards": [
+                [
+                  1.125,
+                  0
+                ],
+                [
+                  5.125,
+                  4
+                ]
+              ]
+            }
+          ]
+        },
+        "cli_version": "codex-cli 0.167.0",
+        "driver_sha256": "64f187d41ed5b5d0312831d7e4a62d442695cbe763b44e432d15a2f4dfbb13fd",
+        "elapsed_seconds": 8.733,
+        "started_utc": "2026-11-26T07:33:10.703498+00:00"
+      }
+    ],
+    "22f10ccba0c11838480d081ca5c81f221b2981d20ed46a21cc82aca491adddee": [
+      {
+        "artifact": {
+          "explanation": "The tared balance signal gives the portion mass in grams, and the factor gives the measured aliquot volume in milliliters. Dividing mass by volume yields g/mL. The protocol specifies no calibration standards.",
+          "source": "def analyze(standards, signal, factor):\n    mass_g = signal\n    volume_ml = factor\n    return mass_g / volume_ml",
+          "tests": [
+            {
+              "expected": 2.5,
+              "factor": 3,
+              "label": "7.5 g in a 3 mL aliquot",
+              "signal": 7.5,
+              "standards": []
+            },
+            {
+              "expected": 0.3,
+              "factor": 4,
+              "label": "1.2 g in a 4 mL aliquot",
+              "signal": 1.2,
+              "standards": []
+            }
+          ]
+        },
+        "cli_version": "codex-cli 0.167.0",
+        "driver_sha256": "64f187d41ed5b5d0312831d7e4a62d442695cbe763b44e432d15a2f4dfbb13fd",
+        "elapsed_seconds": 7.918,
+        "started_utc": "2026-11-26T07:32:59.299942+00:00"
+      }
+    ],
+    "334538f7d1e2d5206729b1216aa5ae1706b57a40487a6b52056df86af8d97591": [
+      {
+        "artifact": {
+          "explanation": "Fit detector signal as a function of known concentration by ordinary least squares with an intercept, using the current batch of standards. Subtract the fitted intercept from the measured signal and divide by the fitted slope to obtain the diluted sample concentration in mg/L. Multiply by the dimensionless dilution factor to report the original sample concentration in mg/L. The first test uses the line signal = 2 + 3 × concentration, giving 3 × 5 = 15 mg/L. In the second test, the mean concentration is 3 and the mean signal is 21. The centered cross-product sum is 40 and the centered concentration sum of squares is 8, giving a slope of 5 and an intercept of 6. A signal of 16 gives 2 × 2.5 = 5 mg/L.",
+          "source": "def analyze(standards, signal, factor):\n    standard_signals = column(standards, 0)\n    known_concentrations = column(standards, 1)\n    fitted_slope = slope(known_concentrations, standard_signals)\n    fitted_intercept = intercept(known_concentrations, standard_signals)\n    diluted_concentration = (signal - fitted_intercept) / fitted_slope\n    return diluted_concentration * factor",
+          "tests": [
+            {
+              "expected": 15,
+              "factor": 5,
+              "label": "Exact calibration with fivefold dilution",
+              "signal": 11,
+              "standards": [
+                [
+                  2,
+                  0
+                ],
+                [
+                  8,
+                  2
+                ],
+                [
+                  14,
+                  4
+                ]
+              ]
+            },
+            {
+              "expected": 5,
+              "factor": 2.5,
+              "label": "Noncollinear standards with fractional dilution factor",
+              "signal": 16,
+              "standards": [
+                [
+                  10,
+                  1
+                ],
+                [
+                  23,
+                  3
+                ],
+                [
+                  30,
+                  5
+                ]
+              ]
+            }
+          ]
+        },
+        "cli_version": "codex-cli 0.167.0",
+        "driver_sha256": "64f187d41ed5b5d0312831d7e4a62d442695cbe763b44e432d15a2f4dfbb13fd",
+        "elapsed_seconds": 14.403,
+        "started_utc": "2026-11-26T07:32:44.895351+00:00"
+      }
+    ],
+    "33a721d6c75ec4b188260862a8f9a6eb64757bd2fe3614b39993683a4a8331c6": [
+      {
+        "artifact": {
+          "explanation": "Subtract the independently measured blank of 0.27 mAU from the diluted sample signal. Multiply the corrected absorbance by the row’s dimensionless dilution factor to report the original-sample absorbance in mAU. The protocol specifies a fixed blank correction, so batch standards are unused.",
+          "source": "def analyze(standards, signal, factor):\n    blank = 0.27\n    corrected_absorbance = signal - blank\n    return corrected_absorbance * factor",
+          "tests": [
+            {
+              "expected": 5,
+              "factor": 10,
+              "label": "Tenfold dilution with a 0.50 mAU net signal",
+              "signal": 0.77,
+              "standards": [
+                [
+                  0.27,
+                  0
+                ],
+                [
+                  1.27,
+                  1
+                ]
+              ]
+            },
+            {
+              "expected": 0.48,
+              "factor": 4,
+              "label": "Fourfold dilution with a 0.12 mAU net signal",
+              "signal": 0.39,
+              "standards": [
+                [
+                  0.27,
+                  0
+                ],
+                [
+                  0.77,
+                  0.5
+                ]
+              ]
+            }
+          ]
+        },
+        "cli_version": "codex-cli 0.167.0",
+        "driver_sha256": "64f187d41ed5b5d0312831d7e4a62d442695cbe763b44e432d15a2f4dfbb13fd",
+        "elapsed_seconds": 11.402,
+        "started_utc": "2026-11-26T07:32:59.300274+00:00"
+      }
+    ],
+    "444b1cbfb2681deca019b8fe20fdb9484e364fa922e296c2eaacddc3cb9494c4": [
+      {
+        "artifact": {
+          "explanation": "Fit known concentration in mg/L as the response and detector signal as the predictor using ordinary least squares with a free intercept. Evaluate the fitted line at the diluted sample's signal, then multiply by the dimensionless fold dilution to report the original sample concentration in mg/L. In the first test, the standards lie on the line with slope 3 and intercept 1, giving 5.5 mg/L before dilution correction. In the second test, the equally spaced signals give a slope of (10 − 2) / 4 = 2. The fitted line passes through the means (2, 20/3), so at signal 3 the predicted concentration is 26/3 mg/L. Multiplying by 3 gives 26 mg/L.",
+          "source": "def analyze(standards, signal, factor):\n    standard_signals = column(standards, 0)\n    known_concentrations = column(standards, 1)\n    calibration_slope = slope(standard_signals, known_concentrations)\n    calibration_intercept = intercept(standard_signals, known_concentrations)\n    diluted_concentration = calibration_intercept + calibration_slope * signal\n    return diluted_concentration * factor",
+          "tests": [
+            {
+              "expected": 22,
+              "factor": 4,
+              "label": "Linear calibration with nonzero intercept and fourfold dilution",
+              "signal": 1.5,
+              "standards": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  2,
+                  7
+                ],
+                [
+                  4,
+                  13
+                ]
+              ]
+            },
+            {
+              "expected": 26,
+              "factor": 3,
+              "label": "Noncollinear standards with threefold dilution",
+              "signal": 3,
+              "standards": [
+                [
+                  0,
+                  2
+                ],
+                [
+                  2,
+                  8
+                ],
+                [
+                  4,
+                  10
+                ]
+              ]
+            }
+          ]
+        },
+        "cli_version": "codex-cli 0.167.0",
+        "driver_sha256": "64f187d41ed5b5d0312831d7e4a62d442695cbe763b44e432d15a2f4dfbb13fd",
+        "elapsed_seconds": 22.07,
+        "started_utc": "2026-11-26T07:32:22.823848+00:00"
+      }
+    ],
+    "4c0d18cc3842b72a4dc0c57f63c681384b771f60e974ffee22a04c2d8bff2801": [
+      {
+        "artifact": {
+          "explanation": "For each batch, fit an ordinary least-squares line with calibrant response as the predictor and assigned concentration in mg/L as the outcome. Evaluate the line, including its fitted intercept, at the aliquot signal. Multiply the resulting concentration by the dimensionless fold dilution to report the undiluted concentration in mg/L. In the first test, the measured response equals the mean calibrant response, so the fitted value equals the mean assigned concentration of 8/3 mg/L. In the second test, the response is midway between two points on a perfectly linear calibration, giving 13 mg/L before dilution correction.",
+          "source": "def analyze(standards, signal, factor):\n    responses = column(standards, 0)\n    known_amounts = column(standards, 1)\n    calibration_slope = slope(responses, known_amounts)\n    calibration_intercept = intercept(responses, known_amounts)\n    aliquot_concentration = calibration_intercept + calibration_slope * signal\n    return aliquot_concentration * factor",
+          "tests": [
+            {
+              "expected": 8,
+              "factor": 3,
+              "label": "Mean response in a noncollinear batch with threefold dilution",
+              "signal": 1,
+              "standards": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  5
+                ]
+              ]
+            },
+            {
+              "expected": 32.5,
+              "factor": 2.5,
+              "label": "Interpolation in a different batch with 2.5-fold dilution",
+              "signal": 5,
+              "standards": [
+                [
+                  2,
+                  4
+                ],
+                [
+                  4,
+                  10
+                ],
+                [
+                  6,
+                  16
+                ]
+              ]
+            }
+          ]
+        },
+        "cli_version": "codex-cli 0.167.0",
+        "driver_sha256": "64f187d41ed5b5d0312831d7e4a62d442695cbe763b44e432d15a2f4dfbb13fd",
+        "elapsed_seconds": 21.924,
+        "started_utc": "2026-11-26T07:32:22.824226+00:00"
+      }
+    ],
+    "cb4391333697706d9aa4f70a26069b9511c129ec277e55ac05e3c8330b90240d": [
+      {
+        "artifact": {
+          "explanation": "Divide the net mass in grams (signal) by the dispensed volume in millilitres (factor) to report density in g/mL. The protocol uses no calibration, so the calculation does not use batch standards.",
+          "source": "def analyze(standards, signal, factor):\n    density = signal / factor\n    return density",
+          "tests": [
+            {
+              "expected": 0.75,
+              "factor": 5,
+              "label": "Density below one",
+              "signal": 3.75,
+              "standards": []
+            },
+            {
+              "expected": 1.25,
+              "factor": 2.5,
+              "label": "Density above one with a fractional volume",
+              "signal": 3.125,
+              "standards": []
+            }
+          ]
+        },
+        "cli_version": "codex-cli 0.167.0",
+        "driver_sha256": "64f187d41ed5b5d0312831d7e4a62d442695cbe763b44e432d15a2f4dfbb13fd",
+        "elapsed_seconds": 10.267,
+        "started_utc": "2026-11-26T07:32:44.895559+00:00"
+      }
+    ],
+    "e5e680672909ffd6518a01ad3202b9db9c5f194f09a21cc9dd5cdb973f25b19b": [
+      {
+        "artifact": {
+          "needs_input": "What is the session blank absorbance in mAU, and how will it be identified in the batch inputs?"
+        },
+        "cli_version": "codex-cli 0.167.0",
+        "driver_sha256": "64f187d41ed5b5d0312831d7e4a62d442695cbe763b44e432d15a2f4dfbb13fd",
+        "elapsed_seconds": 4.562,
+        "started_utc": "2026-11-26T07:33:10.703752+00:00"
+      }
+    ],
+    "f671e600afcd9fd601f02b07fa1d7fc9cdfd57888dd60f4ef67f89ed24d37959": [
+      {
+        "artifact": {
+          "needs_input": "What calibration model and fitting method should convert detector signal to concentration, what units are the standards’ known concentrations in, and how should the row factor be applied to obtain the original concentration in mg/L?"
+        },
+        "cli_version": "codex-cli 0.167.0",
+        "driver_sha256": "64f187d41ed5b5d0312831d7e4a62d442695cbe763b44e432d15a2f4dfbb13fd",
+        "elapsed_seconds": 4.63,
+        "started_utc": "2026-11-26T07:33:19.438562+00:00"
+      }
+    ]
+  },
+  "version": 1
+}

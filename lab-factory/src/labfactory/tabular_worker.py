@@ -5,12 +5,11 @@ import asyncio
 import json
 import os
 from pathlib import Path
-import subprocess
 import sys
-import tempfile
 from urllib.parse import urlsplit
 
 import httpx
+from lab_codex_worker import run_worker
 from mcp import ClientSession
 from mcp.client.streamable_http import streamable_http_client
 
@@ -45,23 +44,10 @@ def generate(context, feedback=None):
         "specific scientific question and use empty strings/array for the other fields.\n"
         + json.dumps(payload, ensure_ascii=False)
     )
-    with tempfile.TemporaryDirectory(prefix="lab-author-") as scratch:
-        work = Path(scratch)
-        (work / "schema.json").write_text(json.dumps(_SCHEMA))
-        command = [
-            "codex", "exec", "--ignore-user-config", "--ignore-rules", "--ephemeral",
-            "--skip-git-repo-check", "--sandbox", "read-only", "-c", 'approval_policy="never"',
-            "-c", 'web_search="disabled"', "--disable", "shell_tool", "--disable", "unified_exec",
-            "--disable", "apps", "--disable", "plugins", "--disable", "skill_search",
-            "--output-schema", "schema.json", "--output-last-message", "answer.json", "-",
-        ]
-        # The existing CLI sign-in is local. Reviewer and MCP credentials never enter the author process.
-        env = {k: os.environ[k] for k in ("HOME", "PATH", "LANG", "TMPDIR", "CODEX_HOME") if k in os.environ}
-        proc = subprocess.run(command, cwd=work, env=env, input=prompt, capture_output=True,
-                              text=True, timeout=210)
-        if proc.returncode or not (work / "answer.json").exists():
-            raise RuntimeError(f"Codex author exited without a submission (exit {proc.returncode}); check CLI sign-in.")
-        answer = json.loads((work / "answer.json").read_text())
+    answer = run_worker(
+        prompt, json.dumps(_SCHEMA), timeout=210, temp_prefix="lab-author-",
+        failure_message=lambda result: f"Codex author exited without a submission (exit {result.returncode}); check CLI sign-in.",
+    ).answer
     question = answer.pop("question")
     return {"needs_input": question} if question.strip() else answer
 
@@ -85,13 +71,14 @@ async def process(session, order_id, worker, author=generate):
     if not analysis or analysis.get("awaiting_fresh_control") or analysis.get("needs_input"):
         return False
     if order["status"] == "open":
-        await _call(session, "claim_work_order", args)
+        order = await _call(session, "claim_work_order", args)
     elif order["status"] != "in_progress" or order["worker"] != worker:
         return False
+    submission_args = {**args, "claim_id": order["claim_id"]}
     feedback = analysis.get("last_public_checks")
     for _ in range(3):
         candidate = await asyncio.to_thread(author, context, feedback)
-        result = await _call(session, "submit_artifact", {**args, "artifact": candidate})
+        result = await _call(session, "submit_artifact", {**submission_args, "artifact": candidate})
         print(f"{order_id} submission {result['submission']} · {result['status']} · {result['artifact_digest']}",
               flush=True)
         if result["passed"] or "needs_input" in candidate:
@@ -104,7 +91,7 @@ async def process(session, order_id, worker, author=generate):
         feedback = {"checks": analysis.get("last_public_checks") or result["results"],
                     "previous_candidate": candidate}
     # Ask for human input rather than filling the order history with identical retries.
-    await _call(session, "submit_artifact", {**args, "artifact": {"needs_input":
+    await _call(session, "submit_artifact", {**submission_args, "artifact": {"needs_input":
         "The generated program repeatedly failed the public checks. Please review the protocol, units and column mapping."}})
     return True
 
