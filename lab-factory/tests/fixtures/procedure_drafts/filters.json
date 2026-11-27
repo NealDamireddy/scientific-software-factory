@@ -1,0 +1,25 @@
+{
+  "request_id": "filter-comparison",
+  "lab": {
+    "id": "optical-metrology",
+    "name": "Optical metrology teaching bench",
+    "instruments": [{
+      "id": "photometer-1", "name": "Dual-channel transmission photometer", "model": "Teaching fixture", "firmware": "1",
+      "parameters": [{"name":"wavelength","unit":"nm","minimum":400,"maximum":700}],
+      "commands": [{"name":"read_transmittance","required":["wavelength"]}]
+    }],
+    "documents": [
+      {"id":"photometer-guide","kind":"manual","title":"Photometer operating facts","source":"Simulated training manual",
+       "text":"An identified glass filter in the keyed holder can be measured with read_transmittance. This command takes a wavelength in nm and returns reference-corrected percent transmittance for the filter currently in the holder. The same holder is used for both filters."},
+      {"id":"channel-record","kind":"note","title":"Qualified channels","source":"Training bench qualification record",
+       "text":"The two calibrated comparison channels are 520 nm and 635 nm. The study selects a single channel shared by both filters; these are alternatives."}
+    ]
+  },
+  "experiment": {
+    "id":"glass-filters","lab_id":"optical-metrology","title":"Glass filter transmission comparison",
+    "goal":"Compare percent transmittance of glass filters A and B at the study wavelength.",
+    "instrument_ids":["photometer-1"],
+    "documents":[{"id":"filter-brief","kind":"note","title":"Filter comparison brief","source":"Teaching study brief",
+      "text":"The samples are labeled A and B. One reading per filter is requested, using the same study wavelength. Report the value for each filter and the difference A minus B in percentage points."}]
+  }
+}

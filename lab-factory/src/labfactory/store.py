@@ -77,6 +77,39 @@ _SCHEMA = {
     )
     """,
     "events_by_order": "CREATE INDEX IF NOT EXISTS events_by_order ON events(work_order_id)",
+    "procedure_drafts": """
+    CREATE TABLE IF NOT EXISTS procedure_drafts (
+        work_order_id TEXT PRIMARY KEY REFERENCES work_orders(id),
+        previous_order TEXT UNIQUE REFERENCES procedure_drafts(work_order_id),
+        demo INTEGER NOT NULL CHECK (demo IN (0,1))
+    )
+    """,
+    "automatic_procedures": """
+    CREATE TABLE IF NOT EXISTS automatic_procedures (
+        work_order_id TEXT PRIMARY KEY REFERENCES procedure_drafts(work_order_id),
+        actor TEXT NOT NULL, request_id TEXT NOT NULL, request_digest TEXT NOT NULL,
+        plan TEXT NOT NULL, question_step INTEGER, UNIQUE(actor, request_id)
+    )
+    """,
+    "procedure_author_jobs": """
+    CREATE TABLE IF NOT EXISTS procedure_author_jobs (
+        work_order_id TEXT PRIMARY KEY REFERENCES automatic_procedures(work_order_id),
+        token TEXT, expires INTEGER
+    )
+    """,
+    "procedure_decision_evidence": """
+    CREATE TABLE IF NOT EXISTS procedure_decision_evidence (
+        work_order_id TEXT PRIMARY KEY REFERENCES procedure_author_jobs(work_order_id),
+        plan TEXT, input_kind TEXT, artifact_digest TEXT, review TEXT
+    )
+    """,
+    "procedure_paper_reviews": """
+    CREATE TABLE IF NOT EXISTS procedure_paper_reviews (
+        work_order_id TEXT NOT NULL REFERENCES procedure_author_jobs(work_order_id),
+        artifact_digest TEXT NOT NULL, report TEXT NOT NULL, corrections TEXT NOT NULL,
+        PRIMARY KEY(work_order_id, artifact_digest)
+    )
+    """,
     "reference_briefs": """
     CREATE TABLE IF NOT EXISTS reference_briefs (
         work_order_id TEXT PRIMARY KEY REFERENCES work_orders(id),
