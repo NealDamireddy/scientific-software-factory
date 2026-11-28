@@ -108,3 +108,8 @@ def test_share_points_at_the_same_text(store):
     assert library.share(store, "Cy", shared["id"]) == shared
     with pytest.raises(NotFound):
         library.share(store, "Ben", 9999)
+
+
+def test_catalog_paper_stays_a_paper(store):
+    assert references.source("barbour-2026-honey-moisture")["kind"] == "paper"
+    assert library.add(store, "Ana", TEXT, source_id="barbour-2026-honey-moisture")["kind"] == "paper"

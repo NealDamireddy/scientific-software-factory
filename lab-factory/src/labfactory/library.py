@@ -53,7 +53,7 @@ def _resolve_source(store, actor, source_id, title, lab_id):
         except ContextError:
             catalog = None
         if catalog:
-            kind = "manual" if catalog["kind"] == "manual" else "note"
+            kind = "note" if catalog["kind"] == "procedure" else catalog["kind"]
             return source_id, kind, catalog["title"], catalog["url"]
         row = store.connection.execute(
             "SELECT kind, title, origin FROM library_entries WHERE source_id = ? ORDER BY id LIMIT 1",
