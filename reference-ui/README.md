@@ -4,11 +4,12 @@ The research workspace is the frontend for Lab Factory. Start it from the reposi
 
 Use `npm start -- --database "/path/to/portal.sqlite3"` to open an existing local Lab Factory database, including one in another checkout. Use `--temporary` for an isolated session. Add `--drift-worker` to process queued stage plots with the signed-in local Codex worker.
 
-## Start an investigation
+## Work in a research project
 
-1. Open **What are you investigating?** and select or create a project. Existing registered experiments appear as projects.
-2. Enter the objective. Lab Factory searches the project's recorded datasets, procedures and apps. A clear request opens the matching record or creates a request in that project. Ambiguous requests show choices in the composer.
-3. Reopen the investigation from its project. Download the original readings, answer a draft question, review a submission, or download a completed offline app. **Upload project readings** links a tabular intake to this project. Offline app generation requires a running analysis worker. Source-authored procedure drafts use the backend's signed-in Codex CLI.
+1. Open a project to see its hypothesis and the experiments testing it. You can edit the hypothesis or add one when creating a project.
+2. Choose **New experiment** and enter a question in **What are you investigating?**. You can also describe a task. Lab Factory checks the project's data, procedures and apps, reuses a relevant item or queues the requested work, and asks for clarification when needed.
+3. Open the experiment to see its question, finding, attached work and original requests. Use **Add work** to continue the same experiment. Record a finding in your own words, review a procedure, open an analysis app, or upload readings there. The project's resource library lets another experiment reuse the same material.
+4. Earlier investigations appear as individual experiments and keep their original links. You can give each one a short title. Offline app generation requires a running analysis worker. Source-authored procedure drafts use the backend's signed-in Codex CLI.
 
 Tabular intake can use a saved experiment and selected lab or project documents. Choose the permitted Python or MATLAB profile for a worker submission. Lab Factory records the verifier and checks the submitted calculation against the blind control. The temperature example exercises interpolation against a calibration table. Historical stage plots and unassigned tabular uploads can be added to a project from their detail view. Open **Registered lab context → Request a worker draft** in a project to prepare a source-grounded procedure request in the composer. A worker can ask for a missing passage before review.
 

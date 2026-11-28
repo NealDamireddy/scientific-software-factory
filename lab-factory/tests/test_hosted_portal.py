@@ -542,3 +542,26 @@ def test_research_workspace_origin_and_draft_history(client):
         rows = browser.get("/api/procedure-drafts").json()["drafts"]
         assert [(r["id"], r["status"]) for r in rows] == [(reply["order"]["id"], "in_review"), (key, "superseded")]
         assert "access-control-allow-origin" not in browser.get("/api/orders").headers
+
+
+def test_research_experiment_http_ownership_and_updates(client):
+    from uuid import uuid4
+
+    path = "/api/research-experiments"
+    assert client.post(path, json={}).status_code == 401
+    login(client)
+    project = client.post("/api/research-projects", json={
+        "title": "Archive comparison", "hypothesis": "Readings agree."}).raise_for_status().json()
+    key = project["id"]
+    sibling = client.post("/api/research-projects", json={"title": "Separate archive", "lab_id": project["lab_id"]}).json()
+    draft = {"project_id": key, "question": "Which archives agree?", "request_id": str(uuid4())}
+    experiment = client.post(path, json=draft).raise_for_status().json()
+    edit = path + "/" + experiment["id"]
+    assert client.post(edit, json={"project_id": sibling["id"], "finding": "Incorrect scope"}).status_code == 404
+    assert client.post(edit, json={"project_id": key, "finding": "Reference results agree."}).raise_for_status().json()["finding"]
+    assert client.post("/api/research-projects", json={"project_id": key, "hypothesis": ""}).raise_for_status().json()["hypothesis"] == ""
+    directory = client.get("/api/research-projects").raise_for_status().json()
+    assert directory["labs"] == [{"id": project["lab_id"], "name": project["lab_name"]}]
+    assert directory["experiments"][0]["finding"] == "Reference results agree."
+    inventory = client.get("/api/research-projects", params={"project": key}).raise_for_status().json()
+    assert inventory["experiments"][0]["requests"] == inventory["experiments"][0]["resources"] == []

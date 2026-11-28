@@ -4,7 +4,7 @@ import json
 import re
 from uuid import UUID
 
-from . import analysis_requests, experiment_catalog, first_draft, procedure_drafts, tabular_service
+from . import analysis_requests, experiment_catalog, first_draft, procedure_drafts, research_experiments, tabular_service
 from .context import ContextError, Experiment, Lab, canonical_digest, canonical_json, to_dict
 from .store import NotFound
 from .artifacts import render_artifact
@@ -19,10 +19,25 @@ def projects(store):
     children = {r["context_id"] for r in store.connection.execute(
         "SELECT context_id FROM research_investigations WHERE context_id IS NOT NULL")}
     recent = store.connection.execute("""
-        SELECT id, project_id, json_extract(result,'$.objective') AS objective
-          FROM research_investigations ORDER BY rowid DESC
+        SELECT i.id, i.project_id, l.experiment_id, json_extract(i.result,'$.objective') AS objective
+          FROM research_investigations i JOIN research_experiment_requests l ON l.request_id=i.id ORDER BY i.rowid DESC
     """)
-    return {"projects": [r for r in experiment_catalog.list_experiments(store)["experiments"] if r["id"] not in children],
+    # Directory reads need names only. Avoid one remote round trip per project
+    # or downloading large lab documents for the sidebar.
+    lab_names = {row["id"]: row["name"] for row in store.connection.execute("""
+        SELECT r.id,json_extract(r.body,'$.name') AS name FROM records r
+        JOIN (SELECT id,MAX(number) AS latest FROM records WHERE kind='lab' GROUP BY id) h
+        ON h.id=r.id AND h.latest=r.number WHERE r.kind='lab'
+    """)}
+    hypotheses = {row["project_id"]: row["hypothesis"] for row in store.connection.execute(
+        "SELECT project_id,hypothesis FROM research_project_info")}
+    summaries = [dict(row, lab_name=lab_names[row["lab_id"]], hypothesis=hypotheses.get(row["id"], ""))
+                 for row in experiment_catalog.list_experiments(store)["experiments"] if row["id"] not in children]
+    labs = {row["lab_id"]: row["lab_name"] for row in summaries}
+    if not labs:
+        labs[_WORKSPACE_LAB.id] = _WORKSPACE_LAB.name
+    return {"projects": summaries, "labs": [{"id": key, "name": name} for key, name in labs.items()],
+            "experiments": research_experiments.summaries(store.connection),
             "investigations": [dict(r) for r in recent]}
 
 
@@ -40,22 +55,42 @@ def library(store, field):
                          **entry} for row in rows for entry in json.loads(row["items"] or "[]")]}
 
 
-def register(store, title):
-    if not isinstance(title, str) or not title.strip() or len(title) > 250:
-        raise ContextError("Supply a project name up to 250 characters.")
-    title = title.strip()
+_WORKSPACE_LAB = Lab("research-workspace", "Research workspace", (), ())
+
+
+def register(store, title, lab_id=None, hypothesis=None):
+    title = research_experiments.text(title, "project name", 250)
+    if lab_id is not None and (not isinstance(lab_id, str) or not lab_id):
+        raise ContextError("Choose a registered lab.")
+    # Older clients retry with only the project title. Retain that identity
+    # for legacy projects and for projects created in the default workspace.
     key = "workspace-" + canonical_digest(title)
-    with store.transaction():
+    with store.transaction() as db:
+        existing_lab = db.execute("""SELECT json_extract(body,'$.lab_id') AS lab_id FROM records
+            WHERE kind='experiment' AND id=? ORDER BY number DESC LIMIT 1""", (key,)).fetchone()
+        if lab_id and lab_id != _WORKSPACE_LAB.id and (not existing_lab or existing_lab["lab_id"] != lab_id):
+            key = "workspace-" + canonical_digest([lab_id, title])
+        if lab_id == _WORKSPACE_LAB.id and existing_lab and existing_lab["lab_id"] != lab_id:
+            key = "workspace-" + canonical_digest([lab_id, title])
         try:
             existing, _ = store.get_experiment(key)
         except NotFound:
-            lab_id = "lab-" + key
-            store.put_lab(Lab(lab_id, title, (), ()))
+            lab_id = lab_id or _WORKSPACE_LAB.id
+            if lab_id == _WORKSPACE_LAB.id:
+                if not db.execute("SELECT 1 FROM records WHERE kind='lab' AND id=?", (lab_id,)).fetchone():
+                    store.put_lab(_WORKSPACE_LAB)
+            else:
+                store.get_lab(lab_id)
             store.put_experiment(Experiment(key, lab_id, title, title, (), ()), allow_unassigned=True)
+            if hypothesis is not None:
+                research_experiments.set_hypothesis(store, key, hypothesis)
         else:
             if existing.title != title:
                 raise WorkOrderError("This project ID is already in use.")
-    return {"id": key, "title": title}
+            lab_id = existing.lab_id
+        lab, _ = store.get_lab(lab_id)
+        return {"id": key, "title": title, "lab_id": lab_id, "lab_name": lab.name,
+                "hypothesis": research_experiments.hypothesis(store, key)}
 
 
 _APP_OWNER = """COALESCE((SELECT project_id FROM research_app_projects WHERE app_id=drift_requests.id),
@@ -93,20 +128,36 @@ def attach_app(store, project, key):
     return {"id": key, "project_id": project}
 
 
-def resources(store, project):
+def _current_project_resources(items):
+    seen = set()
+    result = []
+    for item in items:
+        if item.get("next_order"):
+            continue
+        if item["kind"] == "data":
+            identity = (item["title"], item["digest"])
+            if identity in seen:
+                continue
+            seen.add(identity)
+        result.append(item)
+    return result
+
+
+def resources(store, project, *, include_history=False):
     db = store.connection
     args = (project, project)
     result = []
     for r in db.execute(f"""
         SELECT o.id, o.objective, o.status, o.released_submission, s.artifact_digest,
-               a.work_order_id AS automatic FROM work_orders o
+               a.work_order_id AS automatic, d.work_order_id AS next_order FROM work_orders o
         LEFT JOIN automatic_procedures a ON a.work_order_id=o.id
+        LEFT JOIN procedure_drafts d ON d.previous_order=o.id
         LEFT JOIN submissions s ON s.work_order_id=o.id AND s.number=o.released_submission
         WHERE o.kind='procedure' AND o.experiment_id IN {_MEMBERS}
-        AND NOT EXISTS (SELECT 1 FROM procedure_drafts d WHERE d.previous_order=o.id)
         ORDER BY o.rowid DESC""", args):
         result.append(dict(kind="procedure", id=r["id"], title=r["objective"], status=r["status"],
-                           automatic=bool(r["automatic"]), submission=r["released_submission"], digest=r["artifact_digest"]))
+                           automatic=bool(r["automatic"]), submission=r["released_submission"], digest=r["artifact_digest"],
+                           **({"next_order": r["next_order"]} if r["next_order"] else {})))
     for r in db.execute(f"""
         SELECT id,objective,status,artifact_digest,json_extract(contexts,'$[0].dataset.columns') AS columns,
                json_extract(contexts,'$[0].procedure.order_id') AS procedure_id,
@@ -120,11 +171,7 @@ def resources(store, project):
 
     linked = f"""FROM tabular_intakes i LEFT JOIN work_orders p ON p.id=json_extract(i.profile,'$.procedure.order_id')
                  JOIN work_orders a ON a.id=i.work_order_id WHERE {_TABULAR_OWNER} IN {_MEMBERS}"""
-    seen = set()
     def add_file(order, filename, digest, suffix, fields, procedure_id):
-        if (filename, digest) in seen:
-            return
-        seen.add((filename, digest))
         result.append(dict(kind="data", id=order + "/" + suffix, title=filename, digest=digest,
                            path=f"analysis/orders/{order}/{suffix}", columns=json.loads(fields), procedure_id=procedure_id))
     for r in db.execute("""SELECT a.id,a.objective,a.status,a.released_submission,
@@ -139,17 +186,19 @@ def resources(store, project):
                 LEFT JOIN work_orders p ON p.id=json_extract(i.profile,'$.procedure.order_id')
                 WHERE {_TABULAR_OWNER} IN {_MEMBERS} ORDER BY t.id DESC""", args):
         add_file(r["work_order_id"], r["filename"], r["digest"], f"runs/{r['id']}/readings", r["fields"], r["procedure_id"])
-    return result
+    return result if include_history else _current_project_resources(result)
 
 
 def inventory(store, project):
-    root, revision = store.get_experiment(project)
+    root, revision = research_experiments.check_project(store, project)
     lab, lab_revision = store.get_lab(root.lab_id)
-    rows = store.connection.execute("SELECT result FROM research_investigations WHERE project_id=? ORDER BY rowid DESC", (project,))
-    return {"id": project, "title": root.title, "resources": resources(store, project),
-            "context": {"experiment": to_dict(root), "lab": to_dict(lab),
+    assets = resources(store, project, include_history=True)
+    records, requests = research_experiments.project_records(store, project, assets)
+    return {"id": project, "title": root.title, "resources": _current_project_resources(assets),
+            "lab_id": lab.id, "lab_name": lab.name, "hypothesis": research_experiments.hypothesis(store, project),
+            "experiments": records, "context": {"experiment": to_dict(root), "lab": to_dict(lab),
                         "experiment_revision": revision.number, "lab_revision": lab_revision.number},
-            "investigations": [json.loads(r["result"]) for r in rows]}
+            "investigations": requests}
 
 
 _APP = r"\b(analy[sz](?:e|ing|is)|apps?|plot|graph|chart|visuali[sz]e|fit|process|calculate|summari[sz]e)\b"
@@ -220,6 +269,25 @@ def _question(field, prompt, options):
     return {"question": prompt, "field": field, "options": [{"id": key, "title": title} for key, title in options]}
 
 
+def _scientific_question(objective):
+    lower = objective.strip().casefold()
+    if re.match(r"(?:can|could|would|will) you\b|what (?:should|can) (?:i|we) do\b|how (?:do|should|can) (?:i|we)\b", lower):
+        return False
+    return bool(re.match(r"(?:does|do|did|is|are|was|were|has|have|what|when|where|why|how|which|whether|can|could|will|would)\b", lower))
+
+
+def _relative_readings(store, project, experiment, objective, assets):
+    if not experiment or not re.search(r"\b(?:this|these|that|those|attached)\s+(?:data(?:sets?)?|files?|readings)\b", objective, re.I):
+        return []
+    # Named files and acquisition days always search across the whole project.
+    project_data = [item for item in assets if item["kind"] == "data"]
+    if re.search(_FILENAME + "|" + _DAY, objective, re.I) or _named(objective.casefold(), project_data):
+        return []
+    records, _ = research_experiments.project_records(store, project, assets)
+    record = next(r for r in records if r["id"] == experiment)
+    return [item for item in record["resources"] if item["kind"] == "data"]
+
+
 def resolve(store, actor, data):
     project, objective, choices = data.get("project_id"), data.get("objective"), data.get("choices", {})
     try:
@@ -231,6 +299,9 @@ def resolve(store, actor, data):
     if not isinstance(choices, dict) or set(choices) - {"kind", "data", "procedure", "app"} or not all(
             isinstance(v, str) for v in choices.values()):
         raise ContextError("Invalid investigation choices.")
+    experiment = data.get("experiment_id")
+    if ("experiment_id" in data and not isinstance(experiment, str)) or type(data.get("start_experiment", False)) is not bool:
+        raise ContextError("Choose an experiment in the selected project.")
     sources = data.get("analysis_sources")
     if sources is not None and (not isinstance(sources, dict) or set(sources) != {
             "experiment_id", "experiment_revision", "lab_revision", "lab_document_ids", "experiment_document_ids"}
@@ -242,14 +313,28 @@ def resolve(store, actor, data):
         if cached:
             if cached["actor"] != actor or cached["request_digest"] != stamp:
                 raise WorkOrderError("This investigation ID was already used with different inputs.")
-            return json.loads(cached["result"])
-        root, rev = store.get_experiment(project)
-        assets = resources(store, project)
+            link = db.execute("SELECT experiment_id FROM research_experiment_requests WHERE request_id=?", (key,)).fetchone()
+            return {**json.loads(cached["result"]), "experiment_id": link["experiment_id"]}
+        root, rev = research_experiments.check_project(store, project)
+        if experiment is not None:
+            research_experiments.owned(db, project, experiment)
+        existing = db.execute("SELECT actor, request_digest FROM research_experiments WHERE id=?", (key,)).fetchone()
+        recorded = {"id": key, "experiment_id": key, "recorded": True, "project_id": project}
+        if existing:
+            if existing["actor"] == actor and existing["request_digest"] == stamp:
+                return recorded
+            raise WorkOrderError("This ID was already used for another experiment.")
+        all_assets = resources(store, project, include_history=True)
+        assets = _current_project_resources(all_assets)
+        attached_data = _relative_readings(store, project, experiment, objective, all_assets)
         kind = choices.get("kind") or intent(objective)
         if not kind:
             named_kinds = {"app" if a["kind"] == "data" else a["kind"] for a in _named(objective.casefold(), assets)}
             if len(named_kinds) == 1:
                 kind = named_kinds.pop()
+        if not kind and data.get("start_experiment") and not experiment and _scientific_question(objective):
+            research_experiments.insert(db, key, project, research_experiments.short_title(objective), objective, actor, stamp)
+            return recorded
         if not kind:
             return {**_question("kind", "What would you like to do in this project?", [
                 ("app", "Analyze readings"), ("procedure", "Plan a measurement"), ("both", "Do both")]),
@@ -266,7 +351,7 @@ def resolve(store, actor, data):
             reference_only = category == "procedure" and category not in kinds
             pool = [a for a in assets if a["kind"] == category and
                     (category == "data" or a["status"] in ("ready", "released"))]
-            options = _candidates(objective, pool, category)
+            options = attached_data if category == "data" and attached_data else _candidates(objective, pool, category)
             incomplete_set = False
             if category == "data" and category not in choices:
                 names = list(dict.fromkeys(re.findall(_FILENAME, objective.casefold())))
@@ -368,7 +453,11 @@ def resolve(store, actor, data):
                           else analysis_requests.APP_PREFIX)
                 app = analysis_requests.create(store, actor, req, prefix, datasets=datasets, procedure=procedure)
                 selected.append(dict(kind=category, id=app["id"], title=objective, status="open", reused=False))
-        result = {"id": key, "project_id": project, "objective": objective, "resources": selected}
+        if experiment is None:
+            experiment = key
+            research_experiments.insert(db, key, project, research_experiments.short_title(objective), objective, actor, stamp)
+        result = {"id": key, "project_id": project, "experiment_id": experiment, "objective": objective, "resources": selected}
         db.execute("INSERT INTO research_investigations VALUES(?,?,?,?,?,?)",
                    (key, actor, stamp, project, child, canonical_json(result)))
+        research_experiments.link_request(db, key, experiment)
         return result

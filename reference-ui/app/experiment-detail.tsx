@@ -551,7 +551,7 @@ export default function ExperimentDetail({
     <article className="ex-detail">
       <button className="ex-back" onClick={onBack}>
         <ArrowLeft size={16} />
-        Back to workspace
+        Back to {e.project}
       </button>
       <div className="ex-breadcrumb">
         <Folder size={15} />
