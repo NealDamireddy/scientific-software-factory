@@ -124,6 +124,11 @@ _SCHEMA = {
         snapshot TEXT NOT NULL
     )
     """,
+    "work_order_briefings": """
+    CREATE TABLE IF NOT EXISTS work_order_briefings (
+        work_order_id TEXT PRIMARY KEY REFERENCES work_orders(id), briefing TEXT NOT NULL
+    )
+    """,
     "b12_readings": """
     CREATE TABLE IF NOT EXISTS b12_readings (
         id INTEGER PRIMARY KEY, work_order_id TEXT NOT NULL REFERENCES work_orders(id),
