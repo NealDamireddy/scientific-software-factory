@@ -7,7 +7,7 @@ import json
 import re
 from uuid import uuid4
 
-from . import briefing
+from . import briefing, library
 from .artifacts import ArtifactError, format_number
 from .checks import CheckResult
 from .context import ContextError, Document, canonical_json
@@ -134,6 +134,7 @@ def create(store, experiment_id, reviewer, *, previous=None, demo=False):
                    (order.id, previous, int(demo)))
         if previous is not None:
             briefing.copy(store, previous, order.id)
+            library.copy(store, previous, order.id)
         return order
 
 

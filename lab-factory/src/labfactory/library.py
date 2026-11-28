@@ -2,13 +2,14 @@
 import hashlib
 
 from . import references
-from .context import ContextError, canonical_digest
+from .context import ContextError, Document, canonical_digest
 from .store import NotFound
 
 PREFIX = "library:"
 SHARED = "shared"
 MAX_TEXT_BYTES = 256 * 1024
 MAX_TITLE = 250
+MAX_PINNED = 8
 _COLUMNS = ("e.id, e.source_id, e.scope, e.revision, e.kind, e.title, e.origin, e.text_digest, "
             "e.contributed_by, e.created_at, length(CAST(t.text AS BLOB)) AS size")
 _FROM = "FROM library_entries e JOIN library_texts t ON t.digest = e.text_digest"
@@ -152,3 +153,49 @@ def share(store, actor: str, entry_id: int) -> dict:
             return _entry(newest)
         return _insert(store, actor, row["source_id"], SHARED, row["kind"], row["title"], row["origin"],
                        row["text_digest"])
+
+
+def pin(store, work_order_id: str, entries: list[dict]) -> list[dict]:
+    """Pin entry rows to an order in the given order, skipping document ids already pinned."""
+    with store.transaction():
+        have = {r["document_id"] for r in store.connection.execute(
+            "SELECT document_id FROM work_order_library WHERE work_order_id = ?", (work_order_id,))}
+        position = store.connection.execute(
+            "SELECT COALESCE(MAX(position), 0) FROM work_order_library WHERE work_order_id = ?",
+            (work_order_id,)).fetchone()[0]
+        for entry in entries:
+            if len(have) >= MAX_PINNED:
+                break
+            if entry["document_id"] in have:
+                continue
+            position += 1
+            have.add(entry["document_id"])
+            store.connection.execute(
+                "INSERT INTO work_order_library (work_order_id, document_id, entry_id, position) "
+                "VALUES (?, ?, ?, ?)", (work_order_id, entry["document_id"], entry["id"], position))
+    return pinned(store, work_order_id)
+
+
+def pinned(store, work_order_id: str) -> list[dict]:
+    rows = store.connection.execute(
+        "SELECT w.document_id, w.entry_id, e.source_id, e.title, e.scope, e.revision "
+        "FROM work_order_library w JOIN library_entries e ON e.id = w.entry_id "
+        "WHERE w.work_order_id = ? ORDER BY w.position", (work_order_id,)).fetchall()
+    return [{"document_id": r["document_id"], "source_id": r["source_id"], "title": r["title"],
+             "scope": SHARED if r["scope"] == SHARED else "lab", "entry_id": r["entry_id"],
+             "revision": r["revision"]} for r in rows]
+
+
+def copy(store, source_order_id: str, target_order_id: str) -> None:
+    store.connection.execute(
+        "INSERT OR IGNORE INTO work_order_library (work_order_id, document_id, entry_id, position) "
+        "SELECT ?, document_id, entry_id, position FROM work_order_library WHERE work_order_id = ?",
+        (target_order_id, source_order_id))
+
+
+def documents(store, work_order_id: str) -> tuple[Document, ...]:
+    rows = store.connection.execute(
+        "SELECT w.document_id, e.kind, e.title, e.origin, t.text FROM work_order_library w "
+        "JOIN library_entries e ON e.id = w.entry_id JOIN library_texts t ON t.digest = e.text_digest "
+        "WHERE w.work_order_id = ? ORDER BY w.position", (work_order_id,)).fetchall()
+    return tuple(Document(r["document_id"], r["kind"], r["title"], r["origin"], r["text"]) for r in rows)
