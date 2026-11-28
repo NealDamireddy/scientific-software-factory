@@ -20,6 +20,14 @@ def lab_scope(lab_id: str) -> str:
     return "lab:" + lab_id
 
 
+def _scope(lab_id) -> str:
+    if lab_id is None:
+        return SHARED
+    if not isinstance(lab_id, str) or not lab_id.strip():
+        raise ContextError("Lab id must be non-empty text.")
+    return lab_scope(lab_id)
+
+
 def _entry(row) -> dict:
     return {"id": row["id"], "source_id": row["source_id"], "scope": row["scope"],
             "revision": row["revision"], "kind": row["kind"], "title": row["title"],
@@ -39,11 +47,15 @@ def _validate_text(text):
         raise ContextError("Library text must be non-empty text.")
     if "\x00" in text:
         raise ContextError("Library text cannot contain NUL characters.")
-    if len(text.encode("utf-8")) > MAX_TEXT_BYTES:
+    try:
+        size = len(text.encode("utf-8"))
+    except UnicodeEncodeError:
+        raise ContextError("Library text must be valid UTF-8.") from None
+    if size > MAX_TEXT_BYTES:
         raise ContextError(f"Library text is limited to {MAX_TEXT_BYTES} bytes.")
 
 
-def _resolve_source(store, actor, source_id, title, lab_id):
+def _resolve_source(store, actor, source_id, title, lab_id, scopes):
     """Return (source_id, kind, title, origin) for a catalog, existing or newly contributed source."""
     if source_id is not None:
         if not isinstance(source_id, str):
@@ -56,8 +68,9 @@ def _resolve_source(store, actor, source_id, title, lab_id):
             kind = "note" if catalog["kind"] == "procedure" else catalog["kind"]
             return source_id, kind, catalog["title"], catalog["url"]
         row = store.connection.execute(
-            "SELECT kind, title, origin FROM library_entries WHERE source_id = ? ORDER BY id LIMIT 1",
-            (source_id,)).fetchone()
+            "SELECT kind, title, origin FROM library_entries WHERE source_id = ? "
+            f"AND scope IN ({','.join('?' * len(scopes))}) ORDER BY id LIMIT 1",
+            (source_id, *scopes)).fetchone()
         if row:
             return source_id, row["kind"], row["title"], row["origin"]
         raise ContextError("Unknown library source.")
@@ -91,9 +104,10 @@ def add(store, actor: str, text: str, *, source_id: str | None = None, title: st
         lab_id: str | None = None) -> dict:
     _validate_text(text)
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    scope = lab_scope(lab_id) if lab_id else SHARED
+    scope = _scope(lab_id)
     with store.transaction():
-        source_id, kind, title, origin = _resolve_source(store, actor, source_id, title, lab_id)
+        source_id, kind, title, origin = _resolve_source(
+            store, actor, source_id, title, lab_id, {SHARED, scope})
         newest = _newest(store, source_id, scope)
         if newest is not None and newest["text_digest"] == digest:
             return _entry(newest)
@@ -110,7 +124,7 @@ def get(store, entry_id: int) -> dict:
 
 
 def latest(store, lab_id: str | None = None) -> list[dict]:
-    scopes = [SHARED] + ([lab_scope(lab_id)] if lab_id else [])
+    scopes = sorted({SHARED, _scope(lab_id)})
     rows = store.connection.execute(
         f"SELECT {_COLUMNS} {_FROM} WHERE {_NEWEST} AND e.scope IN ({','.join('?' * len(scopes))}) "
         "ORDER BY e.title, e.scope", scopes).fetchall()

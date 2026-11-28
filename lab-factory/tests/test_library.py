@@ -65,6 +65,9 @@ def test_contributed_source_gets_a_stable_id(store):
     {"text": ""}, {"text": "   "}, {"text": "a\x00b"}, {"text": "x" * (library.MAX_TEXT_BYTES + 1)},
     {"text": 5}, {"text": "ok"}, {"text": "ok", "title": "t" * 251},
     {"text": "ok", "source_id": "nope"},
+    {"text": "\ud800", "source_id": CARY},
+    {"text": "ok", "source_id": CARY, "lab_id": ""},
+    {"text": "ok", "source_id": CARY, "lab_id": "  "},
 ])
 def test_add_rejects_bad_text(store, kwargs):
     text = kwargs.pop("text")
@@ -85,6 +88,15 @@ def test_visible_prefers_the_labs_own_entry_and_hides_other_labs(store):
     assert library.visible(store, None)[CARY]["id"] == shared["id"]
     assert set(library.visible(store, "lab-a", [CARY])) == {CARY}
     assert library.visible(store, "lab-a", [HONEY]) == {}
+    library.add(store, "Ben", "lab b on cary", source_id=CARY, lab_id="lab-b")
+    assert library.visible(store, "lab-a")[CARY]["id"] == own["id"]
+    assert library.visible(store, "lab-b")[CARY]["scope"] == "lab:lab-b"
+    assert HONEY not in library.visible(store, "lab-a")
+    for bad in ("", " "):
+        with pytest.raises(ContextError):
+            library.visible(store, bad)
+        with pytest.raises(ContextError):
+            library.latest(store, bad)
 
 
 def test_latest_lists_one_row_per_source_and_scope(store):
@@ -113,3 +125,14 @@ def test_share_points_at_the_same_text(store):
 def test_catalog_paper_stays_a_paper(store):
     assert references.source("barbour-2026-honey-moisture")["kind"] == "paper"
     assert library.add(store, "Ana", TEXT, source_id="barbour-2026-honey-moisture")["kind"] == "paper"
+
+
+def test_add_cannot_reach_another_labs_private_source(store):
+    own = library.add(store, "Ana", "Weigh the boat.", title="Balance worksheet", lab_id="lab-a")
+    for lab in ("lab-b", None):
+        with pytest.raises(ContextError, match="Unknown library source."):
+            library.add(store, "Bo", "x", source_id=own["source_id"], lab_id=lab)
+    assert count(store, "library_entries") == 1 and count(store, "library_texts") == 1
+    library.share(store, "Ana", own["id"])
+    revised = library.add(store, "Bo", "x", source_id=own["source_id"], lab_id="lab-b")
+    assert revised["scope"] == "lab:lab-b" and revised["title"] == "Balance worksheet"
