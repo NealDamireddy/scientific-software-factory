@@ -25,9 +25,11 @@ test("a saved worker procedure opens inside its project and survives a reload", 
   await page.goto(url);
   const region = page.locator(".project-investigations");
   const text = "Read the absorbance of the reference solution.";
+  await expect(region.getByRole("button", {name: "Procedure", exact: true})).toHaveAttribute("aria-expanded", "true");
   await expect(region.getByRole("listitem").filter({hasText: text})).toBeVisible();
   await page.setViewportSize({width: 390, height: 844});
   await page.reload();
+  await expect(region.getByRole("button", {name: "Procedure", exact: true})).toHaveAttribute("aria-expanded", "true");
   await expect(region.getByRole("listitem").filter({hasText: text})).toBeVisible();
   await expect(region.getByRole("link", {name: /review/i}).first()).toHaveAttribute("href", "#order/" + draft.id);
   const viewport = await page.evaluate(() => {

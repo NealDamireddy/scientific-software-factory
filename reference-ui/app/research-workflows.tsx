@@ -239,22 +239,20 @@ function AttachToProject({id, refresh}: {id:string; refresh:()=>void}) {
 
 const waitingForAuthor = (app: AnalysisApp) => ["open", "in_progress"].includes(app.status);
 
-export function AppDetail({ id }: { id: string }) {
+export function AppDetail({ id, embedded = false }: { id: string; embedded?: boolean }) {
   const path = (id.startsWith("PLOT-") ? "analysis/drift" : endpoints["analysis-apps"]) + "/" + encodeURIComponent(id);
   const { data, error, refresh } = useRead<AnalysisApp>(path, waitingForAuthor);
   const [answer, setAnswer] = useState("");
   return (
     <>
-      <Header title={data?.objective || "Analysis app"} refresh={refresh} />
+      {!embedded && <Header title={data?.objective || "Analysis app"} refresh={refresh} />}
       <Notice error={error} />
       {data ? (
         <>
-          <p>
-            {data.id} · {label(data.status)}
-          </p>
-          {data.project_id ? <a href={"#project/" + encodeURIComponent("lab:" + data.project_id)}>Open research project</a>
-            : <AttachToProject id={data.id} refresh={refresh}/>}
-          {data.contexts.map(({experiment, lab, stage_calibration}, i) => (
+          {!embedded && <p>{data.id} · {label(data.status)}</p>}
+          {!embedded && (data.project_id ? <a href={"#project/" + encodeURIComponent("lab:" + data.project_id)}>Open research project</a>
+            : <AttachToProject id={data.id} refresh={refresh}/>)}
+          {!embedded && data.contexts.map(({experiment, lab, stage_calibration}, i) => (
             <details key={i}><summary>{experiment.title} · revision {experiment.revision}</summary>
               <p>{lab.name} · lab revision {lab.revision}</p>
               {lab.instruments.map((record, n) => <p key={n}>{record.name} · {record.model} · firmware {record.firmware}</p>)}
@@ -263,9 +261,9 @@ export function AppDetail({ id }: { id: string }) {
             </details>
           ))}
           {data.status === "open" && <p>Queued for an analysis worker.</p>}
-          {data.history.map((item) => (
+          {(embedded ? [...data.history].reverse() : data.history).map((item) => (
             <section key={item.turn}>
-              <h2>Turn {item.turn}</h2>
+              {embedded ? <h3>{item.turn === data.history.at(-1)?.turn ? "Worker’s latest update" : "Earlier update"}</h3> : <h2>Turn {item.turn}</h2>}
               <p>{item.submission.summary}</p>
               {item.submission.question && <p>{item.submission.question}</p>}
               {item.answer && <p>Researcher reply · {item.answer}</p>}
@@ -294,10 +292,13 @@ export function AppDetail({ id }: { id: string }) {
               </label>
             </WriteForm>
           )}
-          <details><summary>Pinned project records</summary><pre>{JSON.stringify(data.contexts.map(({briefing, ...record}) => record), null, 2)}</pre></details>
+          <details><summary>Pinned project records</summary>
+            {embedded && <p>{data.id} · {label(data.status)}{data.artifact_digest && " · SHA-256 " + data.artifact_digest}</p>}
+            <pre>{JSON.stringify(data.contexts.map(({briefing, ...record}) => record), null, 2)}</pre>
+          </details>
           {data.status === "ready" && id.startsWith("PLOT-") && <details><summary>Review the plotting recipe</summary>
             <pre>{JSON.stringify(data.history.at(-1)?.submission, null, 2)}</pre></details>}
-          {data.artifact_digest && <p>App SHA-256 · {data.artifact_digest}</p>}
+          {!embedded && data.artifact_digest && <p>App SHA-256 · {data.artifact_digest}</p>}
           {data.status === "ready" && (
             <a className="ws-button" href={apiUrl(path + "/app")} download>
               Download analysis app
@@ -311,7 +312,7 @@ export function AppDetail({ id }: { id: string }) {
   );
 }
 
-export function DraftDetail({ id, open }: { id: string; open: (id: string) => void }) {
+export function DraftDetail({ id, open, embedded = false }: { id: string; open: (id: string) => void; embedded?: boolean }) {
   const path = endpoints.procedures + "/" + encodeURIComponent(id);
   const { data, error, refresh } = useRead<Procedure>(path);
   const [title, setTitle] = useState("");
@@ -319,17 +320,14 @@ export function DraftDetail({ id, open }: { id: string; open: (id: string) => vo
   const [method, setMethod] = useState("");
   return (
     <>
-      <Header
-        title={data?.order.objective || "Procedure draft"}
-        refresh={refresh}
-      />
+      {!embedded && <Header title={data?.order.objective || "Procedure draft"} refresh={refresh}/>}
       <Notice error={error} />
       {data ? (
         <>
-          <p>
-            {data.order.id} · {label(data.state)} · {data.order.experiment_id}{" "}
-            revision {data.order.experiment_revision}
-          </p>
+          {embedded ? <details><summary>Procedure record</summary>
+            <p>{data.order.id} · {label(data.state)} · {data.order.experiment_id} revision {data.order.experiment_revision}</p>
+          </details> : <p>{data.order.id} · {label(data.state)} · {data.order.experiment_id} revision {data.order.experiment_revision}</p>}
+          {embedded && data.state === "needs_input" && <p>This procedure needs input before the worker can finish the draft.</p>}
           {data.previous_order && (
             <button
               className="ws-button"

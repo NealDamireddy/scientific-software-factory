@@ -9,7 +9,7 @@ from uuid import UUID, uuid4
 
 from lab_codex_worker.skills import pin_skills
 
-from . import analysis_context, references, tabular_files
+from . import analysis_context, references, research_experiments, tabular_files
 from .tabular_analysis import LANGUAGE_PROFILES
 from .artifacts import render_artifact
 from .checks import CheckResult, all_passed
@@ -225,7 +225,7 @@ def _procedure_context(store, pin):
 def create_order(store, reviewer, request):
     required = {"objective", "csv_name", "csv", "unit", "mapping",
                 "control_expected", "control_tolerance"}
-    if not required <= set(request) <= required | {"protocol_name", "protocol", "research_context", "allowed_languages", "range_gate", "reference_ids", "request_id", "procedure_order_id", "skills", "project_id"}:
+    if not required <= set(request) <= required | {"protocol_name", "protocol", "research_context", "allowed_languages", "range_gate", "reference_ids", "request_id", "procedure_order_id", "skills", "project_id", "research_experiment_id"}:
         raise ContextError("Supply protocol and CSV uploads, an objective, column mapping, result unit and control settings.")
     key = request.get("request_id")
     if key is not None:
@@ -293,6 +293,10 @@ def create_order(store, reviewer, request):
                 if (child["project_id"] if child else owner) != project.id:
                     raise WorkOrderError("The selected procedure belongs to another project.")
             profile["project"] = {"id": project.id, "revision": revision.number}
+        if "research_experiment_id" in request:
+            experiment = request["research_experiment_id"]
+            research_experiments.owned(db, request.get("project_id"), experiment)
+            profile["research_experiment_id"] = experiment
         # Only public inputs go in the experiment. Keep the private batch sealed in the intake.
         exp = _experiment(exp_id, profile, batch)
         profile["intake_digest"] = canonical_digest({"profile": profile, "batch": batch})
@@ -304,6 +308,11 @@ def create_order(store, reviewer, request):
         order = WorkOrders(store).create(exp_id, "analysis_app", objective, actor=reviewer, tabular_upload=True)
         db.execute("INSERT INTO tabular_intakes(work_order_id,profile,batch) VALUES (?,?,?)",
                    (order.id, canonical_json(profile), canonical_json(batch)))
+        if "research_experiment_id" in profile:
+            research_experiments.attach(db, experiment, order.id)
+            research_experiments.attach(db, experiment, order.id + "/uploads/readings")
+            if "procedure" in profile:
+                research_experiments.attach(db, experiment, profile["procedure"]["order_id"])
         _new_control(db, order.id, 1, control, reviewer)
         if key is not None:
             db.execute("INSERT INTO tabular_requests(actor,request_id,digest,work_order_id) VALUES (?,?,?,?)",

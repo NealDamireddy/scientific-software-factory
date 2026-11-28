@@ -32,6 +32,25 @@ _SCHEMA = {
         project_id TEXT NOT NULL, context_id TEXT UNIQUE, result TEXT NOT NULL
     )""",
     "research_project_history": "CREATE INDEX IF NOT EXISTS research_project_history ON research_investigations(project_id)",
+    "research_project_info": """
+    CREATE TABLE IF NOT EXISTS research_project_info (project_id TEXT PRIMARY KEY, hypothesis TEXT NOT NULL)""",
+    "research_experiments": """
+    CREATE TABLE IF NOT EXISTS research_experiments (
+        id TEXT PRIMARY KEY, project_id TEXT NOT NULL, title TEXT NOT NULL, question TEXT NOT NULL,
+        finding TEXT NOT NULL DEFAULT '', actor TEXT NOT NULL, request_digest TEXT NOT NULL
+    )""",
+    "research_experiments_by_project": "CREATE INDEX IF NOT EXISTS research_experiments_by_project ON research_experiments(project_id)",
+    "research_experiment_requests": """
+    CREATE TABLE IF NOT EXISTS research_experiment_requests (
+        request_id TEXT PRIMARY KEY REFERENCES research_investigations(id),
+        experiment_id TEXT NOT NULL REFERENCES research_experiments(id)
+    )""",
+    "research_requests_by_experiment": "CREATE INDEX IF NOT EXISTS research_requests_by_experiment ON research_experiment_requests(experiment_id)",
+    "research_experiment_resources": """
+    CREATE TABLE IF NOT EXISTS research_experiment_resources (
+        experiment_id TEXT NOT NULL REFERENCES research_experiments(id), resource_id TEXT NOT NULL,
+        PRIMARY KEY (experiment_id, resource_id)
+    )""",
     "drift_requests": """
     CREATE TABLE IF NOT EXISTS drift_requests (
         id TEXT PRIMARY KEY, actor TEXT NOT NULL, request_digest TEXT NOT NULL, objective TEXT NOT NULL,
@@ -247,6 +266,9 @@ class Store:
                         connection.execute("ALTER TABLE work_orders_b12_upgrade RENAME TO work_orders")
                 for statement in _SCHEMA.values():
                     connection.execute(statement)
+                if "research_experiment_requests" not in existing:
+                    from .research_experiments import migrate_requests
+                    migrate_requests(connection)
                 if legacy_orders and connection.execute("PRAGMA foreign_key_check").fetchone():
                     raise RuntimeError("Lab database upgrade found an invalid foreign key")
         finally:

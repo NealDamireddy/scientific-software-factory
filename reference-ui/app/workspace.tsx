@@ -53,7 +53,7 @@ import {
 import { LabOperations, labViews } from "./lab-operations";
 import ResearchWorkflows, { useRead } from "./research-workflows";
 import { apiUrl, researchRequest } from "./research-api";
-import { ProjectSources, type AnalysisSources, ProjectInvestigations, RegisteredLibrary, type Investigation, type Question, type Project } from "./project-investigations";
+import { RecordNote, ProjectSources, type AnalysisSources, ProjectInvestigations, RegisteredLibrary, type ResearchExperimentSummary, type Question, type Project } from "./project-investigations";
 import ExperimentDetail from "./experiment-detail";
 import { deliverReview, recordDelivery } from "./worker-delivery";
 import {
@@ -121,6 +121,7 @@ type Saved = {
   experiments: Experiment[];
   objective: string;
   selectedProject: string;
+  experimentDrafts: Record<string, string>;
 };
 const initial: Saved = {
   extensions: defaultExtensions,
@@ -130,6 +131,7 @@ const initial: Saved = {
   experiments: initialExperiments,
   objective: "",
   selectedProject: "",
+  experimentDrafts: {},
 };
 const pretty = (s: string) =>
   String(s)
@@ -170,14 +172,16 @@ export default function Workspace() {
   const [listQuery, setListQuery] = useState("");
   const [filter, setFilter] = useState("All statuses");
   const [projectName, setProjectName] = useState("");
+  const [projectLab, setProjectLab] = useState("");
+  const [projectHypothesis, setProjectHypothesis] = useState("");
   const [projectError, setProjectError] = useState("");
   const [composerError, setComposerError] = useState("");
   const [projectOrigin, setProjectOrigin] = useState(false);
   const objectiveRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
-  const [section, encoded = "", investigationId] = route.split("/");
-  const directory = useRead<{projects: Project[]; investigations: Pick<Investigation,"id"|"objective"|"project_id">[]}>("research-projects");
+  const [section, encoded = "", experimentId] = route.split("/");
+  const directory = useRead<{projects: Project[]; labs: {id:string; name:string}[]; experiments: ResearchExperimentSummary[]}>("research-projects");
   const session = useRead<{reviewer: string | null; access_mode?: string}>("session");
   const [clarification, setClarification] = useState<Question | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
@@ -200,7 +204,10 @@ export default function Workspace() {
     return byTitle.length === 1 ? byTitle[0] : undefined;
   }
   function projectLabel(p: typeof projectOptions[number]) {
-    return projectOptions.filter(o => o.title === p.title).length > 1 ? p.title + " · " + p.id : p.title;
+    if (projectOptions.filter(o => o.title === p.title).length < 2) return p.title;
+    const lab = registered.find(r => r.id === p.id)?.lab_name;
+    const uniqueLab = lab && registered.filter(r => r.title === p.title && r.lab_name === lab).length === 1;
+    return p.title + " · " + (uniqueLab ? lab : p.id);
   }
   function resetRequest() {
     generation.current++;
@@ -216,11 +223,21 @@ export default function Workspace() {
   const project = section === "project" ? item : "";
   const projectInfo = findProject(project);
   const registeredProjectId = projectInfo?.id || (project.startsWith("lab:") ? project.slice(4) : "");
+  const currentLab = registered.find(p => p.id === registeredProjectId)?.lab_name;
   const projectExperiments = project
-    ? saved.experiments.filter(e => e.project === (projectInfo?.title || project))
+    ? saved.experiments.filter(e => findProject(e.project)?.key === (projectInfo?.key || project))
     : saved.experiments;
-  const showExperimentList = !registeredProjectId || projectExperiments.length > 0;
-  const selected = findProject(saved.selectedProject);
+  const showExperimentList = !registeredProjectId;
+  const scopedComposer = section === "home" && !!encoded;
+  const addingWork = scopedComposer && !!experimentId;
+  const selected = findProject(scopedComposer ? item : saved.selectedProject);
+  const researchExperiments = directory.data?.experiments || [];
+  const currentExperiment = researchExperiments.find(e => e.id === experimentId && e.project_id === (addingWork ? selected?.id : registeredProjectId));
+  const objectiveText = addingWork ? saved.experimentDrafts[route] || "" : saved.objective;
+  function setObjective(value: string) {
+    if (addingWork) setSaved(old => ({...old, experimentDrafts: {...old.experimentDrafts, [route]:value}}));
+    else update({objective:value});
+  }
   const experiment = saved.experiments.find((e) => e.id === item);
   const articles = [...saved.knowledge, ...sampleArticles];
   const instruments = [demoInstrument, ...saved.instruments];
@@ -364,7 +381,7 @@ export default function Workspace() {
   function go(next: string) {
     resetRequest();
     if (next !== (window.location.hash.slice(1) || "home")) {
-      window.history.pushState(null, "", "#" + next);
+      window.location.hash = next;
     }
     setRoute(next);
     setPopup(null);
@@ -383,25 +400,30 @@ export default function Workspace() {
   function newProject(fromComposer: boolean) {
     setProjectOrigin(fromComposer);
     setProjectName("");
+    setProjectHypothesis("");
+    const parent = registered.find(p => p.id === (registeredProjectId || selected?.id));
+    setProjectLab(parent?.lab_id === "research-workspace" ? "" : parent?.lab_id || "");
     setProjectError("");
     show("project");
   }
-  function compose(proj?: string) {
+  function compose(proj?: string, intoExperiment?: string) {
     if (proj) update({ selectedProject: proj });
     setComposerError("");
-    go("home");
+    setAnalysisSources(undefined);
+    setSourcesOpen(false);
+    go(proj ? routeFor("home", proj) + (intoExperiment ? "/" + intoExperiment : "") : "home");
     requestAnimationFrame(() => objectiveRef.current?.focus());
   }
-  async function submit(answer?: { field: string; id: string }) {
-    if (inflight.current || (!answer && clarification)) return;
-    const objective = saved.objective.trim();
+  async function submit(answer?: { field: string; id: string }, saveQuestion = false) {
+    if (inflight.current || (!answer && !saveQuestion && clarification)) return;
+    const objective = objectiveText.trim();
     if (!objective) {
       setComposerError("Describe your research objective to start.");
       objectiveRef.current?.focus();
       return;
     }
     if (!selected) {
-      setComposerError("Choose the project for this investigation.");
+      setComposerError("Choose a project for this experiment.");
       setPopup("project");
       return;
     }
@@ -423,8 +445,10 @@ export default function Workspace() {
         (await researchRequest<Project>("research-projects", { title: selected.title })).id;
       if (version !== generation.current) return;
       const sources = analysisSources?.experiment_id === projectId ? analysisSources : undefined;
-      const skills = workerSkills(saved.extensions);
-      const fingerprint = JSON.stringify([apiUrl("investigations"), projectId, objective, sources, skills]);
+      const endpoint = saveQuestion ? "research-experiments" : "investigations";
+      // Saving a question records it only; skills ride with requests that can create work.
+      const skills = saveQuestion ? [] : workerSkills(saved.extensions);
+      const fingerprint = JSON.stringify([apiUrl(endpoint), projectId, addingWork ? experimentId : null, objective, sources, skills]);
       // Retain the idempotency key and clarification answers across a lost response or reload.
       let previous = pending.current;
       try {
@@ -437,20 +461,24 @@ export default function Workspace() {
       const id = previous.fingerprint === fingerprint ? previous.id : crypto.randomUUID();
       pending.current = { fingerprint, id };
       try { sessionStorage.setItem("research.pending-investigation", JSON.stringify({ fingerprint, id, choices: choices.current })); } catch {}
-      const result = await researchRequest<Question | Investigation>("investigations", {
-        project_id: projectId, request_id: id, objective, choices: choices.current, ...(sources ? {analysis_sources:sources} : {}),
+      const payload = saveQuestion ? {project_id: projectId, request_id: id, question:objective} : {
+        project_id: projectId, request_id: id, objective, choices: choices.current,
+        ...(addingWork ? {experiment_id:experimentId} : {start_experiment:true}),
+        ...(sources ? {analysis_sources:sources} : {}),
         ...(skills.length ? { skills } : {}),
-      });
+      };
+      const result = await researchRequest<Question | {id:string; experiment_id?:string}>(endpoint, payload);
       if (generation.current !== version) return;
-      if ("question" in result) {
+      if ("options" in result) {
         setClarification(result);
       } else {
         try { sessionStorage.removeItem("research.pending-investigation"); } catch {}
         pending.current = { fingerprint: "", id: "" };
         setAnalysisSources(undefined); setSourcesOpen(false);
-        update({objective: "", selectedProject: "lab:" + projectId});
+        setObjective("");
+        update({selectedProject: "lab:" + projectId});
         directory.refresh();
-        go(routeFor("project", "lab:" + projectId) + "/" + result.id);
+        go(routeFor("project", "lab:" + projectId) + "/" + (result.experiment_id || result.id));
       }
     } catch (failure) {
       if (generation.current === version) setComposerError(failure instanceof Error ? failure.message : "Project lookup failed. Retry.");
@@ -461,7 +489,7 @@ export default function Workspace() {
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
       if (
-        route === "home" &&
+        section === "home" &&
         !dialog &&
         (event.ctrlKey || event.metaKey) &&
         event.key === "Enter"
@@ -476,9 +504,11 @@ export default function Workspace() {
   async function saveProject(event: FormEvent) {
     event.preventDefault();
     const name = projectName.trim();
+    const labId = projectLab || "research-workspace";
     if (
       !name ||
-      projectOptions.some((p) => p.title.toLowerCase() === name.toLowerCase())
+      projectOptions.some(p => p.title.toLowerCase() === name.toLowerCase() &&
+        (!p.id ? !projectLab : registered.find(r => r.id === p.id)?.lab_id === labId))
     ) {
       setProjectError(
         name ? "A project already uses this name." : "Enter a project name.",
@@ -486,14 +516,13 @@ export default function Workspace() {
       return;
     }
     try {
-      const record = await researchRequest<Project>("research-projects", {title: name});
+      const record = await researchRequest<Project>("research-projects", {title: name, hypothesis:projectHypothesis.trim(), lab_id:labId});
       directory.refresh();
       setProjectError("");
       const projectKey = "lab:" + record.id;
       if (projectOrigin) {
         update({selectedProject: projectKey});
-        setDialog(null);
-        objectiveRef.current?.focus();
+        compose(projectKey);
       } else go(routeFor("project", projectKey));
     } catch (failure) {
       setProjectError(failure instanceof Error ? failure.message : "Could not save the project.");
@@ -571,10 +600,10 @@ export default function Workspace() {
       <ChevronRight className="ws-row-arrow" size={23} />
     </button>
   );
-  const liveRow = (i: Pick<Investigation,"id"|"objective"|"project_id">) =>
+  const liveRow = (i: ResearchExperimentSummary) =>
     <button className="ws-experiment-row" key={i.id}
       onClick={() => go(routeFor("project", "lab:" + i.project_id) + "/" + i.id)}>
-      <FlaskConical/><span className="ws-row-copy"><strong>{i.objective}</strong>
+      <FlaskConical/><span className="ws-row-copy"><strong>{i.title}</strong>
         <small>{registered.find(p => p.id === i.project_id)?.title || i.project_id}</small></span><ChevronRight/>
     </button>;
   const headerName: Record<string, string> = {
@@ -606,6 +635,11 @@ export default function Workspace() {
       label: record.name,
       group: "Skill",
       to: routeFor("skills", record.id),
+    })),
+    ...researchExperiments.map(e => ({
+      label: e.title,
+      group: "Experiment",
+      to: routeFor("project", "lab:" + e.project_id) + "/" + e.id,
     })),
     ...saved.experiments.map((e) => ({
       label: e.title,
@@ -700,8 +734,8 @@ export default function Workspace() {
             () => show("search"),
             <kbd>⌘ K</kbd>,
           )}
-          {nav("New experiment", <SquarePlus />, section === "home", () =>
-            compose(),
+          {nav("New experiment", <SquarePlus />, section === "home" && !addingWork, () =>
+            compose(project || selected?.key),
           )}
           {nav(
             "All experiments",
@@ -772,8 +806,14 @@ export default function Workspace() {
           >
             <Menu />
           </button>
-          <span>{labView || headerName[section] || "Overview"}</span>
-          {labView || ["analysis-apps", "stage-plots", "procedures", "home", "project", "experiments", "instruments", "knowledge"].includes(section) ? <span>Lab Factory</span> : <button className="ws-mode" onClick={() => show("mode")}>
+          {section === "project" || scopedComposer ? (
+            <nav aria-label="Breadcrumb" className="ws-crumbs">
+              <button onClick={() => go(routeFor("project", item))}>{(projectInfo || selected)?.title || "Project"}</button>
+              {(scopedComposer || experimentId) && <><ChevronRight size={14} aria-hidden/>
+                <span>{scopedComposer ? (addingWork ? "Add work" : "New experiment") : "Experiment"}</span></>}
+            </nav>
+          ) : <span>{labView || headerName[section] || "Overview"}</span>}
+          {section === "project" || scopedComposer ? null : labView || ["analysis-apps", "stage-plots", "procedures", "home", "project", "experiments", "instruments", "knowledge"].includes(section) ? <span>Lab Factory</span> : <button className="ws-mode" onClick={() => show("mode")}>
             <i />
             Simulation mode
           </button>}
@@ -791,18 +831,22 @@ export default function Workspace() {
           />
         ) : section === "home" ? (
           <div className="ws-home">
-            <h1>What are you investigating?</h1>
+            {addingWork && <button className="ws-back" onClick={() => go(routeFor("project", item) + "/" + experimentId)}>
+              <ArrowLeft size={15}/> {currentExperiment?.title || "Back to experiment"}
+            </button>}
+            <h1>{addingWork ? "What would you like to do next?" : "What are you investigating?"}</h1>
             <div
               className={"ws-composer " + (composerError ? "has-error" : "")}
             >
               <textarea
                 aria-label="Research objective"
                 ref={objectiveRef}
-                value={saved.objective}
-                placeholder="Describe an experiment, analysis, or research objective..."
+                value={objectiveText}
+                maxLength={4000}
+                placeholder={addingWork ? "Describe the next step for this experiment…" : "Ask a research question or describe what you want to do…"}
                 onChange={(e) => {
                   resetRequest();
-                  update({ objective: e.target.value });
+                  setObjective(e.target.value);
                   setComposerError("");
                 }}
               />
@@ -810,6 +854,7 @@ export default function Workspace() {
                 <div className="ws-selectorwrap" data-popup>
                   <button
                     className="ws-selector"
+                    disabled={addingWork}
                     aria-expanded={popup === "project"}
                     onClick={() =>
                       setPopup((p) => (p === "project" ? null : "project"))
@@ -817,7 +862,7 @@ export default function Workspace() {
                   >
                     <Folder />
                     <span>{selected ? projectLabel(selected) : "Project"}</span>
-                    <ChevronDown className="ws-caret" />
+                    {!addingWork && <ChevronDown className="ws-caret" />}
                   </button>
                   {popup === "project" &&
                     popupContent(
@@ -827,9 +872,7 @@ export default function Workspace() {
                           <button
                             key={p.key}
                             onClick={() => {
-                              resetRequest();
-                              update({ selectedProject: p.key });
-                              setPopup(null);
+                              compose(p.key);
                             }}
                           >
                             {projectLabel(p)}
@@ -847,8 +890,8 @@ export default function Workspace() {
                   onClick={() => setSourcesOpen(v => !v)}>Analysis sources</button>}
                 <button
                   className="ws-submit"
-                  aria-label="Start investigation"
-                  title="Start investigation"
+                  aria-label={addingWork ? "Add to experiment" : "Start experiment"}
+                  title={addingWork ? "Add to experiment" : "Start experiment"}
                   disabled={busy || !!clarification}
                   onClick={() => submit()}
                 >
@@ -871,18 +914,20 @@ export default function Workspace() {
               {!!clarification.matches?.length && <p>In this project · {clarification.matches.map(r => r.title).join(", ")}</p>}
               {clarification.options.map(o => <button key={o.id} className="ws-button" disabled={busy}
                 onClick={() => submit({field: clarification.field, id: o.id})}>{o.title}</button>)}
+              {!addingWork && clarification.field === "kind" && <button className="ws-button" disabled={busy}
+                onClick={() => submit(undefined, true)}>Save experiment question</button>}
             </section>}
-            <section className="ws-recent">
+            {!addingWork && <section className="ws-recent">
               <div className="ws-sectionhead">
                 <h2>Recent experiments</h2>
                 <button onClick={() => go("experiments")}>
                   View all <ArrowUpRight size={19} />
                 </button>
               </div>
-              {directory.data?.investigations.slice(0,3).map(liveRow)}
+              {researchExperiments.slice(0,3).map(liveRow)}
               {directory.error && <p role="alert">{directory.error} <a href="#orders">Open lab session</a></p>}
-              {saved.experiments.slice(0, Math.max(0, 3 - (directory.data?.investigations.length || 0))).map(row)}
-            </section>
+              {saved.experiments.slice(0, Math.max(0, 3 - researchExperiments.length)).map(row)}
+            </section>}
           </div>
         ) : section === "experiment" && experiment ? (
           <ExperimentDetail
@@ -890,7 +935,10 @@ export default function Workspace() {
             experiment={experiment}
             extensions={saved.extensions}
             instrumentBusy={!!activeRun && activeRun.id !== experiment.id}
-            onBack={() => go("experiments")}
+            onBack={() => {
+              const owner = findProject(experiment.project);
+              go(owner ? routeFor("project", owner.key) : "experiments");
+            }}
             onChange={(change) =>
               setSaved((old) => ({
                 ...old,
@@ -902,10 +950,10 @@ export default function Workspace() {
           />
         ) : section === "experiments" || section === "project" ? (
           <div className="ws-page">
-            <div className="ws-pagehead">
+            {!(registeredProjectId && experimentId) && <div className="ws-pagehead">
               <div>
                 <div className="ws-eyebrow">
-                  {project ? "Project" : "Workspace"}
+                  {project ? "Project" : "Workspace"}{currentLab && currentLab !== projectInfo?.title && " · " + currentLab}
                 </div>
                 <h1>{project ? projectInfo?.title || project.replace(/^lab:/, "") : "All experiments"}</h1>
               </div>
@@ -914,15 +962,25 @@ export default function Workspace() {
                 onClick={() => compose(project)}
               >
                 <Plus size={17} />
-                New investigation
+                New experiment
               </button>
-            </div>
+            </div>}
+            {project && !registeredProjectId && directory.data && <div className="research-workflows project-investigations">
+              <RecordNote section="hypothesis" value="" save={async ({hypothesis}) => {
+                const record = await researchRequest<Project>("research-projects", {title:project, hypothesis});
+                directory.refresh();
+                go(routeFor("project", "lab:" + record.id));
+              }}/>
+              <div className="ws-sectionhead"><h2>Experiments</h2></div>
+            </div>}
             {project && registeredProjectId && <ProjectInvestigations
-              key={project} projectId={registeredProjectId} active={investigationId}
-              compose={objective => { update({objective, selectedProject: project}); compose(); }}
+              key={project} projectId={registeredProjectId} active={experimentId}
+              simulatedExperiments={projectExperiments.length ? projectExperiments.map(row) : undefined}
+              onChange={directory.refresh}
+              onAddWork={id => compose(project, id)}
+              compose={objective => { update({objective}); compose(project); }}
               open={id => go(routeFor("project", project) + (id ? "/" + id : ""))} />}
-            {showExperimentList && <>
-              {registeredProjectId && <div className="ws-sectionhead"><h2>Simulated experiments</h2></div>}
+            {showExperimentList && !experimentId && <>
             <div className="ws-toolbar">
               <label className="ws-inputgroup">
                 <Search size={17} />
@@ -933,7 +991,7 @@ export default function Workspace() {
                   onChange={(e) => setListQuery(e.target.value)}
                 />
               </label>
-              <select
+              {(project || !researchExperiments.length) && <select
                 aria-label="Filter by status"
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
@@ -946,17 +1004,18 @@ export default function Workspace() {
                     </option>
                   ),
                 )}
-              </select>
+              </select>}
             </div>
-            {!project && directory.data?.investigations.filter(i => i.objective.toLowerCase().includes(listQuery.toLowerCase())).map(liveRow)}
             {(() => {
               const matches = projectExperiments.filter(
                 (e) =>
                   e.title.toLowerCase().includes(listQuery.toLowerCase()) &&
                   (filter === "All statuses" || e.status === filter),
               );
-              return matches.length ? (
-                matches.map(row)
+              const liveMatches = project ? [] : researchExperiments.filter(e =>
+                [e.title, e.question, e.finding].some(value => value?.toLowerCase().includes(listQuery.toLowerCase())));
+              return matches.length || liveMatches.length ? (
+                <>{liveMatches.map(liveRow)}{matches.map(row)}</>
               ) : (
                 <div className="ws-empty">
                   <Folder size={30} />
@@ -1115,9 +1174,7 @@ export default function Workspace() {
                 <div className="ws-sectionhead">
                   <h2>Recent experiments</h2>
                 </div>
-                {directory.data?.investigations.slice(0,3).map(liveRow)}
-              {directory.error && <p role="alert">{directory.error} <a href="#orders">Open lab session</a></p>}
-              {saved.experiments.slice(0, Math.max(0, 3 - (directory.data?.investigations.length || 0))).map(row)}
+                  {saved.experiments.slice(0,3).map(row)}
               </>
             )}
           </div>
@@ -1273,6 +1330,20 @@ export default function Workspace() {
                 placeholder="e.g. Absorbance studies"
                 maxLength={72}
               />
+            </label>
+            {directory.data?.labs?.some(lab => lab.id !== "research-workspace") && <label className="ws-field">
+              Lab
+              <select value={projectLab} onChange={event => setProjectLab(event.target.value)}>
+                <option value="">Research workspace</option>
+                {directory.data.labs.filter(lab => lab.id !== "research-workspace").map(lab =>
+                  <option key={lab.id} value={lab.id}>{lab.name}</option>)}
+              </select>
+            </label>}
+            <label className="ws-field">
+              Project hypothesis (optional)
+              <textarea value={projectHypothesis} rows={3} maxLength={4000}
+                placeholder="What do you think is happening?"
+                onChange={event => setProjectHypothesis(event.target.value)}/>
             </label>
             {projectError && <p role="alert">{projectError}</p>}
             <div className="ws-actions">

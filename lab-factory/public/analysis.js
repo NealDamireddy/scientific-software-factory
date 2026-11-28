@@ -127,6 +127,8 @@ function showTabularIntake(projects, experiments, release) {
   project.input.append(new Option("Choose a project", ""));
   for (const record of projects) project.input.append(new Option(record.title + " · " + record.id, record.id));
   project.input.value = params.get("project") || "";
+  const experimentId = params.get("experiment");
+  if (experimentId && project.input.value) project.input.disabled = true;
   const inputs = analysisGroup("Protocol and readings");
   const objective = analysisInput("What should the analysis report?", "objective");
   const unit = analysisInput("Result unit", "unit");
@@ -292,6 +294,7 @@ function showTabularIntake(projects, experiments, release) {
       mapping, range_gate:gate.input.checked, control_expected:control.expected.valueAsNumber,
       control_tolerance:control.tolerance.valueAsNumber};
     payload.project_id = project.input.value;
+    if (experimentId) payload.research_experiment_id = experimentId;
     if (includeSkills.input.checked && skills.length) payload.skills = skills;
     payload.allowed_languages = language.input.value.split(",");
     const exp = selectedExperiment();
@@ -307,7 +310,11 @@ function showTabularIntake(projects, experiments, release) {
     if (form.isConnected) openOrder(result.id);
   });
   const section = panel("Experiment inputs");
-  if (project.input.value) section.append(analysisLink("Back to project", "/#project/" + encodeURIComponent("lab:" + project.input.value)));
+  if (project.input.value) {
+    const projectPath = "/#project/" + encodeURIComponent("lab:" + project.input.value);
+    section.append(analysisLink(experimentId ? "Back to experiment" : "Back to project",
+      experimentId ? projectPath + "/" + encodeURIComponent(experimentId) : projectPath));
+  }
   section.append(form);
   workspace.replaceChildren(analysisLink("← Analysis workspace", "#analysis"), heading("New analysis"), section);
 }
@@ -386,7 +393,10 @@ function renderTabularOrder(data) {
   definition(summary, "Range check", analysis.range_gate ? "Withhold outside the standards’ range" : "Disabled for this protocol");
   const files = element("div", undefined, "analysis-example-links");
   if (analysis.project_id) {
-    files.append(analysisLink("Open research project", "/#project/" + encodeURIComponent("lab:" + analysis.project_id)));
+    const projectPath = "/#project/" + encodeURIComponent("lab:" + analysis.project_id);
+    if (analysis.research_experiment_id) files.append(analysisLink("Open experiment",
+      projectPath + "/" + encodeURIComponent(analysis.research_experiment_id)));
+    files.append(analysisLink("Open research project", projectPath));
   } else {
     const attach = element("form", undefined, "panel-body");
     const project = analysisInput("Save this analysis and its readings in a project", "project_id", "select");

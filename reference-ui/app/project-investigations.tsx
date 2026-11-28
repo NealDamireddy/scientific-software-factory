@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { BookOpen, ChartColumn, ChevronRight, ClipboardList, FileSpreadsheet, Files, FlaskConical, RefreshCw, Upload } from "lucide-react";
+import { useState, type FormEvent, type ReactNode } from "react";
+import { BookOpen, ChartColumn, ChevronRight, ClipboardList, FileSpreadsheet, Files, FlaskConical, Pencil, Plus, RefreshCw, Upload } from "lucide-react";
 import type { Procedure } from "./research-api";
-import { apiUrl } from "./research-api";
+import { apiUrl, researchRequest } from "./research-api";
 import { AppDetail, DraftDetail, Notice, useRead } from "./research-workflows";
 
-export type Project = { id: string; title: string };
+export type Project = { id: string; title: string; lab_id?: string; lab_name?: string; hypothesis?: string };
 export type Resource = {
   id: string; title: string; kind: "app" | "procedure" | "data"; status?: string;
   path?: string; automatic?: boolean; tabular?: boolean; reused?: boolean; submission?: number;
@@ -16,9 +16,12 @@ export type Resource = {
     instrument: string | null;
   };
 };
-export type Investigation = { id: string; project_id: string; objective: string; resources: Resource[] };
+export type Investigation = { id: string; project_id: string; experiment_id?: string; objective: string; resources: Resource[] };
 export type Question = { question: string; field: string; options: Project[]; matches?: Resource[] };
+export type ResearchExperimentSummary = { id: string; project_id: string; title: string; question: string; finding: string };
+type Experiment = ResearchExperimentSummary & {requests: Investigation[]; resources: Resource[]};
 type Inventory = {
+  hypothesis: string; experiments: Experiment[];
   context: { experiment: {goal: string; documents: {id:string; title:string; text:string}[]};
     lab: {name:string; documents: {id:string; title:string; text:string}[]; instruments:{id:string; name:string; model:string}[]};
     experiment_revision: number; lab_revision:number };
@@ -74,14 +77,15 @@ function WorkerProcedure({id}: {id: string}) {
 
 const resourceIcon = {app: ChartColumn, procedure: ClipboardList, data: FileSpreadsheet};
 
-function ResourceItem({item, projectId, showByDefault = false, objective}: {
-  item: Resource; projectId: string; showByDefault?: boolean; objective?: string;
+function ResourceItem({item, projectId, showByDefault = false, objective, experimentId, usedIn, open}: {
+  item: Resource; projectId: string; showByDefault?: boolean; objective?: string; experimentId?: string;
+  usedIn?: ResearchExperimentSummary[]; open: (id: string) => void;
 }) {
   const [expanded, setExpanded] = useState(showByDefault);
   const [draft, setDraft] = useState(item.id);
-  const name = kindLabel[item.kind] + " · " + item.title;
+  const name = item.title === objective && !item.tabular && item.kind !== "data" ? kindLabel[item.kind] : item.title;
   const Icon = resourceIcon[item.kind];
-  const label = <><Icon size={18} aria-hidden/><span>{item.title === objective && !item.tabular ? kindLabel[item.kind] : name}</span></>;
+  const label = <><Icon size={18} aria-hidden/><span>{name}</span></>;
   return <div className="project-resource">
     <div className="project-resource-head">
       {item.path ? <a className="project-resource-title" href={apiUrl(item.path)} download>{label}</a> :
@@ -89,14 +93,16 @@ function ResourceItem({item, projectId, showByDefault = false, objective}: {
         <button className="project-resource-title" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
           {label}<ChevronRight className="project-chevron" size={16} aria-hidden/>
         </button>}
-      <small>{item.id}{item.submission ? " · submission " + item.submission : ""}
+      <small>{kindLabel[item.kind]}{item.status && " · " + workStatus(item.status)}{item.submission ? " · submission " + item.submission : ""}
         {item.reused === true ? " · reused" : item.reused === false ? " · requested" : ""}</small>
     </div>
+    {!!usedIn?.length && <div className="project-used-in"><span>Used in</span>{usedIn.map(e =>
+      <button key={e.id} onClick={() => open(e.id)}>{e.title}</button>)}</div>}
     {expanded && !item.path && !item.tabular && <div className="project-resource-view">{item.kind === "app"
-      ? <AppDetail id={item.id}/> : item.automatic
-      ? <DraftDetail key={draft} id={draft} open={setDraft}/> : <WorkerProcedure id={item.id}/>}</div>}
+      ? <AppDetail id={item.id} embedded/> : item.automatic
+      ? <DraftDetail key={draft} id={draft} open={setDraft} embedded/> : <WorkerProcedure id={item.id}/>}</div>}
     {item.kind === "procedure" && item.status === "released" &&
-      <a href={"#analysis/new?" + new URLSearchParams({project:projectId, procedure:item.id})}>Use this procedure for a tabular analysis</a>}
+      <a href={"#analysis/new?" + new URLSearchParams({project:projectId, procedure:item.id, ...(experimentId && {experiment:experimentId})})}>Use this procedure for a tabular analysis</a>}
     {item.briefing && <details className="project-briefing">
       <summary>Agent briefing</summary>
       {item.briefing.skills.length > 0 && <p>Skills · {item.briefing.skills.map((s, n) =>
@@ -112,37 +118,195 @@ function ResourceItem({item, projectId, showByDefault = false, objective}: {
   </div>;
 }
 
-export function ProjectInvestigations({ projectId, active, open, compose }: {
-  projectId: string; active?: string; open: (id: string) => void; compose: (objective: string) => void;
+function workStatus(status: string) {
+  const labels: Record<string, string> = {
+    open: "Queued", in_progress: "In progress", in_review: "Ready for review", ready: "Ready to use",
+    released: "Released", needs_input: "Needs your input", drafting: "Drafting", failed: "Failed",
+  };
+  return labels[status] || status.replaceAll("_", " ");
+}
+
+function experimentStatus(experiment: Experiment) {
+  // Show the state of the most recent request when the researcher has yet to record a finding.
+  const request = experiment.requests[0];
+  const newest = request?.resources.find(item => item.reused === false) || request?.resources[0];
+  const item = experiment.resources.find(resource => resource.id === newest?.id) || experiment.resources[0];
+  if (!item) return request ? "Your work has been requested." : "You can add data or request work.";
+  if (item.kind === "data") return "The dataset is attached.";
+  const subject = item.kind === "procedure" ? "Your procedure" : "Your analysis app";
+  switch (item.status) {
+    case "open": return subject + " is waiting for a worker.";
+    case "drafting":
+    case "in_progress": return item.kind === "procedure" ? "A worker is drafting your procedure." : "A worker is building your analysis app.";
+    case "in_review": return subject + (item.kind === "procedure" ? " draft" : "") + " is ready for review.";
+    case "released":
+    case "ready": return subject + " is ready to use.";
+    case "needs_input": return subject + " needs your input.";
+    case "failed": return "The worker could not complete your " + (item.kind === "procedure" ? "procedure." : "analysis app.");
+    default: return subject + " is attached.";
+  }
+}
+
+type SaveMetadata = (fields: Record<string, string>) => Promise<void>;
+type EditableSection = "hypothesis" | "finding" | "experiment";
+
+function RecordEditor({section, initial, cancel, save}: {
+  section: EditableSection; initial: Record<string,string>; cancel: () => void; save: SaveMetadata;
 }) {
+  const [values, setValues] = useState(initial);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const fields = section === "experiment" ? ["title", "question"] : [section];
+  const labels: Record<string,string> = {title: "Experiment title", question: "Research question", finding: "Finding", hypothesis: "Project hypothesis"};
+  async function submit(event: FormEvent) {
+    event.preventDefault();
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await save(Object.fromEntries(fields.map(key => [key, values[key].trim()])));
+      cancel();
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Could not save your changes.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return <form className="project-editor" onSubmit={submit}>
+    {fields.map((key, index) => <label key={key}>{labels[key]}
+      {key === "title"
+        ? <input autoFocus={index === 0} maxLength={120} required value={values[key]} disabled={busy}
+            onChange={e => setValues({...values,[key]:e.target.value})}/>
+        : <textarea autoFocus={index === 0} rows={3} maxLength={4000} required={key === "question"} value={values[key]} disabled={busy}
+            onChange={e => setValues({...values,[key]:e.target.value})}/>}
+    </label>)}
+    <Notice error={error}/>
+    <div className="project-editor-actions"><button className="ws-button primary" disabled={busy || (section === "experiment" && (!values.title.trim() || !values.question.trim()))}>Save {section}</button>
+      <button type="button" className="ws-button" disabled={busy} onClick={cancel}>Cancel</button></div>
+  </form>;
+}
+
+export function RecordNote({section, value, save}: {section: "finding" | "hypothesis"; value: string; save: SaveMetadata}) {
+  const [editing, setEditing] = useState(false);
+  const heading = section === "hypothesis" ? "Hypothesis" : "Finding";
+  return <section className="project-record-section">
+    <div className="ws-sectionhead"><h2>{heading}</h2>
+      {!editing && <button onClick={() => setEditing(true)} aria-label={"Edit " + section}><Pencil size={16} aria-hidden/>Edit {section}</button>}</div>
+    {editing ? <RecordEditor section={section} initial={{[section]:value}} save={save} cancel={() => setEditing(false)}/>
+      : <p className={value ? "project-note" : "project-note empty"}>{value || (section === "hypothesis" ? "No hypothesis recorded yet." : "No finding recorded yet.")}</p>}
+  </section>;
+}
+
+type RecordProps = {
+  projectId: string; active?: string; open: (id: string) => void; compose: (objective: string) => void;
+  simulatedExperiments?: ReactNode; onAddWork: (experimentId: string) => void; onChange: () => void;
+};
+
+function AttachFromProject({items, save}: {items: Resource[]; save: SaveMetadata}) {
+  const [selected, setSelected] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  async function attach(event: FormEvent) {
+    event.preventDefault();
+    if (!selected || busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      await save({attach_resource_id: selected});
+      setSelected("");
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "Could not attach project work.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  if (!items.length) return null;
+  return <details className="project-disclosure project-reuse"><summary><Files size={17} aria-hidden/>Use existing project work<ChevronRight className="project-chevron" size={16} aria-hidden/></summary>
+    <form className="project-attach-form" onSubmit={attach}>
+      <label>Project resource<select value={selected} disabled={busy} onChange={e => setSelected(e.target.value)}>
+        <option value="">Select data, a procedure or an app</option>
+        {items.map(r => <option key={r.id} value={r.id}>{kindLabel[r.kind]} · {r.title}</option>)}
+      </select></label>
+      <button className="ws-button" disabled={!selected || busy}>Attach to experiment</button><Notice error={error}/>
+    </form>
+  </details>;
+}
+
+function ExperimentRecord({experiment, inventory, open, onAddWork, save}: {
+  experiment: Experiment; inventory: Inventory; open: RecordProps["open"]; onAddWork: RecordProps["onAddWork"]; save: SaveMetadata;
+}) {
+  const [editing, setEditing] = useState(false);
+  const request = experiment.requests[0];
+  const expandedWork = request?.resources.filter(r => r.reused === false);
+  const defaultWork = expandedWork?.length ? expandedWork : request?.resources;
+  const uploadQuery = new URLSearchParams({project: experiment.project_id, experiment: experiment.id});
+  // The project listing carries current records only; the agent briefing lives on the request that created the work.
+  const briefings = new Map(experiment.requests.flatMap(r => r.resources).filter(r => r.briefing).map(r => [r.id, r.briefing]));
+  return <>
+    <header className="ws-pagehead project-experiment-head">
+      <div><div className="ws-eyebrow">Experiment</div><h1>{experiment.title}</h1></div>
+      <div className="project-editor-actions">
+        {!editing && <button className="ws-button" onClick={() => setEditing(true)}><Pencil size={16} aria-hidden/>Edit experiment</button>}
+        <button className="ws-button primary" onClick={() => onAddWork(experiment.id)}><Plus size={16} aria-hidden/>Add work</button>
+      </div>
+    </header>
+    {editing ? <RecordEditor section="experiment" initial={{title:experiment.title, question:experiment.question}} save={save} cancel={() => setEditing(false)}/>
+      : <div className="project-question"><h2>Research question</h2><p>{experiment.question}</p></div>}
+    <RecordNote section="finding" value={experiment.finding} save={save}/>
+    <section className="project-record-section">
+      <div className="ws-sectionhead"><h2>Attached work</h2><a className="ws-button" href={"#analysis/new?" + uploadQuery}><Upload size={16} aria-hidden/>Upload readings</a></div>
+      <div className="project-attached-work">{experiment.resources.map(item => <ResourceItem key={item.id}
+        item={briefings.has(item.id) ? {...item, briefing: briefings.get(item.id)} : item}
+        projectId={experiment.project_id} experimentId={experiment.id} open={open}
+        objective={experiment.question}
+        usedIn={inventory.experiments.filter(e => e.id !== experiment.id && e.resources.some(r => r.id === item.id))}
+        showByDefault={defaultWork?.some(r => r.id === item.id)}/>)}</div>
+      {experiment.resources.length === 0 && <p className="project-note empty">No data, procedures or apps attached yet.</p>}
+      <AttachFromProject items={inventory.resources.filter(r => !experiment.resources.some(item => item.id === r.id))} save={save}/>
+    </section>
+    <details className="project-disclosure project-request-history"><summary>Request history ({experiment.requests.length})<ChevronRight className="project-chevron" size={16} aria-hidden/></summary>
+      {experiment.requests.length ? <ol>{experiment.requests.map(r => <li key={r.id}>
+        <p>{r.objective}</p>
+        {r.resources.map(item => <small key={item.id}>{kindLabel[item.kind]} · {item.reused ? "Reused" : "Requested"} · {item.title === r.objective ? item.id : item.title}</small>)}
+      </li>)}</ol> : <p className="project-note empty">No requests yet.</p>}
+    </details>
+  </>;
+}
+
+export function ProjectInvestigations({ projectId, active, open, compose, onAddWork, onChange, simulatedExperiments }: RecordProps) {
   const {data, error, refresh} = useRead<Inventory>("research-projects?project=" + encodeURIComponent(projectId));
+  async function save(fields: Record<string,string>) {
+    const endpoint = active ? "research-experiments/" + encodeURIComponent(active) : "research-projects";
+    await researchRequest(endpoint, {project_id:projectId, ...fields});
+    refresh();
+    onChange();
+  }
+  const experiment = data?.experiments.find(e => e.id === active);
   return <section className="research-workflows project-investigations">
-    <div className="ws-sectionhead"><h2>Investigations</h2><button onClick={refresh}><RefreshCw size={16} aria-hidden/>Refresh</button></div>
     <Notice error={error}/>
     {!data && !error && <p role="status">Loading project records…</p>}
-    {data && <>
-      {data.investigations.length === 0 && <p>No investigations yet.</p>}
-      <div className="project-investigation-list">{data.investigations.map(i => {
-        const kinds = [...new Set(i.resources.map(r => kindLabel[r.kind]))];
-        const expanded = i.id === active;
-        const hasNewResource = i.resources.some(r => r.reused === false);
-        return <article key={i.id} className="project-investigation">
-          <button className="ws-experiment-row" aria-expanded={expanded} onClick={() => open(expanded ? "" : i.id)}>
+    {data && (active ? (experiment ?
+      <ExperimentRecord key={experiment.id} experiment={experiment} inventory={data} open={open} onAddWork={onAddWork} save={save}/> :
+      <p>That experiment is unavailable in this project.</p>) : <>
+      <RecordNote section="hypothesis" value={data.hypothesis} save={save}/>
+      <section className="project-record-section">
+        <div className="ws-sectionhead"><h2>Experiments</h2><button onClick={refresh}><RefreshCw size={16} aria-hidden/>Refresh</button></div>
+        {data.experiments.length === 0 && !simulatedExperiments && <p className="project-note empty">No experiments yet.</p>}
+        <div className="project-investigation-list">{data.experiments.map(e => <article key={e.id} className="project-investigation">
+          <button className="ws-experiment-row" aria-label={e.title} onClick={() => open(e.id)}>
             <span className="project-investigation-icon"><FlaskConical size={23} aria-hidden/></span>
-            <span className="ws-row-copy"><strong>{i.objective}</strong>{kinds.length > 0 && <small>{kinds.join(" · ")}</small>}</span>
+            <span className="ws-row-copy"><strong>{e.title}</strong>
+              {e.question !== e.title && !e.requests.some(r => r.objective === e.question) && <small className="project-row-question">{e.question}</small>}
+              <small className="project-row-outcome">{e.finding ? "Finding · " + e.finding : experimentStatus(e)}</small></span>
             <ChevronRight className="project-chevron" size={19} aria-hidden/>
           </button>
-          {expanded && <div className="project-investigation-output">
-            {i.resources.map(item => <ResourceItem key={item.id} item={item} projectId={projectId}
-              objective={i.objective} showByDefault={item.reused === false || !hasNewResource}/>)}
-          </div>}
-        </article>;
-      })}</div>
-      {active && !data.investigations.some(i => i.id === active) && <p>That investigation is unavailable in this project.</p>}
+        </article>)}{simulatedExperiments}</div>
+      </section>
       <div className="ws-sectionhead project-materials-heading"><h2>Project resources</h2>
         <a className="ws-button" href={"#analysis/new?project=" + encodeURIComponent(projectId)}><Upload size={16} aria-hidden/>Upload project readings</a></div>
       <details className="project-disclosure"><summary><Files size={19} aria-hidden/>Data, procedures and apps ({data.resources.length})<ChevronRight className="project-chevron" size={16} aria-hidden/></summary>
-        {data.resources.length === 0 ? <p>No saved resources yet.</p> : data.resources.map(item => <ResourceItem key={item.id} item={item} projectId={projectId}/>)}
+        {data.resources.length === 0 ? <p>No saved resources yet.</p> : data.resources.map(item => <ResourceItem key={item.id} item={item} projectId={projectId} open={open}
+          usedIn={data.experiments.filter(e => e.resources.some(r => r.id === item.id))}/>)}
       </details>
       <details className="project-disclosure"><summary><BookOpen size={19} aria-hidden/>Registered lab context<ChevronRight className="project-chevron" size={16} aria-hidden/></summary>
         <div className="project-context">
@@ -155,7 +319,7 @@ export function ProjectInvestigations({ projectId, active, open, compose }: {
             <button className="ws-button" onClick={() => compose("Ask a worker to draft a procedure for " + data.context.experiment.goal)}>Request a worker draft</button></div>
         </div>
       </details>
-    </>}
+    </>)}
   </section>;
 }
 

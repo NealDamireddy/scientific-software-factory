@@ -16,7 +16,7 @@ from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from . import analysis_context, analysis_requests, first_draft, investigations, procedure_demo, procedure_drafts, source_drafter
+from . import analysis_context, analysis_requests, first_draft, investigations, research_experiments, procedure_demo, procedure_drafts, source_drafter
 from . import b12_service, experiment_catalog, honey_service, reference_orders, references, tabular_service
 from .artifacts import render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
@@ -390,12 +390,27 @@ async def research_projects(request):
         if "app_id" in data:
             return _response(await run_in_threadpool(run_store, lambda s: investigations.attach_app(
                 s, data.get("project_id"), data["app_id"]), write=True))
-        return _response(await run_in_threadpool(run_store, lambda s: investigations.register(s, data.get("title")), write=True))
+        if "project_id" in data:
+            return _response(await run_in_threadpool(run_store, lambda s: research_experiments.set_hypothesis(
+                s, data["project_id"], data.get("hypothesis")), write=True))
+        return _response(await run_in_threadpool(run_store, lambda s: investigations.register(
+            s, data.get("title"), data.get("lab_id"), data.get("hypothesis")), write=True))
     if field := request.query_params.get("resources"):
         return _response(await run_in_threadpool(run_store, lambda s: investigations.library(s, field)))
     project = request.query_params.get("project")
     operation = (lambda s: investigations.inventory(s, project)) if project else investigations.projects
     return _response(await run_in_threadpool(run_store, operation))
+
+
+async def edit_experiment(request):
+    actor = _reviewer(request)
+    data = await _json_body(request)
+    experiment = request.path_params.get("id")
+    def save(store):
+        if experiment is not None:
+            return research_experiments.update(store, experiment, data)
+        return research_experiments.create(store, actor, data)
+    return _response(await run_in_threadpool(run_store, save, write=True))
 
 
 async def investigate(request):
@@ -628,6 +643,8 @@ reviewer_api = Starlette(routes=[
     Route("/api/orders/{id}", order_detail), Route("/api/orders/{id}/context", order_context),
     Route("/api/orders/{id}/{action}", decide, methods=["POST"]),
     Route("/api/research-projects", research_projects, methods=["GET", "POST"]),
+    Route("/api/research-experiments", edit_experiment, methods=["POST"]),
+    Route("/api/research-experiments/{id}", edit_experiment, methods=["POST"]),
     Route("/api/investigations", investigate, methods=["POST"]),
     Route("/api/experiments", experiment_list), Route("/api/experiments/{id:path}", experiment_detail),
     Route("/api/context/{kind}", context_put, methods=["POST"]), Route("/api/example", example, methods=["POST"]),
@@ -677,7 +694,7 @@ def research_access(api, origin):
     async def routed(scope, receive, send):
         path = scope.get("path", "")
         if scope["type"] == "http" and (path in ("/api/experiments", "/api/research-projects", "/api/investigations") or any(
-            path == base or path.startswith(base + "/") for base in ("/api/analysis/apps", "/api/procedure-drafts")
+            path == base or path.startswith(base + "/") for base in ("/api/analysis/apps", "/api/procedure-drafts", "/api/research-experiments")
         )):
             await cors({**scope, "research_origin": origin}, receive, send)
         else:
