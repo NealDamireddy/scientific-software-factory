@@ -148,6 +148,24 @@ _SCHEMA = {
         work_order_id TEXT PRIMARY KEY REFERENCES work_orders(id), briefing TEXT NOT NULL
     )
     """,
+    "library_texts": """
+    CREATE TABLE IF NOT EXISTS library_texts (digest TEXT PRIMARY KEY, text TEXT NOT NULL)
+    """,
+    "library_entries": """
+    CREATE TABLE IF NOT EXISTS library_entries (
+        id INTEGER PRIMARY KEY, source_id TEXT NOT NULL, scope TEXT NOT NULL, revision INTEGER NOT NULL,
+        kind TEXT NOT NULL, title TEXT NOT NULL, origin TEXT NOT NULL,
+        text_digest TEXT NOT NULL REFERENCES library_texts(digest), contributed_by TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, UNIQUE (source_id, scope, revision)
+    )
+    """,
+    "work_order_library": """
+    CREATE TABLE IF NOT EXISTS work_order_library (
+        work_order_id TEXT NOT NULL REFERENCES work_orders(id), document_id TEXT NOT NULL,
+        entry_id INTEGER NOT NULL REFERENCES library_entries(id), position INTEGER NOT NULL,
+        PRIMARY KEY (work_order_id, document_id)
+    )
+    """,
     "b12_readings": """
     CREATE TABLE IF NOT EXISTS b12_readings (
         id INTEGER PRIMARY KEY, work_order_id TEXT NOT NULL REFERENCES work_orders(id),
