@@ -621,7 +621,43 @@ function modelSearchKey(value) {
   return value.toLowerCase().normalize("NFKD").replace(/[^\p{Letter}\p{Number}]/gu, "");
 }
 
-function sourceCard(source, number, choose) {
+function sourceTextForm(source, saved) {
+  const details = element("details", undefined, "source-version source-text");
+  details.append(element("summary", source.library_text ? "Revise source text" : "Add source text"));
+  const form = element("form");
+  const label = element("label", "Source text");
+  const text = element("textarea");
+  text.rows = 6;
+  text.required = true;
+  label.htmlFor = text.id = "source-text-" + source.id;
+  const error = element("p", "", "form-error");
+  error.hidden = true;
+  const submit = element("button", "Save to library", "primary");
+  submit.type = "submit";
+  form.append(label, text, element("p", "Shared with every lab. Workers can cite it on new procedure work. Paste only text you may share.", "muted"), error, submit);
+  details.append(form);
+  let loaded = !source.library_text;
+  details.addEventListener("toggle", async () => {
+    if (!details.open || loaded) return;
+    loaded = true;
+    try {
+      const {entries} = await api("library");
+      const entry = entries.find(item => item.source_id === source.id);
+      if (entry && !text.value) text.value = (await api("library/" + encodeURIComponent(entry.id))).text;
+    } catch (failure) {
+      loaded = false;
+      formError(form, failure.message);
+    }
+  });
+  handleForm(form, async data => {
+    await post("library", {source_id: source.id, text: data.get("text") ?? text.value});
+    if (saved) saved();
+  });
+  text.name = "text";
+  return details;
+}
+
+function sourceCard(source, number, choose, saved) {
   const article = element("article", undefined, "source-card");
   article.id = "source-" + source.id;
   article.tabIndex = -1;
@@ -661,10 +697,12 @@ function sourceCard(source, number, choose) {
   definition(metadata, "Library record SHA-256", source.digest, "mono");
   details.append(element("summary", "Source details"), metadata);
   article.append(details);
+  if (source.library_text) article.append(status("Text in library", "released"));
+  if (saved) article.append(sourceTextForm(source, saved));
   return article;
 }
 
-function sourceGroups(findings, choose) {
+function sourceGroups(findings, choose, saved) {
   const fragment = document.createDocumentFragment();
   for (const [kind, label] of Object.entries(sourceTypes)) {
     const sources = findings.filter(source => source.kind === kind);
@@ -673,7 +711,7 @@ function sourceGroups(findings, choose) {
     group.classList.add("source-group");
     group.dataset.kind = kind;
     const grid = element("div", undefined, "source-grid");
-    for (const source of sources) grid.append(sourceCard(source, findings.indexOf(source) + 1, choose));
+    for (const source of sources) grid.append(sourceCard(source, findings.indexOf(source) + 1, choose, saved));
     group.append(grid);
     fragment.append(group);
   }
@@ -896,7 +934,7 @@ function showReferenceLibrary(catalog, initial) {
         else selected.delete(source.id);
         count.textContent = selected.size + (selected.size === 1 ? " source selected" : " sources selected");
         pin.disabled = selected.size === 0;
-      } : null));
+      } : null, search));
     } catch (error) {
       if (generation === page && revision === request) {
         results.replaceChildren(element("p", error.message, "form-error"));
