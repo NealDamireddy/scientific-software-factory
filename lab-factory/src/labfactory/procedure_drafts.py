@@ -7,7 +7,7 @@ import json
 import re
 from uuid import uuid4
 
-from . import briefing, library
+from . import briefing, library, references
 from .artifacts import ArtifactError, format_number
 from .checks import CheckResult
 from .context import ContextError, Document, canonical_json
@@ -159,10 +159,24 @@ def catalog(store):
     return {"experiments": saved, "orders": [dict(row) for row in orders]}
 
 
-def add_source(store, order_id, reviewer, title, text):
+def _known_source(store, lab_id, source_id):
+    if source_id is None:
+        return
+    if isinstance(source_id, str):
+        try:
+            references.source(source_id)
+            return
+        except ContextError:
+            if source_id in library.visible(store, lab_id, [source_id]):
+                return
+    raise ContextError("Unknown library source.")
+
+
+def add_source(store, order_id, reviewer, title, text, source_id=None):
     orders = WorkOrders(store)
     with store.transaction():
         order = orders.get(order_id)
+        _known_source(store, order.lab_id, source_id)
         draft = info(store, order_id)
         if not draft:
             raise WorkOrderError("Select a procedure draft.")
@@ -188,6 +202,12 @@ def add_source(store, order_id, reviewer, title, text):
                                      (new.id, canonical_json(brief)))
         if draft["demo"]:
             procedure_demo.submit_with_method(orders, new.id, doc)
+        elif len(text.strip().encode("utf-8", "replace")) <= library.MAX_TEXT_BYTES:
+            try:  # Validation failures only: they are raised before library.add opens a transaction.
+                library.add(store, reviewer, text.strip(), source_id=source_id, title=title.strip(),
+                            lab_id=order.lab_id)
+            except ContextError:
+                pass
         return new.id
 
 

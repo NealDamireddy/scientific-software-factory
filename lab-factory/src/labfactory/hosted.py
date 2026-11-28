@@ -450,7 +450,7 @@ async def procedure_source(request):
         if store.connection.execute("SELECT 1 FROM automatic_procedures WHERE work_order_id=?", (request.path_params["id"],)).fetchone():
             raise WorkOrderError("Answer this automatic draft through its procedure detail.")
         return procedure_drafts.add_source(store, request.path_params["id"], reviewer,
-                                           data.get("title"), data.get("text"))
+                                           data.get("title"), data.get("text"), data.get("source_id"))
     return _response({"id": await run_in_threadpool(run_store, save, write=True)}, 201)
 
 

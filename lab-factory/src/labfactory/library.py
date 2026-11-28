@@ -106,9 +106,8 @@ def add(store, actor: str, text: str, *, source_id: str | None = None, title: st
     _validate_text(text)
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
     scope = _scope(lab_id)
+    source_id, kind, title, origin = _resolve_source(store, actor, source_id, title, lab_id, {SHARED, scope})
     with store.transaction():
-        source_id, kind, title, origin = _resolve_source(
-            store, actor, source_id, title, lab_id, {SHARED, scope})
         newest = _newest(store, source_id, scope)
         if newest is not None and newest["text_digest"] == digest:
             return _entry(newest)
