@@ -4,7 +4,7 @@ from copy import deepcopy
 from dataclasses import asdict
 from functools import wraps
 
-from . import analysis_requests, offline_app, stage_plot
+from . import analysis_requests, briefing, offline_app, stage_plot
 from .artifacts import ARTIFACT_EXAMPLES, ArtifactError
 from .context import to_dict
 from .store import NotFound, Store
@@ -131,6 +131,12 @@ class AgentTools:
                             del doc["text"]
                     context["artifact_example"] = {"steps": [{"text": "<instruction>", "citations": ["<id>"],
                         "evidence": [{"document": "<id>", "passage": 1, "quote": "<exact passage excerpt>"}]}]}
+            loaded = briefing.load(self._store, work_order_id)
+            if loaded is not None:
+                context["briefing"] = loaded
+                context["instructions"] += " " + briefing.instructions(loaded)
+            if context.get("analysis", {}).get("skills"):
+                context["instructions"] += " " + briefing.SKILLS_INSTRUCTION
             return context
 
     @_return_domain_errors

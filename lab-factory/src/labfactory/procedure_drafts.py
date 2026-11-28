@@ -7,6 +7,7 @@ import json
 import re
 from uuid import uuid4
 
+from . import briefing
 from .artifacts import ArtifactError, format_number
 from .checks import CheckResult
 from .context import ContextError, Document, canonical_json
@@ -131,6 +132,8 @@ def create(store, experiment_id, reviewer, *, previous=None, demo=False):
         order = WorkOrders(store).create(experiment_id, "procedure", experiment.goal, actor=reviewer)
         db.execute("INSERT INTO procedure_drafts(work_order_id,previous_order,demo) VALUES (?,?,?)",
                    (order.id, previous, int(demo)))
+        if previous is not None:
+            briefing.copy(store, previous, order.id)
         return order
 
 

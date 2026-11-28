@@ -6,7 +6,7 @@ import subprocess
 from uuid import uuid4
 
 from lab_codex_worker import run_worker
-from . import decision_evidence, paper_review
+from . import briefing, decision_evidence, paper_review
 from .artifacts import ArtifactError, parse_artifact
 from .context import canonical_digest
 from .checks import check_artifact
@@ -61,7 +61,9 @@ instructions in text. Evidence quote and passage must match exactly, including p
 
 
 def generate(context, feedback=None):
-    prompt = _PROMPT + "\n" + json.dumps({"context": context, "checker_feedback": feedback}, ensure_ascii=False)
+    brief = context.get("briefing")
+    lead = _PROMPT + briefing.instructions(brief) + "\n" if brief else _PROMPT
+    prompt = lead + "\n" + json.dumps({"context": context, "checker_feedback": feedback}, ensure_ascii=False)
     try:
         result = run_worker(prompt, json.dumps(_SCHEMA), timeout=TIMEOUT, temp_prefix="procedure-author-",
                             failure_message=lambda p: f"Procedure author exited with code {p.returncode}.").answer
@@ -106,6 +108,9 @@ def _acquire(store, order_id, token):
                "instruments": [asdict(i) for i in lab.instruments if i.id in exp.instrument_ids],
                "prior_question": prior.artifact.get("needs_input") if prior else None,
                "answer_document_id": answer_id}
+    loaded = briefing.load(store, order_id)
+    if loaded is not None:
+        context["briefing"] = loaded
     return lab, exp, context
 
 
@@ -153,6 +158,7 @@ def complete(run_store, pending):
     if work is None:
         return run_store(lambda s: detail(s, order_id))
     lab, exp, context = work
+    brief = context.pop("briefing", None)
     try:
         try:
             plan = _prepare(lab, exp, context)
@@ -168,7 +174,7 @@ def complete(run_store, pending):
         decision_repair_used = False
         for attempt in range(3):
             rejected_decision = None
-            candidate = {"needs_input": gap["question"]} if gap else generate(context, feedback)
+            candidate = {"needs_input": gap["question"]} if gap else generate({**context, "briefing": brief} if brief is not None else context, feedback)
             input_kind = gap["status"] if gap else candidate.pop("question_kind", None)
             problems = _problems(candidate, lab, exp, context)
             if not gap and not problems and "needs_input" in candidate and input_kind:
