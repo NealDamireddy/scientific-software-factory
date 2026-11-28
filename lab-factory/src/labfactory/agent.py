@@ -57,9 +57,11 @@ class AgentTools:
         if work_order_id.startswith(analysis_requests.PREFIXES):
             request = analysis_requests.detail(self._store, work_order_id)
             kind = analysis_requests.kind(work_order_id)
+            brief = request["contexts"][0].get("briefing")
+            instructions = offline_app.INSTRUCTIONS if kind == "offline_app" else stage_plot.INSTRUCTIONS
             return {"work_order": {**{k: request[k] for k in ("id", "status", "worker")}, "claim_id": request["turn"]},
                     kind: {k: request[k] for k in ("objective", "contexts", "turn", "history")},
-                    "instructions": offline_app.INSTRUCTIONS if kind == "offline_app" else stage_plot.INSTRUCTIONS}
+                    "instructions": instructions + (" " + briefing.instructions(brief) if brief else "")}
         # Read status, pins, and rejection history at the same point in time.
         with self._store.read_transaction():
             order = self._orders.get(work_order_id)

@@ -1,11 +1,15 @@
 import json
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 
-from labfactory import briefing, first_draft, investigations, procedure_drafts, source_drafter, tabular_service
+from labfactory import analysis_requests, briefing, first_draft, investigations, procedure_drafts, source_drafter, tabular_service
 from labfactory.agent import AgentTools
+from labfactory.context import canonical_digest
 from labfactory.procedure_drafts import passages
+from labfactory.workorders import WorkOrderError
+from labfactory import offline_app
 
 FIXTURE = Path(__file__).parent / "fixtures" / "procedure_drafts" / "filters.json"
 SKILL = {"id": "readiness", "name": "Protocol readiness", "whenToUse": "Before a run.",
@@ -118,3 +122,52 @@ def test_mcp_tabular_context_tells_the_agent_to_apply_supplied_skills(store):
     tools = AgentTools(store)
     assert tools.get_work_order_context(with_skills)["instructions"].endswith(briefing.SKILLS_INSTRUCTION)
     assert briefing.SKILLS_INSTRUCTION not in tools.get_work_order_context(without)["instructions"]
+
+
+RESULT_SKILL = {"id": "moisture", "name": "Moisture reading", "whenToUse": "When reporting results.",
+                "instructions": "State the refractometer temperature.", "stage": "result"}
+APP_BRIEF = briefing.build("app", briefing.pin([RESULT_SKILL]),
+                           "Determine moisture in honey by refractometry", [])
+
+
+def _app_request(store):
+    project = investigations.register(store, "Briefing project")["id"]
+    return {"project": {"experiment_id": project}, "objective": "Plot the readings", "request_id": str(uuid4())}
+
+
+def test_app_request_stores_and_serves_its_briefing(store):
+    key = analysis_requests.create(store, "Reviewer", _app_request(store), analysis_requests.APP_PREFIX,
+                                   briefing=APP_BRIEF)["id"]
+    assert analysis_requests.detail(store, key)["contexts"][0]["briefing"] == APP_BRIEF
+    served = AgentTools(store).get_work_order_context(key)
+    assert served["offline_app"]["contexts"][0]["briefing"] == APP_BRIEF
+    assert served["instructions"] == offline_app.INSTRUCTIONS + " " + briefing.instructions(APP_BRIEF)
+
+
+def test_app_request_without_a_briefing_is_unchanged(store):
+    req = _app_request(store)
+    key = analysis_requests.create(store, "Reviewer", req, analysis_requests.APP_PREFIX)["id"]
+    assert "briefing" not in analysis_requests.detail(store, key)["contexts"][0]
+    assert AgentTools(store).get_work_order_context(key)["instructions"] == offline_app.INSTRUCTIONS
+    with store.transaction() as db:
+        stamp = db.execute("SELECT request_digest FROM drift_requests WHERE id=?", (key,)).fetchone()[0]
+    assert stamp == canonical_digest(req)
+
+
+def test_app_request_retry_is_idempotent_and_a_changed_briefing_conflicts(store):
+    req = _app_request(store)
+    create = lambda brief: analysis_requests.create(store, "Reviewer", req, analysis_requests.APP_PREFIX,
+                                                    briefing=brief)["id"]
+    assert create(APP_BRIEF) == create(APP_BRIEF)
+    with pytest.raises(WorkOrderError):
+        create({**APP_BRIEF, "skills": []})
+
+
+def test_claimed_app_with_a_briefing_can_still_be_submitted(store):
+    key = analysis_requests.create(store, "Reviewer", _app_request(store), analysis_requests.APP_PREFIX,
+                                   briefing=APP_BRIEF)["id"]
+    agent = AgentTools(store)
+    claim = agent.claim_work_order(key, "author")["claim_id"]
+    candidate = {"turn": 1, "app": {"question": "", "summary": "Confirmed method.",
+                                    "html": "<!doctype html><html><body><h1>Custom output</h1></body></html>"}}
+    assert agent.submit_artifact(key, "author", candidate, claim)["status"] == "ready"
