@@ -54,7 +54,7 @@ def detail(store, key):
                 "contexts": json.loads(row["contexts"]), "history": _history(store, key)}
 
 
-def create(store, actor, data, prefix=PLOT_PREFIX, *, datasets=(), procedure=None):
+def create(store, actor, data, prefix=PLOT_PREFIX, *, datasets=(), procedure=None, briefing=None):
     if set(data) != {"request_id", "objective", "project"}:
         raise ContextError("Supply a request UUID, objective and project selection.")
     try:
@@ -62,7 +62,8 @@ def create(store, actor, data, prefix=PLOT_PREFIX, *, datasets=(), procedure=Non
     except ValueError:
         raise ContextError("Supply a valid request UUID.") from None
     objective = _text(data["objective"], "an analysis request", 4000)
-    stamp = canonical_digest(data if not datasets and procedure is None else [data, datasets, procedure])
+    pinned = [data, datasets, procedure] + ([briefing] if briefing is not None else [])
+    stamp = canonical_digest(pinned if datasets or procedure is not None or briefing is not None else data)
     with store.transaction() as db:
         prior = db.execute("SELECT actor,request_digest FROM drift_requests WHERE id=?", (key,)).fetchone()
         if prior:
@@ -79,6 +80,8 @@ def create(store, actor, data, prefix=PLOT_PREFIX, *, datasets=(), procedure=Non
                 contexts[0]["dataset"] = datasets[0]
             elif datasets:
                 contexts[0]["datasets"] = datasets
+            if briefing is not None:
+                contexts[0]["briefing"] = briefing
             db.execute("INSERT INTO drift_requests(id,actor,request_digest,objective,contexts,status) "
                        "VALUES(?,?,?,?,?,'open')", (key, actor, stamp, objective, canonical_json(contexts)))
     return {"id": key}

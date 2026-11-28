@@ -296,7 +296,7 @@ export function AppDetail({ id, embedded = false }: { id: string; embedded?: boo
           )}
           <details><summary>Pinned project records</summary>
             {embedded && <p>{data.id} · {label(data.status)}{data.artifact_digest && " · SHA-256 " + data.artifact_digest}</p>}
-            <pre>{JSON.stringify(data.contexts, null, 2)}</pre>
+            <pre>{JSON.stringify(data.contexts.map(({briefing, ...record}) => record), null, 2)}</pre>
           </details>
           {data.status === "ready" && id.startsWith("PLOT-") && <details><summary>Review the plotting recipe</summary>
             <pre>{JSON.stringify(data.history.at(-1)?.submission, null, 2)}</pre></details>}

@@ -202,6 +202,19 @@ def source(identifier):
     return json.loads(row[0])
 
 
+def model_for(text):
+    """Return the catalog model id when exactly one model is named in the text, else None."""
+    if not isinstance(text, str) or not text.strip():
+        return None
+    haystack = " " + " ".join(_words(text)) + " "
+    found = set()
+    for key, item in _index().models.items():
+        forms = [item["model"], f"{item['manufacturer']} {item['model']}", *item["aliases"]]
+        if any(" " + " ".join(_words(form)) + " " in haystack for form in forms if _words(form)):
+            found.add(key)
+    return found.pop() if len(found) == 1 else None
+
+
 def describe(instrument, q, findings):
     """Build a cited digest of precisely the supplied search or pinned result set."""
     if not findings:

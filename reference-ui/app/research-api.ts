@@ -48,7 +48,8 @@ export type AnalysisApp = RequestSummary & {
   artifact_digest?: string;
   contexts: { experiment: { title: string; revision: number };
     lab: {name:string; revision:number; instruments: {name:string; model:string; firmware:string}[]};
-    stage_calibration?: { origin_mm: number; reading_unit?: string; ticks_per_mm?: number } }[];
+    stage_calibration?: { origin_mm: number; reading_unit?: string; ticks_per_mm?: number };
+    briefing?: unknown }[];
   history: {
     turn: number;
     submission: { question: string; summary: string };

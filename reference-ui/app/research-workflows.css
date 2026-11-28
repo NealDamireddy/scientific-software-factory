@@ -47,6 +47,19 @@
 .research-workflows [role="alert"] {
   color: #943e23;
 }
+.project-briefing {
+  margin-block: var(--space-3) 0;
+  font-size: 0.9em;
+}
+.project-briefing :is(p, h4, ul) {
+  margin-block: var(--space-2) 0;
+}
+.project-briefing ul {
+  padding-left: var(--space-5);
+}
+.project-briefing-note {
+  color: var(--muted);
+}
 .project-investigations {
   margin-block: var(--space-6) var(--space-5);
 }

@@ -244,3 +244,23 @@ export function buildAgentContext(state: ExtensionState): AgentContext {
     ],
   };
 }
+
+export type WorkerSkill = {
+  id: string;
+  name: string;
+  whenToUse: string;
+  instructions: string;
+  stage?: Stage;
+};
+
+export function workerSkills(state: ExtensionState): WorkerSkill[] {
+  return buildAgentContext(state).skills.map(
+    ({ id, name, whenToUse, instructions, stage }) => ({
+      id,
+      name,
+      whenToUse,
+      instructions,
+      ...(stage ? { stage } : {}),
+    }),
+  );
+}

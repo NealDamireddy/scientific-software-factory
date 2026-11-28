@@ -5,6 +5,7 @@ import {
   builtinSkills,
   defaultExtensions,
   normalizeExtensions,
+  workerSkills,
 } from "./extension-model.ts";
 
 const harness = {
@@ -116,4 +117,14 @@ test("malformed local records and collisions cannot overwrite built-in entries",
   assert.deepEqual(state.customSkills, [skill]);
   assert.deepEqual(state.skills, [skill.id]);
   assert.deepEqual(state.connectors, ["archive"]);
+});
+
+test("workerSkills sends only the fields a worker pins, for enabled skills", () => {
+  const state = { ...defaultExtensions, skills: ["calibration", skill.id], customSkills: [skill] };
+  const sent = workerSkills(state);
+  assert.deepEqual(sent.map((s) => s.id), ["calibration", skill.id]);
+  assert.deepEqual(Object.keys(sent[0]).sort(), ["id", "instructions", "name", "stage", "whenToUse"]);
+  assert.equal(sent[0].stage, "result");
+  assert.deepEqual(Object.keys(sent[1]).sort(), ["id", "instructions", "name", "whenToUse"]);
+  assert.deepEqual(workerSkills({ ...defaultExtensions, skills: [] }), []);
 });

@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from labfactory import analysis_requests, investigations, research_experiments, tabular_service
+from labfactory import analysis_requests, briefing, investigations, research_experiments, tabular_service
 from labfactory.context import ContextError
 from labfactory.store import NotFound, Store
 from labfactory.workorders import WorkOrderError
@@ -134,6 +134,101 @@ def test_legacy_stage_archive_can_be_attached_without_changing_its_snapshots(sto
     assert analysis_requests.detail(store, key) == before
     with pytest.raises(WorkOrderError):
         investigations.attach_app(store, other, key)
+
+
+START = {"id": "readiness", "name": "Protocol readiness", "whenToUse": "Before a run.",
+         "instructions": "List what is missing.", "stage": "start"}
+RESULT = {"id": "calibration", "name": "Calibration review", "whenToUse": "On a result.",
+          "instructions": "Check the range.", "stage": "result"}
+
+
+def test_new_procedure_gets_start_skills_and_matched_sources(store):
+    p = investigations.register(store, "Optics")
+    req = {**request(p["id"], "Check wavelength accuracy on the Agilent Cary 60", kind="procedure"),
+           "skills": [START, RESULT]}
+    resource, = investigations.resolve(store, "Reviewer", req)["resources"]
+    brief = resource["briefing"]
+    assert brief["skills"] == [{"id": "readiness", "name": "Protocol readiness", "version": brief["skills"][0]["version"]}]
+    assert len(brief["skills"][0]["version"]) == 64
+    assert brief["instrument"].startswith("Agilent Technologies")
+    assert "agilent-cary-60-user-guide" in [r["id"] for r in brief["references"]]
+    assert briefing.load(store, resource["id"])["skills"][0]["instructions"] == "List what is missing."
+    assert store.get_experiment("investigation-" + req["request_id"])[0].documents == ()
+
+
+def test_new_app_gets_result_skills_in_its_pinned_context(store):
+    p = investigations.register(store, "Honey")
+    req = {**request(p["id"], "Analyze the honey moisture readings by refractometry", kind="app", data="new"),
+           "skills": [START, RESULT]}
+    resource, = investigations.resolve(store, "Reviewer", req)["resources"]
+    assert analysis_requests.detail(store, resource["id"])["contexts"][0]["briefing"]["skills"][0]["id"] == "calibration"
+    assert resource["briefing"]["skills"][0]["id"] == "calibration"
+
+
+def test_reused_resources_carry_no_briefing(store):
+    p = investigations.register(store, "References")["id"]
+    upload(store, p, "Tuesday-a.csv")
+    first = investigations.resolve(store, "Reviewer", request(p, "Plot Tuesday-a.csv"))
+    app = first["resources"][1]
+    analysis_requests.claim(store, app["id"], "Worker")
+    analysis_requests.submit(store, app["id"], "Worker", {"turn": 1, "app": {
+        "summary": "Area plot", "question": "", "html": "<html><body>Area</body></html>"}})
+    repeat = investigations.resolve(store, "Reviewer", {**request(p, "Plot Tuesday-a.csv"), "skills": [RESULT]})
+    assert all(r["reused"] for r in repeat["resources"])
+    assert not any("briefing" in r for r in repeat["resources"])
+
+
+def test_investigation_without_skills_or_matches_is_unchanged(store):
+    p = investigations.register(store, "Plain")
+    resource, = investigations.resolve(store, "Reviewer", request(p["id"], "zzqx vvkw", kind="procedure"))["resources"]
+    assert "briefing" not in resource
+    assert briefing.load(store, resource["id"]) is None
+
+
+def test_invalid_skills_are_rejected_before_any_record_is_created(store):
+    p = investigations.register(store, "Strict")
+    cases = [request(p["id"], "zzqx vvkw", kind="procedure") | {"skills": bad}
+             for bad in ([START] * 33, [{**START, "version": "0" * 64}], "calibration")]
+    cases.append({**request(p["id"], "Reference alignment"), "skills": "calibration"})
+    for req in cases:
+        with pytest.raises(ContextError):
+            investigations.resolve(store, "Reviewer", req)
+    inventory = investigations.inventory(store, p["id"])
+    assert inventory["investigations"] == [] and inventory["resources"] == []
+
+
+def test_retry_with_same_skills_is_idempotent_and_changed_skills_conflict(store):
+    p = investigations.register(store, "Retry")
+    req = {**request(p["id"], "Check wavelength accuracy on the Agilent Cary 60", kind="procedure"), "skills": [START]}
+    assert investigations.resolve(store, "Reviewer", req) == investigations.resolve(store, "Reviewer", req)
+    with pytest.raises(WorkOrderError):
+        investigations.resolve(store, "Reviewer", {**req, "skills": [RESULT]})
+
+
+def _lab_project(store, instruments=True):
+    from labfactory.context import Experiment, Instrument, Lab
+    cary = Instrument("uv-1", "Bench spectrophotometer", "Agilent Cary 60", "1.0", (), ())
+    store.put_lab(Lab("lab", "Lab", (cary,), ()))
+    store.put_experiment(Experiment("proj", "lab", "Optics", "Optics", ("uv-1",), ()))
+    return Lab, cary
+
+
+def test_reuse_still_works_after_the_lab_drops_an_assigned_instrument(store):
+    Lab, _ = _lab_project(store)
+    ask = lambda: investigations.resolve(store, "R", request("proj", "Analyze the absorbance readings", kind="app"))
+    app = ask()["resources"][-1]
+    analysis_requests.claim(store, app["id"], "W")
+    analysis_requests.submit(store, app["id"], "W", {"turn": 1, "app": {
+        "summary": "s", "question": "", "html": "<html><body>x</body></html>"}})
+    assert [r["reused"] for r in ask()["resources"]] == [True]
+    store.put_lab(Lab("lab", "Lab", (), ()))
+    assert [r["reused"] for r in ask()["resources"]] == [True]
+
+
+def test_new_procedure_scopes_sources_to_the_project_instrument(store):
+    _lab_project(store)
+    result = investigations.resolve(store, "R", request("proj", "Check wavelength accuracy", kind="procedure"))
+    assert result["resources"][-1]["briefing"]["instrument"] == "Agilent Technologies Cary 60"
 
 
 def test_experiment_metadata_history_and_project_scoped_resources(store):
@@ -343,3 +438,19 @@ def test_same_project_title_in_two_labs_keeps_legacy_identity(store):
     assert fresh["id"] != legacy and fresh["lab_id"] == "research-workspace"
     assert investigations.register(store, title, "research-workspace") == fresh
     assert investigations.inventory(store, legacy)["hypothesis"] == ""
+
+
+def test_added_work_in_an_experiment_carries_the_briefing_and_reuse_does_not(store):
+    project = investigations.register(store, "Experiments")["id"]
+    experiment = research_experiments.create(store, "Reviewer", {
+        "project_id": project, "request_id": str(uuid4()), "question": "Does the wavelength hold?"})["id"]
+    req = {**request(project, "Check wavelength accuracy on the Agilent Cary 60", kind="procedure"),
+           "experiment_id": experiment, "skills": [START]}
+    result = investigations.resolve(store, "Reviewer", req)
+    resource, = result["resources"]
+    assert result["experiment_id"] == experiment and resource["briefing"]["skills"][0]["id"] == "readiness"
+    assert briefing.load(store, resource["id"])["skills"][0]["id"] == "readiness"
+    assert investigations.resolve(store, "Reviewer", req) == result
+    record, = [e for e in investigations.inventory(store, project)["experiments"] if e["id"] == experiment]
+    assert record["requests"][0]["resources"][0]["briefing"] == resource["briefing"]
+    assert [r["id"] for r in record["resources"]] == [resource["id"]]

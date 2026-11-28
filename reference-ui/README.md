@@ -13,6 +13,8 @@ Use `npm start -- --database "/path/to/portal.sqlite3"` to open an existing loca
 
 Tabular intake can use a saved experiment and selected lab or project documents. Choose the permitted Python or MATLAB profile for a worker submission. Lab Factory records the verifier and checks the submitted calculation against the blind control. The temperature example exercises interpolation against a calibration table. Historical stage plots and unassigned tabular uploads can be added to a project from their detail view. Open **Registered lab context → Request a worker draft** in a project to prepare a source-grounded procedure request in the composer. A worker can ask for a missing passage before review.
 
+A request in an experiment (a new experiment or **Add work**) sends the skills enabled in **Skills** to the worker that authors new work: `start` skills go to procedure drafts, `result` and `repeat` skills go to analysis apps, and skills without a stage go to both. Lab Factory also matches the objective and the project's instruments against the reference library, and the experiment's attached work shows both under **Agent briefing**. Suggested sources are pointers; a worker cannot cite them until their text is added to the project.
+
 Use the sidebar for work orders, analysis runs, references, lab context and agent access. Older simulated experiments remain available in **All experiments**. Skills and record review can also run against local example data.
 
 ## Frontend development

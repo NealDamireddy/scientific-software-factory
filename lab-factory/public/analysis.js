@@ -281,6 +281,7 @@ function showTabularIntake(projects, experiments, release) {
 
   const refs = analysisReferences();
   const includeSkills = analysisInput("Attach enabled research skills to this worker request", "attach_skills", "checkbox", false);
+  includeSkills.input.checked = true;
   form.append(project.label, sources);
   if (skills.length) form.append(includeSkills.label, element("p", skills.map(s => s.name).join(", "), "muted"));
   if (!projects.length) form.append(analysisLink("Create a project in the research workspace", "/#home"));
@@ -294,7 +295,7 @@ function showTabularIntake(projects, experiments, release) {
       control_tolerance:control.tolerance.valueAsNumber};
     payload.project_id = project.input.value;
     if (experimentId) payload.research_experiment_id = experimentId;
-    if (includeSkills.input.checked) payload.skills = skills;
+    if (includeSkills.input.checked && skills.length) payload.skills = skills;
     payload.allowed_languages = language.input.value.split(",");
     const exp = selectedExperiment();
     if (exp) {

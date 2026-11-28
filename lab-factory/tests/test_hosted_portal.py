@@ -561,6 +561,20 @@ def test_research_workspace_origin_and_draft_history(client):
         assert "access-control-allow-origin" not in browser.get("/api/orders").headers
 
 
+def test_investigation_endpoint_accepts_skills_and_reports_the_briefing(client):
+    login(client)
+    project = client.post("/api/research-projects", json={"title": "Briefed"}).raise_for_status().json()["id"]
+    skill = {"id": "readiness", "name": "Protocol readiness", "whenToUse": "Before a run.",
+             "instructions": "List what is missing.", "stage": "start"}
+    body = {"project_id": project, "objective": "zzqx vvkw", "choices": {"kind": "procedure"}, "skills": [skill]}
+    res = client.post("/api/investigations", json={**body, "request_id": "00000000-0000-4000-8000-000000000001"})
+    assert res.status_code == 200
+    assert res.json()["resources"][0]["briefing"]["skills"][0]["id"] == "readiness"
+    res = client.post("/api/investigations", json={
+        **body, "skills": [skill] * 33, "request_id": "00000000-0000-4000-8000-000000000002"})
+    assert res.status_code == 400
+
+
 def test_research_experiment_http_ownership_and_updates(client):
     from uuid import uuid4
 
