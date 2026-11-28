@@ -5,6 +5,7 @@ import { BookOpen, ChartColumn, ChevronRight, ClipboardList, FileSpreadsheet, Fi
 import type { Procedure } from "./research-api";
 import { apiUrl, researchRequest } from "./research-api";
 import { AppDetail, DraftDetail, Notice, useRead } from "./research-workflows";
+import { formatBytes, scopeLabel, shareable, type LibraryEntry } from "./library-model";
 
 export type Project = { id: string; title: string; lab_id?: string; lab_name?: string; hypothesis?: string };
 export type Resource = {
@@ -12,9 +13,10 @@ export type Resource = {
   path?: string; automatic?: boolean; tabular?: boolean; reused?: boolean; submission?: number;
   briefing?: {
     skills: {id: string; name: string; version: string}[];
-    references: {id: string; kind: string; title: string; url: string; locator: string}[];
+    references: {id: string; kind: string; title: string; url: string; locator: string; document_id?: string}[];
     instrument: string | null;
   };
+  library?: {document_id: string; source_id: string; title: string; scope: "shared" | "lab"; entry_id: number; revision: number}[];
 };
 export type Investigation = { id: string; project_id: string; experiment_id?: string; objective: string; resources: Resource[] };
 export type Question = { question: string; field: string; options: Project[]; matches?: Resource[] };
@@ -23,7 +25,7 @@ type Experiment = ResearchExperimentSummary & {requests: Investigation[]; resour
 type Inventory = {
   hypothesis: string; experiments: Experiment[];
   context: { experiment: {goal: string; documents: {id:string; title:string; text:string}[]};
-    lab: {name:string; documents: {id:string; title:string; text:string}[]; instruments:{id:string; name:string; model:string}[]};
+    lab: {id:string; name:string; documents: {id:string; title:string; text:string}[]; instruments:{id:string; name:string; model:string}[]};
     experiment_revision: number; lab_revision:number };
   resources: Resource[]; investigations: Investigation[] };
 const kindLabel = { app: "Analysis app", procedure: "Procedure", data: "Dataset" };
@@ -103,17 +105,22 @@ function ResourceItem({item, projectId, showByDefault = false, objective, experi
       ? <DraftDetail key={draft} id={draft} open={setDraft} embedded/> : <WorkerProcedure id={item.id}/>}</div>}
     {item.kind === "procedure" && item.status === "released" &&
       <a href={"#analysis/new?" + new URLSearchParams({project:projectId, procedure:item.id, ...(experimentId && {experiment:experimentId})})}>Use this procedure for a tabular analysis</a>}
-    {item.briefing && <details className="project-briefing">
+    {(item.briefing || item.library?.length) && <details className="project-briefing">
       <summary>Agent briefing</summary>
-      {item.briefing.skills.length > 0 && <p>Skills · {item.briefing.skills.map((s, n) =>
+      {!!item.briefing?.skills.length && <p>Skills · {item.briefing.skills.map((s, n) =>
         <span key={s.id}>{n > 0 && ", "}<span title={s.version}>{s.name}</span></span>)}</p>}
-      {item.briefing.instrument && <p>Instrument · {item.briefing.instrument}</p>}
-      {item.briefing.references.length > 0 && <>
+      {item.briefing?.instrument && <p>Instrument · {item.briefing.instrument}</p>}
+      {!!item.library?.length && <>
+        <h4>Pinned library text</h4>
+        <ul>{item.library.map(l => <li key={l.document_id}>{l.title} · {scopeLabel(l.scope)}</li>)}</ul>
+      </>}
+      {!!item.briefing?.references.length && <>
         <h4>Suggested sources</h4>
         <ul>{item.briefing.references.map(r => <li key={r.id}>
-          <a href={r.url} target="_blank" rel="noopener noreferrer">{r.title}</a> · {r.locator}</li>)}</ul>
+          <a href={r.url} target="_blank" rel="noopener noreferrer">{r.title}</a> · {r.locator}{r.document_id && " · pinned as text"}</li>)}</ul>
       </>}
-      <p className="project-briefing-note">Suggested sources are pointers from the reference library. A worker cannot cite them until their text is added to the project.</p>
+      {(!!item.briefing?.references.length || !!item.library?.length) &&
+        <p className="project-briefing-note">Pinned library text can be cited. Other suggested sources are pointers until their text is added to the library.</p>}
     </details>}
   </div>;
 }
@@ -232,6 +239,32 @@ function AttachFromProject({items, save}: {items: Resource[]; save: SaveMetadata
   </details>;
 }
 
+function LabLibrary({labId}: {labId: string}) {
+  const {data, error, refresh} = useRead<{entries: LibraryEntry[]}>("library?lab_id=" + encodeURIComponent(labId));
+  const [failure, setFailure] = useState("");
+  async function share(entry: LibraryEntry) {
+    if (!window.confirm("Share “" + entry.title + "” with every lab? This cannot be undone.")) return;
+    setFailure("");
+    try {
+      await researchRequest("library/" + entry.id + "/share", {});
+      refresh();
+    } catch (problem) {
+      setFailure(problem instanceof Error ? problem.message : "Sharing failed.");
+    }
+  }
+  return <section className="project-lab-library" aria-label="Lab library">
+    <h3>Lab library</h3>
+    <Notice error={error || failure}/>
+    {data && (data.entries.length === 0
+      ? <p className="project-note empty">No source text yet. Text you supply when a worker asks for a source is kept here for this lab.</p>
+      : <ul>{data.entries.map(e => <li key={e.id}>
+        <strong>{e.title}</strong>
+        <small>{scopeLabel(e.scope)} · {formatBytes(e.bytes)} · {e.contributed_by} · revision {e.revision}</small>
+        {shareable(e, data.entries) && <button className="ws-button" onClick={() => share(e)}>Share with all labs</button>}
+      </li>)}</ul>)}
+  </section>;
+}
+
 function ExperimentRecord({experiment, inventory, open, onAddWork, save}: {
   experiment: Experiment; inventory: Inventory; open: RecordProps["open"]; onAddWork: RecordProps["onAddWork"]; save: SaveMetadata;
 }) {
@@ -241,7 +274,7 @@ function ExperimentRecord({experiment, inventory, open, onAddWork, save}: {
   const defaultWork = expandedWork?.length ? expandedWork : request?.resources;
   const uploadQuery = new URLSearchParams({project: experiment.project_id, experiment: experiment.id});
   // The project listing carries current records only; the agent briefing lives on the request that created the work.
-  const briefings = new Map(experiment.requests.flatMap(r => r.resources).filter(r => r.briefing).map(r => [r.id, r.briefing]));
+  const created = new Map(experiment.requests.flatMap(r => r.resources).filter(r => r.briefing || r.library).map(r => [r.id, {briefing: r.briefing, library: r.library}]));
   return <>
     <header className="ws-pagehead project-experiment-head">
       <div><div className="ws-eyebrow">Experiment</div><h1>{experiment.title}</h1></div>
@@ -256,7 +289,7 @@ function ExperimentRecord({experiment, inventory, open, onAddWork, save}: {
     <section className="project-record-section">
       <div className="ws-sectionhead"><h2>Attached work</h2><a className="ws-button" href={"#analysis/new?" + uploadQuery}><Upload size={16} aria-hidden/>Upload readings</a></div>
       <div className="project-attached-work">{experiment.resources.map(item => <ResourceItem key={item.id}
-        item={briefings.has(item.id) ? {...item, briefing: briefings.get(item.id)} : item}
+        item={created.has(item.id) ? {...item, ...created.get(item.id)} : item}
         projectId={experiment.project_id} experimentId={experiment.id} open={open}
         objective={experiment.question}
         usedIn={inventory.experiments.filter(e => e.id !== experiment.id && e.resources.some(r => r.id === item.id))}
@@ -315,6 +348,7 @@ export function ProjectInvestigations({ projectId, active, open, compose, onAddW
           {data.context.lab.instruments.map(i => <p key={i.id}>{i.name} · {i.model}</p>)}
           {[...data.context.lab.documents,...data.context.experiment.documents].map((d,i) =>
             <details key={i}><summary>{d.title}</summary><p>{d.text}</p></details>)}
+          <LabLibrary labId={data.context.lab.id}/>
           <div className="project-context-actions"><a href="#context">Edit lab context</a>
             <button className="ws-button" onClick={() => compose("Ask a worker to draft a procedure for " + data.context.experiment.goal)}>Request a worker draft</button></div>
         </div>

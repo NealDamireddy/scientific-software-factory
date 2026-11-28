@@ -86,4 +86,5 @@ export type Procedure = {
   submission: { number: number; artifact: { steps?: ProcedureStep[] } } | null;
   documents: { id: string; title: string; kind: string }[];
   sources: Passage[];
+  suggested_sources?: { id: string; title: string; locator: string }[];
 };

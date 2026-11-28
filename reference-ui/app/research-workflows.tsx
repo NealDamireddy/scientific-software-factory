@@ -318,6 +318,7 @@ export function DraftDetail({ id, open, embedded = false }: { id: string; open: 
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [method, setMethod] = useState("");
+  const [sourceId, setSourceId] = useState("");
   return (
     <>
       {!embedded && <Header title={data?.order.objective || "Procedure draft"} refresh={refresh}/>}
@@ -399,7 +400,7 @@ export function DraftDetail({ id, open, embedded = false }: { id: string; open: 
               fields={
                 method
                   ? { method_id: method }
-                  : { title: title.trim(), text: text.trim() }
+                  : { title: title.trim(), text: text.trim(), ...(sourceId && { source_id: sourceId }) }
               }
               submitLabel="Save answer and redraft"
               onSaved={open}
@@ -430,6 +431,22 @@ export function DraftDetail({ id, open, embedded = false }: { id: string; open: 
                       onChange={(e) => setTitle(e.target.value)}
                     />
                   </label>
+                  {!!data.suggested_sources?.length && (
+                    <label>
+                      This text comes from
+                      <select
+                        value={sourceId}
+                        onChange={(e) => setSourceId(e.target.value)}
+                      >
+                        <option value="">Another source</option>
+                        {data.suggested_sources.map((src) => (
+                          <option key={src.id} value={src.id}>
+                            {src.title} · {src.locator}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
                   <label>
                     Method passage or decision
                     <textarea

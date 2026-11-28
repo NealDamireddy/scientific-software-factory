@@ -60,6 +60,18 @@
 .project-briefing-note {
   color: var(--muted);
 }
+.project-lab-library ul {
+  list-style: none;
+  padding: 0;
+}
+.project-lab-library li {
+  display: grid;
+  gap: var(--space-1);
+  margin-block: var(--space-3);
+}
+.project-lab-library small {
+  color: var(--muted);
+}
 .project-investigations {
   margin-block: var(--space-6) var(--space-5);
 }
