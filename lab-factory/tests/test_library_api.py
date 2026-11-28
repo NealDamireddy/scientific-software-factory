@@ -51,7 +51,12 @@ def test_add_list_read_and_share_over_http(client):
     assert [e["id"] for e in other] == [shared.json()["id"]]
 
     assert client.get(f"/api/library/{lab.json()['id']}").json()["text"] == "Mass steps."
-    moved = client.post(f"/api/library/{lab.json()['id']}/share", json={})
+    entry_url = f"/api/library/{lab.json()['id']}/share"
+    for body in ({}, {"lab_id": "lab-b"}, {"lab_id": 5}, {"lab_id": "lab-a", "extra": 1}):
+        assert client.post(entry_url, json=body).status_code == 400, body
+    assert len(client.get("/api/library").json()["entries"]) == 1
+    assert client.post(f"/api/library/{shared.json()['id']}/share", json={"lab_id": "lab-a"}).status_code == 400
+    moved = client.post(entry_url, json={"lab_id": "lab-a"})
     assert moved.status_code == 200
     assert moved.json()["scope"] == "shared" and moved.json()["digest"] == lab.json()["digest"]
     assert len(client.get("/api/library").json()["entries"]) == 2
@@ -65,8 +70,8 @@ def test_bad_requests_are_rejected(client):
     assert client.get("/api/library/999").status_code == 404
     assert client.get("/api/library/abc").status_code == 404
     assert client.get("/api/library/0").status_code == 404
-    assert client.post("/api/library/abc/share", json={}).status_code == 404
-    assert client.post("/api/library/999/share", json={}).status_code == 404
+    assert client.post("/api/library/abc/share", json={"lab_id": "lab-a"}).status_code == 404
+    assert client.post("/api/library/999/share", json={"lab_id": "lab-a"}).status_code == 404
     foreign = client.post("/api/library", json={"text": "x", "title": "T"}, headers={"Origin": "https://evil.example"})
     assert foreign.status_code == 403
 
@@ -88,3 +93,14 @@ def test_search_marks_sources_with_shared_text(client):
         else:
             assert "library_text" not in new
     assert all("library_text" not in f for f in client.get(SEARCH).json()["findings"] if f["id"] != CATALOG)
+
+
+def test_search_survives_a_failing_library_lookup(client, monkeypatch):
+    from labfactory import hosted
+    from labfactory.hosted_storage import HostedStorageError
+    def broken(*args, **kwargs):
+        raise HostedStorageError("down")
+    monkeypatch.setattr(hosted, "run_store", broken)
+    result = client.get(SEARCH)
+    assert result.status_code == 200
+    assert result.json()["findings"] and all("library_text" not in f for f in result.json()["findings"])

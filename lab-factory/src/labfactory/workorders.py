@@ -141,6 +141,9 @@ class WorkOrders:
         order = self.get(id)
         lab, experiment = self._context_for(order)
         origin, document = CitationIndex(lab, experiment).resolve(document_id)
+        if document.id.startswith(library.PREFIX) and document in library.documents(self.store, order.id):
+            pin = next(p for p in library.pinned(self.store, order.id) if p["document_id"] == document.id)
+            return PinnedCitation("library", pin["source_id"], pin["revision"], document)
         if origin == "lab":
             return PinnedCitation(origin, lab.id, order.lab_revision, document)
         return PinnedCitation(origin, experiment.id, order.experiment_revision, document)

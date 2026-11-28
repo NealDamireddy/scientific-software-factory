@@ -10,6 +10,7 @@ SHARED = "shared"
 MAX_TEXT_BYTES = 256 * 1024
 MAX_TITLE = 250
 MAX_PINNED = 8
+MAX_PINNED_BYTES = 512 * 1024
 _COLUMNS = ("e.id, e.source_id, e.scope, e.revision, e.kind, e.title, e.origin, e.text_digest, "
             "e.contributed_by, e.created_at, length(CAST(t.text AS BLOB)) AS size")
 _FROM = "FROM library_entries e JOIN library_texts t ON t.digest = e.text_digest"
@@ -101,12 +102,8 @@ def _one(store, entry_id):
     return row
 
 
-def add(store, actor: str, text: str, *, source_id: str | None = None, title: str | None = None,
-        lab_id: str | None = None) -> dict:
-    _validate_text(text)
+def _store(store, actor, text, source_id, scope, kind, title, origin):
     digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
-    scope = _scope(lab_id)
-    source_id, kind, title, origin = _resolve_source(store, actor, source_id, title, lab_id, {SHARED, scope})
     with store.transaction():
         newest = _newest(store, source_id, scope)
         if newest is not None and newest["text_digest"] == digest:
@@ -114,6 +111,35 @@ def add(store, actor: str, text: str, *, source_id: str | None = None, title: st
         store.connection.execute("INSERT OR IGNORE INTO library_texts (digest, text) VALUES (?, ?)",
                                  (digest, text))
         return _insert(store, actor, source_id, scope, kind, title, origin, digest)
+
+
+def add(store, actor: str, text: str, *, source_id: str | None = None, title: str | None = None,
+        lab_id: str | None = None) -> dict:
+    _validate_text(text)
+    scope = _scope(lab_id)
+    source_id, kind, title, origin = _resolve_source(store, actor, source_id, title, lab_id, {SHARED, scope})
+    return _store(store, actor, text, source_id, scope, kind, title, origin)
+
+
+def append(store, actor: str, passage: str, *, source_id: str | None = None, title: str | None = None,
+           lab_id: str) -> dict | None:
+    """Add a passage to what the lab sees for a source, keeping the earlier text and passage numbers."""
+    _validate_text(passage)
+    scope = _scope(lab_id)
+    if scope == SHARED:
+        raise ContextError("Lab id must be non-empty text.")
+    passage = passage.strip()
+    resolved, kind, resolved_title, origin = _resolve_source(
+        store, actor, source_id, title, lab_id, {SHARED, scope})
+    base = visible(store, lab_id, [resolved]).get(resolved)
+    if base is None:
+        return _store(store, actor, passage, resolved, scope, kind, resolved_title, origin)
+    text = get(store, base["id"])["text"]
+    if passage in text:
+        return base
+    combined = text.rstrip() + "\n\n" + passage
+    _validate_text(combined)
+    return _store(store, actor, combined, resolved, scope, base["kind"], base["title"], base["origin"])
 
 
 def get(store, entry_id: int) -> dict:
@@ -142,11 +168,11 @@ def visible(store, lab_id: str | None, source_ids=None) -> dict[str, dict]:
     return found
 
 
-def share(store, actor: str, entry_id: int) -> dict:
+def share(store, actor: str, entry_id: int, lab_id: str) -> dict:
+    row = _one(store, entry_id)
+    if not isinstance(lab_id, str) or not lab_id.strip() or row["scope"] != lab_scope(lab_id):
+        raise ContextError("Choose an entry from this lab.")
     with store.transaction():
-        row = _one(store, entry_id)
-        if row["scope"] == SHARED:
-            return _entry(row)
         newest = _newest(store, row["source_id"], SHARED)
         if newest is not None and newest["text_digest"] == row["text_digest"]:
             return _entry(newest)

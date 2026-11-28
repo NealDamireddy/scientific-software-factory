@@ -112,7 +112,11 @@ def _register_author(store, order, actor, data, fingerprint):
 def _compile(store, order, actor, data, fingerprint, document_id, *, previous_plan=None, replace_at=None):
     orders = WorkOrders(store)
     lab, experiment = orders.pinned_context(order.id)
-    if document_id is None and (lab.documents or experiment.documents) and not method_drafter.applicable_methods(lab, experiment):
+    documents = (*lab.documents, *experiment.documents)
+    only_pinned_text = all(doc.id.startswith(library.PREFIX) for doc in documents)
+    # Pinned library text alone does not justify a drafter that cannot run: keep the immediate question.
+    if (document_id is None and documents and not (only_pinned_text and not source_drafter.available())
+            and not method_drafter.applicable_methods(lab, experiment)):
         return _register_author(store, order, actor, data, fingerprint)
     method, question = method_drafter.select_method(lab, experiment, document_id)
     plan = []

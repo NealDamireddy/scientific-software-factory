@@ -531,7 +531,10 @@ async def reference_search(request):
     objective = request.query_params.get("q", "")
     result = await run_in_threadpool(references.search, instrument, objective)
     ids = [finding["id"] for finding in result["findings"]]
-    shared = await run_in_threadpool(run_store, lambda store: library.visible(store, None, ids)) if ids else {}
+    try:
+        shared = await run_in_threadpool(run_store, lambda store: library.visible(store, None, ids)) if ids else {}
+    except HostedStorageError:
+        shared = {}  # The text badge is optional: the search itself must still work.
     if shared:
         result = {**result, "findings": [{**f, "library_text": True} if f["id"] in shared else f
                                          for f in result["findings"]]}
@@ -570,9 +573,11 @@ async def library_entry(request):
 async def library_share(request):
     reviewer = _reviewer(request)
     entry_id = _entry_id(request)
-    await _json_body(request)
+    data = await _json_body(request)
+    if set(data) != {"lab_id"} or not isinstance(data["lab_id"], str):
+        raise ContextError("Choose an entry from this lab.")
     return _response(await run_in_threadpool(
-        run_store, lambda store: library.share(store, reviewer, entry_id), write=True))
+        run_store, lambda store: library.share(store, reviewer, entry_id, data["lab_id"]), write=True))
 
 
 async def reference_order(request):

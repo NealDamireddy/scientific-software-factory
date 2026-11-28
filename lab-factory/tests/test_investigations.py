@@ -1,9 +1,10 @@
+from dataclasses import replace
 from uuid import uuid4
 
 import pytest
 
 from labfactory import analysis_requests, briefing, investigations, research_experiments, tabular_service
-from labfactory.context import ContextError
+from labfactory.context import ContextError, Document
 from labfactory.store import NotFound, Store
 from labfactory.workorders import WorkOrderError
 
@@ -389,8 +390,9 @@ def _project_lab(store):
     return store.get_experiment("proj")[0].lab_id
 
 
-def test_new_procedure_pins_shared_text_for_a_matched_source(store):
-    from labfactory import library
+def test_new_procedure_pins_shared_text_for_a_matched_source(store, monkeypatch):
+    from labfactory import library, source_drafter
+    monkeypatch.setattr(source_drafter, "available", lambda: True)
     from labfactory.workorders import WorkOrders
     _project_lab(store)
     entry = library.add(store, "Ana", "Wavelength accuracy is checked with the internal filter.", source_id=CARY_ID)
@@ -408,7 +410,85 @@ def test_new_procedure_pins_shared_text_for_a_matched_source(store):
     assert children and all(store.get_experiment(i)[0].documents == () for i in children)
 
 
-def test_new_procedure_pins_the_labs_own_contributed_text(store):
+def test_pinned_text_without_a_drafter_still_asks_at_once(store, monkeypatch):
+    from labfactory import library, source_drafter
+    from labfactory.workorders import WorkOrders
+    monkeypatch.setattr(source_drafter, "available", lambda: False)
+    _project_lab(store)
+    entry = library.add(store, "Ana", "Wavelength accuracy is checked with the internal filter.", source_id=CARY_ID)
+    resource = _procedure(store, CARY_OBJECTIVE)
+    assert resource["status"] == "needs_input"
+    assert [item["entry_id"] for item in resource["library"]] == [entry["id"]]
+    _, experiment = WorkOrders(store).pinned_context(resource["id"])
+    assert experiment.documents[0].id == "library:" + CARY_ID
+
+
+def test_real_documents_still_go_to_the_drafter_when_none_is_available(store, monkeypatch):
+    from labfactory import first_draft, procedure_drafts, source_drafter
+    monkeypatch.setattr(source_drafter, "available", lambda: False)
+    lab_id = _project_lab(store)
+    experiment, _ = store.get_experiment("proj")
+    doc = Document("method-1", "note", "Own notes", "me", "Some prose that is not a method.")
+    store.put_experiment(replace(experiment, documents=(doc,)), allow_unassigned=True)
+    order = procedure_drafts.create(store, "proj", "R")
+    data = {"request_id": "r1"}
+    assert first_draft._compile(store, order, "R", data, "fp", None)["state"] == "drafting"
+
+
+def test_worker_draft_path_pins_library_text(store):
+    from labfactory import library
+    _project_lab(store)
+    entry = library.add(store, "Ana", "Wavelength accuracy is checked with the internal filter.", source_id=CARY_ID)
+    resource = _procedure(store, "Ask a worker to draft a procedure to check wavelength accuracy on the Agilent Cary 60")
+    assert [item["entry_id"] for item in resource["library"]] == [entry["id"]]
+    assert resource["briefing"]["references"][0]["document_id"] == "library:" + CARY_ID
+    findings = briefing.load(store, resource["id"])["reference_library"]["findings"]
+    assert [f["id"] for f in findings if f.get("document_id") == "library:" + CARY_ID] == [CARY_ID]
+
+
+def test_colliding_library_document_is_not_claimed(store):
+    from labfactory import library
+    from labfactory.context import Document
+    _project_lab(store)
+    root, _ = store.get_experiment("proj")
+    store.put_experiment(replace(root, documents=(Document("library:" + CARY_ID, "note", "Mine", "me", "Mine."),)))
+    library.add(store, "Ana", "Wavelength accuracy is checked with the internal filter.", source_id=CARY_ID)
+    resource = _procedure(store, CARY_OBJECTIVE)
+    assert "library" not in resource
+    assert not any("document_id" in f for f in briefing.load(store, resource["id"])["reference_library"]["findings"])
+
+
+def test_pinned_text_is_capped_in_total_size(store, monkeypatch):
+    from labfactory import library
+    assert library.MAX_PINNED_BYTES == 512 * 1024
+    monkeypatch.setattr(library, "MAX_PINNED_BYTES", 1000)
+    _project_lab(store)
+    first = library.add(store, "Ana", "Wavelength accuracy. " + "x" * 600, source_id=CARY_ID)
+    library.add(store, "Ana", "Moisture. " + "x" * 600, source_id="ihc-2009-honey-moisture")
+    small = library.add(store, "Ana", "Small note.", title="Wavelength accuracy checklist", lab_id="lab")
+    brief = {"reference_library": {"findings": [{"id": CARY_ID}, {"id": "ihc-2009-honey-moisture"}]}}
+    entries = investigations._library_entries(store, "lab", brief, "Wavelength accuracy checklist")
+    assert [e["id"] for e in entries] == [first["id"], small["id"]]
+    assert sum(e["bytes"] for e in entries) <= library.MAX_PINNED_BYTES
+
+
+def test_library_read_failure_after_the_transaction_ended_is_not_hidden(store):
+    import sqlite3
+    class Gone:
+        in_transaction = False
+        def execute(self, *a, **k):
+            raise sqlite3.OperationalError("gone")
+    store.connection, real = Gone(), store.connection
+    try:
+        with pytest.raises(sqlite3.OperationalError):
+            investigations._library_entries(store, "lab", {"reference_library": {"findings": [{"id": CARY_ID}]}}, "x")
+    finally:
+        store.connection = real
+
+
+def test_new_procedure_pins_the_labs_own_contributed_text(store, monkeypatch):
+    from labfactory import source_drafter
+    monkeypatch.setattr(source_drafter, "available", lambda: True)
     from labfactory import library
     lab_id = _project_lab(store)
     library.add(store, "Ana", "Zero the archive balance before use.", title="Archive balance worksheet", lab_id=lab_id)

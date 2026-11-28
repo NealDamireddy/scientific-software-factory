@@ -637,16 +637,22 @@ function sourceTextForm(source, saved) {
   form.append(label, text, element("p", "Shared with every lab. Workers can cite it on new procedure work. Paste only text you may share.", "muted"), error, submit);
   details.append(form);
   let loaded = !source.library_text;
+  // Revising starts from the current text, so nothing can be saved until it has loaded.
+  text.disabled = submit.disabled = !loaded;
+  let loading = false;
   details.addEventListener("toggle", async () => {
-    if (!details.open || loaded) return;
-    loaded = true;
+    if (!details.open || loaded || loading) return;
+    loading = true;
     try {
       const {entries} = await api("library");
       const entry = entries.find(item => item.source_id === source.id);
-      if (entry && !text.value) text.value = (await api("library/" + encodeURIComponent(entry.id))).text;
+      if (entry) text.value = (await api("library/" + encodeURIComponent(entry.id))).text;
+      loaded = true;
+      text.disabled = submit.disabled = false;
     } catch (failure) {
-      loaded = false;
       formError(form, failure.message);
+    } finally {
+      loading = false;
     }
   });
   handleForm(form, async data => {

@@ -5,7 +5,7 @@ import { BookOpen, ChartColumn, ChevronRight, ClipboardList, FileSpreadsheet, Fi
 import type { Procedure } from "./research-api";
 import { apiUrl, researchRequest } from "./research-api";
 import { AppDetail, DraftDetail, Notice, useRead } from "./research-workflows";
-import { formatBytes, scopeLabel, shareable, type LibraryEntry } from "./library-model";
+import { formatBytes, replacesShared, scopeLabel, shareable, type LibraryEntry } from "./library-model";
 
 export type Project = { id: string; title: string; lab_id?: string; lab_name?: string; hypothesis?: string };
 export type Resource = {
@@ -105,7 +105,7 @@ function ResourceItem({item, projectId, showByDefault = false, objective, experi
       ? <DraftDetail key={draft} id={draft} open={setDraft} embedded/> : <WorkerProcedure id={item.id}/>}</div>}
     {item.kind === "procedure" && item.status === "released" &&
       <a href={"#analysis/new?" + new URLSearchParams({project:projectId, procedure:item.id, ...(experimentId && {experiment:experimentId})})}>Use this procedure for a tabular analysis</a>}
-    {(item.briefing || item.library?.length) && <details className="project-briefing">
+    {!!(item.briefing || item.library?.length) && <details className="project-briefing">
       <summary>Agent briefing</summary>
       {!!item.briefing?.skills.length && <p>Skills · {item.briefing.skills.map((s, n) =>
         <span key={s.id}>{n > 0 && ", "}<span title={s.version}>{s.name}</span></span>)}</p>}
@@ -242,11 +242,12 @@ function AttachFromProject({items, save}: {items: Resource[]; save: SaveMetadata
 function LabLibrary({labId}: {labId: string}) {
   const {data, error, refresh} = useRead<{entries: LibraryEntry[]}>("library?lab_id=" + encodeURIComponent(labId));
   const [failure, setFailure] = useState("");
-  async function share(entry: LibraryEntry) {
-    if (!window.confirm("Share “" + entry.title + "” with every lab? This cannot be undone.")) return;
+  async function share(entry: LibraryEntry, entries: LibraryEntry[]) {
+    const consequence = replacesShared(entry, entries) ? "It replaces the shared text every lab uses for this source. " : "";
+    if (!window.confirm("Share “" + entry.title + "” with every lab? " + consequence + "This cannot be undone.")) return;
     setFailure("");
     try {
-      await researchRequest("library/" + entry.id + "/share", {});
+      await researchRequest("library/" + entry.id + "/share", {lab_id: labId});
       refresh();
     } catch (problem) {
       setFailure(problem instanceof Error ? problem.message : "Sharing failed.");
@@ -260,7 +261,7 @@ function LabLibrary({labId}: {labId: string}) {
       : <ul>{data.entries.map(e => <li key={e.id}>
         <strong>{e.title}</strong>
         <small>{scopeLabel(e.scope)} · {formatBytes(e.bytes)} · {e.contributed_by} · revision {e.revision}</small>
-        {shareable(e, data.entries) && <button className="ws-button" onClick={() => share(e)}>Share with all labs</button>}
+        {shareable(e, data.entries) && <button className="ws-button" onClick={() => share(e, data.entries)}>Share with all labs</button>}
       </li>)}</ul>)}
   </section>;
 }

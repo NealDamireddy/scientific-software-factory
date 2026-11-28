@@ -53,8 +53,7 @@ def test_order_without_pins_is_unchanged(store, setup):
 def test_pinned_text_is_unchanged_after_the_source_is_revised(store, setup):
     first = library.add(store, "Ana", TEXT, source_id=CARY)
     order = order_for(store, setup, first)
-    second = library.add(store, "Ana", "Different text.", source_id=CARY)
-    library.share(store, "Ana", second["id"])
+    library.add(store, "Ana", "Different text.", source_id=CARY)
     docs = WorkOrders(store).pinned_context(order.id)[1].documents
     assert docs[0].text == TEXT
     assert library.pinned(store, order.id)[0]["revision"] == 1
@@ -116,3 +115,45 @@ def test_answer_document_is_still_last_when_library_documents_are_pinned(store, 
     docs = orders.pinned_context(new)[1].documents
     assert docs[-1].title == "Method note" and docs[0].id == "library:" + CARY
     assert not any(d.id.startswith("library:") for d in store.get_experiment(setup.id)[0].documents)
+
+
+def test_order_context_shows_pinned_library_documents(store, setup):
+    from labfactory import experiment_catalog
+    entry = library.add(store, "Ana", TEXT, source_id=CARY)
+    pinned = order_for(store, setup, entry)
+    plain = order_for(store, setup)
+    shown = experiment_catalog.order_context(store, pinned.id)
+    assert [d["id"] for d in shown["experiment"]["documents"]] == ["library:" + CARY, "own"]
+    assert shown["library"] == library.pinned(store, pinned.id) != []
+    stored = experiment_catalog.order_context(store, plain.id)
+    exp, exp_rev = store.get_experiment(setup.id)
+    lab, lab_rev = store.get_lab(exp.lab_id)
+    from labfactory.context import to_dict
+    assert stored == {"experiment": to_dict(exp), "experiment_revision": exp_rev.number,
+                      "lab": to_dict(lab), "lab_revision": lab_rev.number, "library": []}
+    assert {k: v for k, v in shown.items() if k not in ("experiment", "library")} == {
+        k: v for k, v in stored.items() if k not in ("experiment", "library")}
+    assert {k: v for k, v in shown["experiment"].items() if k != "documents"} == {
+        k: v for k, v in stored["experiment"].items() if k != "documents"}
+
+
+def test_citation_names_the_library_source_and_revision(store, setup):
+    shared = library.add(store, "Ana", TEXT, source_id=CARY)
+    order = order_for(store, setup, shared)
+    orders = WorkOrders(store)
+    cited = orders.citation(order.id, "library:" + CARY)
+    assert (cited.origin, cited.record_id, cited.revision) == ("library", CARY, 1)
+    assert cited.document.text == TEXT
+    own = orders.citation(order.id, "own")
+    assert (own.origin, own.record_id) == ("experiment", setup.id)
+    library.add(store, "Ana", "Newer.", source_id=CARY)
+    assert orders.citation(order.id, "library:" + CARY).revision == 1
+
+
+def test_cli_cite_prints_the_library_origin(tmp_path, capsys, setup, store):
+    from labfactory.cli import main
+    entry = library.add(store, "Ana", TEXT, source_id=CARY)
+    order = order_for(store, setup, entry)
+    path = store.connection.execute("PRAGMA database_list").fetchone()["file"]
+    assert main(["--db", path, "wo", "citation", order.id, "library:" + CARY]) == 0
+    assert capsys.readouterr().out.splitlines()[0] == f"library {CARY} revision 1"

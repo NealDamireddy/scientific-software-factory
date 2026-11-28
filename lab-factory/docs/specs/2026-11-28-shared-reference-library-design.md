@@ -100,10 +100,10 @@ it like any other pinned document. Every other finding is a pointer, not evidenc
 cite it. When a needed method detail or instrument setting is missing from the pinned context, name
 the matching source and its locator in your question so the researcher can supply the passage.`
 
-**Consequence to know.** A procedure request with pinned text goes to the model-backed source
-drafter instead of returning an immediate question, because the project now has documents. Where no
-drafter can run (the hosted deployment today), that request waits. The background runner removes
-this; until then it happens only once someone has added text for a matching source.
+**Consequence to know.** Where a source drafter is available, a procedure request with pinned text
+goes to it instead of returning an immediate question, because the project now has documents. Where
+none is (the hosted deployment today), the request keeps its immediate question and its pins, and the
+text is used once a drafter exists.
 
 ## Left to the builder
 

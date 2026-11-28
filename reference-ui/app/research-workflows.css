@@ -72,6 +72,9 @@
 .project-lab-library small {
   color: var(--muted);
 }
+.project-lab-library .ws-button {
+  justify-self: start;
+}
 .project-investigations {
   margin-block: var(--space-6) var(--space-5);
 }

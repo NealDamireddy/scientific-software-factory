@@ -111,15 +111,25 @@ def test_latest_lists_one_row_per_source_and_scope(store):
 
 def test_share_points_at_the_same_text(store):
     own = library.add(store, "Ana", TEXT, source_id=CARY, lab_id="lab-a")
-    shared = library.share(store, "Ben", own["id"])
+    shared = library.share(store, "Ben", own["id"], "lab-a")
     assert shared["scope"] == "shared" and shared["source_id"] == CARY
     assert shared["digest"] == own["digest"] and shared["contributed_by"] == "Ben"
     assert (shared["title"], shared["kind"], shared["origin"]) == (own["title"], own["kind"], own["origin"])
     assert count(store, "library_texts") == 1
-    assert library.share(store, "Cy", own["id"])["id"] == shared["id"]
-    assert library.share(store, "Cy", shared["id"]) == shared
+    assert library.share(store, "Cy", own["id"], "lab-a")["id"] == shared["id"]
     with pytest.raises(NotFound):
-        library.share(store, "Ben", 9999)
+        library.share(store, "Ben", 9999, "lab-a")
+
+
+def test_share_requires_an_entry_of_the_named_lab(store):
+    own = library.add(store, "Ana", TEXT, source_id=CARY, lab_id="lab-a")
+    shared = library.add(store, "Ana", "Shared.", source_id=HONEY)
+    entries = count(store, "library_entries")
+    for entry_id, lab_id in ((own["id"], "lab-b"), (own["id"], None), (own["id"], ""), (own["id"], 5),
+                             (shared["id"], "lab-a"), (shared["id"], "shared")):
+        with pytest.raises(ContextError, match="Choose an entry from this lab."):
+            library.share(store, "Ben", entry_id, lab_id)
+    assert count(store, "library_entries") == entries
 
 
 def test_catalog_paper_stays_a_paper(store):
@@ -133,6 +143,46 @@ def test_add_cannot_reach_another_labs_private_source(store):
         with pytest.raises(ContextError, match="Unknown library source."):
             library.add(store, "Bo", "x", source_id=own["source_id"], lab_id=lab)
     assert count(store, "library_entries") == 1 and count(store, "library_texts") == 1
-    library.share(store, "Ana", own["id"])
+    library.share(store, "Ana", own["id"], "lab-a")
     revised = library.add(store, "Bo", "x", source_id=own["source_id"], lab_id="lab-b")
     assert revised["scope"] == "lab:lab-b" and revised["title"] == "Balance worksheet"
+
+
+def test_append_accumulates_passages_for_a_lab(store):
+    first = library.append(store, "Ana", "Passage A.", source_id=CARY, lab_id="lab-a")
+    assert first["revision"] == 1 and first["scope"] == "lab:lab-a"
+    second = library.append(store, "Ana", "Passage B.", source_id=CARY, lab_id="lab-a")
+    assert second["revision"] == 2
+    assert library.get(store, second["id"])["text"] == "Passage A.\n\nPassage B."
+    again = library.append(store, "Ana", "Passage A.", source_id=CARY, lab_id="lab-a")
+    assert again["id"] == second["id"] and again["revision"] == 2
+    assert count(store, "library_entries") == 2
+
+
+def test_append_builds_on_shared_text_without_hiding_it(store):
+    shared = library.add(store, "Ana", "Full manual text.", source_id=CARY)
+    mine = library.append(store, "Ben", "Lab note.", source_id=CARY, lab_id="lab-a")
+    assert mine["scope"] == "lab:lab-a" and mine["kind"] == shared["kind"] and mine["title"] == shared["title"]
+    assert library.get(store, mine["id"])["text"] == "Full manual text.\n\nLab note."
+    other = library.append(store, "Ben", "Full manual", source_id=CARY, lab_id="lab-b")
+    assert other["id"] == shared["id"]
+    assert library.visible(store, "lab-b")[CARY]["id"] == shared["id"]
+    assert count(store, "library_entries") == 2
+
+
+def test_append_rejects_a_combined_text_over_the_limit(store):
+    base = "x" * (library.MAX_TEXT_BYTES - 5)
+    library.add(store, "Ana", base, source_id=CARY, lab_id="lab-a")
+    entries = count(store, "library_entries")
+    with pytest.raises(ContextError, match="limited to"):
+        library.append(store, "Ana", "y" * 10, source_id=CARY, lab_id="lab-a")
+    assert count(store, "library_entries") == entries and count(store, "library_texts") == 1
+
+
+def test_append_without_a_base_acts_like_add(store):
+    entry = library.append(store, "Ana", "Weigh the boat.", title="Balance worksheet", lab_id="lab-a")
+    assert re.fullmatch(r"contributed-[0-9a-f]{16}", entry["source_id"])
+    with pytest.raises(ContextError):
+        library.append(store, "Ana", "Text.", source_id="nope", lab_id="lab-a")
+    with pytest.raises(ContextError):
+        library.append(store, "Ana", "  ", source_id=CARY, lab_id="lab-a")

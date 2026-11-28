@@ -8,7 +8,7 @@ For a CLI upload of the Lab Factory directory alone, first run `npm ci` and `npm
 
 ## Who can review
 
-The shared Vercel demo uses public reviewer access. Anyone with the URL may read all work orders, download uploaded protocols and readings, inspect numerical control reports, approve or reject a numbered submission, and run an approved analysis. Public reviewers may also submit jobs and supply replacement controls when the workflow allows it. This applies to records uploaded before public review was enabled as well as new uploads. The history keeps prior decisions and attributes new public decisions to a single shared identity.
+The shared Vercel demo uses public reviewer access. Anyone with the URL may read all work orders, download uploaded protocols and readings, inspect numerical control reports, approve or reject a numbered submission, and run an approved analysis. Public reviewers may also submit jobs and supply replacement controls when the workflow allows it. This applies to records uploaded before public review was enabled as well as new uploads. The history keeps prior decisions and attributes new public decisions to a single shared identity. In that mode anyone with the URL can also read all reference library text, including entries scoped to a single lab, add shared text that is pinned into every lab's new procedure work and sent to its worker, and share any entry.
 
 Other deployments use named reviewer sign-in by default. Set `LABFACTORY_PUBLIC_REVIEW=1` and redeploy to enable public review. To restore named sign-in, configure the reviewer map and session key, remove the flag, and redeploy. MCP workers require their own bearer tokens in both modes.
 

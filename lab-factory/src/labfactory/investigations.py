@@ -216,7 +216,7 @@ def _terms(text):
     return {w.removesuffix("s") for w in re.findall(r"[^\W_]+", text.casefold()) if w not in _STOP and len(w) > 1}
 
 
-def _library_entries(store, lab_id, brief, objective):
+def _library_entries(store, lab_id, brief, objective, taken=frozenset()):
     """Entries to pin: visible text for the matched catalog findings, then the lab's own contributed titles."""
     try:
         ids = [row["id"] for row in ((brief or {}).get("reference_library") or {}).get("findings", [])]
@@ -226,8 +226,17 @@ def _library_entries(store, lab_id, brief, objective):
         ranked = sorted(((len(wanted & _terms(e["title"])), e) for e in texts.visible(store, lab_id).values()
                          if e["source_id"].startswith("contributed-")), key=lambda p: (-p[0], p[1]["title"]))
         entries += [e for count, e in ranked if count >= 2][:3]
-        return entries[:texts.MAX_PINNED]
+        chosen, size = [], 0
+        for entry in entries:
+            # A document id the project already holds is skipped at resolution, so it must not be claimed.
+            if entry["document_id"] in taken or size + entry["bytes"] > texts.MAX_PINNED_BYTES:
+                continue
+            chosen.append(entry)
+            size += entry["bytes"]
+        return chosen[:texts.MAX_PINNED]
     except Exception:
+        if not store.connection.in_transaction:
+            raise  # A failed read that ended the transaction must not be hidden.
         return []
 
 
@@ -452,8 +461,8 @@ def resolve(store, actor, data):
                 child = "investigation-" + key
                 store.put_experiment(replace(root, id=child, title=objective, goal=objective), allow_unassigned=True)
                 brief = briefing.build("procedure", skills, objective, instruments)
-                entries = _library_entries(store, lab.id, brief, objective)
-                brief = briefing.mark_pinned(brief, {e["source_id"]: e["document_id"] for e in entries})
+                entries = _library_entries(store, lab.id, brief, objective,
+                                           {doc.id for doc in (*lab.documents, *root.documents)})
                 if worker_draft:
                     order = procedure_drafts.create(store, child, actor)
                     texts.pin(store, order.id, entries)
@@ -464,10 +473,12 @@ def resolve(store, actor, data):
                                               library_entries=entries)
                     selected.append(dict(kind=category, id=draft["order"]["id"], title=objective, status=draft["state"],
                                          automatic=True, reused=False))
+                pinned = texts.pinned(store, selected[-1]["id"])
+                brief = briefing.mark_pinned(brief, {p["source_id"]: p["document_id"] for p in pinned})
                 briefing.save(store, selected[-1]["id"], brief)
                 if brief:
                     selected[-1]["briefing"] = briefing.summary(brief)
-                if pinned := texts.pinned(store, selected[-1]["id"]):
+                if pinned:
                     selected[-1]["library"] = pinned
             else:
                 selection = sources if sources is not None else {

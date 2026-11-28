@@ -101,7 +101,7 @@ def test_capture_failure_does_not_fail_the_answer(store, asked, monkeypatch):
     order_id, _ = asked
     def refuse(*args, **kwargs):
         raise ContextError("x")
-    monkeypatch.setattr(library, "add", refuse)
+    monkeypatch.setattr(library, "append", refuse)
     assert WorkOrders(store).get(drafts.add_source(store, order_id, "Reviewer", "T", "Read the mass."))
 
 
@@ -109,7 +109,7 @@ def test_unexpected_capture_failure_propagates(store, asked, monkeypatch):
     order_id, _ = asked
     def broken(*args, **kwargs):
         raise sqlite3.OperationalError("x")
-    monkeypatch.setattr(library, "add", broken)
+    monkeypatch.setattr(library, "append", broken)
     with pytest.raises(sqlite3.OperationalError):
         drafts.add_source(store, order_id, "Reviewer", "T", "Read the mass.")
 
@@ -197,3 +197,27 @@ def test_skipped_capture_does_not_roll_back_the_answer(client, uvvis_lab_dict, b
     assert res.status_code == 201
     assert client.get(f"/api/orders/{res.json()['id']}").status_code == 200
     assert library_rows() == [0, 0, 0]
+
+
+def test_two_attributed_answers_keep_both_passages(store, asked):
+    order_id, lab_id = asked
+    library.add(store, "Ada", "Full manual text.", source_id=CATALOG)
+    first = drafts.add_source(store, order_id, "Reviewer", "T", "Passage A.", source_id=CATALOG)
+    AgentTools(store).claim_work_order(first, "worker")
+    AgentTools(store).submit_artifact(first, "worker", QUESTION)
+    drafts.add_source(store, first, "Reviewer", "T", "Passage B.", source_id=CATALOG)
+    entry = library.visible(store, lab_id)[CATALOG]
+    text = library.get(store, entry["id"])["text"]
+    assert entry["scope"] == library.lab_scope(lab_id) and entry["revision"] == 2
+    assert text == "Full manual text.\n\nPassage A.\n\nPassage B."
+
+
+def test_two_answers_with_the_same_title_keep_both_passages(store, asked):
+    order_id, lab_id = asked
+    first = drafts.add_source(store, order_id, "Reviewer", "Balance worksheet", "Passage A.")
+    AgentTools(store).claim_work_order(first, "worker")
+    AgentTools(store).submit_artifact(first, "worker", QUESTION)
+    drafts.add_source(store, first, "Reviewer", "balance worksheet", "Passage B.")
+    (entry,) = library.latest(store, lab_id)
+    assert entry["revision"] == 2
+    assert library.get(store, entry["id"])["text"] == "Passage A.\n\nPassage B."

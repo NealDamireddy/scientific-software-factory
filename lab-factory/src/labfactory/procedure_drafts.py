@@ -202,10 +202,10 @@ def add_source(store, order_id, reviewer, title, text, source_id=None):
                                      (new.id, canonical_json(brief)))
         if draft["demo"]:
             procedure_demo.submit_with_method(orders, new.id, doc)
-        elif len(text.strip().encode("utf-8", "replace")) <= library.MAX_TEXT_BYTES:
-            try:  # Validation failures only: they are raised before library.add opens a transaction.
-                library.add(store, reviewer, text.strip(), source_id=source_id, title=title.strip(),
-                            lab_id=order.lab_id)
+        else:
+            try:  # Validation failures only: they are raised before library.append opens a transaction.
+                library.append(store, reviewer, text.strip(), source_id=source_id, title=title.strip(),
+                               lab_id=order.lab_id)
             except ContextError:
                 pass
         return new.id
