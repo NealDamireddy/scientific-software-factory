@@ -27,18 +27,20 @@ const label = (state: string) => state.replaceAll("_", " ");
 const message = (failure: unknown) =>
   failure instanceof Error ? failure.message : "Lab Factory is unavailable.";
 
-export function useRead<T>(path: string, pending?: (value:T) => boolean) {
+export function useRead<T>(path: string | undefined, pending?: (value:T) => boolean) {
   const [data, setData] = useState<T>();
   const [error, setError] = useState("");
   const [version, setVersion] = useState(0);
   useEffect(() => {
-    const controller = new AbortController();
     setData(undefined);
     setError("");
+    if (!path) return;
+    const requestPath = path;
+    const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
     async function read() {
       try {
-        const value = await researchRequest<T>(path, undefined, controller.signal);
+        const value = await researchRequest<T>(requestPath, undefined, controller.signal);
         if (controller.signal.aborted) return;
         setData(value);
         if (pending?.(value)) timer = setTimeout(read, 3000);

@@ -31,9 +31,19 @@ def projects(store):
     """)}
     hypotheses = {row["project_id"]: row["hypothesis"] for row in store.connection.execute(
         "SELECT project_id,hypothesis FROM research_project_info")}
-    summaries = [dict(row, lab_name=lab_names[row["lab_id"]], hypothesis=hypotheses.get(row["id"], ""))
-                 for row in experiment_catalog.list_experiments(store)["experiments"] if row["id"] not in children]
-    labs = {row["lab_id"]: row["lab_name"] for row in summaries}
+    summaries = []
+    internal_labs = set()
+    project_labs = set()
+    for row in experiment_catalog.summary_rows(store):
+        lab_id = row["lab_id"]
+        if experiment_catalog.is_generated(row["id"], lab_id):
+            internal_labs.add(lab_id)
+        elif row["id"] not in children:
+            summaries.append(dict(row, lab_name=lab_names[lab_id], hypothesis=hypotheses.get(row["id"], "")))
+            project_labs.add(lab_id)
+    # A newly registered lab is selectable even before it owns a project.
+    # Keep labs used only for generated uploads and demos out of the picker.
+    labs = {key: name for key, name in lab_names.items() if key not in internal_labs or key in project_labs}
     if not labs:
         labs[_WORKSPACE_LAB.id] = _WORKSPACE_LAB.name
     return {"projects": summaries, "labs": [{"id": key, "name": name} for key, name in labs.items()],
@@ -148,7 +158,14 @@ def resources(store, project, *, include_history=False):
     args = (project, project)
     result = []
     for r in db.execute(f"""
-        SELECT o.id, o.objective, o.status, o.released_submission, s.artifact_digest,
+        SELECT o.id, o.objective,
+               CASE WHEN d.work_order_id IS NOT NULL THEN 'superseded'
+                    WHEN o.status='in_progress' AND (
+                        SELECT json_extract(latest.artifact,'$.needs_input') FROM submissions latest
+                        WHERE latest.work_order_id=o.id ORDER BY latest.number DESC LIMIT 1
+                    ) IS NOT NULL THEN 'needs_input'
+                    ELSE o.status END AS status,
+               o.released_submission, s.artifact_digest,
                a.work_order_id AS automatic, d.work_order_id AS next_order FROM work_orders o
         LEFT JOIN automatic_procedures a ON a.work_order_id=o.id
         LEFT JOIN procedure_drafts d ON d.previous_order=o.id
@@ -237,9 +254,20 @@ _DAY = r"\b(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b"
 _FILENAME = r"[\w.-]+\.csv\b"
 
 
+def _app_terms(text):
+    # A shared input is evidence of compatibility, not of what the app does.
+    lower = re.sub(_FILENAME, " ", text.casefold())
+    terms = _terms(lower)
+    terms.update(re.findall(r"\b(?:plot|graph|chart|compare|calculate|estimate)\b", lower))
+    return terms
+
+
+def _mentions(lower, value):
+    return re.search(r"(?<!\w)" + re.escape(value.casefold()) + r"(?!\w)", lower)
+
+
 def _named(lower, pool):
-    return [a for a in pool if re.search(r"(?<!\w)" + re.escape(a["id"].casefold()) + r"(?!\w)", lower) or
-             re.search(r"(?<!\w)" + re.escape(a["title"].casefold()) + r"(?!\w)", lower)]
+    return [a for a in pool if _mentions(lower, a["id"]) or _mentions(lower, a["title"])]
 
 
 def _candidates(text, pool, kind):
@@ -247,8 +275,9 @@ def _candidates(text, pool, kind):
     named = _named(lower, pool)
     if named:
         return named
-    terms = _terms(text)
-    scored = [(len(terms & _terms(a["title"])), a) for a in pool]
+    extract = _app_terms if kind == "app" else _terms
+    terms = extract(text)
+    scored = [(len(terms & extract(a["title"])), a) for a in pool]
     best = max((n for n, _ in scored), default=0)
     if kind == "data":
         # A named file or weekday cannot silently resolve to a different acquisition.
@@ -276,16 +305,79 @@ def _scientific_question(objective):
     return bool(re.match(r"(?:does|do|did|is|are|was|were|has|have|what|when|where|why|how|which|whether|can|could|will|would)\b", lower))
 
 
-def _relative_readings(store, project, experiment, objective, assets):
-    if not experiment or not re.search(r"\b(?:this|these|that|those|attached)\s+(?:data(?:sets?)?|files?|readings)\b", objective, re.I):
-        return []
-    # Named files and acquisition days always search across the whole project.
-    project_data = [item for item in assets if item["kind"] == "data"]
-    if re.search(_FILENAME + "|" + _DAY, objective, re.I) or _named(objective.casefold(), project_data):
-        return []
-    records, _ = research_experiments.project_records(store, project, assets)
-    record = next(r for r in records if r["id"] == experiment)
-    return [item for item in record["resources"] if item["kind"] == "data"]
+_RELATIVE_DATA = r"\b(?:this|these|that|those|attached)\s+(?:data(?:sets?)?|files?|readings)\b"
+
+
+def _dataset_groups(store, project, experiment, objective, pool, all_assets):
+    lower = objective.casefold()
+    labels = {value.casefold() for item in pool for value in (item["title"], item["id"]) if value.casefold() in lower}
+    patterns = [re.escape(label) for label in sorted(labels, key=len, reverse=True)]
+    if experiment:
+        patterns.append(_RELATIVE_DATA)
+    patterns.append(_FILENAME)
+    if not labels and not re.search(_FILENAME, lower):
+        patterns.append(_DAY)
+    references = dict.fromkeys(re.findall(r"(?<!\w)(?:" + "|".join(patterns) + r")(?!\w)", lower))
+    groups = []
+    for label in references:
+        if experiment and re.fullmatch(_RELATIVE_DATA, label):
+            records, _ = research_experiments.project_records(store, project, all_assets)
+            record = next(r for r in records if r["id"] == experiment)
+            candidates = _current_project_resources([r for r in record["resources"] if r["kind"] == "data"])
+            if not candidates and len(references) == 1:
+                # With no attached input, a standalone reference retains the project-wide default.
+                label, candidates = "", _candidates(objective, pool, "data")
+        elif label in labels:
+            candidates = [r for r in pool if label in (r["title"].casefold(), r["id"].casefold())]
+        elif re.fullmatch(_DAY, label):
+            candidates = [r for r in pool if label in _terms(r["title"])]
+        else:
+            candidates = []
+        groups.append((label, candidates))
+    return groups or [("", _candidates(objective, pool, "data"))]
+
+
+def _dataset_selection(store, project, experiment, objective, pool, all_assets, choices):
+    groups = _dataset_groups(store, project, experiment, objective, pool, all_assets)
+    selected = []
+    pending = {field: value for field, value in choices.items() if field == "data" or field.startswith("data:")}
+    choice_number = 0
+    for label, candidates in groups:
+        if len(candidates) == 1 and len(groups) > 1:
+            selected.append(candidates[0])
+            continue
+        choice_number += 1
+        field = "data" if choice_number == 1 else f"data:{choice_number}"
+        choice = pending.pop(field, None)
+        if choice == "new":
+            continue
+        missing = bool(label and not candidates)
+        options = pool if missing else candidates
+        if choice:
+            match = next((r for r in options if r["id"] == choice), None)
+            if not match:
+                raise WorkOrderError("The selected project record has changed. Submit the request again.")
+            selected.append(match)
+        elif len(candidates) == 1:
+            selected.append(candidates[0])
+        elif options or missing:
+            subject = f" for ‘{label}’" if label else ""
+            prompt = f"Which saved dataset should this investigation use{subject}?"
+            if missing:
+                prompt = f"The dataset for ‘{label}’ was not found. Which project file would you like to use?"
+            answers = [(r["id"], r["title"] + " · " + r["id"]) for r in options]
+            answers.append(("new", "Use another file later"))
+            return [], _question(field, prompt, answers)
+    if choice_number == 0 and "data" in pending:
+        # A caller can explicitly opt out even when all references already resolve.
+        choice = pending.pop("data")
+        if choice == "new":
+            selected = []
+        elif not any(item["id"] == choice for item in selected):
+            raise WorkOrderError("The selected project record has changed. Submit the request again.")
+    if pending:
+        raise WorkOrderError("The selected project record has changed. Submit the request again.")
+    return _current_project_resources(selected), None
 
 
 def resolve(store, actor, data):
@@ -296,8 +388,9 @@ def resolve(store, actor, data):
         raise ContextError("Supply an investigation UUID.") from None
     if not isinstance(project, str) or not isinstance(objective, str) or not 0 < len(objective.strip()) <= 4000:
         raise ContextError("Choose a project and supply an objective up to 4000 characters.")
-    if not isinstance(choices, dict) or set(choices) - {"kind", "data", "procedure", "app"} or not all(
-            isinstance(v, str) for v in choices.values()):
+    if not isinstance(choices, dict) or not all(
+            isinstance(field, str) and re.fullmatch(r"kind|procedure|app|data(?::(?:[2-9]|[1-9]\d+))?", field)
+            and isinstance(value, str) for field, value in choices.items()):
         raise ContextError("Invalid investigation choices.")
     experiment = data.get("experiment_id")
     if ("experiment_id" in data and not isinstance(experiment, str)) or type(data.get("start_experiment", False)) is not bool:
@@ -327,7 +420,6 @@ def resolve(store, actor, data):
             raise WorkOrderError("This ID was already used for another experiment.")
         all_assets = resources(store, project, include_history=True)
         assets = _current_project_resources(all_assets)
-        attached_data = _relative_readings(store, project, experiment, objective, all_assets)
         kind = choices.get("kind") or intent(objective)
         if not kind:
             named_kinds = {"app" if a["kind"] == "data" else a["kind"] for a in _named(objective.casefold(), assets)}
@@ -347,28 +439,23 @@ def resolve(store, actor, data):
         worker_draft = kind == "procedure" and re.search(r"\b(?:worker|agent)\b", objective, re.I) and re.search(r"\bdraft\b", objective, re.I)
         picked = {}
         datasets = []
-        categories = ["data", "procedure", "app"] if "app" in kinds else ["procedure"]
+        if "app" in kinds:
+            datasets, question = _dataset_selection(store, project, experiment, objective,
+                                                   [a for a in assets if a["kind"] == "data"], all_assets, choices)
+            if question:
+                return question
+        categories = ["procedure", "app"] if "app" in kinds else ["procedure"]
         for category in categories:
             reference_only = category == "procedure" and category not in kinds
-            pool = [a for a in assets if a["kind"] == category and
-                    (category == "data" or a["status"] in ("ready", "released"))]
-            options = attached_data if category == "data" and attached_data else _candidates(objective, pool, category)
-            incomplete_set = False
-            if category == "data" and category not in choices:
-                names = list(dict.fromkeys(re.findall(_FILENAME, objective.casefold())))
-                if len(names) > 1:
-                    named_files = [[r for r in pool if r["title"].casefold() == name] for name in names]
-                    if all(len(group) == 1 for group in named_files):
-                        datasets = [group[0] for group in named_files]
-                        continue
-                    incomplete_set = any(not group for group in named_files)
+            pool = [a for a in assets if a["kind"] == category and a["status"] in ("ready", "released")]
+            options = _candidates(objective, pool, category)
             if reference_only and not _terms(objective) and not re.search(_PROC, objective, re.I):
                 options = []
             methods = {dataset.get("procedure_id") for dataset in datasets}
             source_procedure = next(iter(methods)) if len(methods) == 1 else None
             if reference_only and source_procedure and not options:
                 options = [a for a in pool if a["id"] == source_procedure]
-            if not options and category != "data" and not reference_only:
+            if not options and not reference_only:
                 options = [a for a in assets if a["kind"] == category and a["title"].casefold() == objective.casefold()]
             if category == "app" and len(datasets) > 1:
                 digests = sorted(d["digest"] for d in datasets)
@@ -379,26 +466,27 @@ def resolve(store, actor, data):
                 applicable = [a for a in pool if (not a.get("tabular") or dataset["id"].startswith(a["id"] + "/"))
                               and not a.get("dataset_digests") and (not a.get("columns") or a["columns"] == dataset["columns"])]
                 options = [a for a in options if a in applicable or a["status"] not in ("ready", "released")]
-                remaining = _terms(objective) - _terms(dataset["title"])
-                if not options and not remaining and not re.search(r"\b(plot|graph|chart)\b", objective, re.I):
+                if not options and not _app_terms(objective):
                     options = [a for a in applicable if dataset["id"].startswith(a["id"] + "/")
                                or a.get("dataset_digest") == dataset["digest"]]
             if category == "app" and "procedure" in picked:
                 options = [a for a in options if not a.get("procedure_id") or a["procedure_id"] == picked["procedure"]["id"]]
             if worker_draft and category == "procedure":
                 options = []
-            if not reference_only and category != "data" and re.search(r"\b(?:brand[- ]new|create a new|build a new|draft a new)\b", objective, re.I):
+            if not reference_only and re.search(r"\b(?:brand[- ]new|create a new|build a new|draft a new)\b", objective, re.I):
                 options = []
-            missing_file = category == "data" and not options and re.search(_FILENAME + "|" + _DAY, objective, re.I)
-            if incomplete_set:
-                missing_file = True
-            if missing_file:
-                options = pool
             choice = choices.get(category)
-            weak_match = (len(options) == 1 and category != "data"
-                          and options[0]["id"] != source_procedure
+            weak_match = (len(options) == 1 and options[0]["id"] != source_procedure
                           and not _named(objective.casefold(), options)
                           and len(_terms(options[0]["title"]) & _terms(objective)) * 2 < len(_terms(objective)))
+            if category == "app" and len(options) == 1:
+                app = options[0]
+                requested = _app_terms(objective)
+                different_input = (len(datasets) == 1 and app.get("dataset_digest")
+                                   and app["dataset_digest"] != datasets[0]["digest"])
+                same_task = (objective.casefold() == app["title"].casefold()
+                             or bool(requested and requested == _app_terms(app["title"])))
+                weak_match = not _mentions(objective.casefold(), app["id"]) and (different_input or not same_task)
             if choice == "new":
                 continue
             if choice:
@@ -406,19 +494,14 @@ def resolve(store, actor, data):
                 if not match:
                     raise WorkOrderError("The selected project record has changed. Submit the request again.")
                 picked[category] = match
-            elif len(options) == 1 and not (missing_file or weak_match):
+            elif len(options) == 1 and not weak_match:
                 picked[category] = options[0]
-            elif options or missing_file:
-                prompt = {"data": "Which saved dataset should this investigation use?",
-                          "procedure": "Which project procedure fits this request?",
+            elif options:
+                prompt = {"procedure": "Which project procedure fits this request?",
                           "app": "Which project analysis app fits this request?"}[category]
-                if missing_file:
-                    prompt = "That dataset was not found in this project. Which file would you like to use?"
                 options = [(a["id"], a["title"] + " · " + a["id"]) for a in options]
-                options.append(("new", "Use another file later" if category == "data" else "Continue without a procedure" if reference_only else "Create a new " + category))
+                options.append(("new", "Continue without a procedure" if reference_only else "Create a new " + category))
                 return _question(category, prompt, options)
-            if category == "data" and category in picked:
-                datasets = [picked[category]]
         selected = [dict(dataset, reused=True) for dataset in datasets]
         if "procedure" in picked and "procedure" not in kinds:
             selected.append(dict(picked["procedure"], reused=True))

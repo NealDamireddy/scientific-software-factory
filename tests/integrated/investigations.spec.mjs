@@ -113,10 +113,13 @@ test("a project preserves its hypothesis, experiments, findings and follow-up wo
   expect(errors).toEqual([]);
 });
 
-test("a new experiment can use data uploaded through the project's analysis intake", async ({page}) => {
+test("a new experiment can use data uploaded through the project's analysis intake", async ({page, baseURL}) => {
+  const lab = {id: "temperature-lab", name: "Temperature lab", instruments: [], documents: []};
+  await expect(await page.request.post("/api/context/lab", {headers: {Origin: baseURL}, data: lab})).toBeOK();
   await page.goto("/");
   await page.getByRole("button", {name: "Create project", exact: true}).click();
   await page.getByLabel("Project name").fill("Temperature reference archive");
+  await page.getByRole("combobox", {name: "Lab", exact: true}).selectOption({label: lab.name});
   await page.getByRole("dialog").getByRole("button", {name:"Create project"}).click();
   await expect(page.getByRole("link", {name: "Upload project readings"})).toBeVisible();
   const question = "Do thermometers agree across the archived readings?";
