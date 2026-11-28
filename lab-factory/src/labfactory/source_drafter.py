@@ -2,6 +2,7 @@
 
 from dataclasses import asdict
 import json
+import shutil
 import subprocess
 from uuid import uuid4
 
@@ -15,6 +16,11 @@ from .workorders import WorkOrders
 
 WORKER = "Lab Factory source drafter"
 TIMEOUT = 120
+
+
+def available() -> bool:
+    """Whether this server can run the model-backed drafter."""
+    return shutil.which("codex") is not None
 
 
 class DraftUnavailable(RuntimeError):

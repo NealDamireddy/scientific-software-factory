@@ -8,7 +8,7 @@ For a CLI upload of the Lab Factory directory alone, first run `npm ci` and `npm
 
 ## Who can review
 
-The shared Vercel demo uses public reviewer access. Anyone with the URL may read all work orders, download uploaded protocols and readings, inspect numerical control reports, approve or reject a numbered submission, and run an approved analysis. Public reviewers may also submit jobs and supply replacement controls when the workflow allows it. This applies to records uploaded before public review was enabled as well as new uploads. The history keeps prior decisions and attributes new public decisions to a single shared identity.
+The shared Vercel demo uses public reviewer access. Anyone with the URL may read all work orders, download uploaded protocols and readings, inspect numerical control reports, approve or reject a numbered submission, and run an approved analysis. Public reviewers may also submit jobs and supply replacement controls when the workflow allows it. This applies to records uploaded before public review was enabled as well as new uploads. The history keeps prior decisions and attributes new public decisions to a single shared identity. In that mode anyone with the URL can also read all reference library text, including entries scoped to a single lab, add shared text that is pinned into every lab's new procedure work and sent to its worker, and share any entry.
 
 Other deployments use named reviewer sign-in by default. Set `LABFACTORY_PUBLIC_REVIEW=1` and redeploy to enable public review. To restore named sign-in, configure the reviewer map and session key, remove the flag, and redeploy. MCP workers require their own bearer tokens in both modes.
 
@@ -25,6 +25,8 @@ Agents can discover the following JSON resources with MCP resources/list and res
 | `labfactory://references/source/{source_id}` | One current curated record with its publisher link and digest |
 
 Creating a reference work order snapshots only the selected records in the lab's private database. The agent reads that snapshot through `get_work_order_context`. Its document IDs are available for citations. Published procedures enter the work order as external references. Selecting a model supplies planning context. Local firmware, accessories, performance and executable commands still need to be established by the lab. The SHA-256 digest identifies the curated record. The publisher hosts the underlying document.
+
+Source text is stored in the application database (`library_texts`, `library_entries`), either shared or per lab. Each text is at most 256 KiB. The Vercel Blob backend's 8 MiB limit covers the whole database including this text, so use Turso for a library of any size. "Lab-private" is a usage scope, not access control, until accounts exist.
 
 To expand coverage, add a model to an `instruments*.json` array and records to a source JSON array in `src/labfactory/reference_data/`. Record the publisher, stable URL, edition or DOI, precise locator, scope, technique and search topics. Give each record a unique ID. Link a model only when the manufacturer documents it or the authors say they used it. Technique labels, synonyms and example searches live in `search.json`. Run the suite and check a supported objective and an unsupported one before deploying the edition.
 

@@ -2,7 +2,7 @@
 
 import re
 
-from . import b12_service, honey_service, tabular_service
+from . import b12_service, honey_service, library, tabular_service
 from .context import to_dict
 from .workorders import WorkOrders
 
@@ -60,5 +60,10 @@ def experiment_detail(store, experiment_id):
 
 def order_context(store, order_id):
     with store.read_transaction():
-        order = WorkOrders(store).get(order_id)
-        return _context(store, order.experiment_id, order.experiment_revision, order.lab_revision)
+        orders = WorkOrders(store)
+        order = orders.get(order_id)
+        # The pinned context carries library documents the stored revisions never hold.
+        lab, experiment = orders.pinned_context(order_id)
+        return {"experiment": to_dict(experiment), "experiment_revision": order.experiment_revision,
+                "lab": to_dict(lab), "lab_revision": order.lab_revision,
+                "library": library.pinned(store, order_id)}

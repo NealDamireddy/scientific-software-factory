@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 import json
 import sqlite3
 
+from . import library
 from .artifacts import ArtifactError, KINDS, parse_artifact
 from .checks import CheckResult, all_passed, check_artifact
 from .citations import CitationIndex
@@ -140,6 +141,9 @@ class WorkOrders:
         order = self.get(id)
         lab, experiment = self._context_for(order)
         origin, document = CitationIndex(lab, experiment).resolve(document_id)
+        if document.id.startswith(library.PREFIX) and document in library.documents(self.store, order.id):
+            pin = next(p for p in library.pinned(self.store, order.id) if p["document_id"] == document.id)
+            return PinnedCitation("library", pin["source_id"], pin["revision"], document)
         if origin == "lab":
             return PinnedCitation(origin, lab.id, order.lab_revision, document)
         return PinnedCitation(origin, experiment.id, order.experiment_revision, document)
@@ -147,6 +151,10 @@ class WorkOrders:
     def _context_for(self, order: WorkOrder) -> tuple[Lab, Experiment]:
         lab, _ = self.store.get_lab(order.lab_id, order.lab_revision)
         experiment, _ = self.store.get_experiment(order.experiment_id, order.experiment_revision)
+        used = {doc.id for doc in (*lab.documents, *experiment.documents)}
+        linked = tuple(doc for doc in library.documents(self.store, order.id) if doc.id not in used)
+        if linked:
+            experiment = replace(experiment, documents=(*linked, *experiment.documents))
         return lab, experiment
 
     def _check(self, order: WorkOrder, data: dict) -> list[CheckResult]:

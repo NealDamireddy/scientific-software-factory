@@ -5,6 +5,7 @@ import re
 from uuid import UUID
 
 from . import analysis_requests, briefing, experiment_catalog, first_draft, procedure_drafts, research_experiments, tabular_service
+from . import library as texts
 from .context import ContextError, Experiment, Lab, canonical_digest, canonical_json, to_dict
 from .store import NotFound
 from .artifacts import render_artifact
@@ -230,6 +231,30 @@ _STOP = set("""the a an i we my our this that it of for in on and or to at with 
 
 def _terms(text):
     return {w.removesuffix("s") for w in re.findall(r"[^\W_]+", text.casefold()) if w not in _STOP and len(w) > 1}
+
+
+def _library_entries(store, lab_id, brief, objective, taken=frozenset()):
+    """Entries to pin: visible text for the matched catalog findings, then the lab's own contributed titles."""
+    try:
+        ids = [row["id"] for row in ((brief or {}).get("reference_library") or {}).get("findings", [])]
+        catalog = texts.visible(store, lab_id, ids)
+        entries = [catalog[i] for i in ids if i in catalog]
+        wanted = _terms(objective)
+        ranked = sorted(((len(wanted & _terms(e["title"])), e) for e in texts.visible(store, lab_id).values()
+                         if e["source_id"].startswith("contributed-")), key=lambda p: (-p[0], p[1]["title"]))
+        entries += [e for count, e in ranked if count >= 2][:3]
+        chosen, size = [], 0
+        for entry in entries:
+            # A document id the project already holds is skipped at resolution, so it must not be claimed.
+            if entry["document_id"] in taken or size + entry["bytes"] > texts.MAX_PINNED_BYTES:
+                continue
+            chosen.append(entry)
+            size += entry["bytes"]
+        return chosen[:texts.MAX_PINNED]
+    except Exception:
+        if not store.connection.in_transaction:
+            raise  # A failed read that ended the transaction must not be hidden.
+        return []
 
 
 def intent(text):
@@ -519,17 +544,25 @@ def resolve(store, actor, data):
                 child = "investigation-" + key
                 store.put_experiment(replace(root, id=child, title=objective, goal=objective), allow_unassigned=True)
                 brief = briefing.build("procedure", skills, objective, instruments)
+                entries = _library_entries(store, lab.id, brief, objective,
+                                           {doc.id for doc in (*lab.documents, *root.documents)})
                 if worker_draft:
                     order = procedure_drafts.create(store, child, actor)
+                    texts.pin(store, order.id, entries)
                     selected.append(dict(kind=category, id=order.id, title=objective, status=order.status,
                                          automatic=False, reused=False))
                 else:
-                    draft = first_draft.start(store, actor, {"experiment_id": child, "request_id": "investigation-" + key})
+                    draft = first_draft.start(store, actor, {"experiment_id": child, "request_id": "investigation-" + key},
+                                              library_entries=entries)
                     selected.append(dict(kind=category, id=draft["order"]["id"], title=objective, status=draft["state"],
                                          automatic=True, reused=False))
+                pinned = texts.pinned(store, selected[-1]["id"])
+                brief = briefing.mark_pinned(brief, {p["source_id"]: p["document_id"] for p in pinned})
                 briefing.save(store, selected[-1]["id"], brief)
                 if brief:
                     selected[-1]["briefing"] = briefing.summary(brief)
+                if pinned:
+                    selected[-1]["library"] = pinned
             else:
                 selection = sources if sources is not None else {
                     "experiment_id": project, "experiment_revision": rev.number, "lab_revision": lab_revision.number,

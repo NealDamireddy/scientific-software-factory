@@ -334,7 +334,8 @@ def test_experiment_discovery_and_pinned_order_context(client, uvvis_lab_dict, b
     latest, = client.get("/api/experiments").json()["experiments"]
     assert latest["title"] == "Revised title" and latest["revision"] == 2
     pinned = client.get(f"/api/orders/{procedure}/context").json()
-    assert pinned == {"experiment": experiment, "experiment_revision": 1, "lab": uvvis_lab_dict, "lab_revision": 1}
+    assert pinned == {"experiment": experiment, "experiment_revision": 1, "lab": uvvis_lab_dict, "lab_revision": 1,
+                      "library": []}
 
 
 def test_order_creation_requires_current_displayed_revisions_when_supplied(client):

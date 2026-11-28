@@ -4,7 +4,7 @@ from dataclasses import asdict
 import json
 import re
 
-from . import method_drafter, procedure_drafts, source_drafter
+from . import briefing, library, method_drafter, procedure_drafts, source_drafter
 from .artifacts import parse_artifact
 from .checks import check_artifact
 from .context import ContextError, canonical_digest, canonical_json, experiment_from_dict, lab_from_dict
@@ -80,6 +80,9 @@ def detail(store, order_id):
         "previous_order": linked["previous_order"], "next_order": linked["next_order"],
         "submission": asdict(submission) if submission else None,
         "sources": sources,
+        "suggested_sources": [{"id": f["id"], "title": f["title"], "locator": f["locator"]}
+                              for f in ((briefing.load(store, order_id) or {}).get("reference_library") or {})
+                              .get("findings", []) if "document_id" not in f],
     }
 
 
@@ -109,7 +112,11 @@ def _register_author(store, order, actor, data, fingerprint):
 def _compile(store, order, actor, data, fingerprint, document_id, *, previous_plan=None, replace_at=None):
     orders = WorkOrders(store)
     lab, experiment = orders.pinned_context(order.id)
-    if document_id is None and (lab.documents or experiment.documents) and not method_drafter.applicable_methods(lab, experiment):
+    documents = (*lab.documents, *experiment.documents)
+    only_pinned_text = all(doc.id.startswith(library.PREFIX) for doc in documents)
+    # Pinned library text alone does not justify a drafter that cannot run: keep the immediate question.
+    if (document_id is None and documents and not (only_pinned_text and not source_drafter.available())
+            and not method_drafter.applicable_methods(lab, experiment)):
         return _register_author(store, order, actor, data, fingerprint)
     method, question = method_drafter.select_method(lab, experiment, document_id)
     plan = []
@@ -152,7 +159,7 @@ def _compile(store, order, actor, data, fingerprint, document_id, *, previous_pl
     return detail(store, order.id)
 
 
-def start(store, actor, data):
+def start(store, actor, data, *, library_entries=()):
     keys = set(data) - {"request_id", "method_id"}
     if keys not in ({"experiment_id"}, {"lab", "experiment"}):
         raise ContextError("Supply experiment_id or a lab and experiment context snapshot.")
@@ -181,12 +188,13 @@ def start(store, actor, data):
             store.put_experiment(experiment, allow_unassigned=True)
             experiment_id = experiment.id
         order = procedure_drafts.create(store, experiment_id, actor)
+        library.pin(store, order.id, list(library_entries))
         return _compile(store, order, actor, data, fingerprint, method_id)
 
 
 def answer(store, actor, order_id, data):
     keys = set(data) - {"request_id"}
-    if keys not in ({"title", "text"}, {"method_id"}):
+    if keys not in ({"title", "text"}, {"title", "text", "source_id"}, {"method_id"}):
         raise ContextError("Supply a source title and text, or select a pinned method_id.")
     method_id = _text(data, "method_id") if "method_id" in data else None
     with store.transaction():
@@ -209,7 +217,8 @@ def answer(store, actor, order_id, data):
                 raise ContextError(problem)
             new = procedure_drafts.create(store, exp.id, actor, previous=order_id)
             return _compile(store, new, actor, data, fingerprint, method_id)
-        new_id = procedure_drafts.add_source(store, order_id, actor, _text(data, "title"), data["text"])
+        new_id = procedure_drafts.add_source(store, order_id, actor, _text(data, "title"), data["text"],
+                                          data.get("source_id"))
         if parent.worker == source_drafter.WORKER:
             return _register_author(store, orders.get(new_id), actor, data, fingerprint)
         _, revised = orders.pinned_context(new_id)
