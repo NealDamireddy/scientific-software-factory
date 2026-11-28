@@ -15,6 +15,23 @@ from labfactory.store import Store
 from labfactory.workorders import WorkOrders
 
 
+def test_project_directory_offers_a_registered_lab_for_its_first_project(client, uvvis_lab_dict):
+    login(client)
+    client.post("/api/context/lab", json=uvvis_lab_dict).raise_for_status()
+    directory = client.get("/api/research-projects").raise_for_status().json()
+    assert directory["projects"] == []
+    lab, = directory["labs"]
+    assert lab == {"id": uvvis_lab_dict["id"], "name": uvvis_lab_dict["name"]}
+    project = client.post("/api/research-projects", json={
+        "lab_id": lab["id"], "title": "First project",
+    }).raise_for_status().json()
+    assert project["lab_id"] == lab["id"]
+    client.post("/api/b12/orders", json={}).raise_for_status()
+    directory = client.get("/api/research-projects").raise_for_status().json()
+    assert directory["projects"][0]["lab_id"] == lab["id"]
+    assert directory["labs"] == [lab]
+
+
 def test_api_only_host_returns_404_for_unregistered_routes(client):
     assert client.get("/").status_code == 404
     assert client.get("/api/missing").status_code == 404

@@ -17,7 +17,7 @@ export type ResearchExperimentSummary = { id: string; project_id: string; title:
 type Experiment = ResearchExperimentSummary & {requests: Investigation[]; resources: Resource[]};
 type Inventory = {
   hypothesis: string; experiments: Experiment[];
-  context: { experiment: {goal: string; documents: {id:string; title:string; text:string}[]};
+  context: { experiment: {id:string; goal: string; documents: {id:string; title:string; text:string}[]};
     lab: {name:string; documents: {id:string; title:string; text:string}[]; instruments:{id:string; name:string; model:string}[]};
     experiment_revision: number; lab_revision:number };
   resources: Resource[]; investigations: Investigation[] };
@@ -326,12 +326,19 @@ export function RegisteredLibrary({ kind, query }: {kind: "documents" | "instrum
 export type AnalysisSources = {experiment_id:string; experiment_revision:number; lab_revision:number;
   lab_document_ids:string[]; experiment_document_ids:string[]};
 
-export function ProjectSources({id, value, set}: {id:string; value?:AnalysisSources; set:(s?:AnalysisSources)=>void}) {
-  const {data, error} = useRead<Inventory>("research-projects?project=" + encodeURIComponent(id));
-  if (!data) return <Notice error={error}/>;
-  const context = data.context;
-  const selected = value || {experiment_id:id, experiment_revision:context.experiment_revision,
-    lab_revision:context.lab_revision, lab_document_ids:[], experiment_document_ids:context.experiment.documents.map(d=>d.id)};
+export function useProjectSources(id?: string) {
+  const {data, error, refresh} = useRead<Inventory>(id ? "research-projects?project=" + encodeURIComponent(id) : undefined);
+  const context = data?.context.experiment.id === id ? data?.context : undefined;
+  const defaults: AnalysisSources | undefined = context && {
+    experiment_id:context.experiment.id, experiment_revision:context.experiment_revision,
+    lab_revision:context.lab_revision, lab_document_ids:[], experiment_document_ids:context.experiment.documents.map(d => d.id),
+  };
+  return {context, defaults, error, refresh};
+}
+
+export function ProjectSources({context, selected, set, reset}: {
+  context: Inventory["context"]; selected: AnalysisSources; set: (value: AnalysisSources) => void; reset?: () => void;
+}) {
   return <fieldset><legend>Documents for a new analysis app</legend>
     {(["lab", "experiment"] as const).map(scope => context[scope].documents.map(d => {
       const field = scope === "lab" ? "lab_document_ids" : "experiment_document_ids";
@@ -340,6 +347,6 @@ export function ProjectSources({id, value, set}: {id:string; value?:AnalysisSour
         {d.title} · {scope}</label>;
     }))}
     {!context.lab.documents.length && !context.experiment.documents.length && <p>No documents registered in this project.</p>}
-    {value && <button type="button" onClick={()=>set(undefined)}>Use project defaults</button>}
+    {reset && <button type="button" onClick={reset}>Use project defaults</button>}
   </fieldset>;
 }

@@ -7,7 +7,7 @@ from .context import to_dict
 from .workorders import WorkOrders
 
 
-def _is_generated(experiment_id, lab_id):
+def is_generated(experiment_id, lab_id):
     """Keep analysis demos, upload placeholders and catalog briefs in their own workflows."""
     if experiment_id in (b12_service.EXPERIMENT_ID, honey_service.EXPERIMENT_ID):
         return True
@@ -17,9 +17,9 @@ def _is_generated(experiment_id, lab_id):
             and re.fullmatch(r"reference-experiment-[0-9a-f]{64}", experiment_id) is not None)
 
 
-def list_experiments(store):
+def summary_rows(store):
     # Project only summary fields. A single protocol can contain large documents.
-    rows = store.connection.execute("""
+    return store.connection.execute("""
         SELECT r.id, json_extract(r.body, '$.title') AS title,
                json_extract(r.body, '$.lab_id') AS lab_id, r.number AS revision
           FROM records r
@@ -28,7 +28,10 @@ def list_experiments(store):
             ON heads.id=r.id AND heads.latest=r.number
          WHERE r.kind='experiment' ORDER BY title COLLATE NOCASE, r.id
     """)
-    return {"experiments": [dict(row) for row in rows if not _is_generated(row["id"], row["lab_id"])]}
+
+
+def list_experiments(store):
+    return {"experiments": [dict(row) for row in summary_rows(store) if not is_generated(row["id"], row["lab_id"])]}
 
 
 def _context(store, experiment_id, experiment_revision=None, lab_revision=None):
