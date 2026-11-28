@@ -4,7 +4,7 @@ import json
 import re
 from uuid import UUID
 
-from . import analysis_requests, experiment_catalog, first_draft, procedure_drafts, tabular_service
+from . import analysis_requests, briefing, experiment_catalog, first_draft, procedure_drafts, tabular_service
 from .context import ContextError, Experiment, Lab, canonical_digest, canonical_json, to_dict
 from .store import NotFound
 from .artifacts import render_artifact
@@ -236,6 +236,7 @@ def resolve(store, actor, data):
             "experiment_id", "experiment_revision", "lab_revision", "lab_document_ids", "experiment_document_ids"}
             or sources["experiment_id"] != project):
         raise ContextError("Choose analysis sources from the selected project.")
+    skills = briefing.pin(data.get("skills"))
     stamp = canonical_digest(data)
     with store.transaction() as db:
         cached = db.execute("SELECT * FROM research_investigations WHERE id=?", (key,)).fetchone()
@@ -337,12 +338,15 @@ def resolve(store, actor, data):
         if "procedure" in picked and "procedure" not in kinds:
             selected.append(dict(picked["procedure"], reused=True))
         child = None
+        lab, lab_revision = store.lab_for_experiment(root)
+        instruments = [lab.instrument(key) for key in root.instrument_ids]
         for category in kinds:
             if category in picked:
                 selected.append(dict(picked[category], reused=True))
             elif category == "procedure":
                 child = "investigation-" + key
                 store.put_experiment(replace(root, id=child, title=objective, goal=objective), allow_unassigned=True)
+                brief = briefing.build("procedure", skills, objective, instruments)
                 if worker_draft:
                     order = procedure_drafts.create(store, child, actor)
                     selected.append(dict(kind=category, id=order.id, title=objective, status=order.status,
@@ -351,8 +355,10 @@ def resolve(store, actor, data):
                     draft = first_draft.start(store, actor, {"experiment_id": child, "request_id": "investigation-" + key})
                     selected.append(dict(kind=category, id=draft["order"]["id"], title=objective, status=draft["state"],
                                          automatic=True, reused=False))
+                briefing.save(store, selected[-1]["id"], brief)
+                if brief:
+                    selected[-1]["briefing"] = briefing.summary(brief)
             else:
-                lab, lab_revision = store.lab_for_experiment(root)
                 selection = sources if sources is not None else {
                     "experiment_id": project, "experiment_revision": rev.number, "lab_revision": lab_revision.number,
                     "experiment_document_ids": [doc.id for doc in root.documents],
@@ -366,8 +372,11 @@ def resolve(store, actor, data):
                     procedure["instructions"] = render_artifact("procedure", release.artifact)
                 prefix = (analysis_requests.PLOT_PREFIX if re.search(r"\b(?:stage drift|drift plot)\b", objective, re.I)
                           else analysis_requests.APP_PREFIX)
-                app = analysis_requests.create(store, actor, req, prefix, datasets=datasets, procedure=procedure)
+                brief = briefing.build("app", skills, objective, instruments)
+                app = analysis_requests.create(store, actor, req, prefix, datasets=datasets, procedure=procedure, briefing=brief)
                 selected.append(dict(kind=category, id=app["id"], title=objective, status="open", reused=False))
+                if brief:
+                    selected[-1]["briefing"] = briefing.summary(brief)
         result = {"id": key, "project_id": project, "objective": objective, "resources": selected}
         db.execute("INSERT INTO research_investigations VALUES(?,?,?,?,?,?)",
                    (key, actor, stamp, project, child, canonical_json(result)))

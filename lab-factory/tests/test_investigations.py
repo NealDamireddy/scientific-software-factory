@@ -2,7 +2,8 @@ from uuid import uuid4
 
 import pytest
 
-from labfactory import analysis_requests, investigations, tabular_service
+from labfactory import analysis_requests, briefing, investigations, tabular_service
+from labfactory.context import ContextError
 from labfactory.workorders import WorkOrderError
 
 
@@ -109,3 +110,72 @@ def test_legacy_stage_archive_can_be_attached_without_changing_its_snapshots(sto
     assert analysis_requests.detail(store, key) == before
     with pytest.raises(WorkOrderError):
         investigations.attach_app(store, other, key)
+
+
+START = {"id": "readiness", "name": "Protocol readiness", "whenToUse": "Before a run.",
+         "instructions": "List what is missing.", "stage": "start"}
+RESULT = {"id": "calibration", "name": "Calibration review", "whenToUse": "On a result.",
+          "instructions": "Check the range.", "stage": "result"}
+
+
+def test_new_procedure_gets_start_skills_and_matched_sources(store):
+    p = investigations.register(store, "Optics")
+    req = {**request(p["id"], "Check wavelength accuracy on the Agilent Cary 60", kind="procedure"),
+           "skills": [START, RESULT]}
+    resource, = investigations.resolve(store, "Reviewer", req)["resources"]
+    brief = resource["briefing"]
+    assert brief["skills"] == [{"id": "readiness", "name": "Protocol readiness", "version": brief["skills"][0]["version"]}]
+    assert len(brief["skills"][0]["version"]) == 64
+    assert brief["instrument"].startswith("Agilent Technologies")
+    assert "agilent-cary-60-user-guide" in [r["id"] for r in brief["references"]]
+    assert briefing.load(store, resource["id"])["skills"][0]["instructions"] == "List what is missing."
+    assert store.get_experiment("investigation-" + req["request_id"])[0].documents == ()
+
+
+def test_new_app_gets_result_skills_in_its_pinned_context(store):
+    p = investigations.register(store, "Honey")
+    req = {**request(p["id"], "Analyze the honey moisture readings by refractometry", kind="app", data="new"),
+           "skills": [START, RESULT]}
+    resource, = investigations.resolve(store, "Reviewer", req)["resources"]
+    assert analysis_requests.detail(store, resource["id"])["contexts"][0]["briefing"]["skills"][0]["id"] == "calibration"
+    assert resource["briefing"]["skills"][0]["id"] == "calibration"
+
+
+def test_reused_resources_carry_no_briefing(store):
+    p = investigations.register(store, "References")["id"]
+    upload(store, p, "Tuesday-a.csv")
+    first = investigations.resolve(store, "Reviewer", request(p, "Plot Tuesday-a.csv"))
+    app = first["resources"][1]
+    analysis_requests.claim(store, app["id"], "Worker")
+    analysis_requests.submit(store, app["id"], "Worker", {"turn": 1, "app": {
+        "summary": "Area plot", "question": "", "html": "<html><body>Area</body></html>"}})
+    repeat = investigations.resolve(store, "Reviewer", {**request(p, "Plot Tuesday-a.csv"), "skills": [RESULT]})
+    assert all(r["reused"] for r in repeat["resources"])
+    assert not any("briefing" in r for r in repeat["resources"])
+
+
+def test_investigation_without_skills_or_matches_is_unchanged(store):
+    p = investigations.register(store, "Plain")
+    resource, = investigations.resolve(store, "Reviewer", request(p["id"], "zzqx vvkw", kind="procedure"))["resources"]
+    assert "briefing" not in resource
+    assert briefing.load(store, resource["id"]) is None
+
+
+def test_invalid_skills_are_rejected_before_any_record_is_created(store):
+    p = investigations.register(store, "Strict")
+    cases = [request(p["id"], "zzqx vvkw", kind="procedure") | {"skills": bad}
+             for bad in ([START] * 33, [{**START, "version": "0" * 64}], "calibration")]
+    cases.append({**request(p["id"], "Reference alignment"), "skills": "calibration"})
+    for req in cases:
+        with pytest.raises(ContextError):
+            investigations.resolve(store, "Reviewer", req)
+    inventory = investigations.inventory(store, p["id"])
+    assert inventory["investigations"] == [] and inventory["resources"] == []
+
+
+def test_retry_with_same_skills_is_idempotent_and_changed_skills_conflict(store):
+    p = investigations.register(store, "Retry")
+    req = {**request(p["id"], "Check wavelength accuracy on the Agilent Cary 60", kind="procedure"), "skills": [START]}
+    assert investigations.resolve(store, "Reviewer", req) == investigations.resolve(store, "Reviewer", req)
+    with pytest.raises(WorkOrderError):
+        investigations.resolve(store, "Reviewer", {**req, "skills": [RESULT]})
