@@ -294,7 +294,7 @@ export function AppDetail({ id }: { id: string }) {
               </label>
             </WriteForm>
           )}
-          <details><summary>Pinned project records</summary><pre>{JSON.stringify(data.contexts, null, 2)}</pre></details>
+          <details><summary>Pinned project records</summary><pre>{JSON.stringify(data.contexts.map(({briefing, ...record}) => record), null, 2)}</pre></details>
           {data.status === "ready" && id.startsWith("PLOT-") && <details><summary>Review the plotting recipe</summary>
             <pre>{JSON.stringify(data.history.at(-1)?.submission, null, 2)}</pre></details>}
           {data.artifact_digest && <p>App SHA-256 · {data.artifact_digest}</p>}

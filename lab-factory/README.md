@@ -149,7 +149,7 @@ args = ["run", "--locked", "--project", "/absolute/path to/lab-factory", "labfac
 
 The four agent tools are `list_work_orders`, `claim_work_order`, `get_work_order_context`, and `submit_artifact`. A rejected order reopens with the submitted artifact and reviewer's reason in its context.
 
-`get_work_order_context` also returns a `briefing` field with the `skills` pinned to the order and a `reference_library` of suggested sources matched to the objective and instruments. Suggested sources are pointers only; a worker cannot cite one until its text is added to the project.
+`get_work_order_context` also returns the briefing: the `skills` pinned to the work and a `reference_library` of suggested sources matched to the objective and instruments. A procedure work order returns it as a top-level `briefing` field; an analysis request (`APP-` or `PLOT-`) returns it at `contexts[0].briefing` inside `offline_app` or `drift_plot`. Suggested sources are pointers only; a worker cannot cite one until its text is added to the project.
 
 Before starting work, save the `claim_id` returned by `claim_work_order` or, when resuming your active claim, by `get_work_order_context` under `work_order`. Pass that ID to `submit_artifact` and reuse it on every retry of the same work. If the claim was recovered and the same worker later reclaimed the order, submissions under the new claim require its ID.
 

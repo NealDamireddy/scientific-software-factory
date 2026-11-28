@@ -171,3 +171,21 @@ def test_claimed_app_with_a_briefing_can_still_be_submitted(store):
     candidate = {"turn": 1, "app": {"question": "", "summary": "Confirmed method.",
                                     "html": "<!doctype html><html><body><h1>Custom output</h1></body></html>"}}
     assert agent.submit_artifact(key, "author", candidate, claim)["status"] == "ready"
+
+
+def test_delivered_plot_does_not_embed_the_briefing(store):
+    req = {"objective": "Overlay stage drift from my runs.", "project": "stage-example", "request_id": str(uuid4())}
+    key = analysis_requests.create(store, "Reviewer", req, analysis_requests.PLOT_PREFIX, briefing=APP_BRIEF)["id"]
+    served = AgentTools(store).get_work_order_context(key)
+    assert served["instructions"].endswith(briefing.instructions(APP_BRIEF))
+    assert served["drift_plot"]["contexts"][0]["briefing"] == APP_BRIEF
+    agent = AgentTools(store)
+    claim = agent.claim_work_order(key, "author")["claim_id"]
+    recipe = {"filename": "*", "context_number": 1, "origin_mm": 2, "reading_unit": "mm", "ticks_per_mm": 1,
+              "reading_column": "position", "role_column": "", "role_value": "", "timestamp_column": "time",
+              "timestamp_unit": "ms", "interval_seconds": 0}
+    plot = {"axis": "elapsed", "summary": "Use snapshot 1.", "question": "", "runs": [recipe]}
+    assert agent.submit_artifact(key, "author", {"turn": 1, "plot": plot}, claim)["status"] == "ready"
+    html = analysis_requests.download(store, key)
+    assert RESULT_SKILL["instructions"] not in html and '"briefing"' not in html
+    assert analysis_requests.detail(store, key)["contexts"][0]["briefing"] == APP_BRIEF

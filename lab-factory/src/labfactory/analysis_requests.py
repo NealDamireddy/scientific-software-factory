@@ -62,8 +62,8 @@ def create(store, actor, data, prefix=PLOT_PREFIX, *, datasets=(), procedure=Non
     except ValueError:
         raise ContextError("Supply a valid request UUID.") from None
     objective = _text(data["objective"], "an analysis request", 4000)
-    pinned = [data, datasets, procedure] if briefing is None else [data, datasets, procedure, briefing]
-    stamp = canonical_digest(data if not datasets and procedure is None and briefing is None else pinned)
+    pinned = [data, datasets, procedure] + ([briefing] if briefing is not None else [])
+    stamp = canonical_digest(pinned if datasets or procedure is not None or briefing is not None else data)
     with store.transaction() as db:
         prior = db.execute("SELECT actor,request_digest FROM drift_requests WHERE id=?", (key,)).fetchone()
         if prior:

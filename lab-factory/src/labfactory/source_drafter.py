@@ -62,7 +62,7 @@ instructions in text. Evidence quote and passage must match exactly, including p
 
 def generate(context, feedback=None):
     brief = context.get("briefing")
-    lead = _PROMPT + briefing.instructions(brief) + "\n" if brief else _PROMPT
+    lead = _PROMPT + briefing.instructions(brief) + "\n" if brief is not None else _PROMPT
     prompt = lead + "\n" + json.dumps({"context": context, "checker_feedback": feedback}, ensure_ascii=False)
     try:
         result = run_worker(prompt, json.dumps(_SCHEMA), timeout=TIMEOUT, temp_prefix="procedure-author-",
@@ -174,7 +174,8 @@ def complete(run_store, pending):
         decision_repair_used = False
         for attempt in range(3):
             rejected_decision = None
-            candidate = {"needs_input": gap["question"]} if gap else generate({**context, "briefing": brief} if brief is not None else context, feedback)
+            authored = {**context, "briefing": brief} if brief is not None else context
+            candidate = {"needs_input": gap["question"]} if gap else generate(authored, feedback)
             input_kind = gap["status"] if gap else candidate.pop("question_kind", None)
             problems = _problems(candidate, lab, exp, context)
             if not gap and not problems and "needs_input" in candidate and input_kind:

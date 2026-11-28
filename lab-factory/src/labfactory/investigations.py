@@ -338,12 +338,16 @@ def resolve(store, actor, data):
         if "procedure" in picked and "procedure" not in kinds:
             selected.append(dict(picked["procedure"], reused=True))
         child = None
-        lab, lab_revision = store.lab_for_experiment(root)
-        instruments = [lab.instrument(key) for key in root.instrument_ids]
+        created = None
         for category in kinds:
             if category in picked:
                 selected.append(dict(picked[category], reused=True))
-            elif category == "procedure":
+                continue
+            if created is None:
+                lab, lab_revision = store.lab_for_experiment(root)
+                created = lab, lab_revision, [lab.instrument(instrument_id) for instrument_id in root.instrument_ids]
+            lab, lab_revision, instruments = created
+            if category == "procedure":
                 child = "investigation-" + key
                 store.put_experiment(replace(root, id=child, title=objective, goal=objective), allow_unassigned=True)
                 brief = briefing.build("procedure", skills, objective, instruments)

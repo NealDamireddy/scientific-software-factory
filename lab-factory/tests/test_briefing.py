@@ -101,3 +101,11 @@ def test_save_load_and_copy(store):
     third = orders.create("exp", "procedure", "Goal", actor="Reviewer")
     briefing.copy(store, third.id, first.id)   # nothing to copy: the target keeps its own briefing
     assert briefing.load(store, first.id) == value
+
+
+@pytest.mark.parametrize("name, error", [("model_for", ValueError), ("describe", KeyError)])
+def test_any_library_failure_gives_no_references(monkeypatch, name, error):
+    def fail(*args, **kwargs):
+        raise error("broken")
+    monkeypatch.setattr(references, name, fail)
+    assert briefing.find_references("Determine moisture in honey by refractometry", []) is None

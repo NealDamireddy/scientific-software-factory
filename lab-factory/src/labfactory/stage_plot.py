@@ -88,7 +88,8 @@ def example_contexts():
 def render(key, objective, payload, contexts, history, worker):
     template = ASSETS.joinpath("plot.html").read_text()
     manifest = {"format": 1, "id": key, "objective": objective, "plot": payload,
-                "contexts": contexts, "clarifications": history, "worker": worker,
+                "contexts": [{k: v for k, v in context.items() if k != "briefing"} for context in contexts],
+                "clarifications": history, "worker": worker,
                 "renderer_sha256": hashlib.sha256(template.encode()).hexdigest()}
     literal = canonical_json(manifest).replace("<", "\\u003c")
     return template.replace("/*PLOT_MANIFEST*/null", literal)

@@ -292,7 +292,7 @@ function showTabularIntake(projects, experiments, release) {
       mapping, range_gate:gate.input.checked, control_expected:control.expected.valueAsNumber,
       control_tolerance:control.tolerance.valueAsNumber};
     payload.project_id = project.input.value;
-    if (includeSkills.input.checked) payload.skills = skills;
+    if (includeSkills.input.checked && skills.length) payload.skills = skills;
     payload.allowed_languages = language.input.value.split(",");
     const exp = selectedExperiment();
     if (exp) {

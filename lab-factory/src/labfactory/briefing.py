@@ -1,5 +1,6 @@
 """Skills and reference-library pointers attached to the work an investigation creates."""
 import json
+import sqlite3
 
 from lab_codex_worker.skills import pin_skills
 
@@ -42,21 +43,21 @@ def find_references(objective, instruments):
     query = " ".join(objective.split())
     if len(query) > QUERY_LIMIT:
         query = query[:QUERY_LIMIT].rsplit(" ", 1)[0] if query[QUERY_LIMIT] != " " else query[:QUERY_LIMIT]
-    models = {references.model_for(text) for text in
-              [objective, *(f"{i.name} {i.model}" for i in instruments)]} - {None}
-    scope = models.pop() if len(models) == 1 else "all"
     try:
+        models = {references.model_for(text) for text in
+                  [objective, *(f"{i.name} {i.model}" for i in instruments)]} - {None}
+        scope = models.pop() if len(models) == 1 else "all"
         result = references.search(scope, query)
-    except ContextError:
+        findings = [{key: row[key] for key in FINDING_FIELDS} for row in result["findings"][:MAX_REFERENCES]]
+        if not findings:
+            return None
+        chosen = result["instrument"]
+        return {"query": query, "catalog_digest": result["catalog_digest"],
+                "instrument": None if scope == "all" else {key: chosen[key] for key in
+                                                           ("id", "manufacturer", "model", "technique")},
+                "overview": references.describe(chosen, query, findings)[0], "findings": findings}
+    except (ContextError, ValueError, KeyError, OSError, sqlite3.Error):
         return None
-    findings = [{key: row[key] for key in FINDING_FIELDS} for row in result["findings"][:MAX_REFERENCES]]
-    if not findings:
-        return None
-    chosen = result["instrument"]
-    return {"query": query, "catalog_digest": result["catalog_digest"],
-            "instrument": None if scope == "all" else {key: chosen[key] for key in
-                                                       ("id", "manufacturer", "model", "technique")},
-            "overview": references.describe(chosen, query, findings)[0], "findings": findings}
 
 
 def build(kind, pinned, objective, instruments):

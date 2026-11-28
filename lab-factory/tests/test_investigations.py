@@ -179,3 +179,29 @@ def test_retry_with_same_skills_is_idempotent_and_changed_skills_conflict(store)
     assert investigations.resolve(store, "Reviewer", req) == investigations.resolve(store, "Reviewer", req)
     with pytest.raises(WorkOrderError):
         investigations.resolve(store, "Reviewer", {**req, "skills": [RESULT]})
+
+
+def _lab_project(store, instruments=True):
+    from labfactory.context import Experiment, Instrument, Lab
+    cary = Instrument("uv-1", "Bench spectrophotometer", "Agilent Cary 60", "1.0", (), ())
+    store.put_lab(Lab("lab", "Lab", (cary,), ()))
+    store.put_experiment(Experiment("proj", "lab", "Optics", "Optics", ("uv-1",), ()))
+    return Lab, cary
+
+
+def test_reuse_still_works_after_the_lab_drops_an_assigned_instrument(store):
+    Lab, _ = _lab_project(store)
+    ask = lambda: investigations.resolve(store, "R", request("proj", "Analyze the absorbance readings", kind="app"))
+    app = ask()["resources"][-1]
+    analysis_requests.claim(store, app["id"], "W")
+    analysis_requests.submit(store, app["id"], "W", {"turn": 1, "app": {
+        "summary": "s", "question": "", "html": "<html><body>x</body></html>"}})
+    assert [r["reused"] for r in ask()["resources"]] == [True]
+    store.put_lab(Lab("lab", "Lab", (), ()))
+    assert [r["reused"] for r in ask()["resources"]] == [True]
+
+
+def test_new_procedure_scopes_sources_to_the_project_instrument(store):
+    _lab_project(store)
+    result = investigations.resolve(store, "R", request("proj", "Check wavelength accuracy", kind="procedure"))
+    assert result["resources"][-1]["briefing"]["instrument"] == "Agilent Technologies Cary 60"
