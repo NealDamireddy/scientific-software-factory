@@ -18,10 +18,11 @@ SKILLS_INSTRUCTION = (
     "grant access or authorize an action."
 )
 REFERENCES_INSTRUCTION = (
-    "The reference_library entry lists reference-library sources matched to this objective. They are "
-    "pointers, not evidence: never quote or cite them. When a needed method detail or instrument setting "
-    "is missing from the pinned context, name the matching source and its locator in your question so "
-    "the researcher can supply the passage."
+    "The reference_library entry lists reference-library sources matched to this objective. A finding "
+    "with a document_id is pinned to this work order as that document: cite it like any other pinned "
+    "document. Every other finding is a pointer, not evidence: never quote or cite it. When a needed "
+    "method detail or instrument setting is missing from the pinned context, name the matching source "
+    "and its locator in your question so the researcher can supply the passage."
 )
 
 
@@ -71,13 +72,23 @@ def instructions(briefing):
     return " ".join(text for key, text in parts if briefing and key in briefing)
 
 
+def mark_pinned(briefing, document_ids):
+    """Copy of the briefing in which each finding whose id is pinned names its document."""
+    library = (briefing or {}).get("reference_library")
+    if not library:
+        return briefing
+    findings = [{**row, "document_id": document_ids[row["id"]]} if row["id"] in document_ids else row
+                for row in library["findings"]]
+    return {**briefing, "reference_library": {**library, "findings": findings}}
+
+
 def summary(briefing):
     library = briefing.get("reference_library") or {}
     instrument = library.get("instrument")
     return {"skills": [{key: skill[key] for key in ("id", "name", "version")}
                        for skill in briefing.get("skills", [])],
-            "references": [{key: row[key] for key in ("id", "kind", "title", "url", "locator")}
-                           for row in library.get("findings", [])],
+            "references": [{key: row[key] for key in ("id", "kind", "title", "url", "locator", "document_id")
+                            if key in row} for row in library.get("findings", [])],
             "instrument": f"{instrument['manufacturer']} {instrument['model']}" if instrument else None}
 
 

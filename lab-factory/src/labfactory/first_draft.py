@@ -4,7 +4,7 @@ from dataclasses import asdict
 import json
 import re
 
-from . import method_drafter, procedure_drafts, source_drafter
+from . import library, method_drafter, procedure_drafts, source_drafter
 from .artifacts import parse_artifact
 from .checks import check_artifact
 from .context import ContextError, canonical_digest, canonical_json, experiment_from_dict, lab_from_dict
@@ -152,7 +152,7 @@ def _compile(store, order, actor, data, fingerprint, document_id, *, previous_pl
     return detail(store, order.id)
 
 
-def start(store, actor, data):
+def start(store, actor, data, *, library_entries=()):
     keys = set(data) - {"request_id", "method_id"}
     if keys not in ({"experiment_id"}, {"lab", "experiment"}):
         raise ContextError("Supply experiment_id or a lab and experiment context snapshot.")
@@ -181,6 +181,7 @@ def start(store, actor, data):
             store.put_experiment(experiment, allow_unassigned=True)
             experiment_id = experiment.id
         order = procedure_drafts.create(store, experiment_id, actor)
+        library.pin(store, order.id, list(library_entries))
         return _compile(store, order, actor, data, fingerprint, method_id)
 
 

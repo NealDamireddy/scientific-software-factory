@@ -374,3 +374,90 @@ def test_added_work_in_an_experiment_carries_the_briefing_and_reuse_does_not(sto
     record, = [e for e in investigations.inventory(store, project)["experiments"] if e["id"] == experiment]
     assert record["requests"][0]["resources"][0]["briefing"] == resource["briefing"]
     assert [r["id"] for r in record["resources"]] == [resource["id"]]
+
+
+CARY_ID = "agilent-cary-60-user-guide"
+CARY_OBJECTIVE = "Check wavelength accuracy on the Agilent Cary 60"
+
+
+def _procedure(store, objective, project="proj"):
+    return investigations.resolve(store, "R", request(project, objective, kind="procedure"))["resources"][-1]
+
+
+def _project_lab(store):
+    _lab_project(store)
+    return store.get_experiment("proj")[0].lab_id
+
+
+def test_new_procedure_pins_shared_text_for_a_matched_source(store):
+    from labfactory import library
+    from labfactory.workorders import WorkOrders
+    _project_lab(store)
+    entry = library.add(store, "Ana", "Wavelength accuracy is checked with the internal filter.", source_id=CARY_ID)
+    resource = _procedure(store, CARY_OBJECTIVE)
+    assert resource["library"] == [{"document_id": "library:" + CARY_ID, "source_id": CARY_ID, "title": entry["title"],
+                                    "scope": "shared", "entry_id": entry["id"], "revision": 1}]
+    refs = {r["id"]: r for r in resource["briefing"]["references"]}
+    assert refs[CARY_ID]["document_id"] == "library:" + CARY_ID
+    findings = briefing.load(store, resource["id"])["reference_library"]["findings"]
+    assert [f["id"] for f in findings if "document_id" in f] == [CARY_ID]
+    lab, experiment = WorkOrders(store).pinned_context(resource["id"])
+    assert experiment.documents[0].id == "library:" + CARY_ID
+    assert resource["status"] == "drafting"
+    children = [r["id"] for r in store.connection.execute("SELECT DISTINCT id FROM records WHERE kind='experiment' AND id LIKE 'investigation-%'")]
+    assert children and all(store.get_experiment(i)[0].documents == () for i in children)
+
+
+def test_new_procedure_pins_the_labs_own_contributed_text(store):
+    from labfactory import library
+    lab_id = _project_lab(store)
+    library.add(store, "Ana", "Zero the archive balance before use.", title="Archive balance worksheet", lab_id=lab_id)
+    resource = _procedure(store, "Draft a procedure to weigh samples with the archive balance worksheet")
+    item, = resource["library"]
+    assert item["scope"] == "lab" and item["document_id"].startswith("library:contributed-")
+
+
+def test_contributed_text_needs_two_matching_title_terms(store):
+    from labfactory import library
+    lab_id = _project_lab(store)
+    library.add(store, "Ana", "Zero the archive balance before use.", title="Archive balance worksheet", lab_id=lab_id)
+    assert "library" not in _procedure(store, "Draft a procedure for the balance")
+
+
+def test_another_labs_private_text_is_not_pinned(store):
+    from labfactory import library
+    _project_lab(store)
+    library.add(store, "Ana", "Private note.", source_id=CARY_ID, lab_id="other-lab")
+    resource = _procedure(store, CARY_OBJECTIVE)
+    assert "library" not in resource and resource["status"] == "needs_input"
+
+
+def test_no_library_text_leaves_the_investigation_unchanged(store):
+    _project_lab(store)
+    resource = _procedure(store, CARY_OBJECTIVE)
+    assert "library" not in resource and resource["status"] == "needs_input"
+    assert not any("document_id" in f for f in briefing.load(store, resource["id"])["reference_library"]["findings"])
+
+
+def test_library_failure_does_not_fail_the_investigation(store, monkeypatch):
+    import sqlite3
+    from labfactory import library
+    _project_lab(store)
+    library.add(store, "Ana", "Some text.", source_id=CARY_ID)
+
+    def broken(*args, **kwargs):
+        raise sqlite3.OperationalError("locked")
+    monkeypatch.setattr(library, "visible", broken)
+    resource = _procedure(store, CARY_OBJECTIVE)
+    assert "library" not in resource
+
+
+def test_new_app_never_pins_library_text(store):
+    from labfactory import library
+    _project_lab(store)
+    library.add(store, "Ana", "Honey moisture by refractometry.", source_id="ihc-2009-honey-moisture")
+    result = investigations.resolve(store, "R", request(
+        "proj", "Analyze the honey moisture readings by refractometry", kind="app"))
+    resource = result["resources"][-1]
+    assert "library" not in resource
+    assert not any("document_id" in r for r in resource.get("briefing", {}).get("references", []))

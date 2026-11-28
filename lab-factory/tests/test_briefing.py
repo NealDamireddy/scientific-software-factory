@@ -1,3 +1,4 @@
+import json
 import pytest
 
 from labfactory import briefing, references
@@ -109,3 +110,27 @@ def test_any_library_failure_gives_no_references(monkeypatch, name, error):
         raise error("broken")
     monkeypatch.setattr(references, name, fail)
     assert briefing.find_references("Determine moisture in honey by refractometry", []) is None
+
+
+def test_mark_pinned_flags_findings_without_mutating():
+    built = briefing.build("procedure", [], "Analyze the honey moisture readings by refractometry", [])
+    first, second = [row["id"] for row in built["reference_library"]["findings"][:2]]
+    before = json.dumps(built, sort_keys=True)
+    marked = briefing.mark_pinned(built, {first: "library:" + first})
+    assert json.dumps(built, sort_keys=True) == before
+    findings = marked["reference_library"]["findings"]
+    assert findings[0]["document_id"] == "library:" + first and "document_id" not in findings[1]
+    refs = briefing.summary(marked)["references"]
+    assert refs[0]["document_id"] == "library:" + first and "document_id" not in refs[1]
+    assert briefing.mark_pinned(None, {first: "library:" + first}) is None
+    only_skills = briefing.build("app", briefing.pin([skill("a")]), "zzqx vvkw", [])
+    assert briefing.mark_pinned(only_skills, {first: "x"}) == only_skills
+
+
+def test_reference_instruction_explains_pinned_findings():
+    assert briefing.REFERENCES_INSTRUCTION == (
+        "The reference_library entry lists reference-library sources matched to this objective. A finding "
+        "with a document_id is pinned to this work order as that document: cite it like any other pinned "
+        "document. Every other finding is a pointer, not evidence: never quote or cite it. When a needed "
+        "method detail or instrument setting is missing from the pinned context, name the matching source "
+        "and its locator in your question so the researcher can supply the passage.")
