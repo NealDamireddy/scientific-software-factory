@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { BookOpen, ChartColumn, ChevronRight, ClipboardList, FileSpreadsheet, Files, FlaskConical, RefreshCw, Upload } from "lucide-react";
+import type { Procedure } from "./research-api";
 import { apiUrl } from "./research-api";
 import { AppDetail, DraftDetail, Notice, useRead } from "./research-workflows";
 
@@ -18,20 +20,78 @@ type Inventory = {
   resources: Resource[]; investigations: Investigation[] };
 const kindLabel = { app: "Analysis app", procedure: "Procedure", data: "Dataset" };
 
-function ResourceItem({ item, projectId }: { item: Resource; projectId: string }) {
-  const [expanded, setExpanded] = useState(item.reused !== undefined && !item.path);
+type OrderDetail = {
+  order: {status: string; worker?: string};
+  draft?: {next_order?: string};
+  submissions: {
+    number: number;
+    artifact: NonNullable<Procedure["submission"]>["artifact"] & {needs_input?: string};
+    rendered: string;
+    source_passages?: Procedure["sources"];
+  }[];
+};
+
+function awaitingDraft(order: OrderDetail) {
+  return !order.submissions.length && ["open", "in_progress"].includes(order.order.status);
+}
+
+function WorkerProcedure({id}: {id: string}) {
+  const {data, error} = useRead<OrderDetail>("orders/" + encodeURIComponent(id) + "?submission=latest", awaitingDraft);
+  const submission = data?.submissions[0];
+  return <section className="project-worker-draft" aria-label="Worker procedure draft">
+    <Notice error={error}/>
+    {!data && !error && <p role="status">Loading procedure…</p>}
+    {data && <>
+      <div className="project-draft-heading"><h3>Procedure draft</h3>
+        <span>{data.order.status.replaceAll("_", " ")}{submission && " · submission " + submission.number}</span></div>
+      {!submission && <p role="status">{data.order.worker ? data.order.worker + " is preparing the draft." : "Queued for a procedure worker."}</p>}
+      {submission?.artifact.needs_input && <p>{submission.artifact.needs_input}</p>}
+      {submission?.artifact.steps?.length ? <ol className="project-procedure-steps">
+        {submission.artifact.steps.map((step, index) => <li key={index}>
+          {step.text}
+          {step.action && <p>{step.action.instrument_id} · {step.action.command}
+            {step.action.settings.map(s => " · " + s.parameter + " " + s.value + " " + s.unit).join("")}</p>}
+          {step.amounts?.map((a,i) => <p key={i}>{a.what} · {a.value} {a.unit}</p>)}
+          {!!step.citations?.length && <small>Sources · {step.citations.join(", ")}</small>}
+        </li>)}
+      </ol> : submission && !submission.artifact.needs_input && <pre>{submission.rendered}</pre>}
+      {!!submission?.source_passages?.length && <details>
+        <summary>Source passages</summary>
+        {submission.source_passages.map(p => <blockquote key={p.document + "/" + p.passage}>
+          <strong>{p.title} · passage {p.passage}</strong><p>{p.text}</p>
+        </blockquote>)}
+      </details>}
+      {data.draft?.next_order && <a href={"#order/" + encodeURIComponent(data.draft.next_order)}>Open updated draft</a>}
+    </>}
+    <a className="ws-button" href={"#order/" + encodeURIComponent(id)}>{submission ? "Review submission" : "Open work order"}</a>
+  </section>;
+}
+
+const resourceIcon = {app: ChartColumn, procedure: ClipboardList, data: FileSpreadsheet};
+
+function ResourceItem({item, projectId, showByDefault = false, objective}: {
+  item: Resource; projectId: string; showByDefault?: boolean; objective?: string;
+}) {
+  const [expanded, setExpanded] = useState(showByDefault);
   const [draft, setDraft] = useState(item.id);
   const name = kindLabel[item.kind] + " · " + item.title;
-  const portal = item.tabular || (item.kind === "procedure" && !item.automatic);
-  return <div className="research-item">
-    {item.path ? <a href={apiUrl(item.path)} download>{name}</a> : portal ?
-      <a href={"#order/" + encodeURIComponent(item.id)}>{name}</a> :
-      <button className="ws-button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>{name}</button>}
-    <small>{item.id}{item.submission ? " · submission " + item.submission : ""}
-      {item.reused === true ? " · reused" : item.reused === false ? " · requested" : ""}</small>
+  const Icon = resourceIcon[item.kind];
+  const label = <><Icon size={18} aria-hidden/><span>{item.title === objective && !item.tabular ? kindLabel[item.kind] : name}</span></>;
+  return <div className="project-resource">
+    <div className="project-resource-head">
+      {item.path ? <a className="project-resource-title" href={apiUrl(item.path)} download>{label}</a> :
+        item.tabular ? <a className="project-resource-title" href={"#order/" + encodeURIComponent(item.id)}>{label}</a> :
+        <button className="project-resource-title" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+          {label}<ChevronRight className="project-chevron" size={16} aria-hidden/>
+        </button>}
+      <small>{item.id}{item.submission ? " · submission " + item.submission : ""}
+        {item.reused === true ? " · reused" : item.reused === false ? " · requested" : ""}</small>
+    </div>
+    {expanded && !item.path && !item.tabular && <div className="project-resource-view">{item.kind === "app"
+      ? <AppDetail id={item.id}/> : item.automatic
+      ? <DraftDetail key={draft} id={draft} open={setDraft}/> : <WorkerProcedure id={item.id}/>}</div>}
     {item.kind === "procedure" && item.status === "released" &&
       <a href={"#analysis/new?" + new URLSearchParams({project:projectId, procedure:item.id})}>Use this procedure for a tabular analysis</a>}
-    {expanded && !portal && (item.kind === "app" ? <AppDetail id={item.id} /> : <DraftDetail key={draft} id={draft} open={setDraft} />)}
   </div>;
 }
 
@@ -39,30 +99,46 @@ export function ProjectInvestigations({ projectId, active, open, compose }: {
   projectId: string; active?: string; open: (id: string) => void; compose: (objective: string) => void;
 }) {
   const {data, error, refresh} = useRead<Inventory>("research-projects?project=" + encodeURIComponent(projectId));
-  const current = data?.investigations.find(i => i.id === active);
   return <section className="research-workflows project-investigations">
-    <div className="ws-sectionhead"><h2>Investigations</h2><button onClick={refresh}>Refresh</button></div>
-    <Notice error={error} />
+    <div className="ws-sectionhead"><h2>Investigations</h2><button onClick={refresh}><RefreshCw size={16} aria-hidden/>Refresh</button></div>
+    <Notice error={error}/>
     {!data && !error && <p role="status">Loading project records…</p>}
-    {data && <div className="ws-actions">
-      <a className="ws-button" href={"#analysis/new?project=" + encodeURIComponent(projectId)}>Upload project readings</a>
-      <details><summary>Registered lab context</summary><p>{data.context.experiment.goal}</p>
-        <p>{data.context.lab.name} · lab revision {data.context.lab_revision} · experiment revision {data.context.experiment_revision}</p>
-        {data.context.lab.instruments.map(i => <p key={i.id}>{i.name} · {i.model}</p>)}
-        {[...data.context.lab.documents,...data.context.experiment.documents].map((d,i) =>
-          <details key={i}><summary>{d.title}</summary><p>{d.text}</p></details>)}
-        <div className="ws-actions"><a href="#context">Edit lab context</a>
-          <button onClick={() => compose("Ask a worker to draft a procedure for " + data.context.experiment.goal)}>Request a worker draft</button></div>
+    {data && <>
+      {data.investigations.length === 0 && <p>No investigations yet.</p>}
+      <div className="project-investigation-list">{data.investigations.map(i => {
+        const kinds = [...new Set(i.resources.map(r => kindLabel[r.kind]))];
+        const expanded = i.id === active;
+        const hasNewResource = i.resources.some(r => r.reused === false);
+        return <article key={i.id} className="project-investigation">
+          <button className="ws-experiment-row" aria-expanded={expanded} onClick={() => open(expanded ? "" : i.id)}>
+            <span className="project-investigation-icon"><FlaskConical size={23} aria-hidden/></span>
+            <span className="ws-row-copy"><strong>{i.objective}</strong>{kinds.length > 0 && <small>{kinds.join(" · ")}</small>}</span>
+            <ChevronRight className="project-chevron" size={19} aria-hidden/>
+          </button>
+          {expanded && <div className="project-investigation-output">
+            {i.resources.map(item => <ResourceItem key={item.id} item={item} projectId={projectId}
+              objective={i.objective} showByDefault={item.reused === false || !hasNewResource}/>)}
+          </div>}
+        </article>;
+      })}</div>
+      {active && !data.investigations.some(i => i.id === active) && <p>That investigation is unavailable in this project.</p>}
+      <div className="ws-sectionhead project-materials-heading"><h2>Project resources</h2>
+        <a className="ws-button" href={"#analysis/new?project=" + encodeURIComponent(projectId)}><Upload size={16} aria-hidden/>Upload project readings</a></div>
+      <details className="project-disclosure"><summary><Files size={19} aria-hidden/>Data, procedures and apps ({data.resources.length})<ChevronRight className="project-chevron" size={16} aria-hidden/></summary>
+        {data.resources.length === 0 ? <p>No saved resources yet.</p> : data.resources.map(item => <ResourceItem key={item.id} item={item} projectId={projectId}/>)}
       </details>
-    </div>}
-    {data?.investigations.length === 0 && <p>No investigations yet.</p>}
-    {data?.investigations.map(i => <div key={i.id}>
-      <button className="ws-button" aria-expanded={i.id === active} onClick={() => open(i.id === active ? "" : i.id)}>{i.objective}</button>
-      {i.id === active && <div>{i.resources.map(item => <ResourceItem key={item.id} item={item} projectId={projectId} />)}</div>}
-    </div>)}
-    {active && data && !current && <p>That investigation is unavailable in this project.</p>}
-    {!!data?.resources.length && <details><summary>Project data, procedures and apps ({data.resources.length})</summary>
-      {data.resources.map(item => <ResourceItem key={item.id} item={item} projectId={projectId}/>)}</details>}
+      <details className="project-disclosure"><summary><BookOpen size={19} aria-hidden/>Registered lab context<ChevronRight className="project-chevron" size={16} aria-hidden/></summary>
+        <div className="project-context">
+          <p>{data.context.experiment.goal}</p>
+          <p>{data.context.lab.name} · lab revision {data.context.lab_revision} · experiment revision {data.context.experiment_revision}</p>
+          {data.context.lab.instruments.map(i => <p key={i.id}>{i.name} · {i.model}</p>)}
+          {[...data.context.lab.documents,...data.context.experiment.documents].map((d,i) =>
+            <details key={i}><summary>{d.title}</summary><p>{d.text}</p></details>)}
+          <div className="project-context-actions"><a href="#context">Edit lab context</a>
+            <button className="ws-button" onClick={() => compose("Ask a worker to draft a procedure for " + data.context.experiment.goal)}>Request a worker draft</button></div>
+        </div>
+      </details>
+    </>}
   </section>;
 }
 

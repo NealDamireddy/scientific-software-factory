@@ -214,6 +214,11 @@ export default function Workspace() {
   const labView = Object.prototype.hasOwnProperty.call(labViews, labRoute) && labViews[labRoute];
   const project = section === "project" ? item : "";
   const projectInfo = findProject(project);
+  const registeredProjectId = projectInfo?.id || (project.startsWith("lab:") ? project.slice(4) : "");
+  const projectExperiments = project
+    ? saved.experiments.filter(e => e.project === (projectInfo?.title || project))
+    : saved.experiments;
+  const showExperimentList = !registeredProjectId || projectExperiments.length > 0;
   const selected = findProject(saved.selectedProject);
   const experiment = saved.experiments.find((e) => e.id === item);
   const articles = [...saved.knowledge, ...sampleArticles];
@@ -909,10 +914,12 @@ export default function Workspace() {
                 New investigation
               </button>
             </div>
-            {project && (projectInfo?.id || project.startsWith("lab:")) && <ProjectInvestigations
-              key={project} projectId={projectInfo?.id || project.slice(4)} active={investigationId}
+            {project && registeredProjectId && <ProjectInvestigations
+              key={project} projectId={registeredProjectId} active={investigationId}
               compose={objective => { update({objective, selectedProject: project}); compose(); }}
               open={id => go(routeFor("project", project) + (id ? "/" + id : ""))} />}
+            {showExperimentList && <>
+              {registeredProjectId && <div className="ws-sectionhead"><h2>Simulated experiments</h2></div>}
             <div className="ws-toolbar">
               <label className="ws-inputgroup">
                 <Search size={17} />
@@ -929,7 +936,7 @@ export default function Workspace() {
                 onChange={(e) => setFilter(e.target.value)}
               >
                 <option>All statuses</option>
-                {[...new Set(saved.experiments.map((e) => e.status))].map(
+                {[...new Set(projectExperiments.map((e) => e.status))].map(
                   (s) => (
                     <option key={s} value={s}>
                       {pretty(s)}
@@ -940,13 +947,11 @@ export default function Workspace() {
             </div>
             {!project && directory.data?.investigations.filter(i => i.objective.toLowerCase().includes(listQuery.toLowerCase())).map(liveRow)}
             {(() => {
-              const matches = saved.experiments.filter(
+              const matches = projectExperiments.filter(
                 (e) =>
-                  (!project || e.project === (projectInfo?.title || project)) &&
                   e.title.toLowerCase().includes(listQuery.toLowerCase()) &&
                   (filter === "All statuses" || e.status === filter),
               );
-              if (project && !matches.length && (projectInfo?.id || investigationId) && !listQuery) return null;
               return matches.length ? (
                 matches.map(row)
               ) : (
@@ -977,6 +982,7 @@ export default function Workspace() {
                 </div>
               );
             })()}
+            </>}
           </div>
         ) : section === "instruments" ? (
           <div className="ws-page">

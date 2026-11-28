@@ -47,10 +47,153 @@
 .research-workflows [role="alert"] {
   color: #943e23;
 }
-.project-investigations { margin-block: 1.25rem 2rem; }
-.project-investigations .research-item { padding: .75rem 1rem; border-left: 2px solid var(--line); }
-.research-item > small { display: block; color: var(--muted); margin-top: .35rem; }
-.project-investigations details { margin-top: 1rem; }
+.project-investigations {
+  margin-block: var(--space-6) var(--space-5);
+}
+.project-investigations .ws-sectionhead {
+  flex-wrap: wrap;
+}
+.project-investigations .ws-sectionhead h2 {
+  margin: 0;
+}
+.project-investigations .project-materials-heading {
+  margin-top: var(--space-6);
+}
+.project-investigations .ws-button {
+  text-decoration: none;
+}
+.project-investigation > .ws-experiment-row {
+  min-height: 76px;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+}
+.project-investigation .ws-row-copy {
+  flex: 1;
+}
+.project-investigation .ws-row-copy strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.project-investigation [aria-expanded="true"] .ws-row-copy strong {
+  display: block;
+}
+.project-investigation-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--muted);
+}
+.project-chevron {
+  flex: none;
+  color: var(--subtle);
+}
+[aria-expanded="true"] > .project-chevron,
+.project-disclosure[open] > summary > .project-chevron {
+  transform: rotate(90deg);
+}
+.project-investigation-output, .project-context {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--panel);
+  border-radius: var(--radius);
+  margin-block: var(--space-3);
+  min-width: 0;
+}
+.project-resource {
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.project-resource-head { display: grid; gap: var(--space-1); }
+.project-investigations .project-resource-title {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: var(--space-2);
+  max-width: 100%;
+  text-align: left;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+.project-resource-title > svg { flex: none; }
+.project-resource-head > small,
+.project-worker-draft small,
+.project-draft-heading > span { color: var(--muted); }
+.project-resource-view {
+  display: flow-root;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+.project-resource-view .ws-pagehead {
+  margin-block: 0 var(--space-2);
+  gap: var(--space-3);
+}
+.project-resource-view :is(h1, h2, h3) {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.35;
+  letter-spacing: -.02em;
+  font-weight: 620;
+}
+.project-resource-view p { margin-block: var(--space-2); }
+.project-resource-view pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.project-worker-draft {
+  font-size: clamp(17px, 1.6vw, 22px);
+  line-height: 1.5;
+}
+.project-worker-draft .project-draft-heading h3 {
+  font-size: 1.08em;
+}
+.project-draft-heading > span,
+.project-worker-draft small {
+  font-size: .83em;
+}
+.project-worker-draft .ws-button {
+  margin-block-start: var(--space-2);
+  font-size: .92em;
+}
+.project-draft-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+.project-procedure-steps { padding-inline-start: 1.65em; }
+.project-procedure-steps li { padding-inline-start: .25em; margin-block: var(--space-3); }
+.project-procedure-steps small { display: block; }
+.project-worker-draft a { display: inline-block; margin-inline-end: var(--space-3); }
+.project-investigations .project-disclosure {
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+}
+.project-disclosure > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 48px;
+  font-weight: 550;
+  list-style: none;
+}
+.project-disclosure > summary::-webkit-details-marker { display: none; }
+.project-disclosure > summary > .project-chevron { margin-inline-start: auto; }
+.project-disclosure > .project-resource { margin-bottom: var(--space-2); }
+.project-context { gap: var(--space-2); }
+.project-context :is(p,details) { margin: 0; }
+.project-context-actions { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .project-investigation > .ws-experiment-row { gap: var(--space-2); }
+  .project-investigation-icon { width: 32px; height: 32px; }
+  .project-investigation-output { padding: var(--space-2); }
+  .project-resource { padding: var(--space-3); }
+}
+
 .composer-question { padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); }
 .composer-question button { margin: .3rem .5rem .3rem 0; }
 
