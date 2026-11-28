@@ -53,7 +53,7 @@ import {
 import { LabOperations, labViews } from "./lab-operations";
 import ResearchWorkflows, { useRead } from "./research-workflows";
 import { apiUrl, researchRequest } from "./research-api";
-import { RecordNote, ProjectSources, type AnalysisSources, ProjectInvestigations, RegisteredLibrary, type ResearchExperimentSummary, type Question, type Project } from "./project-investigations";
+import { RecordNote, ProjectSources, useProjectSources, type AnalysisSources, ProjectInvestigations, RegisteredLibrary, type ResearchExperimentSummary, type Question, type Project } from "./project-investigations";
 import ExperimentDetail from "./experiment-detail";
 import { deliverReview, recordDelivery } from "./worker-delivery";
 import {
@@ -184,7 +184,7 @@ export default function Workspace() {
   const directory = useRead<{projects: Project[]; labs: {id:string; name:string}[]; experiments: ResearchExperimentSummary[]}>("research-projects");
   const session = useRead<{reviewer: string | null; access_mode?: string}>("session");
   const [clarification, setClarification] = useState<Question | null>(null);
-  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [sourcePicker, setSourcePicker] = useState<{ projectId: string; open: boolean }>();
   const [analysisSources, setAnalysisSources] = useState<AnalysisSources>();
   const [busy, setBusy] = useState(false);
   const inflight = useRef(false);
@@ -231,6 +231,11 @@ export default function Workspace() {
   const scopedComposer = section === "home" && !!encoded;
   const addingWork = scopedComposer && !!experimentId;
   const selected = findProject(scopedComposer ? item : saved.selectedProject);
+  const picker = sourcePicker?.projectId === selected?.id ? sourcePicker : undefined;
+  const sourceOptions = useProjectSources(picker?.projectId);
+  const sourceOverride = analysisSources?.experiment_id === picker?.projectId ? analysisSources : undefined;
+  const sources = sourceOverride || sourceOptions.defaults;
+  const waitingForSources = !!picker && !sources;
   const researchExperiments = directory.data?.experiments || [];
   const currentExperiment = researchExperiments.find(e => e.id === experimentId && e.project_id === (addingWork ? selected?.id : registeredProjectId));
   const objectiveText = addingWork ? saved.experimentDrafts[route] || "" : saved.objective;
@@ -410,12 +415,12 @@ export default function Workspace() {
     if (proj) update({ selectedProject: proj });
     setComposerError("");
     setAnalysisSources(undefined);
-    setSourcesOpen(false);
+    setSourcePicker(undefined);
     go(proj ? routeFor("home", proj) + (intoExperiment ? "/" + intoExperiment : "") : "home");
     requestAnimationFrame(() => objectiveRef.current?.focus());
   }
   async function submit(answer?: { field: string; id: string }, saveQuestion = false) {
-    if (inflight.current || (!answer && !saveQuestion && clarification)) return;
+    if (inflight.current || waitingForSources || (!answer && !saveQuestion && clarification)) return;
     const objective = objectiveText.trim();
     if (!objective) {
       setComposerError("Describe your research objective to start.");
@@ -444,7 +449,6 @@ export default function Workspace() {
       const projectId = selected.id || matches[0]?.id ||
         (await researchRequest<Project>("research-projects", { title: selected.title })).id;
       if (version !== generation.current) return;
-      const sources = analysisSources?.experiment_id === projectId ? analysisSources : undefined;
       const endpoint = saveQuestion ? "research-experiments" : "investigations";
       // Saving a question records it only; skills ride with requests that can create work.
       const skills = saveQuestion ? [] : workerSkills(saved.extensions);
@@ -474,7 +478,7 @@ export default function Workspace() {
       } else {
         try { sessionStorage.removeItem("research.pending-investigation"); } catch {}
         pending.current = { fingerprint: "", id: "" };
-        setAnalysisSources(undefined); setSourcesOpen(false);
+        setAnalysisSources(undefined); setSourcePicker(undefined);
         setObjective("");
         update({selectedProject: "lab:" + projectId});
         directory.refresh();
@@ -886,13 +890,16 @@ export default function Workspace() {
                       </>,
                     )}
                 </div>
-                {selected?.id && <button className="ws-selector" aria-expanded={sourcesOpen}
-                  onClick={() => setSourcesOpen(v => !v)}>Analysis sources</button>}
+                {selected?.id && <button className="ws-selector" aria-expanded={!!picker?.open} disabled={busy}
+                  onClick={() => {
+                    if (!picker) resetRequest();
+                    setSourcePicker({projectId:selected.id, open:!picker?.open});
+                  }}>Analysis sources</button>}
                 <button
                   className="ws-submit"
                   aria-label={addingWork ? "Add to experiment" : "Start experiment"}
                   title={addingWork ? "Add to experiment" : "Start experiment"}
-                  disabled={busy || !!clarification}
+                  disabled={busy || !!clarification || waitingForSources}
                   onClick={() => submit()}
                 >
                   <ArrowUp />
@@ -906,9 +913,14 @@ export default function Workspace() {
               </span>
               <span>⌘ ↵ to start</span>
             </div>
-            {sourcesOpen && selected?.id && <div className="composer-question"><ProjectSources key={selected.id}
-              id={selected.id} value={analysisSources?.experiment_id === selected.id ? analysisSources : undefined}
-              set={value => { resetRequest(); setAnalysisSources(value); }}/></div>}
+            {picker?.open && <div className="composer-question">
+              {sourceOptions.context && sources ? <ProjectSources context={sourceOptions.context} selected={sources}
+                set={value => { resetRequest(); setAnalysisSources(value); }}
+                reset={sourceOverride ? () => { resetRequest(); setAnalysisSources(undefined); } : undefined}/>
+                : sourceOptions.error ? <><p role="alert">{sourceOptions.error}</p>
+                  <button type="button" onClick={sourceOptions.refresh}>Retry loading documents</button></>
+                : <p role="status">Loading project documents…</p>}
+            </div>}
             {clarification && <section className="composer-question">
               <p>{clarification.question}</p>
               {!!clarification.matches?.length && <p>In this project · {clarification.matches.map(r => r.title).join(", ")}</p>}

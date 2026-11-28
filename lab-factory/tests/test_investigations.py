@@ -75,6 +75,29 @@ def test_project_dataset_selection_ready_app_reuse_and_ambiguous_files(store):
     assert [d["digest"] for d in pinned] == [file_a["digest"], file_b["digest"]]
 
 
+def test_app_reuse_requires_matching_analysis_on_the_same_file(store):
+    project = investigations.register(store, "Weekly readings")["id"]
+    upload(store, project, "Tuesday.csv")
+    objective = "Calculate the mean of Tuesday.csv"
+    _, mean = investigations.resolve(store, "Reviewer", request(project, objective))["resources"]
+    analysis_requests.claim(store, mean["id"], "Worker")
+    analysis_requests.submit(store, mean["id"], "Worker", {"turn": 1, "app": {
+        "summary": "Mean calculation", "question": "", "html": "<html><body>Mean</body></html>"}})
+
+    _, repeat = investigations.resolve(store, "Reviewer", request(project, objective))["resources"]
+    assert repeat["id"] == mean["id"] and repeat["reused"]
+    _, plot = investigations.resolve(store, "Reviewer", request(project, "Plot Tuesday.csv"))["resources"]
+    assert plot["id"] != mean["id"] and not plot["reused"]
+    upload(store, project, "Wednesday.csv", csv=(
+        "vial,kind,area,level\ns1,standard,10,1\ns2,standard,100,10\nc,control,50,\nu,unknown,77,\n"))
+    different = investigations.resolve(store, "Reviewer", request(project, "Calculate the mean of Wednesday.csv"))
+    assert different["field"] == "app"
+    # Partial operation matches need a decision even when only one app is ready.
+    question = investigations.resolve(store, "Reviewer", request(project, "Calculate the median of Tuesday.csv"))
+    assert question["field"] == "app"
+    assert {option["id"] for option in question["options"]} == {mean["id"], "new"}
+
+
 def test_released_procedure_is_reused_and_pinned_to_app(store, uvvis_lab_dict, b12_experiment_dict):
     from labfactory.context import lab_from_dict, experiment_from_dict
     from labfactory.workorders import WorkOrders
@@ -318,13 +341,63 @@ def test_followup_prefers_attached_readings_and_honors_named_project_files(store
     assert data["id"] == first + "/uploads/readings" and data["reused"]
     assert data["id"] != duplicate + "/uploads/readings"
     assert analysis_requests.detail(store, app["id"])["contexts"][0]["dataset"]["id"] == data["id"]
+    same = followup("Plot this dataset against first.csv", app="new")
+    assert [r["id"] for r in same["resources"] if r["kind"] == "data"] == [data["id"]]
     named = followup("Plot this dataset against sibling.csv", app="new")
-    assert named["resources"][0]["id"] == other + "/uploads/readings"
+    comparison = [data["id"], other + "/uploads/readings"]
+    assert [r["id"] for r in named["resources"] if r["kind"] == "data"] == comparison
+    ctx, = analysis_requests.detail(store, named["resources"][-1]["id"])["contexts"]
+    assert [r["id"] for r in ctx["datasets"]] == comparison
     clarified = followup("Summarize this dataset", app="new")
     assert clarified["field"] == "data"
     assert {o["id"] for o in clarified["options"]} == {data["id"], other + "/uploads/readings", "new"}
+    target = upload(store, project, "target.csv") + "/uploads/readings"
+    ambiguous = {**request(project, "Plot this dataset against target.csv", app="new"), "experiment_id": experiment}
+    question = investigations.resolve(store, "Reviewer", ambiguous)
+    assert question["field"] == "data" and {o["id"] for o in question["options"]} == {*comparison, "new"}
+    ambiguous["choices"]["data"] = other + "/uploads/readings"
+    resolved = investigations.resolve(store, "Reviewer", ambiguous)
+    assert [r["id"] for r in resolved["resources"] if r["kind"] == "data"] == [other + "/uploads/readings", target]
     inv = investigations.inventory(store, project)
     assert data["id"] in {r["id"] for r in inv["experiments"][0]["resources"]}
+
+
+def test_comparison_with_two_ambiguous_references_preserves_each_answer(store):
+    project = investigations.register(store, "Comparison inputs")["id"]
+    experiment = research_experiments.create(store, "Reviewer", {
+        "project_id": project, "request_id": str(uuid4()), "question": "Which files agree?"})["id"]
+    attached = [upload(store, project, name, research_experiment_id=experiment) + "/uploads/readings"
+                for name in ("first.csv", "second.csv")]
+    baseline = upload(store, project, "baseline.csv") + "/uploads/readings"
+    other = upload(store, project, "baseline.csv", csv=(
+        "vial,kind,area,level\ns1,standard,10,1\ns2,standard,100,10\nc,control,50,\nu,unknown,76,\n")) + "/uploads/readings"
+    req = {**request(project, "Plot this dataset against baseline.csv"), "experiment_id": experiment}
+    question = investigations.resolve(store, "Reviewer", req)
+    assert {o["id"] for o in question["options"]} == {*attached, "new"}
+    req["choices"][question["field"]] = attached[0]
+    question = investigations.resolve(store, "Reviewer", req)
+    assert {o["id"] for o in question["options"]} == {baseline, other, "new"}
+    req["choices"][question["field"]] = attached[0]
+    with pytest.raises(WorkOrderError):
+        investigations.resolve(store, "Reviewer", req)
+    req["choices"][question["field"]] = baseline
+    resolved = investigations.resolve(store, "Reviewer", req)
+    assert [r["id"] for r in resolved["resources"] if r["kind"] == "data"] == [attached[0], baseline]
+
+
+def test_no_attached_dataset_retains_project_default_and_rejects_stale_answers(store):
+    project = investigations.register(store, "Project inputs")["id"]
+    experiment = research_experiments.create(store, "Reviewer", {
+        "project_id": project, "request_id": str(uuid4()), "question": "Which input?"})["id"]
+    first = upload(store, project, "first.csv") + "/uploads/readings"
+    result = investigations.resolve(store, "Reviewer", {
+        **request(project, "Analyze this dataset"), "experiment_id": experiment})
+    assert result["resources"][0]["id"] == first
+    second = upload(store, project, "second.csv") + "/uploads/readings"
+    req = {**request(project, "Plot this dataset against second.csv"), "experiment_id": experiment}
+    for stale in ({"data": "missing"}, {"data:2": second}):
+        with pytest.raises(WorkOrderError):
+            investigations.resolve(store, "Reviewer", {**req, "choices": stale})
 
 
 def test_attached_procedure_survives_a_revision(store):
@@ -338,12 +411,19 @@ def test_attached_procedure_survives_a_revision(store):
     research_experiments.update(store, experiment, {"project_id": project, "attach_resource_id": first.id})
     orders = WorkOrders(store)
     orders.claim(first.id, "Worker")
+    def attached_status():
+        procedure, = investigations.inventory(store, project)["experiments"][0]["resources"]
+        return procedure["status"]
+
+    assert attached_status() == "in_progress"
     orders.submit(first.id, "Worker", {"needs_input": "Which record should be checked?"})
+    assert attached_status() == "needs_input"
     revision = procedure_drafts.add_source(store, first.id, "Reviewer", "Worksheet", "Check the archived entries.")
     view = investigations.inventory(store, project)
     assert [r["id"] for r in view["resources"]] == [revision]
     original, = view["experiments"][0]["resources"]
     assert original["id"] == first.id and original["next_order"] == revision
+    assert original["status"] == "superseded"
 
 
 def test_same_project_title_in_two_labs_keeps_legacy_identity(store):
