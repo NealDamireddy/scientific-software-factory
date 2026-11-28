@@ -53,7 +53,7 @@ class AgentTools:
         return [asdict(order) for order in self._orders.list(status)] + analysis_requests.listing(self._store, status)
 
     @_return_domain_errors
-    def get_work_order_context(self, work_order_id: str) -> dict:
+    def get_work_order_context(self, work_order_id: str, query: str = "", offset: int = 0) -> dict:
         if work_order_id.startswith(analysis_requests.PREFIXES):
             request = analysis_requests.detail(self._store, work_order_id)
             kind = analysis_requests.kind(work_order_id)
@@ -80,15 +80,26 @@ class AgentTools:
             from . import tabular_service
 
             if tabular_service.is_order(order):
-                from .tabular_analysis import INSTRUCTIONS as profile_instructions
+                from .tabular_analysis import author_instructions
 
                 context["analysis"] = tabular_service.public_context(self._store, order)
                 context["artifact_example"] = {"source": "", "explanation": "", "tests": []}
-                context["instructions"] = profile_instructions + (
+                languages = context["analysis"].get("allowed_languages")
+                if languages:
+                    context["artifact_example"]["language"] = languages[0]
+                context["instructions"] = author_instructions(languages) + (
                     " The public protocol and standards in analysis describe this experiment. "
                     "If required information is missing, submit a single field needs_input with a concise "
                     "question instead of fabricating an answer. The assigned control is held by the reviewer."
                 )
+                if "research_context" in context["analysis"]:
+                    context["instructions"] += (
+                        " Ground the calculation in research_context: identify the assigned instrument, "
+                        "its export units and firmware behavior, and the project's reporting goal and method. "
+                        "A capability or setting limit does not establish the setting actually used. Explain "
+                        "which instrument or document supports each consequential conversion or correction. "
+                        "When a missing or conflicting fact changes the result, ask a focused question."
+                    )
                 if context["previous_rejection"]:
                     # Free-text reviewer feedback can mention the hidden target or reading.
                     context["previous_rejection"]["reason"] = "The reviewer requested a revision."
@@ -106,6 +117,20 @@ class AgentTools:
                     "text": "Review the cited source and record which conditions apply to the sample.",
                     "citations": [brief["findings"][0]["id"]],
                 }]}
+            if order.kind == "procedure":
+                from . import procedure_drafts
+                draft = procedure_drafts.info(self._store, order.id)
+                if draft:
+                    if not isinstance(query, str) or type(offset) is not int or offset < 0:
+                        raise WorkOrderError("Provide a text query and a nonnegative passage offset.")
+                    context["draft"] = draft
+                    context["instructions"] += " " + procedure_drafts.INSTRUCTIONS
+                    context["passages"] = procedure_drafts.retrieve(lab, experiment, query or order.objective, offset)
+                    for record in (context["experiment"], context["lab"]):
+                        for doc in record["documents"]:
+                            del doc["text"]
+                    context["artifact_example"] = {"steps": [{"text": "<instruction>", "citations": ["<id>"],
+                        "evidence": [{"document": "<id>", "passage": 1, "quote": "<exact passage excerpt>"}]}]}
             return context
 
     @_return_domain_errors

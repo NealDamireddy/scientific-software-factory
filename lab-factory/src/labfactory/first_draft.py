@@ -29,6 +29,31 @@ def _row(store, order_id):
     return row
 
 
+def _state(status, submitted, question, successor):
+    if successor:
+        return "superseded"
+    if not submitted:
+        return "drafting"
+    if status == "in_progress" and question:
+        return "needs_input"
+    return status
+
+
+def catalog(store):
+    rows = store.connection.execute("""
+        SELECT o.id, o.objective, o.experiment_id, o.status, s.number,
+               json_extract(s.artifact, '$.needs_input') AS question, successor.work_order_id AS successor
+        FROM automatic_procedures AS a JOIN work_orders AS o ON o.id = a.work_order_id
+        LEFT JOIN procedure_drafts AS successor ON successor.previous_order = o.id
+        LEFT JOIN submissions AS s ON s.work_order_id = o.id AND s.number = (
+            SELECT MAX(number) FROM submissions WHERE work_order_id = o.id
+        )
+        ORDER BY o.rowid DESC
+    """)
+    return {"drafts": [{"id": r["id"], "objective": r["objective"], "experiment_id": r["experiment_id"],
+                        "status": _state(r["status"], r["number"], r["question"], r["successor"])} for r in rows]}
+
+
 def detail(store, order_id):
     row = _row(store, order_id)
     orders = WorkOrders(store)
@@ -37,11 +62,7 @@ def detail(store, order_id):
     lab, exp = orders.pinned_context(order_id)
     linked = procedure_drafts.info(store, order_id)
     question = submission.artifact.get("needs_input") if submission else None
-    state = order.status if submission else "drafting"
-    if linked["next_order"]:
-        state = "superseded"
-    elif state == "in_progress" and question:
-        state = "needs_input"
+    state = _state(order.status, submission, question, linked["next_order"])
     plan = json.loads(row["plan"])
     sources = procedure_drafts.review_passages(lab, exp, submission.artifact) if submission else []
     if question and row["question_step"] is not None:

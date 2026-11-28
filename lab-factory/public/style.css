@@ -1,4 +1,4 @@
-:root {
+:root, :host {
   color-scheme: light;
   --page:#f7f8f5; --paper:#fff; --ink:#18211e; --muted:#54635d; --line:#d7ded8;
   --green:#17573e; --mint:#e4f1e7; --burgundy:#922f33; --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
@@ -245,3 +245,8 @@ dialog::backdrop {background:#0e241a82}
   .analysis-grid {grid-template-columns:minmax(0,1fr)}
   .analysis-preview th,.analysis-preview td {padding:.4rem .55rem}
 }
+
+:host {display:block;background:var(--surface,#fff);font-family:inherit}
+:host .brand,:host #portal-label {display:none}
+:host .mast-inner {flex-wrap:wrap;padding-block:10px}
+:host main {padding-top:16px}

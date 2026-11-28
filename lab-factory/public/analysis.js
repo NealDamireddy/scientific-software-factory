@@ -1,4 +1,6 @@
-"use strict";
+export function analysisViews({ root, skills, element, button, formError, table, linkToOrder, status, statuses,
+  workspace, heading, refreshButton, panel, handleForm, post, openOrder, api, definition, byId,
+  navigate, notify, showOrder, latestOrder, currentPage, advancePage }) {
 
 const mappingFields = [
   ["id", "Sample ID", true], ["role", "Row role", true], ["signal", "Measured signal", true],
@@ -114,22 +116,52 @@ function showTabularOrders(data) {
     }
     list.append(wrapper);
   }
-  workspace.replaceChildren(heading("Analysis workspace", refreshButton(), create),
+  workspace.replaceChildren(heading("Analysis workspace", refreshButton(), analysisLink("Offline apps", "/#analysis-apps"), analysisLink("Stage drift plots", "/#stage-plots"), create),
     element("p", "Request an analysis from your protocol and CSV. Review its code and blind control result before releasing it for use.", "assay-intro"), list);
 }
 
-function showTabularIntake() {
+function showTabularIntake(projects, experiments, release) {
+  const params = new URLSearchParams(location.hash.split("?")[1]);
   const form = element("form", undefined, "panel-body tabular-form");
+  const project = analysisInput("Research project", "project_id", "select");
+  project.input.append(new Option("Choose a project", ""));
+  for (const record of projects) project.input.append(new Option(record.title + " · " + record.id, record.id));
+  project.input.value = params.get("project") || "";
+  const experimentId = params.get("experiment");
+  if (experimentId && project.input.value) project.input.disabled = true;
   const inputs = analysisGroup("Protocol and readings");
   const objective = analysisInput("What should the analysis report?", "objective");
   const unit = analysisInput("Result unit", "unit");
   unit.input.placeholder = "e.g. mg/L";
   const protocol = analysisInput("Protocol text", "protocol", "textarea");
   protocol.input.rows = 5;
+  const sources = element("div");
+  const selectedExperiment = () => experiments.find(exp => exp.id === project.input.value);
+  project.input.addEventListener("change", () => {
+    const exp = selectedExperiment();
+    sources.replaceChildren();
+    protocol.input.required = !exp;
+    if (!exp) return;
+    sources.append(element("p", "Assigned instruments: " + (exp.instrument_ids.join(", ") || "None")));
+    for (const [scope, docs] of [["lab", exp.lab.documents], ["experiment", exp.documents]]) {
+      for (const doc of docs) {
+        const label = element("label", undefined, "analysis-field");
+        const check = element("input");
+        check.type = "checkbox"; check.name = scope + "_document_ids"; check.value = doc.id;
+        label.append(check, document.createTextNode("Include " + scope + " document · " + doc.title));
+        sources.append(label);
+      }
+    }
+  });
+  project.input.dispatchEvent(new Event("change"));
   const csv = analysisInput("Readings CSV", "csv", "textarea");
   csv.input.rows = 4; csv.input.spellcheck = false;
   let protocolName = "protocol.md", csvName = "readings.csv";
   let protocolOriginal = null, csvOriginal = null;
+  if (release) {
+    protocol.input.value = release.rendered;
+    protocolName = "released-procedure.md";
+  }
   const protocolFile = analysisFile("Upload protocol (.txt or .md)", ".txt,.md,text/plain,text/markdown", (text, name) => {
     protocol.input.value = text; protocolOriginal = text; protocolName = name;
   }, form);
@@ -137,7 +169,12 @@ function showTabularIntake() {
     csv.input.value = text; csvOriginal = text; csvName = name; updateMapping();
   }, form);
   const objectiveFields = element("div", undefined, "analysis-grid");
-  objectiveFields.append(objective.label, unit.label);
+  const language = analysisInput("Analysis language", "analysis_language", "select");
+  language.input.append(new Option("Python", "python"), new Option("MATLAB", "matlab"),
+    new Option("Prefer MATLAB, allow Python", "matlab,python"));
+  objectiveFields.append(objective.label, unit.label, language.label);
+  if (experiments.length) inputs.append(project.label, sources);
+
   inputs.append(objectiveFields, element("p", "Upload each file or paste its contents below. Keep the blind control’s assigned value out of the protocol and CSV.", "muted"),
     protocolFile.label, protocol.label, csvFile.label, csv.label);
 
@@ -243,6 +280,10 @@ function showTabularIntake() {
   }).catch(() => { examples.hidden = true; });
 
   const refs = analysisReferences();
+  const includeSkills = analysisInput("Attach enabled research skills to this worker request", "attach_skills", "checkbox", false);
+  form.append(project.label, sources);
+  if (skills.length) form.append(includeSkills.label, element("p", skills.map(s => s.name).join(", "), "muted"));
+  if (!projects.length) form.append(analysisLink("Create a project in the research workspace", "/#home"));
   form.append(examples, inputs, columns, refs.section, blind, analysisError(), analysisSubmit("Request analysis"));
   handleForm(form, async () => {
     const mapping = Object.fromEntries(Object.entries(selects).map(([k, s]) =>
@@ -251,11 +292,29 @@ function showTabularIntake() {
       protocol_name:protocolName, protocol:protocolOriginal ?? protocol.input.value, csv_name:csvName, csv:csvOriginal ?? csv.input.value,
       mapping, range_gate:gate.input.checked, control_expected:control.expected.valueAsNumber,
       control_tolerance:control.tolerance.valueAsNumber};
+    payload.project_id = project.input.value;
+    if (experimentId) payload.research_experiment_id = experimentId;
+    if (includeSkills.input.checked) payload.skills = skills;
+    payload.allowed_languages = language.input.value.split(",");
+    const exp = selectedExperiment();
+    if (exp) {
+      const documents = scope => Array.from(sources.querySelectorAll("input[name=" + scope + "_document_ids]:checked"), input => input.value);
+      payload.research_context = {experiment_id:exp.id, experiment_revision:exp.revision, lab_revision:exp.lab.revision,
+        lab_document_ids:documents("lab"), experiment_document_ids:documents("experiment")};
+    }
+    if (!payload.protocol) { delete payload.protocol; delete payload.protocol_name; }
+    if (params.has("procedure")) payload.procedure_order_id = params.get("procedure");
     if (refs.selected.size) payload.reference_ids = [...refs.selected.keys()];
     const result = await post("analysis/orders", payload);
     if (form.isConnected) openOrder(result.id);
   });
-  const section = panel("Experiment inputs"); section.append(form);
+  const section = panel("Experiment inputs");
+  if (project.input.value) {
+    const projectPath = "/#project/" + encodeURIComponent("lab:" + project.input.value);
+    section.append(analysisLink(experimentId ? "Back to experiment" : "Back to project",
+      experimentId ? projectPath + "/" + encodeURIComponent(experimentId) : projectPath));
+  }
+  section.append(form);
   workspace.replaceChildren(analysisLink("← Analysis workspace", "#analysis"), heading("New analysis"), section);
 }
 
@@ -326,22 +385,51 @@ function renderTabularOrder(data) {
   const path = "analysis/orders/" + encodeURIComponent(order.id);
   const info = panel("Pinned inputs"), body = element("div", undefined, "panel-body");
   const summary = element("dl", undefined, "calibration-data");
+  definition(summary, "Analysis languages", (analysis.allowed_languages || ["python"]).join(", "));
   definition(summary, "Output unit", analysis.unit);
   definition(summary, "Standards", analysis.standards_count);
   definition(summary, "Unknown samples", analysis.unknown_count);
   definition(summary, "Range check", analysis.range_gate ? "Withhold outside the standards’ range" : "Disabled for this protocol");
   const files = element("div", undefined, "analysis-example-links");
-  files.append(analysisLink("Download protocol", "/api/" + path + "/uploads/protocol"),
-    analysisLink("Download original CSV", "/api/" + path + "/uploads/readings"));
+  if (analysis.project_id) {
+    const projectPath = "/#project/" + encodeURIComponent("lab:" + analysis.project_id);
+    if (analysis.research_experiment_id) files.append(analysisLink("Open experiment",
+      projectPath + "/" + encodeURIComponent(analysis.research_experiment_id)));
+    files.append(analysisLink("Open research project", projectPath));
+  } else {
+    const attach = element("form", undefined, "panel-body");
+    const project = analysisInput("Save this analysis and its readings in a project", "project_id", "select");
+    project.input.append(new Option("Choose a project", ""));
+    api("research-projects").then(({projects}) => {
+      for (const p of projects) project.input.append(new Option(p.title, p.id));
+    }).catch(error => { if (attach.isConnected) formError(attach, error.message); });
+    attach.append(project.label, analysisError(), analysisSubmit("Add to project"));
+    handleForm(attach, async () => {
+      await post("research-projects", {project_id:project.input.value, app_id:order.id});
+      if (attach.isConnected) await navigate();
+    });
+    body.append(attach);
+  }
+  if (analysis.protocol_name) files.append(analysisLink("Download protocol", "/api/" + path + "/uploads/protocol"));
+  files.append(analysisLink("Download original CSV", "/api/" + path + "/uploads/readings"));
   const hashes = element("dl", undefined, "order-meta");
-  definition(hashes, analysis.protocol_name, analysis.protocol_digest, "mono");
+  if (analysis.protocol_name) definition(hashes, analysis.protocol_name, analysis.protocol_digest, "mono");
   definition(hashes, analysis.csv_name, analysis.csv_digest, "mono");
   const labels = element("dl", undefined, "calibration-data");
   for (const [key, name] of mappingFields) {
     definition(labels, name, analysis.mapping[key] || (key === "factor" ? "1 for every sample" : "Unused"));
   }
   body.append(summary, files, analysisDetails("Protocol, column mapping and file digests",
-    element("pre", analysis.protocol, "rendered"), labels, hashes));
+    element("pre", analysis.protocol || "", "rendered"), labels, hashes));
+  if (analysis.skills?.length) body.append(analysisDetails("Skills supplied to the worker",
+    ...analysis.skills.map(skill => element("p", skill.name + " · " + skill.version))));
+  if (analysis.research_context) {
+    const {lab, experiment} = analysis.research_context;
+    definition(summary, "Research experiment", experiment.title + " · revision " + experiment.revision);
+    definition(summary, "Lab", lab.name + " · revision " + lab.revision);
+    body.append(analysisDetails("Instrument records and selected research documents",
+      element("pre", JSON.stringify(analysis.research_context, null, 2), "rendered")));
+  }
   if (analysis.references?.length) {
     const list = element("ul");
     for (const ref of analysis.references) {
@@ -456,18 +544,21 @@ function showTabularOrder(data, page) {
   ]);
   const initial = stamp(data);
   const poll = async () => {
-    if (generation !== page || !reviewer) return;
-    if (document.visibilityState === "visible" && !document.querySelector("dialog[open]")) {
+    if (currentPage() !== page) return;
+    if (document.visibilityState === "visible" && !root.querySelector("dialog[open]")) {
       try {
         const next = await latestOrder(data.order.id);
-        if (generation !== page) return;
-        if (stamp(next) !== initial && !document.querySelector("dialog[open]")) {
-          showTabularOrder(next, ++generation);
+        if (currentPage() !== page) return;
+        if (stamp(next) !== initial && !root.querySelector("dialog[open]")) {
+          showTabularOrder(next, advancePage());
           return;
         }
       } catch { /* Keep the manual refresh available after a temporary network interruption. */ }
     }
-    if (generation === page) setTimeout(poll, 7000);
+    if (currentPage() === page) setTimeout(poll, 7000);
   };
   setTimeout(poll, 7000);
+}
+
+return { analysisLink, tabularSubmission, renderTabularOrder, showTabularIntake, showTabularOrders, showTabularOrder };
 }

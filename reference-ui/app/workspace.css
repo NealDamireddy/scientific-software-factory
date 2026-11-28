@@ -1172,3 +1172,31 @@ button {
 .ws-agent-context p {
   margin: 6px 0 14px;
 }
+
+.ws-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 15px;
+  letter-spacing: normal;
+}
+.ws-crumbs button {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+.ws-crumbs button:hover { text-decoration: underline; }
+.ws-crumbs svg, .ws-crumbs span { flex: none; color: var(--muted); }
+.ws-dialog .ws-field + .ws-field { margin-top: 16px; }
+.ws-field select, .ws-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font: inherit;
+}

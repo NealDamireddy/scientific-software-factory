@@ -62,7 +62,7 @@ def source_documents(snapshot):
     )
 
 
-def create_order(store: Store, reviewer: str, request: dict) -> dict:
+def create_order(store: Store, reviewer: str, request: dict, *, draft=False) -> dict:
     snapshot = _snapshot(request)
     selector = snapshot["instrument"]
     objective = snapshot["query"]
@@ -80,7 +80,11 @@ def create_order(store: Store, reviewer: str, request: dict) -> dict:
     with store.transaction() as db:
         store.put_lab(lab)
         store.put_experiment(experiment, allow_unassigned=True)
-        order = WorkOrders(store).create(experiment.id, "procedure", objective, actor=reviewer)
+        if draft:
+            from . import procedure_drafts
+            order = procedure_drafts.create(store, experiment.id, reviewer)
+        else:
+            order = WorkOrders(store).create(experiment.id, "procedure", objective, actor=reviewer)
         db.execute(
             "INSERT INTO reference_briefs(work_order_id, snapshot) VALUES (?,?)",
             (order.id, canonical_json(snapshot)),

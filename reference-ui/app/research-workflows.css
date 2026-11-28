@@ -1,0 +1,285 @@
+.research-workflows {
+  overflow-wrap: anywhere;
+}
+.research-workflows h2 {
+  margin: 1.5em 0 0.55em;
+  font-size: 1.35rem;
+}
+.research-workflows p,
+.research-workflows li {
+  line-height: 1.5;
+}
+.research-workflows fieldset {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.research-workflows label {
+  display: grid;
+  gap: 0.4em;
+  font-weight: 550;
+}
+.research-workflows :is(select, input, textarea) {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  padding: 0.65em;
+  font-weight: 400;
+}
+.research-workflows textarea {
+  min-height: 5em;
+  resize: vertical;
+}
+.research-workflows fieldset .ws-button {
+  justify-self: start;
+}
+.research-workflows details {
+  margin-block: 1em;
+}
+.research-workflows summary {
+  cursor: pointer;
+}
+.research-workflows [role="alert"] {
+  color: #943e23;
+}
+.project-investigations {
+  margin-block: var(--space-6) var(--space-5);
+}
+.project-investigations .ws-sectionhead {
+  flex-wrap: wrap;
+}
+.project-investigations .ws-sectionhead h2 {
+  margin: 0;
+}
+.project-investigations .project-materials-heading {
+  margin-top: var(--space-6);
+}
+.project-investigations .ws-button {
+  text-decoration: none;
+}
+.project-investigation > .ws-experiment-row {
+  min-height: 76px;
+  gap: var(--space-4);
+  padding-block: var(--space-4);
+}
+.project-investigation .ws-row-copy {
+  flex: 1;
+}
+.project-investigation .ws-row-copy strong {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.project-investigation [aria-expanded="true"] .ws-row-copy strong {
+  display: block;
+}
+.project-investigation-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius);
+  background: var(--panel);
+  color: var(--muted);
+}
+.project-chevron {
+  flex: none;
+  color: var(--subtle);
+}
+[aria-expanded="true"] > .project-chevron,
+.project-disclosure[open] > summary > .project-chevron {
+  transform: rotate(90deg);
+}
+.project-investigation-output, .project-context {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--panel);
+  border-radius: var(--radius);
+  margin-block: var(--space-3);
+  min-width: 0;
+}
+.project-resource {
+  min-width: 0;
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.project-resource-head { display: grid; gap: var(--space-1); }
+.project-investigations .project-resource-title {
+  display: inline-flex;
+  align-items: center;
+  justify-self: start;
+  gap: var(--space-2);
+  max-width: 100%;
+  text-align: left;
+  font: inherit;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+.project-resource-title > svg { flex: none; }
+.project-resource-head > small,
+.project-worker-draft small,
+.project-draft-heading > span { color: var(--muted); }
+.project-resource-view {
+  display: flow-root;
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+.project-resource-view .ws-pagehead {
+  margin-block: 0 var(--space-2);
+  gap: var(--space-3);
+}
+.project-resource-view :is(h1, h2, h3) {
+  margin: 0;
+  font-size: 1.12rem;
+  line-height: 1.35;
+  letter-spacing: -.02em;
+  font-weight: 620;
+}
+.project-resource-view p { margin-block: var(--space-2); }
+.project-resource-view pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.project-worker-draft {
+  font-size: clamp(17px, 1.6vw, 22px);
+  line-height: 1.5;
+}
+.project-worker-draft .project-draft-heading h3 {
+  font-size: 1.08em;
+}
+.project-draft-heading > span,
+.project-worker-draft small {
+  font-size: .83em;
+}
+.project-worker-draft .ws-button {
+  margin-block-start: var(--space-2);
+  font-size: .92em;
+}
+.project-draft-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+.project-procedure-steps { padding-inline-start: 1.65em; }
+.project-procedure-steps li { padding-inline-start: .25em; margin-block: var(--space-3); }
+.project-procedure-steps small { display: block; }
+.project-worker-draft a { display: inline-block; margin-inline-end: var(--space-3); }
+.project-investigations .project-disclosure {
+  margin: 0;
+  border-bottom: 1px solid var(--line);
+}
+.project-disclosure > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 48px;
+  font-weight: 550;
+  list-style: none;
+}
+.project-disclosure > summary::-webkit-details-marker { display: none; }
+.project-disclosure > summary > .project-chevron { margin-inline-start: auto; }
+.project-disclosure > .project-resource { margin-bottom: var(--space-2); }
+.project-context { gap: var(--space-2); }
+.project-context :is(p,details) { margin: 0; }
+.project-context-actions { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .project-investigation > .ws-experiment-row { gap: var(--space-2); }
+  .project-investigation-icon { width: 32px; height: 32px; }
+  .project-investigation-output { padding: var(--space-2); }
+  .project-resource { padding: var(--space-3); }
+}
+
+.composer-question { padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); }
+.composer-question button { margin: .3rem .5rem .3rem 0; }
+
+.composer-question fieldset { margin: 0; padding: 0; border: 0; }
+.composer-question fieldset label { display: block; margin: .5rem 0; }
+
+.project-record-section + .project-record-section,
+.project-record-section + .project-request-history,
+.project-question + .project-record-section {
+  margin-top: var(--space-6);
+}
+.project-experiment-head h1 { margin: 0; }
+.project-investigations .project-experiment-head { align-items: flex-end; }
+.project-experiment-head > div:first-child { min-width: 0; flex: 1 1 320px; }
+.project-experiment-head .project-editor-actions { flex: none; max-width: 100%; }
+.project-editor-actions {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+  flex-wrap: wrap;
+}
+.project-note, .project-question > p, .project-request-history li > p {
+  margin: var(--space-4) 0;
+  max-width: 76ch;
+  font-size: clamp(17px, 1.6vw, 22px);
+  white-space: pre-wrap;
+}
+.project-note.empty { color: var(--muted); }
+.project-investigations .project-question > h2 {
+  margin: 0;
+  color: var(--muted);
+  font-size: clamp(15px, 1.3vw, 18px);
+  font-weight: 600;
+}
+.project-question > p { margin-top: var(--space-2); }
+.project-editor {
+  display: grid;
+  gap: var(--space-3);
+  margin-block: var(--space-4);
+  max-width: 76ch;
+}
+.project-editor label, .project-attach-form label, .project-request-history > summary {
+  font-size: clamp(16px, 1.45vw, 20px);
+}
+.project-editor textarea { min-height: 4.3em; }
+.project-investigation .ws-row-copy .project-row-question,
+.project-investigation .ws-row-copy .project-row-outcome {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+}
+.project-investigation .ws-row-copy .project-row-outcome {
+  font-size: clamp(14px, 1.35vw, 18px);
+  color: var(--muted);
+}
+.project-investigation .ws-row-copy { gap: var(--space-1); }
+.project-attached-work {
+  display: grid;
+  gap: var(--space-3);
+}
+.project-attached-work:not(:empty) { margin-block: var(--space-4); }
+.project-attached-work .project-resource-title { font-size: clamp(17px, 1.5vw, 21px); }
+.project-used-in {
+  display: flex;
+  gap: var(--space-1) var(--space-2);
+  flex-wrap: wrap;
+  align-items: baseline;
+  color: var(--muted);
+  margin-top: var(--space-2);
+}
+.project-used-in > button { color: var(--ink); text-decoration: underline; text-underline-offset: .18em; text-align: left; }
+.project-attach-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  align-items: flex-end;
+  margin-block: var(--space-2) var(--space-4);
+}
+.project-attach-form > label { min-width: 0; max-width: 100%; }
+.project-attach-form select { min-width: 0; max-width: 48ch; }
+.project-request-history > ol { padding-inline-start: 1.65em; }
+.project-request-history li { padding-inline-start: var(--space-2); margin-block: var(--space-4); }
+.project-request-history li > p { margin: 0 0 var(--space-1); }
+.project-request-history li > small { display: block; color: var(--muted); }
+@media (max-width: 600px) {
+  .project-experiment-head .project-editor-actions { flex-basis: 100%; }
+  .project-attach-form > label { width: 100%; }
+}

@@ -11,6 +11,8 @@
     }
   },
   "rewrites": [
+    {"source": "/", "destination": "/research/index.html"},
+    {"source": "/examples/measurement-record.csv", "destination": "/research/examples/measurement-record.csv"},
     {"source": "/mcp", "destination": "/api/index"},
     {"source": "/mcp/", "destination": "/api/index"},
     {"source": "/api/:path*", "destination": "/api/index"}

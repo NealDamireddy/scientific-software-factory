@@ -14,5 +14,13 @@
     "unit": "g/mL",
     "range_gate": false,
     "mapping": {"id":"specimen","role":"kind","signal":"mass_g","known":"reference_density","factor":"volume_ml"}
+  },
+  {
+    "name": "Temperature from a sensor calibration table",
+    "folder": "temperature",
+    "objective": "Convert simulated sensor voltages to temperatures using the batch calibration table.",
+    "unit": "°C",
+    "range_gate": true,
+    "mapping": {"id":"sample","role":"role","signal":"voltage_mV","known":"temperature_C","factor":""}
   }
 ]

@@ -1,4 +1,6 @@
+body { margin: 0; font-family: var(--ui-font); }
 :root {
+  --font-geist: var(--font-geist-sans);
   --desktop-scale: 0.67;
   --ink: #242426;
   --muted: #56575f;

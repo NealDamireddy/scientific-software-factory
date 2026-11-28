@@ -15,6 +15,23 @@ from labfactory.store import Store
 from labfactory.workorders import WorkOrders
 
 
+def test_project_directory_offers_a_registered_lab_for_its_first_project(client, uvvis_lab_dict):
+    login(client)
+    client.post("/api/context/lab", json=uvvis_lab_dict).raise_for_status()
+    directory = client.get("/api/research-projects").raise_for_status().json()
+    assert directory["projects"] == []
+    lab, = directory["labs"]
+    assert lab == {"id": uvvis_lab_dict["id"], "name": uvvis_lab_dict["name"]}
+    project = client.post("/api/research-projects", json={
+        "lab_id": lab["id"], "title": "First project",
+    }).raise_for_status().json()
+    assert project["lab_id"] == lab["id"]
+    client.post("/api/b12/orders", json={}).raise_for_status()
+    directory = client.get("/api/research-projects").raise_for_status().json()
+    assert directory["projects"][0]["lab_id"] == lab["id"]
+    assert directory["labs"] == [lab]
+
+
 def test_api_only_host_returns_404_for_unregistered_routes(client):
     assert client.get("/").status_code == 404
     assert client.get("/api/missing").status_code == 404
@@ -505,3 +522,63 @@ def test_requeue_uses_displayed_claim_and_reviewer_policy(client, monkeypatch, p
     assert replacement["order"]["claimed_at"] == "2026-11-25T18:19:20Z"
     assert client.post(path + "/requeue", json=payload).status_code == 409
     assert client.get(path).json() == replacement
+
+
+def test_research_workspace_origin_and_draft_history(client):
+    from labfactory.hosted import research_access, reviewer_api
+
+    origin = "https://research.localhost"
+    app = research_access(reviewer_api, origin)
+    with TestClient(app, base_url=ORIGIN, headers={"Origin": origin}) as browser:
+        assert browser.get("/api/procedure-drafts").status_code == 401
+        assert browser.options("/api/procedure-drafts", headers={
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        }).headers["access-control-allow-origin"] == origin
+        login(client)
+        browser.cookies.update(client.cookies)
+        assert browser.post("/api/example", json={}).status_code == 403
+        before = browser.get("/api/procedure-drafts")
+        assert before.headers["access-control-allow-credentials"] == "true"
+        assert before.json() == {"drafts": []}
+        # A general procedure order belongs to its own workflow.
+        client.post("/api/example", json={}).raise_for_status()
+        client.post("/api/orders", json={"experiment_id": "b12-vial-a", "kind": "procedure",
+                                       "objective": "Inspect the record"}).raise_for_status()
+        assert browser.get("/api/procedure-drafts").json() == {"drafts": []}
+        payload = {"request_id": "workspace-start", "lab": {"id": "archive", "name": "Archive",
+                   "instruments": [], "documents": []}, "experiment": {"id": "trace", "lab_id": "archive",
+                   "title": "Trace", "goal": "Compare archived traces.", "instrument_ids": [], "documents": []}}
+        assert browser.post("/api/procedure-drafts", json=payload, headers={"Origin": "https://other.test"}).status_code == 403
+        first = browser.post("/api/procedure-drafts", json=payload).raise_for_status().json()
+        key = first["order"]["id"]
+        assert browser.get("/api/procedure-drafts").json()["drafts"][0]["status"] == "needs_input"
+        reply = browser.post(f"/api/procedure-drafts/{key}/answers", json={
+            "request_id": "workspace-answer", "title": "Trace record", "text": "Compare the traces.\nLog the trace IDs.",
+        }).raise_for_status().json()
+        rows = browser.get("/api/procedure-drafts").json()["drafts"]
+        assert [(r["id"], r["status"]) for r in rows] == [(reply["order"]["id"], "in_review"), (key, "superseded")]
+        assert "access-control-allow-origin" not in browser.get("/api/orders").headers
+
+
+def test_research_experiment_http_ownership_and_updates(client):
+    from uuid import uuid4
+
+    path = "/api/research-experiments"
+    assert client.post(path, json={}).status_code == 401
+    login(client)
+    project = client.post("/api/research-projects", json={
+        "title": "Archive comparison", "hypothesis": "Readings agree."}).raise_for_status().json()
+    key = project["id"]
+    sibling = client.post("/api/research-projects", json={"title": "Separate archive", "lab_id": project["lab_id"]}).json()
+    draft = {"project_id": key, "question": "Which archives agree?", "request_id": str(uuid4())}
+    experiment = client.post(path, json=draft).raise_for_status().json()
+    edit = path + "/" + experiment["id"]
+    assert client.post(edit, json={"project_id": sibling["id"], "finding": "Incorrect scope"}).status_code == 404
+    assert client.post(edit, json={"project_id": key, "finding": "Reference results agree."}).raise_for_status().json()["finding"]
+    assert client.post("/api/research-projects", json={"project_id": key, "hypothesis": ""}).raise_for_status().json()["hypothesis"] == ""
+    directory = client.get("/api/research-projects").raise_for_status().json()
+    assert directory["labs"] == [{"id": project["lab_id"], "name": project["lab_name"]}]
+    assert directory["experiments"][0]["finding"] == "Reference results agree."
+    inventory = client.get("/api/research-projects", params={"project": key}).raise_for_status().json()
+    assert inventory["experiments"][0]["requests"] == inventory["experiments"][0]["resources"] == []

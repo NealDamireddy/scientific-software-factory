@@ -1,6 +1,9 @@
-"use strict";
+import { analysisViews } from "./analysis.js";
 
-const byId = (id) => document.getElementById(id);
+// Both the static reviewer and the research workspace mount the same reviewer controls.
+export function mountReviewer(root, signal, sessionChanged = () => {}, skills = []) {
+
+const byId = (id) => root.getElementById(id);
 const workspace = byId("workspace");
 const statuses = {open: "Open", in_progress: "In progress", in_review: "In review", released: "Released"};
 const kinds = {run_plan: "Run plan", procedure: "Procedure", analysis_app: "B12 analysis app"};
@@ -13,6 +16,11 @@ let agentNames = [];
 let generation = 0;
 let filter = "all";
 let decision = null;
+
+const { analysisLink, tabularSubmission, renderTabularOrder, showTabularIntake, showTabularOrders, showTabularOrder } =
+  analysisViews({ root, skills, element, button, formError, table, linkToOrder, status, statuses, workspace, heading,
+    refreshButton, panel, handleForm, post: (...args) => post(...args), openOrder, api, definition, byId, navigate,
+    notify, showOrder, latestOrder, currentPage: () => reviewer ? generation : -1, advancePage: () => ++generation });
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -48,14 +56,15 @@ function notify(message, isError = false) {
 }
 
 function showSignin() {
+  if (signal.aborted) return;
   generation++;
   reviewer = null;
   agentNames = [];
   decision = null;
   filter = "all";
-  for (const modal of document.querySelectorAll("dialog[open]")) modal.close();
-  for (const form of document.forms) form.reset();
-  for (const error of document.querySelectorAll(".form-error")) error.hidden = true;
+  for (const modal of root.querySelectorAll("dialog[open]")) modal.close();
+  for (const form of root.querySelectorAll("form")) form.reset();
+  for (const error of root.querySelectorAll(".form-error")) error.hidden = true;
   for (const id of ["decision-summary", "decision-title", "decision-digest", "decision-submit"]) {
     byId(id).textContent = "";
   }
@@ -71,7 +80,7 @@ async function api(path, options = {}) {
   const headers = {Accept: "application/json"};
   if (options.method === "POST") headers["Content-Type"] = "application/json";
   const response = await fetch("/api/" + path, {
-    credentials: "same-origin", cache: "no-store", ...options, headers,
+    credentials: "same-origin", cache: "no-store", signal, ...options, headers,
   });
   let data;
   try {
@@ -178,7 +187,7 @@ function latestOrder(id) {
 
 function showOrders(orders) {
   const mainHeading = heading("Work orders", refreshButton(),
-    analysisLink("New analysis", "#analysis/new"),
+    analysisLink("Procedure drafts", "/#procedures"), analysisLink("New analysis", "#analysis/new"),
     button("New procedure or run plan", "primary", () => openForm(byId("create-dialog"))));
   const summary = element("dl", undefined, "stats");
   for (const [key, label] of Object.entries(statuses)) {
@@ -359,6 +368,15 @@ function submissionView(order, submission, latest, brief) {
   } else {
     body.append(element("h3", "Submitted artifact"), element("pre", submission.rendered, "rendered"));
   }
+  if (submission.source_passages?.length) {
+    const sources = element("details");
+    sources.append(element("summary", "Read the cited passages in context"));
+    for (const passage of submission.source_passages) {
+      sources.append(element("h4", passage.title + " · passage " + passage.passage),
+        element("p", passage.source, "muted"), element("blockquote", passage.text));
+    }
+    body.append(sources);
+  }
   body.append(element("p", "Artifact SHA-256", "field-caption"), element("p", submission.artifact_digest, "digest mono"));
   body.append(element("h3", order.kind === "analysis_app" ? "Factory verification" : "Recorded checks"));
   const checks = element("ul", undefined, "checks");
@@ -379,6 +397,56 @@ function submissionView(order, submission, latest, brief) {
   return section;
 }
 
+function draftForm(label, operation) {
+  const form = element("form", undefined, "details-content");
+  const error = element("p", undefined, "form-error");
+  error.setAttribute("role", "alert");
+  error.hidden = true;
+  const submit = element("button", label, "primary");
+  submit.type = "submit";
+  form.append(error, submit);
+  handleForm(form, async () => {
+    const version = generation;
+    const result = await operation();
+    if (version === generation) openOrder(result.id);
+  });
+  return form;
+}
+
+function showDraftSource(data) {
+  const {draft, order, submissions} = data;
+  if (draft.previous_order || draft.next_order) {
+    const related = element("p");
+    related.append(document.createTextNode(draft.next_order ? "Continue with " : "Previous draft: "),
+      linkToOrder(draft.next_order || draft.previous_order));
+    workspace.append(related);
+    if (draft.next_order) return;
+  }
+  const question = submissions[0]?.artifact.needs_input;
+  if (!question || order.status !== "in_progress") return;
+  const section = panel("Method source needed");
+  const title = element("input");
+  const text = element("textarea");
+  text.rows = 4;
+  const form = draftForm(draft.demo ? "Add example method and redraft" : "Save source and start a new draft", () =>
+    post("procedures/" + encodeURIComponent(order.id) + "/source", {title: title.value, text: text.value}));
+  const fields = [element("p", question)];
+  if (!draft.demo) {
+    for (const [field, name, labelText] of [[title, "method-title", "Source title"], [text, "method-text", "Method passage"]]) {
+      const label = element("label", labelText);
+      label.htmlFor = field.id = name;
+      field.required = true;
+      fields.push(label, field);
+    }
+  } else {
+    fields.push(element("blockquote", "For the simulated vial A teaching example, read absorbance at 550 nm."));
+  }
+  form.prepend(...fields);
+  section.append(form);
+  workspace.append(section);
+}
+
+
 function showOrder(data, assay) {
   const {order, submissions, history, reference_brief: brief} = data;
   const honey = isHoneyOrder(order);
@@ -397,6 +465,23 @@ function showOrder(data, assay) {
   definition(meta, "Worker", order.worker || "Unclaimed");
   if (order.claim_id != null) definition(meta, "Claim", order.claim_id);
   workspace.replaceChildren(back, statusLine, heading(order.objective, refreshButton()), meta);
+  const context = element("details", undefined, "analysis-disclosure");
+  context.append(element("summary", "Pinned lab and experiment context"));
+  context.addEventListener("toggle", async () => {
+    if (!context.open || context.childElementCount > 1) return;
+    const content = element("pre", "Loading…", "rendered");
+    context.append(content);
+    try {
+      const record = await api("orders/" + encodeURIComponent(order.id) + "/context");
+      content.textContent = JSON.stringify(record, null, 2);
+    } catch (error) {
+      content.textContent = error.message;
+      context.addEventListener("toggle", () => { if (!context.open) content.remove(); }, {once:true});
+    }
+  });
+  workspace.append(context);
+  if (data.draft?.automatic) workspace.append(analysisLink("Open procedure and answer questions", "/#procedures/" + encodeURIComponent(order.id)));
+  else if (data.draft) showDraftSource(data);
   if (tabular) renderTabularOrder(data);
   if (brief && !honey) workspace.append(referenceBrief(brief));
   if (order.claim_id != null) {
@@ -780,6 +865,9 @@ function showReferenceLibrary(catalog, initial) {
       const canPin = Boolean(data.query?.trim());
       const count = element("span", canPin ? "0 sources selected" : "Search an objective to create an order.");
       count.setAttribute("role", "status");
+      const drafting = element("input"); drafting.type = "checkbox";
+      const draftLabel = element("label", "Ask the worker for a source-grounded draft");
+      draftLabel.prepend(drafting);
       const pin = button("Create order with sources", "primary", async () => {
         if (pin.disabled) return;
         pin.disabled = true;
@@ -788,7 +876,7 @@ function showReferenceLibrary(catalog, initial) {
         experimentSelect.disabled = true;
         for (const check of results.querySelectorAll("input")) check.disabled = true;
         try {
-          const order = await post("references/orders", {instrument: data.instrument.id, q: data.query,
+          const order = await post(drafting.checked ? "procedures/references" : "references/orders", {instrument: data.instrument.id, q: data.query,
             catalog_digest: data.catalog_digest, selections: Array.from(selected, ([id, digest]) => ({id, digest}))});
           if (generation === page && request === revision) openOrder(order.id);
         } catch (error) {
@@ -802,7 +890,7 @@ function showReferenceLibrary(catalog, initial) {
         }
       });
       pin.disabled = true;
-      bar.append(typeFilter, count, pin);
+      bar.append(typeFilter, count, draftLabel, pin);
       results.append(bar, sourceGroups(data.findings, canPin ? (source, checked) => {
         if (checked) selected.set(source.id, source.digest);
         else selected.delete(source.id);
@@ -1030,6 +1118,7 @@ function examplePanel() {
     create.disabled = true;
     try {
       const data = await post("example", {});
+      sessionChanged();
       openOrder(data.id);
     } catch (error) {
       notify(error.message, true);
@@ -1063,6 +1152,7 @@ function showContext() {
     handleForm(form, async (fields) => {
       // Preserve the original JSON for duplicate-field detection on the server.
       const data = await api("context/" + kind, {method: "POST", body: await fields.get("record").text()});
+      sessionChanged();
       form.reset();
       notify(label + " " + data.id + " saved at revision " + data.revision + ".");
     });
@@ -1102,7 +1192,7 @@ function showAgents() {
 async function navigate() {
   if (!reviewer) return;
   const request = ++generation;
-  for (const modal of document.querySelectorAll("dialog[open]")) modal.close();
+  for (const modal of root.querySelectorAll("dialog[open]")) modal.close();
   const hash = location.hash.slice(1);
   const route = hash.split("?")[0];
   const isOrder = hash.startsWith("order/");
@@ -1141,7 +1231,13 @@ async function navigate() {
       }
       else showOrders(data.orders);
     } else if (tab === "analysis") {
-      if (route === "analysis/new") showTabularIntake();
+      if (route === "analysis/new") {
+        const procedure = new URLSearchParams(hash.split("?")[1]).get("procedure");
+        const [directory, evidence, released] = await Promise.all([api("research-projects"), api("analysis/experiments"),
+          procedure ? latestOrder(procedure) : null]);
+        if (released && released.order.status !== "released") throw new Error("Choose a released procedure.");
+        if (generation === request) showTabularIntake(directory.projects, evidence.experiments, released?.submissions[0]);
+      }
       else {
         const data = await api("analysis");
         if (generation === request) showTabularOrders(data);
@@ -1184,11 +1280,13 @@ handleForm(byId("login-form"), async (fields) => {
   await post("login", {name: fields.get("name"), password: fields.get("password")});
   byId("login-form").reset();
   await loadSession();
+  sessionChanged();
 });
 byId("logout").addEventListener("click", async () => {
   try {
     await post("logout", {});
     showSignin();
+    sessionChanged();
     notify("You have signed out.");
   } catch (error) { notify(error.message, true); }
 });
@@ -1214,20 +1312,23 @@ handleForm(byId("decision-form"), async (fields) => {
     (byId("tabular-run") || byId("honey-readings") || byId("b12-datasets"))?.focus();
   }
 });
-for (const close of document.querySelectorAll("[data-close]")) {
+for (const close of root.querySelectorAll("[data-close]")) {
   close.addEventListener("click", () => close.closest("dialog").close());
 }
-for (const modal of document.querySelectorAll("dialog")) {
+for (const modal of root.querySelectorAll("dialog")) {
   modal.addEventListener("cancel", event => {
     if (modal.querySelector("button[type=submit]").disabled) event.preventDefault();
   });
 }
-document.querySelector(".skip").addEventListener("click", event => {
+root.querySelector(".skip").addEventListener("click", event => {
   event.preventDefault();
   byId("main").focus();
 });
-window.addEventListener("hashchange", navigate);
+window.addEventListener("hashchange", navigate, {signal});
 window.addEventListener("pageshow", event => {
   if (event.persisted) { showSignin(); loadSession().catch(error => notify(error.message, true)); }
-});
-loadSession().catch(error => { showSignin(); notify(error.message, true); });
+}, {signal});
+signal.addEventListener("abort", () => { generation++; reviewer = null; }, {once: true});
+loadSession().catch(error => { if (!signal.aborted) { showSignin(); notify(error.message, true); } });
+return navigate;
+}

@@ -348,3 +348,32 @@ def test_created_order_pins_enabled_skill_in_actual_author_request(store, reques
     with pytest.raises(ContextError):
         _create(store, {**request_data, "skills": [{**supplied, "version": pinned["version"]}]})
     assert len(svc.catalog(store)["orders"]) == 1
+
+
+def test_pinned_language_checked_before_holdout_and_reused_after_release(store, request_data):
+    key = _create(store, {**request_data, "allowed_languages": ["matlab"]})
+    agent = AgentTools(store)
+    context = agent.get_work_order_context(key)
+    assert context["analysis"]["allowed_languages"] == ["matlab"]
+    assert context["analysis"]["verifiers"] == {"matlab": "bounded-matlab-scalar-v1"}
+    assert "interp1" in context["instructions"] and "def analyze" not in context["instructions"]
+    agent.claim_work_order(key, "Worker")
+    artifact = _artifact()
+    for wrong in (artifact, {**artifact, "language": "python"}, {**artifact, "language": "matlab"}):
+        assert not agent.submit_artifact(key, "Worker", wrong)["passed"]
+        assert not agent.get_work_order_context(key)["analysis"]["awaiting_fresh_control"]
+    artifact.update(language="matlab", source="function result = analyze(standards, signal, factor)\n"
+                                              "result = signal * factor / 10;\nend")
+    submitted = agent.submit_artifact(key, "Worker", artifact)
+    assert submitted["passed"]
+    number = submitted["submission"]
+    WorkOrders(store).approve(key, "Reviewer", number)
+    receipt = svc.run(store, key, "Reviewer", {"submission": number})
+    assert receipt["control"]["verifier"] == "bounded-matlab-scalar-v1"
+    assert receipt["language"] == "matlab" and receipt["results"][0]["value"] == pytest.approx(14.0246)
+
+
+@pytest.mark.parametrize("languages", [None, [], "matlab", ["matlab", "matlab"], ["r"], [{}]])
+def test_language_constraints_validated_at_intake(store, request_data, languages):
+    with pytest.raises(ContextError, match="allowed_languages"):
+        _create(store, {**request_data, "allowed_languages": languages})

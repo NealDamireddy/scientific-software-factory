@@ -1,9 +1,10 @@
 # General procedure first drafts
 
-Lab Factory drafts procedures from pinned sources, compiles applicable methods, and records questions when the evidence leaves a decision open. All three endpoints use the existing reviewer session. POST requests use JSON and the same-origin check used by other reviewer writes. A later frontend can call the service through a same-origin backend route.
+Lab Factory drafts procedures from pinned sources, compiles applicable methods, and records questions when the evidence leaves a decision open. The endpoints use the existing reviewer session. The researcher workspace serves these endpoints on the same origin. [Workspace setup](../../reference-ui/README.md#start-an-investigation)
 
 | Request | Result |
 | --- | --- |
+| `GET /api/procedure-drafts` | List automatic drafts and their current state, including superseded drafts. |
 | `POST /api/procedure-drafts` | Save or reuse context, pin revisions, and return the first checked submission or question. |
 | `GET /api/procedure-drafts/{order_id}` | Read the current state, immutable submitted steps or question, checks, evidence and related order IDs. |
 | `POST /api/procedure-drafts/{order_id}/answers` | Resolve an outstanding question, produce a new numbered submission on a linked order, and preserve the earlier evidence. |
