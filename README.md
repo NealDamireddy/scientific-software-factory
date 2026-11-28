@@ -1,6 +1,6 @@
 # Lab Factory
 
-Lab Factory brings work orders, review and experiment evidence into one web app. Start at **Work orders** to review lab procedures and analysis software. Choose **EVOLVE demos** to replay a recorded experiment or explore the simulated researcher workspace. [Lab Factory guide](lab-factory/README.md)
+Lab Factory brings work orders, review and experiment evidence into one web app. Start at **What are you investigating?** to open or create a project investigation. The researcher workspace uses Lab Factory to find relevant readings, procedures and analysis apps. Open **Work orders** in the same workspace to review submissions. Choose **EVOLVE demos** to replay a recorded experiment or explore the simulated researcher workspace. [Lab Factory guide](lab-factory/README.md)
 
 ## Run the app
 
@@ -11,7 +11,7 @@ npm ci
 npm start
 ```
 
-Open [Lab Factory on localhost](http://127.0.0.1:8000/). The local reviewer saves work orders in `runs/lab-factory/portal.sqlite3`. The EVOLVE workbench at `/evolve/` serves recorded evidence from the same site. Its researcher workspace uses simulated data in the browser tab.
+Open [Lab Factory on localhost](http://127.0.0.1:8000/). The researcher workspace saves investigations and work orders in `runs/lab-factory/portal.sqlite3`. The EVOLVE workbench at `/evolve/` serves recorded evidence from the same site. Its researcher workspace uses simulated data in the browser tab.
 
 | What do you want to do? | Where to start |
 | --- | --- |

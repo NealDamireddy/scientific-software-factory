@@ -7,12 +7,17 @@ plain numbers, with a fresh environment for every sample, including controls.
 from __future__ import annotations
 
 import ast
+from bisect import bisect_left
+from collections.abc import Callable
+from dataclasses import dataclass
 from decimal import Decimal
+from fractions import Fraction
 import math
 import operator
 from statistics import StatisticsError, linear_regression
 
 from .checks import CheckResult
+from . import matlab_analysis
 
 
 INSTRUCTIONS = (
@@ -27,7 +32,10 @@ INSTRUCTIONS = (
     "Choose operations from the protocol. "
     "Available primitives are: column(standards, i) with i=0 for signal or 1 for known value; "
     "vector[i] and standards[i][j] with zero-based integer indices; slope(x,y), intercept(x,y) "
-    "for ordinary least squares y on x with a fitted intercept; min(v), max(v), mean(v), sum(v), "
+    "for ordinary least squares y on x with a fitted intercept; interpolate(standards, signal) "
+    "for piecewise linear interpolation of known values against signal when the protocol specifies it. "
+    "Interpolation requires at least two distinct standard signals, rejects repeated signals, accepts "
+    "standards in any order and never extrapolates. Other primitives include min(v), max(v), mean(v), sum(v), "
     "len(v); abs(x), sqrt(x), log(x) (natural), log10(x), exp(x), round(x,n); +, -, *, /, **. "
     "Do not import modules, define extra functions, use loops or depend on sample identities. "
     "Author two or more test cases with numeric expected results obtained independently of the "
@@ -35,11 +43,42 @@ INSTRUCTIONS = (
 )
 
 MAX_STANDARDS = 256
+
+
+@dataclass(frozen=True)
+class LanguageProfile:
+    instructions: str
+    verifier: str
+    to_numeric_source: Callable[[str], str]
+
+
+LANGUAGE_PROFILES = {
+    "python": LanguageProfile(INSTRUCTIONS, "bounded-python-v1", lambda source: source),
+    "matlab": LanguageProfile(matlab_analysis.INSTRUCTIONS, "bounded-matlab-scalar-v1", matlab_analysis.numeric_source),
+}
+
+
+def author_instructions(languages):
+    if languages is None:
+        return INSTRUCTIONS
+    return (
+        "Choose the first permitted language whose profile implements the protocol. Set language to its "
+        "lowercase name. If none can express the method, ask a question. Submit source, an explanation "
+        "of the calculation and units, and 2–12 independent numerical tests. Each test has label, "
+        "standards (an array of [signal, known] pairs), signal, positive factor, and expected. The host "
+        "calls one anonymous observation at a time and checks an independent blind control. "
+        + "\n".join(f"{name}: {LANGUAGE_PROFILES[name].instructions}" for name in languages)
+    )
+
+
 SOURCE_LIMIT = 8192
 _INPUTS = ("standards", "signal", "factor")
 _OPERATORS = {ast.Add: operator.add, ast.Sub: operator.sub, ast.Mult: operator.mul, ast.Div: operator.truediv}
 _SCALAR_FUNCTIONS = {"sqrt": math.sqrt, "abs": abs, "log": math.log, "log10": math.log10, "exp": math.exp}
-_FUNCTIONS = {*_SCALAR_FUNCTIONS, "column", "slope", "intercept", "min", "max", "sum", "mean", "len", "round"}
+# These names were reserved in the original language. Previously approved
+# programs can still use newer helper names as local variables.
+_ORIGINAL_FUNCTIONS = {*_SCALAR_FUNCTIONS, "column", "slope", "intercept", "min", "max", "sum", "mean", "len", "round"}
+_FUNCTIONS = _ORIGINAL_FUNCTIONS | {"interpolate"}
 
 
 def _number(value):
@@ -96,7 +135,7 @@ def _body(source):
         raise ValueError("End the function with one numeric return.")
     for stmt in body[:-1]:
         if (not isinstance(stmt, ast.Assign) or len(stmt.targets) != 1
-                or not isinstance(stmt.targets[0], ast.Name) or stmt.targets[0].id in (*_INPUTS, *_FUNCTIONS)):
+                or not isinstance(stmt.targets[0], ast.Name) or stmt.targets[0].id in (*_INPUTS, *_ORIGINAL_FUNCTIONS)):
             raise ValueError("Use assignments to named local values before the final return.")
     return body
 
@@ -107,7 +146,28 @@ def _vector(value):
     return value
 
 
+def _interpolate(standards, signal):
+    points = sorted(standards)
+    if len(points) < 2 or any(a[0] == b[0] for a, b in zip(points, points[1:])):
+        raise ValueError("Interpolation requires at least two standards with unique signals.")
+    if not points[0][0] <= signal <= points[-1][0]:
+        raise ValueError("The signal is outside the interpolation range.")
+    right = bisect_left(points, (signal,))
+    x1, y1 = points[right]
+    if signal == x1:
+        return y1
+    x0, y0 = points[right - 1]
+    # Differences of finite endpoints can overflow a float even when the
+    # interpolated value is small. Round once, on return to the evaluator.
+    weight = (Fraction(signal) - Fraction(x0)) / (Fraction(x1) - Fraction(x0))
+    return float((1 - weight) * Fraction(y0) + weight * Fraction(y1))
+
+
 def _call(name, args, environment):
+    if name == "interpolate" and len(args) == 2:
+        if args[0] is not environment["standards"]:
+            raise ValueError("Use interpolate(standards, signal).")
+        return _interpolate(args[0], _number(args[1]))
     if name == "column" and len(args) == 2:
         index = _integer(args[1])
         if args[0] is not environment["standards"] or index not in (0, 1):
@@ -157,7 +217,7 @@ def _expression(node, environment):
             raise ValueError("Index outside the available data.")
         return rows[index]
     if (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-            and node.func.id in _FUNCTIONS and not node.keywords):
+            and node.func.id in _FUNCTIONS and node.func.id not in environment and not node.keywords):
         return _call(node.func.id, [_expression(arg, environment) for arg in node.args], environment)
     raise ValueError(f"Unsupported numeric expression on line {node.lineno}.")
 
@@ -185,9 +245,16 @@ def _run(body, standards, signal, factor, range_gate):
 
 
 def _payload(artifact):
-    if not isinstance(artifact, dict) or set(artifact) != {"source", "explanation", "tests"}:
+    fields = {"source", "explanation", "tests"}
+    if not isinstance(artifact, dict) or set(artifact) not in (fields, fields | {"language"}):
         raise ValueError("Supply source, explanation and tests.")
-    return _body(artifact["source"])
+    language = artifact.get("language", "python")
+    if not isinstance(language, str) or language not in LANGUAGE_PROFILES:
+        raise ValueError("Unsupported analysis language.")
+    source = artifact["source"]
+    if not isinstance(source, str) or len(source) > SOURCE_LIMIT:
+        raise ValueError(f"Supply {language} source of at most {SOURCE_LIMIT} characters.")
+    return _body(LANGUAGE_PROFILES[language].to_numeric_source(source))
 
 
 def check(artifact):

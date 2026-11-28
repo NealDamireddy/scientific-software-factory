@@ -5,17 +5,18 @@ from functools import partial
 import json
 import os
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 from starlette.applications import Starlette
 from starlette.concurrency import run_in_threadpool
 from starlette.exceptions import HTTPException
+from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response, StreamingResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
-from . import analysis_requests, first_draft, source_drafter
+from . import analysis_context, analysis_requests, first_draft, investigations, procedure_demo, procedure_drafts, source_drafter
 from . import b12_service, experiment_catalog, honey_service, reference_orders, references, tabular_service
 from .artifacts import render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
@@ -56,16 +57,21 @@ def _response(data, status=200):
     return StreamingResponse(chunks(), status_code=status, media_type="application/json", headers=headers)
 
 
-async def _json_body(request: Request) -> dict:
+async def _json_body(request: Request, limit=BODY_LIMIT) -> dict:
     scheme = "https" if os.getenv("VERCEL") else request.url.scheme
-    if request.headers.get("origin") != f"{scheme}://{request.headers.get('host')}":
+    origin = request.headers.get("origin")
+    trusted = {f"{scheme}://{request.headers.get('host')}", request.scope.get("research_origin")}
+    dev_origin = os.getenv("LABFACTORY_DEV_UI_ORIGIN")
+    if dev_origin and not os.getenv("VERCEL") and urlsplit(dev_origin).hostname in ("127.0.0.1", "localhost", "::1"):
+        trusted.add(dev_origin)
+    if not origin or origin not in trusted:
         raise HTTPException(403, "Supply the same origin as the reviewer API.")
     if request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
         raise HTTPException(415, "Send application/json.")
     body = bytearray()
     async for part in request.stream():
-        if len(body) + len(part) > BODY_LIMIT:
-            raise HTTPException(413, "The JSON record exceeds 1 MiB.")
+        if len(body) + len(part) > limit:
+            raise HTTPException(413, "The JSON record exceeds the request size limit.")
         body.extend(part)
     try:
         data = json.loads(body, object_pairs_hook=unique_fields)
@@ -151,9 +157,14 @@ def _details(store, id, submission=None, before_event=None):
                 (id,),
             ).fetchone()[0]
         brief = store.reference_brief(id)
+        if order.kind == "procedure" and (draft := procedure_drafts.info(store, id)):
+            page["draft"] = {**draft, "automatic": bool(store.connection.execute(
+                "SELECT 1 FROM automatic_procedures WHERE work_order_id=?", (id,)).fetchone())}
+            lab, experiment = orders.pinned_context(id)
         reports = {}
         if tabular_service.is_order(order) and before_event is None:
-            page["analysis"] = tabular_service.reviewer_context(store, order)
+            page["analysis"] = {**tabular_service.reviewer_context(store, order),
+                                "project_id": investigations.app_project(store, order.id)}
             page["runs"] = tabular_service.list_runs(store.connection, id)
             reports = {r["submission"]: json.loads(r["report"]) for r in store.connection.execute(
                 "SELECT submission,report FROM tabular_reports WHERE work_order_id=?", (id,))}
@@ -174,6 +185,8 @@ def _details(store, id, submission=None, before_event=None):
     for sub in submissions:
         rendered = render_artifact(order.kind, sub.artifact, experiment_id=order.experiment_id)
         value = {**asdict(sub), "rendered": rendered}
+        if "draft" in page:
+            value["source_passages"] = procedure_drafts.review_passages(lab, experiment, sub.artifact)
         if tabular_service.is_order(order):
             value["control"] = reports.get(sub.number)
         values.append(value)
@@ -300,7 +313,10 @@ async def b12_catalog(request):
 
 async def analysis_catalog(request):
     _reviewer(request)
-    return _response(await run_in_threadpool(run_store, tabular_service.catalog))
+    catalog = await run_in_threadpool(run_store, tabular_service.catalog)
+    return _response({**catalog, "language_profiles": {
+        name: {"verifier": profile.verifier, "instructions": profile.instructions}
+        for name, profile in tabular_service.LANGUAGE_PROFILES.items()}})
 
 
 async def analysis_create(request):
@@ -324,7 +340,7 @@ async def analysis_request(request, *, prefix):
         html = await run_in_threadpool(run_store, lambda store: analysis_requests.download(store, key))
         return Response(html, media_type="application/octet-stream", headers={"Cache-Control": "private, no-store",
                         "X-Content-Type-Options": "nosniff", "Content-Disposition": 'attachment; filename="analysis-app.html"'})
-    return _response(await run_in_threadpool(run_store, lambda store: analysis_requests.detail(store, key)
+    return _response(await run_in_threadpool(run_store, lambda store: {**analysis_requests.detail(store, key), "project_id": investigations.app_project(store, key)}
                                              if key else {"requests": analysis_requests.listing(store, prefix=prefix)}))
 
 
@@ -367,10 +383,68 @@ async def analysis_action(request):
     return _response(result, 201)
 
 
+async def research_projects(request):
+    _reviewer(request)
+    if request.method == "POST":
+        data = await _json_body(request)
+        if "app_id" in data:
+            return _response(await run_in_threadpool(run_store, lambda s: investigations.attach_app(
+                s, data.get("project_id"), data["app_id"]), write=True))
+        return _response(await run_in_threadpool(run_store, lambda s: investigations.register(s, data.get("title")), write=True))
+    if field := request.query_params.get("resources"):
+        return _response(await run_in_threadpool(run_store, lambda s: investigations.library(s, field)))
+    project = request.query_params.get("project")
+    operation = (lambda s: investigations.inventory(s, project)) if project else investigations.projects
+    return _response(await run_in_threadpool(run_store, operation))
+
+
+async def investigate(request):
+    actor = _reviewer(request)
+    data = await _json_body(request)
+    result = await run_in_threadpool(run_store, lambda s: investigations.resolve(s, actor, data), write=True)
+    for item in result.get("resources", []):
+        if item["kind"] == "procedure" and not item["reused"] and item["status"] == "drafting":
+            pending = await run_in_threadpool(run_store, lambda s: first_draft.detail(s, item["id"]))
+            try:
+                await run_in_threadpool(source_drafter.complete, run_store, pending)
+            except source_drafter.DraftUnavailable as exc:
+                return _response({"error": str(exc), "order_id": item["id"]}, 503)
+    return _response(result)
+
+
+async def procedures(request):
+    reviewer = _reviewer(request)
+    if request.method == "GET":
+        return _response(await run_in_threadpool(run_store, procedure_drafts.catalog))
+    data = await _json_body(request)
+
+    def create(store):
+        if set(data) == {"demo"} and data["demo"] is True:
+            return procedure_demo.start(store, reviewer)
+        if set(data) != {"experiment_id"} or not isinstance(data["experiment_id"], str):
+            raise HTTPException(400, "Choose a saved experiment.")
+        return procedure_drafts.create(store, data["experiment_id"], reviewer).id
+
+    return _response({"id": await run_in_threadpool(run_store, create, write=True)}, 201)
+
+
+async def procedure_source(request):
+    reviewer = _reviewer(request)
+    data = await _json_body(request)
+    def save(store):
+        if store.connection.execute("SELECT 1 FROM automatic_procedures WHERE work_order_id=?", (request.path_params["id"],)).fetchone():
+            raise WorkOrderError("Answer this automatic draft through its procedure detail.")
+        return procedure_drafts.add_source(store, request.path_params["id"], reviewer,
+                                           data.get("title"), data.get("text"))
+    return _response({"id": await run_in_threadpool(run_store, save, write=True)}, 201)
+
+
 async def automatic_procedure(request):
     reviewer = _reviewer(request)
     order_id = request.path_params.get("id")
     if request.method == "GET":
+        if order_id is None:
+            return _response(await run_in_threadpool(run_store, first_draft.catalog))
         return _response(await run_in_threadpool(run_store, lambda store: first_draft.detail(store, order_id)))
     data = await _json_body(request)
 
@@ -426,6 +500,11 @@ async def honey_run(request):
     return _response(result, 201)
 
 
+async def analysis_experiments(request):
+    _reviewer(request)
+    return _response(await run_in_threadpool(run_store, analysis_context.choices))
+
+
 async def reference_catalog(request):
     _reviewer(request)
     return _response(await run_in_threadpool(references.catalog))
@@ -442,7 +521,7 @@ async def reference_order(request):
     reviewer = _reviewer(request)
     data = await _json_body(request)
     created = await run_in_threadpool(
-        run_store, lambda store: reference_orders.create_order(store, reviewer, data), write=True,
+        run_store, lambda store: reference_orders.create_order(store, reviewer, data, draft=request.url.path == "/api/procedures/references"), write=True,
     )
     return _response(created, 201)
 
@@ -548,6 +627,8 @@ reviewer_api = Starlette(routes=[
     Route("/api/logout", logout, methods=["POST"]), Route("/api/orders", order_list, methods=["GET", "POST"]),
     Route("/api/orders/{id}", order_detail), Route("/api/orders/{id}/context", order_context),
     Route("/api/orders/{id}/{action}", decide, methods=["POST"]),
+    Route("/api/research-projects", research_projects, methods=["GET", "POST"]),
+    Route("/api/investigations", investigate, methods=["POST"]),
     Route("/api/experiments", experiment_list), Route("/api/experiments/{id:path}", experiment_detail),
     Route("/api/context/{kind}", context_put, methods=["POST"]), Route("/api/example", example, methods=["POST"]),
     Route("/api/references", reference_catalog), Route("/api/references/search", reference_search),
@@ -566,7 +647,11 @@ reviewer_api = Starlette(routes=[
     Route("/api/analysis/orders/{id}/runs/{run_id}/readings", analysis_upload),
     Route("/api/analysis/orders/{id}/runs", analysis_action, methods=["POST"]),
     Route("/api/analysis/orders/{id}/control", analysis_action, methods=["POST"]),
-    Route("/api/procedure-drafts", automatic_procedure, methods=["POST"]),
+    Route("/api/analysis/experiments", analysis_experiments),
+    Route("/api/procedures", procedures, methods=["GET", "POST"]),
+    Route("/api/procedures/references", reference_order, methods=["POST"]),
+    Route("/api/procedures/{id}/source", procedure_source, methods=["POST"]),
+    Route("/api/procedure-drafts", automatic_procedure, methods=["GET", "POST"]),
     Route("/api/procedure-drafts/{id}", automatic_procedure, methods=["GET"]),
     Route("/api/procedure-drafts/{id}/answers", automatic_procedure, methods=["POST"]),
     Route("/api/honey", honey_catalog), Route("/api/honey/orders", honey_create, methods=["POST"]),
@@ -577,6 +662,31 @@ reviewer_api = Starlette(routes=[
     Route("/api/b12/orders/{id}/readings/{reading_id}/run", b12_run, methods=["POST"]),
 ], exception_handlers={cls: domain_error for cls in (HTTPException, ContextError, NotFound, WorkOrderError, HostedStorageError)})
 
+def research_access(api, origin):
+    if not origin:
+        return api
+    parsed = urlsplit(origin)
+    local = parsed.hostname in ("127.0.0.1", "localhost", "::1")
+    if (not parsed.hostname or parsed.username or parsed.password or "*" in origin
+            or parsed.scheme not in (("https", "http") if local else ("https",))
+            or origin != f"{parsed.scheme}://{parsed.netloc}"):
+        raise ValueError("LABFACTORY_RESEARCH_ORIGIN must be an exact HTTPS origin or a loopback HTTP origin.")
+    cors = CORSMiddleware(api, allow_origins=[origin], allow_credentials=True,
+                          allow_methods=["GET", "POST"], allow_headers=["Content-Type"])
+
+    async def routed(scope, receive, send):
+        path = scope.get("path", "")
+        if scope["type"] == "http" and (path in ("/api/experiments", "/api/research-projects", "/api/investigations") or any(
+            path == base or path.startswith(base + "/") for base in ("/api/analysis/apps", "/api/procedure-drafts")
+        )):
+            await cors({**scope, "research_origin": origin}, receive, send)
+        else:
+            await api(scope, receive, send)
+
+    return routed
+
+
+research_api = research_access(reviewer_api, os.getenv("LABFACTORY_RESEARCH_ORIGIN"))
 mcp = make_mcp_app(run_store, lambda headers: _access().authenticate_agent(headers))
 
 
@@ -584,7 +694,7 @@ async def application(scope, receive, send):
     if scope["type"] == "http" and scope["path"] in ("/mcp", "/mcp/"):
         await mcp(scope, receive, send)
     else:
-        await reviewer_api(scope, receive, send)
+        await research_api(scope, receive, send)
 
 
 def make_portal(public_directory: Path):
@@ -597,6 +707,10 @@ def make_portal(public_directory: Path):
     async def portal(scope, receive, send):
         if scope["type"] != "http" or scope["path"].split("/", 2)[1] in {"api", "mcp"}:
             await application(scope, receive, send)
+        elif scope["path"] == "/" and (public_directory / "research/index.html").is_file():
+            await static({**scope, "path": "/research/index.html"}, receive, send)
+        elif scope["path"] == "/examples/measurement-record.csv":
+            await static({**scope, "path": "/research/examples/measurement-record.csv"}, receive, send)
         else:
             await static(scope, receive, send)
 

@@ -1,37 +1,26 @@
 # Emory Biophysics reference UI
 
-A Next.js and TypeScript research workspace with a simulated experiment workflow and a local measurement-record reviewer. The experiment fixtures, instrument activity and approvals are illustrative. The record reviewer works on measurements you supply. Local browser storage holds demo changes. Use a separate browser profile for a fresh workspace.
+The research workspace is the frontend for Lab Factory. Start it from the repository root with `npm ci` and `npm start`. Open the address printed by the launcher. It serves the researcher UI, reviewer API and experiment archives from one origin and saves project records in SQLite.
 
-## Run locally
+Use `npm start -- --database "/path/to/portal.sqlite3"` to open an existing local Lab Factory database, including one in another checkout. Use `--temporary` for an isolated session. Add `--drift-worker` to process queued stage plots with the signed-in local Codex worker.
 
-From this directory with Node.js 22.6 or newer, run the workspace on the loopback address printed by Next.js. Live skill delivery also uses Python 3.11+ on macOS or Linux and a signed-in Codex CLI on the server’s PATH.
+## Start an investigation
 
-```sh
-npm ci
-npm run dev
-```
+1. Open **What are you investigating?** and select or create a project. Existing registered experiments appear as projects.
+2. Enter the objective. Lab Factory searches the project's recorded datasets, procedures and apps. A clear request opens the matching record or creates a request in that project. Ambiguous requests show choices in the composer.
+3. Reopen the investigation from its project. Download the original readings, answer a draft question, review a submission, or download a completed offline app. **Upload project readings** links a tabular intake to this project. Offline app generation requires a running analysis worker. Source-authored procedure drafts use the backend's signed-in Codex CLI.
 
-For a production build on your own machine, use `npm run build` and `npm run start:local`. The ordinary hosted start command keeps the local worker disabled.
+Tabular intake can use a saved experiment and selected lab or project documents. Choose the permitted Python or MATLAB profile for a worker submission. Lab Factory records the verifier and checks the submitted calculation against the blind control. The temperature example exercises interpolation against a calibration table. Historical stage plots and unassigned tabular uploads can be added to a project from their detail view. Open **Registered lab context → Request a worker draft** in a project to prepare a source-grounded procedure request in the composer. A worker can ask for a missing passage before review.
 
-## Review the B12 workflow
+Use the sidebar for work orders, analysis runs, references, lab context and agent access. Older simulated experiments remain available in **All experiments**. Skills and record review can also run against local example data.
 
-1. Enter “Vitamin B12 concentration” in the homepage composer and select the B12 project.
-2. Open the draft and start the simulation. Inspect the flagged original sample alongside its calibration range.
-3. Request changes and resubmit, or approve a simulated repeat. Compare the original and repeated runs and inspect their evidence.
-4. Open the seeded absorbance time course to compare the two visualization types.
+## Frontend development
 
-## Verify the build
-
-```sh
-npm run build
-npm run typecheck
-node --experimental-strip-types --test app/*.test.mjs app/review-skills/*.test.mjs
-npm start
-```
+For hot reload, run the backend on port 8000 with `LABFACTORY_DEV_UI_ORIGIN=http://127.0.0.1:3100 npm start` from the repository root. From this directory run `npm ci` and `LABFACTORY_API_ORIGIN=http://127.0.0.1:8000 npm run dev -- --port 3100`. Next proxies the requests to Lab Factory. Run `npm run typecheck` and `node --experimental-strip-types --test app/*.test.mjs app/review-skills/*.test.mjs` here. Run `npm run test:lab` at the repository root after the combined build.
 
 ## Automatic experiment context
 
-Enable a built-in or custom skill in **Skills**, then start an experiment. The local workspace sends its objective, project, simulated method, instrument, run mode and the enabled skill instructions to the signed-in Codex worker. A repeat takes a fresh snapshot. Connector addresses and harness settings stay in the workspace. The worker returns a planning review. Measurements, instrument control and scientific approvals remain simulated.
+Enable a built-in or custom skill in **Skills**, then open a simulated experiment. When serving from the local Python launcher, set `LAB_LOCAL_EXPERIMENT_WORKER=1` to enable local worker delivery. The local workspace sends its objective, project, simulated method, instrument, run mode and the enabled skill instructions to the signed-in Codex worker. A repeat takes a fresh snapshot. Connector addresses and harness settings stay in the workspace. The worker returns a planning review. Measurements, instrument control and scientific approvals remain simulated.
 
 Open **Evidence → Agent context by run** and expand a run. The worker’s receipt shows its review and the exact SHA-256 version of each skill it received. A version covers the skill ID, name, applicability, instructions and stage. The worker must return the acknowledgement attached to this particular request, and the browser independently checks the versions before showing the receipt. A receipt establishes delivery. The review text shows how the worker responded.
 

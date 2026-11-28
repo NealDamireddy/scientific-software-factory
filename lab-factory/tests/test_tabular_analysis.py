@@ -88,6 +88,51 @@ def test_tolerance_is_inclusive_and_absolute():
         verify_control(*args, -1)
 
 
+def test_interpolation_handles_knots_and_wide_finite_intervals():
+    candidate = example("def analyze(standards, signal, factor):\n    return interpolate(standards, signal)")
+    table = [[8, 0], [4, 3], [6, -1]]
+    for signal, expected in [(4, 3), (5, 1), (6, -1), (7, -0.5), (8, 0)]:
+        assert evaluate(candidate, table, signal) == expected
+    assert evaluate(candidate, [[-1e308, 1e308], [1e308, -1e308]], 0) == 0
+
+
+@pytest.mark.parametrize(("table", "signal", "reason"), [
+    ([], 0, "two standards"), ([[0, 1]], 0, "two standards"),
+    ([[1, 2], [2, 3], [2, 4]], 1, "unique signals"),
+    ([[1, 2], [2, 3]], 0, "range"), ([[1, 2], [2, 3]], 3, "range"),
+])
+def test_invalid_interpolation_withholds_control_even_without_range_gate(table, signal, reason):
+    candidate = example("def analyze(standards, signal, factor):\n    return interpolate(standards, signal)")
+    report = verify_control(candidate, table, signal, 1, 0, 1, range_gate=False)
+    assert not report["passed"] and report["predicted"] is None and reason in report["reason"]
+
+
+def test_preexisting_local_named_interpolate_still_runs():
+    candidate = example("def analyze(standards, signal, factor):\n    interpolate = signal / factor\n    return interpolate")
+    assert evaluate(candidate, [], 6, 2, range_gate=False) == 3
+
+
+def test_matlab_table_and_scalar_calculation():
+    candidate = example("function result = analyze(standards, signal, factor)\n"
+                        "result = (interp1(standards(:,1), standards(:,2), signal, 'linear') + 1) / sqrt(factor);\nend")
+    candidate["language"] = "matlab"
+    assert evaluate(candidate, [[3, 9], [1, 1], [2, 3]], 2.5, 4) == 3.5
+    assert not verify_control(candidate, [[3, 9], [1, 1]], 4, 1, 0, 1, range_gate=False)["passed"]
+
+
+@pytest.mark.parametrize("statement", [
+    "result = mean(standards);", "result = signal; result = factor;",
+    "if signal > 0\nresult = 1;\nend", "result = signal ** 2;",
+    "result = interp1(standards(:,2), standards(:,1), signal);",
+    "result = signal; % a comment\rresult = factor;",
+])
+def test_unsupported_matlab_source_fails_public_checks(statement):
+    candidate = example("function result = analyze(standards, signal, factor)\n" + statement + "\nend")
+    candidate["language"] = "matlab"
+    result, = check(candidate)
+    assert result.name == "Submitted numerical analysis" and not result.passed
+
+
 @pytest.mark.parametrize("source", [
     "import math\ndef analyze(standards, signal, factor):\n    return signal",
     "def analyze(standards, signal, factor):\n    return expected",

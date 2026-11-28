@@ -505,3 +505,40 @@ def test_requeue_uses_displayed_claim_and_reviewer_policy(client, monkeypatch, p
     assert replacement["order"]["claimed_at"] == "2026-11-25T18:19:20Z"
     assert client.post(path + "/requeue", json=payload).status_code == 409
     assert client.get(path).json() == replacement
+
+
+def test_research_workspace_origin_and_draft_history(client):
+    from labfactory.hosted import research_access, reviewer_api
+
+    origin = "https://research.localhost"
+    app = research_access(reviewer_api, origin)
+    with TestClient(app, base_url=ORIGIN, headers={"Origin": origin}) as browser:
+        assert browser.get("/api/procedure-drafts").status_code == 401
+        assert browser.options("/api/procedure-drafts", headers={
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        }).headers["access-control-allow-origin"] == origin
+        login(client)
+        browser.cookies.update(client.cookies)
+        assert browser.post("/api/example", json={}).status_code == 403
+        before = browser.get("/api/procedure-drafts")
+        assert before.headers["access-control-allow-credentials"] == "true"
+        assert before.json() == {"drafts": []}
+        # A general procedure order belongs to its own workflow.
+        client.post("/api/example", json={}).raise_for_status()
+        client.post("/api/orders", json={"experiment_id": "b12-vial-a", "kind": "procedure",
+                                       "objective": "Inspect the record"}).raise_for_status()
+        assert browser.get("/api/procedure-drafts").json() == {"drafts": []}
+        payload = {"request_id": "workspace-start", "lab": {"id": "archive", "name": "Archive",
+                   "instruments": [], "documents": []}, "experiment": {"id": "trace", "lab_id": "archive",
+                   "title": "Trace", "goal": "Compare archived traces.", "instrument_ids": [], "documents": []}}
+        assert browser.post("/api/procedure-drafts", json=payload, headers={"Origin": "https://other.test"}).status_code == 403
+        first = browser.post("/api/procedure-drafts", json=payload).raise_for_status().json()
+        key = first["order"]["id"]
+        assert browser.get("/api/procedure-drafts").json()["drafts"][0]["status"] == "needs_input"
+        reply = browser.post(f"/api/procedure-drafts/{key}/answers", json={
+            "request_id": "workspace-answer", "title": "Trace record", "text": "Compare the traces.\nLog the trace IDs.",
+        }).raise_for_status().json()
+        rows = browser.get("/api/procedure-drafts").json()["drafts"]
+        assert [(r["id"], r["status"]) for r in rows] == [(reply["order"]["id"], "in_review"), (key, "superseded")]
+        assert "access-control-allow-origin" not in browser.get("/api/orders").headers

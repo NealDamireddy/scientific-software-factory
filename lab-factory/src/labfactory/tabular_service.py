@@ -9,7 +9,8 @@ from uuid import UUID, uuid4
 
 from lab_codex_worker.skills import pin_skills
 
-from . import references, tabular_files
+from . import analysis_context, references, tabular_files
+from .tabular_analysis import LANGUAGE_PROFILES
 from .artifacts import render_artifact
 from .checks import CheckResult, all_passed
 from .context import ContextError, Document, Experiment, Lab, canonical_digest, canonical_json, to_dict
@@ -170,6 +171,7 @@ def _new_control(db, order_id, edition, control, reviewer):
 
 def _public_spec(profile, batch):
     fields = ("objective", "unit", "mapping", "range_gate", "protocol_digest", "references")
+    fields += tuple(key for key in ("allowed_languages", "verifiers", "research_context") if key in profile)
     if "procedure" in profile:
         fields += ("procedure",)
     spec = {**{k: profile[k] for k in fields}, "standards": batch["standards"]}
@@ -199,7 +201,7 @@ def _verified_release(orders, order):
     return release, approval["actor"]
 
 
-def _procedure_pin(store, order_id):
+def procedure_pin(store, order_id):
     orders = WorkOrders(store)
     order = orders.get(_text(order_id, "a procedure work order ID", 100))
     if order.kind != "procedure":
@@ -221,9 +223,9 @@ def _procedure_context(store, pin):
 
 
 def create_order(store, reviewer, request):
-    required = {"objective", "protocol_name", "protocol", "csv_name", "csv", "unit", "mapping",
+    required = {"objective", "csv_name", "csv", "unit", "mapping",
                 "control_expected", "control_tolerance"}
-    if not required <= set(request) <= required | {"range_gate", "reference_ids", "request_id", "procedure_order_id", "skills"}:
+    if not required <= set(request) <= required | {"protocol_name", "protocol", "research_context", "allowed_languages", "range_gate", "reference_ids", "request_id", "procedure_order_id", "skills", "project_id"}:
         raise ContextError("Supply protocol and CSV uploads, an objective, column mapping, result unit and control settings.")
     key = request.get("request_id")
     if key is not None:
@@ -233,8 +235,12 @@ def create_order(store, reviewer, request):
             raise ContextError("Use a UUID as the analysis request ID.") from None
     objective = _text(request["objective"], "an objective", 1000)
     unit = _text(request["unit"], "a result unit and basis", 100)
-    protocol = _text(request["protocol"], "a text or Markdown protocol", 32 * 1024)
-    protocol_name = _filename(request["protocol_name"], (".txt", ".md", ".markdown"))
+    protocol = protocol_name = None
+    if "protocol" in request or "protocol_name" in request:
+        protocol = _text(request.get("protocol"), "a text or Markdown protocol", 32 * 1024)
+        protocol_name = _filename(request.get("protocol_name"), (".txt", ".md", ".markdown"))
+    elif "research_context" not in request:
+        raise ContextError("Supply a protocol or select a saved research experiment.")
     mapping = _columns(request["mapping"])
     range_gate = request.get("range_gate", True)
     if type(range_gate) is not bool:
@@ -246,12 +252,21 @@ def create_order(store, reviewer, request):
         raise ContextError("Select up to ten different library sources.")
     sources = [references.source(identifier) for identifier in selected]
     profile = dict(objective=objective, unit=unit, mapping=mapping, range_gate=range_gate,
-                   protocol_name=protocol_name, protocol_digest=tabular_files.digest(protocol), references=sources)
+                   protocol_name=protocol_name, protocol_digest=tabular_files.digest(protocol) if protocol else None, references=sources)
     if "skills" in request:
         try:
             profile["skills"] = pin_skills(request["skills"])
         except ValueError as exc:
             raise ContextError(str(exc)) from exc
+    if "allowed_languages" in request:
+        languages = request["allowed_languages"]
+        if (not isinstance(languages, list) or not languages
+                or any(not isinstance(name, str) or name not in LANGUAGE_PROFILES for name in languages)
+                or len(set(languages)) != len(languages)):
+            raise ContextError("Provide a nonempty ordered list of unique allowed_languages from: "
+                               + ", ".join(LANGUAGE_PROFILES))
+        profile["allowed_languages"] = languages
+        profile["verifiers"] = {name: LANGUAGE_PROFILES[name].verifier for name in languages}
     exp_id = PREFIX + uuid4().hex
     with store.transaction() as db:
         if key is not None:
@@ -262,12 +277,27 @@ def create_order(store, reviewer, request):
                 if fingerprint != prior["digest"]:
                     raise WorkOrderError("This request ID was already used for a different upload.")
                 return {"id": prior["work_order_id"]}
+        if "research_context" in request:
+            evidence = analysis_context.snapshot(store, request["research_context"])
+            if "project_id" in request and evidence["experiment"]["id"] != request["project_id"]:
+                raise ContextError("The selected research context belongs to another project.")
+            profile["research_context"] = evidence
         if "procedure_order_id" in request:
-            profile["procedure"] = _procedure_pin(store, request["procedure_order_id"])
+            profile["procedure"] = procedure_pin(store, request["procedure_order_id"])
+        if "project_id" in request:
+            project_id = _text(request["project_id"], "a registered project ID", 500)
+            project, revision = store.get_experiment(project_id)
+            if "procedure" in profile:
+                owner = profile["procedure"]["experiment_id"]
+                child = db.execute("SELECT project_id FROM research_investigations WHERE context_id=?", (owner,)).fetchone()
+                if (child["project_id"] if child else owner) != project.id:
+                    raise WorkOrderError("The selected procedure belongs to another project.")
+            profile["project"] = {"id": project.id, "revision": revision.number}
         # Only public inputs go in the experiment. Keep the private batch sealed in the intake.
         exp = _experiment(exp_id, profile, batch)
         profile["intake_digest"] = canonical_digest({"profile": profile, "batch": batch})
-        tabular_files.save(db, protocol)
+        if protocol:
+            tabular_files.save(db, protocol)
         tabular_files.save(db, request["csv"])
         store.put_lab(LAB)
         store.put_experiment(exp, allow_unassigned=True)
@@ -290,7 +320,7 @@ def public_context(store, order):
         public["procedure_context"] = _procedure_context(store, public["procedure"])
     latest = WorkOrders(store).submission(order.id)
     edition, _ = _stored_control(store.connection, order.id)
-    return {**public, "protocol": tabular_files.load(store.connection, profile["protocol_digest"]),
+    return {**public, "protocol": _protocol(store, profile),
             "awaiting_fresh_control": order.status in ("open", "in_progress") and _used(store.connection, order.id, edition),
             "last_public_checks": [asdict(c) for c in latest.results] if latest else [],
             "needs_input": latest.artifact.get("needs_input") if latest else None}
@@ -305,8 +335,14 @@ def catalog(store):
 def _blind_check(artifact, profile, batch, control):
     from .tabular_analysis import verify_control
 
+    language = artifact.get("language", "python")
+    verifier = profile.get("verifiers", {}).get(language)
+    if verifier is not None and (language not in LANGUAGE_PROFILES or LANGUAGE_PROFILES[language].verifier != verifier):
+        raise WorkOrderError("The pinned analysis verifier is unavailable.")
     report = verify_control(artifact, batch["standards"], control["signal"], control["factor"],
                             control["expected"], control["tolerance"], range_gate=profile["range_gate"])
+    if verifier is not None:
+        report.update(language=language, verifier=verifier)
     return {**report, "signal": control["signal"], "factor": control["factor"], "unit": profile["unit"]}
 
 
@@ -317,10 +353,15 @@ def submission_checks(store, order, artifact, *, approval=None):
         question = artifact["needs_input"]
         if isinstance(question, str) and question.strip() and len(question) <= 1000:
             return [CheckResult("Information required", False, question)], None
+    profile, batch = _intake(store, order.id)
+    allowed = profile.get("allowed_languages")
+    if isinstance(artifact, dict) and (allowed is not None or "language" in artifact):
+        if artifact.get("language") not in (allowed or ["python"]):
+            return [CheckResult("Analysis language", False,
+                                "Select a permitted language: " + ", ".join(allowed or ["python"]))], None
     checks = check(artifact)
     if not all_passed(checks):
         return checks, None
-    profile, batch = _intake(store, order.id)
     db = store.connection
     edition, control = _stored_control(db, order.id)
     if approval is None and _used(db, order.id, edition):
@@ -366,16 +407,23 @@ def reviewer_context(store, order):
     edition, _ = _stored_control(store.connection, order.id)
     latest = WorkOrders(store).submission(order.id)
     return {**profile, "needs_input": latest.artifact.get("needs_input") if latest else None,
-            "protocol": tabular_files.load(store.connection, profile["protocol_digest"]),
+            "protocol": _protocol(store, profile),
             "csv_name": batch["csv_name"], "csv_digest": batch["csv_digest"],
             "standards_count": len(batch["standards"]), "unknown_count": len(batch["unknowns"]),
             "control_edition": edition, "control_renewal_required":
                 order.status in ("in_progress", "open") and _used(store.connection, order.id, edition)}
 
 
+def _protocol(store, profile):
+    digest = profile["protocol_digest"]
+    return tabular_files.load(store.connection, digest) if digest else None
+
+
 def original(store, order_id, kind):
     profile, batch = _intake(store, order_id)
     if kind == "protocol":
+        if not profile["protocol_digest"]:
+            raise NotFound("No protocol file was uploaded for this analysis.")
         name, key = profile["protocol_name"], profile["protocol_digest"]
     elif kind == "readings":
         name, key = batch["csv_name"], batch["csv_digest"]
@@ -468,6 +516,10 @@ def run(store, order_id, reviewer, request):
                    "release_control_edition": edition, "control": qc,
                    "status": "estimated" if any(r["value"] is not None for r in results) else "withheld",
                    "results": results}
+        if evidence := profile.get("research_context"):
+            receipt["research_context"] = {scope: {key: record[key] for key in ("id", "revision", "digest")}
+                                           for scope, record in evidence.items()}
+        receipt["language"] = release.artifact.get("language", "python")
         if "procedure" in profile:
             receipt["procedure"] = profile["procedure"]
         cursor = db.execute("INSERT INTO tabular_runs(work_order_id,submission,batch_digest,actor,receipt) VALUES (?,?,?,?,?)",

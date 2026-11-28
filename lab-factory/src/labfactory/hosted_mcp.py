@@ -96,9 +96,9 @@ def _agent_server(run_store, agent_name: str, security: TransportSecuritySetting
         return await stored(lambda agent: agent.list_work_orders(status))
 
     @server.tool()
-    async def get_work_order_context(work_order_id: str) -> dict:
+    async def get_work_order_context(work_order_id: str, query: str = "", offset: int = 0) -> dict:
         """Read pinned context, artifact format, and feedback from the previous reviewer."""
-        return await stored(lambda agent: agent.get_work_order_context(work_order_id))
+        return await stored(lambda agent: agent.get_work_order_context(work_order_id, query, offset))
 
     @server.tool()
     async def claim_work_order(work_order_id: str, worker: str, untagged_artifact: dict | None = None) -> dict:

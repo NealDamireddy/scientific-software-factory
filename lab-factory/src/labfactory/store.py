@@ -24,6 +24,14 @@ class NotFound(LookupError):
 
 
 _SCHEMA = {
+    "research_app_projects": """
+    CREATE TABLE IF NOT EXISTS research_app_projects (app_id TEXT PRIMARY KEY, project_id TEXT NOT NULL)""",
+    "research_investigations": """
+    CREATE TABLE IF NOT EXISTS research_investigations (
+        id TEXT PRIMARY KEY, actor TEXT NOT NULL, request_digest TEXT NOT NULL,
+        project_id TEXT NOT NULL, context_id TEXT UNIQUE, result TEXT NOT NULL
+    )""",
+    "research_project_history": "CREATE INDEX IF NOT EXISTS research_project_history ON research_investigations(project_id)",
     "drift_requests": """
     CREATE TABLE IF NOT EXISTS drift_requests (
         id TEXT PRIMARY KEY, actor TEXT NOT NULL, request_digest TEXT NOT NULL, objective TEXT NOT NULL,

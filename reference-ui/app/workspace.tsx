@@ -34,7 +34,6 @@ import {
   Download,
 } from "lucide-react";
 import {
-  ResourceForm,
   type KnowledgeRecord,
   type InstrumentRecord,
 } from "./resource-form";
@@ -50,11 +49,14 @@ import {
   normalizeExtensions,
   buildAgentContext,
 } from "./extension-model";
+import { LabOperations, labViews } from "./lab-operations";
+import ResearchWorkflows, { useRead } from "./research-workflows";
+import { apiUrl, researchRequest } from "./research-api";
+import { ProjectSources, type AnalysisSources, ProjectInvestigations, RegisteredLibrary, type Investigation, type Question, type Project } from "./project-investigations";
 import ExperimentDetail from "./experiment-detail";
 import { deliverReview, recordDelivery } from "./worker-delivery";
 import {
   advanceWorkspace,
-  createDraft,
   initialExperiments,
   type Experiment,
 } from "./simulation";
@@ -108,8 +110,6 @@ type DialogName =
   | "settings"
   | "reset"
   | "mode"
-  | "add-instrument"
-  | "add-knowledge"
   | null;
 type Popup = "instrument" | "project" | "workspace" | null;
 type Saved = {
@@ -175,9 +175,46 @@ export default function Workspace() {
   const objectiveRef = useRef<HTMLTextAreaElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const openerRef = useRef<HTMLButtonElement>(null);
-  const [section, encoded = ""] = route.split("/");
+  const [section, encoded = "", investigationId] = route.split("/");
+  const directory = useRead<{projects: Project[]; investigations: Pick<Investigation,"id"|"objective"|"project_id">[]}>("research-projects");
+  const session = useRead<{reviewer: string | null; access_mode?: string}>("session");
+  const [clarification, setClarification] = useState<Question | null>(null);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [analysisSources, setAnalysisSources] = useState<AnalysisSources>();
+  const [busy, setBusy] = useState(false);
+  const inflight = useRef(false);
+  const generation = useRef(0);
+  const choices = useRef<Record<string, string>>({});
+  const pending = useRef({ fingerprint: "", id: "" });
+  const registered = directory.data?.projects || [];
+  const projectOptions = [
+    ...registered.map(p => ({ key: "lab:" + p.id, id: p.id, title: p.title })),
+    ...saved.projects.filter(name => !registered.some(p => p.title === name))
+      .map(name => ({ key: name, title: name, id: "" })),
+  ];
+  function findProject(key: string) {
+    const exact = projectOptions.find(p => p.key === key);
+    if (exact) return exact;
+    const byTitle = projectOptions.filter(p => p.title === key);
+    return byTitle.length === 1 ? byTitle[0] : undefined;
+  }
+  function projectLabel(p: typeof projectOptions[number]) {
+    return projectOptions.filter(o => o.title === p.title).length > 1 ? p.title + " · " + p.id : p.title;
+  }
+  function resetRequest() {
+    generation.current++;
+    inflight.current = false;
+    setBusy(false);
+    setClarification(null);
+    setComposerError("");
+    choices.current = {};
+  }
   const item = decode(encoded);
+  const labRoute = section.split("?")[0];
+  const labView = Object.prototype.hasOwnProperty.call(labViews, labRoute) && labViews[labRoute];
   const project = section === "project" ? item : "";
+  const projectInfo = findProject(project);
+  const selected = findProject(saved.selectedProject);
   const experiment = saved.experiments.find((e) => e.id === item);
   const articles = [...saved.knowledge, ...sampleArticles];
   const instruments = [demoInstrument, ...saved.instruments];
@@ -253,7 +290,14 @@ export default function Workspace() {
       }
     } catch {}
     const onLocation = () => {
-      setRoute(location.hash.slice(1) || "home");
+      resetRequest();
+      const hash = location.hash.slice(1) || "home";
+      if (hash.startsWith("analysis/drift")) {
+        const id = hash.split("/")[2];
+        const next = id?.startsWith("PLOT-") ? "stage-plots/" + id : "stage-plots";
+        window.history.replaceState(null, "", "#" + next);
+        setRoute(next);
+      } else setRoute(hash);
       setPopup(null);
       setDialog(null);
       setDrawer(false);
@@ -312,6 +356,7 @@ export default function Workspace() {
     first?.focus();
   }, [popup]);
   function go(next: string) {
+    resetRequest();
     if (next !== (window.location.hash.slice(1) || "home")) {
       window.history.pushState(null, "", "#" + next);
     }
@@ -341,27 +386,69 @@ export default function Workspace() {
     go("home");
     requestAnimationFrame(() => objectiveRef.current?.focus());
   }
-  function submit() {
-    const title = saved.objective.trim();
-    if (!title) {
+  async function submit(answer?: { field: string; id: string }) {
+    if (inflight.current || (!answer && clarification)) return;
+    const objective = saved.objective.trim();
+    if (!objective) {
       setComposerError("Describe your research objective to start.");
       objectiveRef.current?.focus();
       return;
     }
-    const selected =
-      saved.selectedProject ||
-      (/b12|calibration|vitamin/i.test(title)
-        ? baseProjects[1]
-        : baseProjects[0]);
-    const draft = createDraft(title, selected);
-    setSaved((old) => ({
-      ...old,
-      experiments: [draft, ...old.experiments.filter((e) => e.id !== draft.id)],
-      objective: "",
-      selectedProject: "",
-    }));
+    if (!selected) {
+      setComposerError("Choose the project for this investigation.");
+      setPopup("project");
+      return;
+    }
+    inflight.current = true;
+    const version = generation.current;
+    setBusy(true);
     setComposerError("");
-    go(routeFor("experiment", draft.id));
+    if (answer) choices.current = { ...choices.current, [answer.field]: answer.id };
+    try {
+      // Check the current directory before promoting an older browser-local project.
+      const records = selected.id ? [] : (await researchRequest<{projects: Project[]}>("research-projects")).projects;
+      if (version !== generation.current) return;
+      const matches = records.filter(p => p.title === selected.title);
+      if (!selected.id && matches.length > 1) {
+        directory.refresh();
+        throw new Error("Several registered projects share this name. Choose the project ID.");
+      }
+      const projectId = selected.id || matches[0]?.id ||
+        (await researchRequest<Project>("research-projects", { title: selected.title })).id;
+      if (version !== generation.current) return;
+      const sources = analysisSources?.experiment_id === projectId ? analysisSources : undefined;
+      const fingerprint = JSON.stringify([apiUrl("investigations"), projectId, objective, sources]);
+      // Retain the idempotency key and clarification answers across a lost response or reload.
+      let previous = pending.current;
+      try {
+        const stored = JSON.parse(sessionStorage.getItem("research.pending-investigation") || "null");
+        if (stored?.fingerprint === fingerprint) {
+          previous = stored;
+          choices.current = { ...stored.choices, ...choices.current };
+        }
+      } catch {}
+      const id = previous.fingerprint === fingerprint ? previous.id : crypto.randomUUID();
+      pending.current = { fingerprint, id };
+      try { sessionStorage.setItem("research.pending-investigation", JSON.stringify({ fingerprint, id, choices: choices.current })); } catch {}
+      const result = await researchRequest<Question | Investigation>("investigations", {
+        project_id: projectId, request_id: id, objective, choices: choices.current, ...(sources ? {analysis_sources:sources} : {}),
+      });
+      if (generation.current !== version) return;
+      if ("question" in result) {
+        setClarification(result);
+      } else {
+        try { sessionStorage.removeItem("research.pending-investigation"); } catch {}
+        pending.current = { fingerprint: "", id: "" };
+        setAnalysisSources(undefined); setSourcesOpen(false);
+        update({objective: "", selectedProject: "lab:" + projectId});
+        directory.refresh();
+        go(routeFor("project", "lab:" + projectId) + "/" + result.id);
+      }
+    } catch (failure) {
+      if (generation.current === version) setComposerError(failure instanceof Error ? failure.message : "Project lookup failed. Retry.");
+    } finally {
+      if (generation.current === version) { inflight.current = false; setBusy(false); }
+    }
   }
   useEffect(() => {
     const listener = (event: KeyboardEvent) => {
@@ -378,27 +465,31 @@ export default function Workspace() {
     window.addEventListener("keydown", listener);
     return () => window.removeEventListener("keydown", listener);
   });
-  function saveProject(event: FormEvent) {
+  async function saveProject(event: FormEvent) {
     event.preventDefault();
     const name = projectName.trim();
     if (
       !name ||
-      saved.projects.some((p) => p.toLowerCase() === name.toLowerCase())
+      projectOptions.some((p) => p.title.toLowerCase() === name.toLowerCase())
     ) {
       setProjectError(
         name ? "A project already uses this name." : "Enter a project name.",
       );
       return;
     }
-    setSaved((old) => ({
-      ...old,
-      projects: [...old.projects, name],
-      selectedProject: projectOrigin ? name : old.selectedProject,
-    }));
-    if (projectOrigin) {
-      setDialog(null);
-      objectiveRef.current?.focus();
-    } else go(routeFor("project", name));
+    try {
+      const record = await researchRequest<Project>("research-projects", {title: name});
+      directory.refresh();
+      setProjectError("");
+      const projectKey = "lab:" + record.id;
+      if (projectOrigin) {
+        update({selectedProject: projectKey});
+        setDialog(null);
+        objectiveRef.current?.focus();
+      } else go(routeFor("project", projectKey));
+    } catch (failure) {
+      setProjectError(failure instanceof Error ? failure.message : "Could not save the project.");
+    }
   }
   const nav = (
     label: string,
@@ -454,7 +545,7 @@ export default function Workspace() {
       <span className="ws-row-copy">
         <strong>{e.title}</strong>
         <small>
-          {e.project} <span>·</span> UV–Vis
+          {e.project} <span>·</span> UV–Vis simulation
         </small>
       </span>
       <span className="ws-row-status">
@@ -472,9 +563,19 @@ export default function Workspace() {
       <ChevronRight className="ws-row-arrow" size={23} />
     </button>
   );
+  const liveRow = (i: Pick<Investigation,"id"|"objective"|"project_id">) =>
+    <button className="ws-experiment-row" key={i.id}
+      onClick={() => go(routeFor("project", "lab:" + i.project_id) + "/" + i.id)}>
+      <FlaskConical/><span className="ws-row-copy"><strong>{i.objective}</strong>
+        <small>{registered.find(p => p.id === i.project_id)?.title || i.project_id}</small></span><ChevronRight/>
+    </button>;
   const headerName: Record<string, string> = {
+    ...labViews,
     connectors: "Connectors",
     skills: "Skills",
+    "analysis-apps": "Analysis apps",
+    "stage-plots": "Stage drift plots",
+    procedures: "Procedures",
     home: "Overview",
     experiments: "All experiments",
     project: "Projects",
@@ -485,6 +586,7 @@ export default function Workspace() {
     article: "Lab knowledge",
   };
   const results = [
+    ...Object.entries(labViews).filter(([to]) => to !== "order").map(([to,label]) => ({label, group:"Lab", to})),
     { label: "Connectors", group: "Workspace", to: "connectors" },
     { label: "Skills", group: "Workspace", to: "skills" },
     ...saved.extensions.customConnectors.map((record) => ({
@@ -502,10 +604,10 @@ export default function Workspace() {
       group: "Experiment",
       to: routeFor("experiment", e.id),
     })),
-    ...saved.projects.map((p) => ({
-      label: p,
+    ...projectOptions.map((p) => ({
+      label: projectLabel(p),
       group: "Project",
-      to: routeFor("project", p),
+      to: routeFor("project", p.key),
     })),
     ...instruments.map((record) => ({
       label: record.name,
@@ -599,6 +701,7 @@ export default function Workspace() {
             section === "experiments",
             () => go("experiments"),
           )}
+          {nav("Lab operations", <FlaskConical />, !!labView, () => go("orders"))}
         </nav>
         <div className="ws-projects">
           <div className="ws-projecthead">
@@ -613,9 +716,9 @@ export default function Workspace() {
             </button>
           </div>
           <nav aria-label="Project navigation">
-            {saved.projects.map((p) =>
-              nav(p, <Folder />, project === p, () =>
-                go(routeFor("project", p)),
+            {projectOptions.map((p) =>
+              nav(projectLabel(p), <Folder />, projectInfo?.key === p.key, () =>
+                go(routeFor("project", p.key)),
               ),
             )}
           </nav>
@@ -644,10 +747,10 @@ export default function Workspace() {
               show("settings"),
             )}
           </nav>
-          <button className="ws-account" onClick={() => show("settings")}>
-            <span className="ws-avatar">R</span>
+          <button className="ws-account" onClick={() => go("orders")}>
+            <span className="ws-avatar">{(session.data?.reviewer || "R").slice(0,1).toUpperCase()}</span>
             <span>
-              Researcher<small>Demo workspace</small>
+              {session.data?.reviewer || (session.data ? "Sign in" : "Researcher")}<small>Research workspace</small>
             </span>
           </button>
         </div>
@@ -661,13 +764,15 @@ export default function Workspace() {
           >
             <Menu />
           </button>
-          <span>{headerName[section] || "Overview"}</span>
-          <button className="ws-mode" onClick={() => show("mode")}>
+          <span>{labView || headerName[section] || "Overview"}</span>
+          {labView || ["analysis-apps", "stage-plots", "procedures", "home", "project", "experiments", "instruments", "knowledge"].includes(section) ? <span>Lab Factory</span> : <button className="ws-mode" onClick={() => show("mode")}>
             <i />
             Simulation mode
-          </button>
+          </button>}
         </header>
-        {section === "connectors" || section === "skills" ? (
+        {labView ? <LabOperations route={route} extensions={saved.extensions} sessionChanged={() => { directory.refresh(); session.refresh(); }} /> : section === "analysis-apps" || section === "stage-plots" || section === "procedures" ? (
+          <ResearchWorkflows key={route} kind={section} id={item} go={go} />
+        ) : section === "connectors" || section === "skills" ? (
           <ExtensionPage
             key={section}
             section={section}
@@ -688,44 +793,12 @@ export default function Workspace() {
                 value={saved.objective}
                 placeholder="Describe an experiment, analysis, or research objective..."
                 onChange={(e) => {
+                  resetRequest();
                   update({ objective: e.target.value });
                   setComposerError("");
                 }}
               />
               <div className="ws-composerfoot">
-                <div className="ws-selectorwrap" data-popup>
-                  <button
-                    className="ws-selector"
-                    aria-expanded={popup === "instrument"}
-                    onClick={() =>
-                      setPopup((p) =>
-                        p === "instrument" ? null : "instrument",
-                      )
-                    }
-                  >
-                    <FlaskConical />
-                    <span>UV–Vis spectrometer</span>
-                    <ChevronDown className="ws-caret" />
-                  </button>
-                  {popup === "instrument" &&
-                    popupContent(
-                      <>
-                        <span className="ws-drop-label">
-                          {activeRun
-                            ? "Instrument in use"
-                            : "Available instruments"}
-                        </span>
-                        <button onClick={() => setPopup(null)}>
-                          UV–Vis spectrometer
-                          <Check size={16} />
-                        </button>
-                        <button onClick={() => go("instruments")}>
-                          View instruments
-                          <ArrowUpRight size={16} />
-                        </button>
-                      </>,
-                    )}
-                </div>
                 <div className="ws-selectorwrap" data-popup>
                   <button
                     className="ws-selector"
@@ -735,23 +808,24 @@ export default function Workspace() {
                     }
                   >
                     <Folder />
-                    <span>{saved.selectedProject || "Project"}</span>
+                    <span>{selected ? projectLabel(selected) : "Project"}</span>
                     <ChevronDown className="ws-caret" />
                   </button>
                   {popup === "project" &&
                     popupContent(
                       <>
                         <span className="ws-drop-label">Choose project</span>
-                        {saved.projects.map((p) => (
+                        {projectOptions.map((p) => (
                           <button
-                            key={p}
+                            key={p.key}
                             onClick={() => {
-                              update({ selectedProject: p });
+                              resetRequest();
+                              update({ selectedProject: p.key });
                               setPopup(null);
                             }}
                           >
-                            {p}
-                            {saved.selectedProject === p && <Check size={16} />}
+                            {projectLabel(p)}
+                            {selected?.key === p.key && <Check size={16} />}
                           </button>
                         ))}
                         <button onClick={() => newProject(true)}>
@@ -761,11 +835,14 @@ export default function Workspace() {
                       </>,
                     )}
                 </div>
+                {selected?.id && <button className="ws-selector" aria-expanded={sourcesOpen}
+                  onClick={() => setSourcesOpen(v => !v)}>Analysis sources</button>}
                 <button
                   className="ws-submit"
-                  aria-label="Start experiment draft"
-                  title="Review experiment draft"
-                  onClick={submit}
+                  aria-label="Start investigation"
+                  title="Start investigation"
+                  disabled={busy || !!clarification}
+                  onClick={() => submit()}
                 >
                   <ArrowUp />
                 </button>
@@ -774,10 +851,19 @@ export default function Workspace() {
             <div className="ws-composerhint">
               <span role="status">
                 {composerError ||
-                  (activeRun ? "Instrument in use" : "1 instrument available")}
+                  (busy ? "Checking project records…" : "")}
               </span>
               <span>⌘ ↵ to start</span>
             </div>
+            {sourcesOpen && selected?.id && <div className="composer-question"><ProjectSources key={selected.id}
+              id={selected.id} value={analysisSources?.experiment_id === selected.id ? analysisSources : undefined}
+              set={value => { resetRequest(); setAnalysisSources(value); }}/></div>}
+            {clarification && <section className="composer-question">
+              <p>{clarification.question}</p>
+              {!!clarification.matches?.length && <p>In this project · {clarification.matches.map(r => r.title).join(", ")}</p>}
+              {clarification.options.map(o => <button key={o.id} className="ws-button" disabled={busy}
+                onClick={() => submit({field: clarification.field, id: o.id})}>{o.title}</button>)}
+            </section>}
             <section className="ws-recent">
               <div className="ws-sectionhead">
                 <h2>Recent experiments</h2>
@@ -785,7 +871,9 @@ export default function Workspace() {
                   View all <ArrowUpRight size={19} />
                 </button>
               </div>
-              {saved.experiments.slice(0, 3).map(row)}
+              {directory.data?.investigations.slice(0,3).map(liveRow)}
+              {directory.error && <p role="alert">{directory.error} <a href="#orders">Open lab session</a></p>}
+              {saved.experiments.slice(0, Math.max(0, 3 - (directory.data?.investigations.length || 0))).map(row)}
             </section>
           </div>
         ) : section === "experiment" && experiment ? (
@@ -811,16 +899,20 @@ export default function Workspace() {
                 <div className="ws-eyebrow">
                   {project ? "Project" : "Workspace"}
                 </div>
-                <h1>{project || "All experiments"}</h1>
+                <h1>{project ? projectInfo?.title || project.replace(/^lab:/, "") : "All experiments"}</h1>
               </div>
               <button
                 className="ws-button primary"
                 onClick={() => compose(project)}
               >
                 <Plus size={17} />
-                New experiment
+                New investigation
               </button>
             </div>
+            {project && (projectInfo?.id || project.startsWith("lab:")) && <ProjectInvestigations
+              key={project} projectId={projectInfo?.id || project.slice(4)} active={investigationId}
+              compose={objective => { update({objective, selectedProject: project}); compose(); }}
+              open={id => go(routeFor("project", project) + (id ? "/" + id : ""))} />}
             <div className="ws-toolbar">
               <label className="ws-inputgroup">
                 <Search size={17} />
@@ -846,13 +938,15 @@ export default function Workspace() {
                 )}
               </select>
             </div>
+            {!project && directory.data?.investigations.filter(i => i.objective.toLowerCase().includes(listQuery.toLowerCase())).map(liveRow)}
             {(() => {
               const matches = saved.experiments.filter(
                 (e) =>
-                  (!project || e.project === project) &&
+                  (!project || e.project === (projectInfo?.title || project)) &&
                   e.title.toLowerCase().includes(listQuery.toLowerCase()) &&
                   (filter === "All statuses" || e.status === filter),
               );
+              if (project && !matches.length && (projectInfo?.id || investigationId) && !listQuery) return null;
               return matches.length ? (
                 matches.map(row)
               ) : (
@@ -891,7 +985,7 @@ export default function Workspace() {
               <h1>Instruments</h1>
               <button
                 className="ws-button primary"
-                onClick={() => show("add-instrument")}
+                onClick={() => go("context")}
               >
                 <Plus size={16} />
                 Add instrument
@@ -911,8 +1005,9 @@ export default function Workspace() {
                 />
               </label>
             </div>
+            <RegisteredLibrary kind="instruments" query={listQuery}/>
             <div className="ws-sectionhead">
-              <h2>Workspace instruments</h2>
+              <h2>Local workspace instruments</h2>
               <span>
                 {visibleInstruments.length}{" "}
                 {visibleInstruments.length === 1 ? "instrument" : "instruments"}
@@ -1011,7 +1106,9 @@ export default function Workspace() {
                 <div className="ws-sectionhead">
                   <h2>Recent experiments</h2>
                 </div>
-                {saved.experiments.slice(0, 3).map(row)}
+                {directory.data?.investigations.slice(0,3).map(liveRow)}
+              {directory.error && <p role="alert">{directory.error} <a href="#orders">Open lab session</a></p>}
+              {saved.experiments.slice(0, Math.max(0, 3 - (directory.data?.investigations.length || 0))).map(row)}
               </>
             )}
           </div>
@@ -1022,7 +1119,7 @@ export default function Workspace() {
               <h1>Lab knowledge</h1>
               <button
                 className="ws-button primary"
-                onClick={() => show("add-knowledge")}
+                onClick={() => go("context")}
               >
                 <Plus size={16} />
                 Add knowledge
@@ -1042,6 +1139,9 @@ export default function Workspace() {
                 />
               </label>
             </div>
+            <RegisteredLibrary kind="documents" query={listQuery}/>
+            <a className="ws-button" href="#references">Search reference library</a>
+            <h2>Workspace guides</h2>
             {visibleArticles.map((a) => (
               <button
                 className="ws-resource"
@@ -1147,38 +1247,6 @@ export default function Workspace() {
             ))}
             {!results.length && <p>No results for “{query}”.</p>}
           </div>
-        </Modal>
-      )}
-      {dialog === "add-instrument" && (
-        <Modal title="Add instrument" close={() => setDialog(null)}>
-          <ResourceForm
-            kind="instrument"
-            names={instruments.map((i) => i.name)}
-            onCancel={() => setDialog(null)}
-            onSave={(record) => {
-              setSaved((old) => ({
-                ...old,
-                instruments: [...old.instruments, record],
-              }));
-              go(routeFor("instrument", record.id));
-            }}
-          />
-        </Modal>
-      )}
-      {dialog === "add-knowledge" && (
-        <Modal title="Add lab knowledge" close={() => setDialog(null)}>
-          <ResourceForm
-            kind="knowledge"
-            names={articles.map((a) => a.title)}
-            onCancel={() => setDialog(null)}
-            onSave={(record) => {
-              setSaved((old) => ({
-                ...old,
-                knowledge: [record, ...old.knowledge],
-              }));
-              go(routeFor("article", record.title));
-            }}
-          />
         </Modal>
       )}
       {dialog === "project" && (

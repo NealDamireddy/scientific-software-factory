@@ -20,6 +20,15 @@ def _parser() -> argparse.ArgumentParser:
         commands = groups.add_parser(record).add_subparsers(dest="command", required=True)
         commands.add_parser("put", help=f"save a revision of a {record} record").add_argument("file", type=Path)
 
+    draft = groups.add_parser("draft", help="draft a procedure from a saved goal").add_subparsers(dest="command", required=True)
+    draft.add_parser("start").add_argument("experiment_id")
+    draft.add_parser("demo")
+    source = draft.add_parser("source", help="answer a pending method question in a fresh pinned order")
+    source.add_argument("id")
+    source.add_argument("--title", required=True)
+    source.add_argument("--file", type=Path, required=True)
+    draft.add_parser("demo-source").add_argument("id")
+
     wo = groups.add_parser("wo", help="manage and review work orders").add_subparsers(dest="command", required=True)
     create = wo.add_parser("create")
     create.add_argument("experiment_id")
@@ -94,6 +103,19 @@ def _show(orders: WorkOrders, id: str) -> str:
 
 
 def _operate(args, store: Store) -> None:
+    if args.group == "draft":
+        from . import procedure_demo, procedure_drafts
+        if args.command == "start":
+            print(procedure_drafts.create(store, args.experiment_id, "operator").id)
+        elif args.command == "demo":
+            print(procedure_demo.start(store, "operator"))
+        elif args.command == "demo-source":
+            if not (procedure_drafts.info(store, args.id) or {}).get("demo"):
+                raise WorkOrderError("Choose a teaching demo order.")
+            print(procedure_drafts.add_source(store, args.id, "operator", None, None))
+        else:
+            print(procedure_drafts.add_source(store, args.id, "operator", args.title, args.file.read_text(encoding="utf-8")))
+        return
     if args.group in ("lab", "experiment"):
         data = json.loads(args.file.read_text(encoding="utf-8"), object_pairs_hook=unique_fields)
         if args.group == "lab":

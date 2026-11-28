@@ -155,3 +155,4 @@ function build() {
 }
 
 build();
+execFileSync(process.execPath, [path.join(lab, "scripts/build_research.mjs"), ...process.argv.slice(2)], {stdio: "inherit"});

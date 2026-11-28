@@ -18,10 +18,10 @@ def build_server(db_path: str) -> FastMCP:
             return AgentTools(store).list_work_orders(status)
 
     @server.tool()
-    def get_work_order_context(work_order_id: str) -> dict:
+    def get_work_order_context(work_order_id: str, query: str = "", offset: int = 0) -> dict:
         """Read pinned context, artifact format, and feedback from the previous reviewer."""
         with Store(db_path) as store:
-            return AgentTools(store).get_work_order_context(work_order_id)
+            return AgentTools(store).get_work_order_context(work_order_id, query, offset)
 
     @server.tool()
     def claim_work_order(work_order_id: str, worker: str, untagged_artifact: dict | None = None) -> dict:

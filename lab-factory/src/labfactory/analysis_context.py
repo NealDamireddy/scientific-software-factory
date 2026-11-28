@@ -1,6 +1,30 @@
 """Author-visible evidence from the saved research experiment behind an analysis."""
 
+import json
+
 from .context import ContextError, canonical_json, to_dict
+
+
+def choices(store):
+    """List source titles for reviewer selection without disclosing document bodies."""
+    with store.read_transaction() as db:
+        rows = db.execute("""
+            SELECT r.body,r.number FROM records r JOIN (
+                SELECT id, MAX(number) AS number FROM records
+                WHERE kind='experiment' AND id NOT LIKE 'tabular-%' GROUP BY id
+            ) latest ON r.id=latest.id AND r.number=latest.number
+            WHERE r.kind='experiment' ORDER BY r.id""")
+        labs, projects = {}, []
+        for row in rows:
+            exp = json.loads(row["body"])
+            if exp["lab_id"] not in labs:
+                lab, rev = store.get_lab(exp["lab_id"])
+                labs[lab.id] = {"name": lab.name, "revision": rev.number,
+                                "documents": [{"id": doc.id, "title": doc.title} for doc in lab.documents]}
+            projects.append({"id": exp["id"], "title": exp["title"], "revision": row["number"],
+                             "lab": labs[exp["lab_id"]], "instrument_ids": exp["instrument_ids"],
+                             "documents": [{k: doc[k] for k in ("id", "title")} for doc in exp["documents"]]})
+    return {"experiments": projects}
 
 
 def _documents(record, ids):

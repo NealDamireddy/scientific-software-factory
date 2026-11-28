@@ -1,0 +1,58 @@
+.research-workflows {
+  overflow-wrap: anywhere;
+}
+.research-workflows h2 {
+  margin: 1.5em 0 0.55em;
+  font-size: 1.35rem;
+}
+.research-workflows p,
+.research-workflows li {
+  line-height: 1.5;
+}
+.research-workflows fieldset {
+  margin: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  display: grid;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.research-workflows label {
+  display: grid;
+  gap: 0.4em;
+  font-weight: 550;
+}
+.research-workflows :is(select, input, textarea) {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-small);
+  padding: 0.65em;
+  font-weight: 400;
+}
+.research-workflows textarea {
+  min-height: 5em;
+  resize: vertical;
+}
+.research-workflows fieldset .ws-button {
+  justify-self: start;
+}
+.research-workflows details {
+  margin-block: 1em;
+}
+.research-workflows summary {
+  cursor: pointer;
+}
+.research-workflows [role="alert"] {
+  color: #943e23;
+}
+.project-investigations { margin-block: 1.25rem 2rem; }
+.project-investigations .research-item { padding: .75rem 1rem; border-left: 2px solid var(--line); }
+.research-item > small { display: block; color: var(--muted); margin-top: .35rem; }
+.project-investigations details { margin-top: 1rem; }
+.composer-question { padding: 1rem; border: 1px solid var(--line); border-radius: var(--radius); }
+.composer-question button { margin: .3rem .5rem .3rem 0; }
+
+.composer-question fieldset { margin: 0; padding: 0; border: 0; }
+.composer-question fieldset label { display: block; margin: .5rem 0; }

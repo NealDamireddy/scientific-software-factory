@@ -1,0 +1,8 @@
+sample,role,voltage_mV,temperature_C
+Warm standard,standard,350,40
+Cold standard,standard,100,0
+Middle standard,standard,200,10
+Check sensor,control,275,
+Sensor A,unknown,150,
+Sensor B,unknown,320,
+Sensor C,unknown,390,
