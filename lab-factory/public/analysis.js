@@ -279,6 +279,7 @@ function showTabularIntake(projects, experiments, release) {
 
   const refs = analysisReferences();
   const includeSkills = analysisInput("Attach enabled research skills to this worker request", "attach_skills", "checkbox", false);
+  includeSkills.input.checked = true;
   form.append(project.label, sources);
   if (skills.length) form.append(includeSkills.label, element("p", skills.map(s => s.name).join(", "), "muted"));
   if (!projects.length) form.append(analysisLink("Create a project in the research workspace", "/#home"));

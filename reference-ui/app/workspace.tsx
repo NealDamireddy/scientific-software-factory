@@ -48,6 +48,7 @@ import {
   builtinSkills,
   normalizeExtensions,
   buildAgentContext,
+  workerSkills,
 } from "./extension-model";
 import { LabOperations, labViews } from "./lab-operations";
 import ResearchWorkflows, { useRead } from "./research-workflows";
@@ -422,7 +423,8 @@ export default function Workspace() {
         (await researchRequest<Project>("research-projects", { title: selected.title })).id;
       if (version !== generation.current) return;
       const sources = analysisSources?.experiment_id === projectId ? analysisSources : undefined;
-      const fingerprint = JSON.stringify([apiUrl("investigations"), projectId, objective, sources]);
+      const skills = workerSkills(saved.extensions);
+      const fingerprint = JSON.stringify([apiUrl("investigations"), projectId, objective, sources, skills]);
       // Retain the idempotency key and clarification answers across a lost response or reload.
       let previous = pending.current;
       try {
@@ -437,6 +439,7 @@ export default function Workspace() {
       try { sessionStorage.setItem("research.pending-investigation", JSON.stringify({ fingerprint, id, choices: choices.current })); } catch {}
       const result = await researchRequest<Question | Investigation>("investigations", {
         project_id: projectId, request_id: id, objective, choices: choices.current, ...(sources ? {analysis_sources:sources} : {}),
+        ...(skills.length ? { skills } : {}),
       });
       if (generation.current !== version) return;
       if ("question" in result) {

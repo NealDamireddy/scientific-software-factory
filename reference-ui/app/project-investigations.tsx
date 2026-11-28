@@ -10,6 +10,11 @@ export type Project = { id: string; title: string };
 export type Resource = {
   id: string; title: string; kind: "app" | "procedure" | "data"; status?: string;
   path?: string; automatic?: boolean; tabular?: boolean; reused?: boolean; submission?: number;
+  briefing?: {
+    skills: {id: string; name: string; version: string}[];
+    references: {id: string; kind: string; title: string; url: string; locator: string}[];
+    instrument: string | null;
+  };
 };
 export type Investigation = { id: string; project_id: string; objective: string; resources: Resource[] };
 export type Question = { question: string; field: string; options: Project[]; matches?: Resource[] };
@@ -92,6 +97,18 @@ function ResourceItem({item, projectId, showByDefault = false, objective}: {
       ? <DraftDetail key={draft} id={draft} open={setDraft}/> : <WorkerProcedure id={item.id}/>}</div>}
     {item.kind === "procedure" && item.status === "released" &&
       <a href={"#analysis/new?" + new URLSearchParams({project:projectId, procedure:item.id})}>Use this procedure for a tabular analysis</a>}
+    {item.briefing && <details className="project-briefing">
+      <summary>Agent briefing</summary>
+      {item.briefing.skills.length > 0 && <p>Skills · {item.briefing.skills.map((s, n) =>
+        <span key={s.id}>{n > 0 && ", "}<span title={s.version}>{s.name}</span></span>)}</p>}
+      {item.briefing.instrument && <p>Instrument · {item.briefing.instrument}</p>}
+      {item.briefing.references.length > 0 && <>
+        <h4>Suggested sources</h4>
+        <ul>{item.briefing.references.map(r => <li key={r.id}>
+          <a href={r.url} target="_blank" rel="noopener noreferrer">{r.title}</a> · {r.locator}</li>)}</ul>
+      </>}
+      <p className="project-briefing-note">Suggested sources are pointers from the reference library. A worker cannot cite them until their text is added to the project.</p>
+    </details>}
   </div>;
 }
 

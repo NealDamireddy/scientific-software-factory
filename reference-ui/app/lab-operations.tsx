@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { mountReviewer } from "../../lab-factory/public/app.js";
-import { buildAgentContext, type ExtensionState } from "./extension-model";
+import { workerSkills, type ExtensionState } from "./extension-model";
 import reviewerDocument from "../../lab-factory/public/index.html?reviewer-template";
 
 export const labViews: Record<string, string> = {
@@ -25,9 +25,7 @@ export function LabOperations({ route, extensions, sessionChanged }: { route: st
     stylesheet.href = "/style.css";
     root.replaceChildren(stylesheet, ...Array.from(template.body.querySelectorAll(":scope > :not(script)"), node => document.importNode(node, true)));
     const controller = new AbortController();
-    const skills = buildAgentContext(extensions).skills.map(({id, name, whenToUse, instructions, stage}) =>
-      ({id, name, whenToUse, instructions, ...(stage ? {stage} : {})}));
-    mountReviewer(root, controller.signal, () => onSession.current(), skills);
+    mountReviewer(root, controller.signal, () => onSession.current(), workerSkills(extensions));
     return () => { controller.abort(); root.replaceChildren(); };
   }, [route, extensions]);
   return <div ref={host} />;
