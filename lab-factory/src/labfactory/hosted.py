@@ -17,7 +17,7 @@ from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
 from . import analysis_context, analysis_requests, first_draft, investigations, research_experiments, procedure_demo, procedure_drafts, source_drafter
-from . import b12_service, experiment_catalog, honey_service, reference_orders, references, tabular_service
+from . import b12_service, experiment_catalog, honey_service, library, reference_orders, references, tabular_service
 from .artifacts import render_artifact
 from .context import ContextError, experiment_from_dict, lab_from_dict, unique_fields
 from .hosted_auth import Access, PUBLIC_REVIEWER, SESSION_COOKIE, SESSION_SECONDS
@@ -529,7 +529,50 @@ async def reference_search(request):
     _reviewer(request)
     instrument = request.query_params.get("instrument", "all")
     objective = request.query_params.get("q", "")
-    return _response(await run_in_threadpool(references.search, instrument, objective))
+    result = await run_in_threadpool(references.search, instrument, objective)
+    ids = [finding["id"] for finding in result["findings"]]
+    shared = await run_in_threadpool(run_store, lambda store: library.visible(store, None, ids)) if ids else {}
+    if shared:
+        result = {**result, "findings": [{**f, "library_text": True} if f["id"] in shared else f
+                                         for f in result["findings"]]}
+    return _response(result)
+
+
+def _entry_id(request):
+    value = request.path_params["entry_id"]
+    if not value.isascii() or not value.isdigit() or int(value) < 1:
+        raise NotFound("Library entry not found")
+    return int(value)
+
+
+async def library_entries(request):
+    reviewer = _reviewer(request)
+    if request.method == "GET":
+        lab_id = request.query_params.get("lab_id")
+        return _response({"entries": await run_in_threadpool(run_store, lambda store: library.latest(store, lab_id))})
+    data = await _json_body(request)
+    text, extra = data.get("text"), set(data) - {"text", "source_id", "title", "lab_id"}
+    if extra or not isinstance(text, str) or any(
+            key in data and not isinstance(data[key], str) for key in ("source_id", "title", "lab_id")):
+        raise ContextError("Send text and optionally a source_id, title and lab_id, all as text.")
+    entry = await run_in_threadpool(run_store, lambda store: library.add(
+        store, reviewer, text, source_id=data.get("source_id"), title=data.get("title"),
+        lab_id=data.get("lab_id")), write=True)
+    return _response(entry, 201)
+
+
+async def library_entry(request):
+    _reviewer(request)
+    entry_id = _entry_id(request)
+    return _response(await run_in_threadpool(run_store, lambda store: library.get(store, entry_id)))
+
+
+async def library_share(request):
+    reviewer = _reviewer(request)
+    entry_id = _entry_id(request)
+    await _json_body(request)
+    return _response(await run_in_threadpool(
+        run_store, lambda store: library.share(store, reviewer, entry_id), write=True))
 
 
 async def reference_order(request):
@@ -650,6 +693,8 @@ reviewer_api = Starlette(routes=[
     Route("/api/context/{kind}", context_put, methods=["POST"]), Route("/api/example", example, methods=["POST"]),
     Route("/api/references", reference_catalog), Route("/api/references/search", reference_search),
     Route("/api/references/orders", reference_order, methods=["POST"]),
+    Route("/api/library", library_entries, methods=["GET", "POST"]),
+    Route("/api/library/{entry_id}", library_entry), Route("/api/library/{entry_id}/share", library_share, methods=["POST"]),
     Route("/api/analysis", analysis_catalog), Route("/api/analysis/orders", analysis_create, methods=["POST"]),
     Route("/api/analysis/drift", stage_requests, methods=["GET", "POST"]),
     Route("/api/analysis/drift/{id}", stage_requests),
@@ -694,7 +739,7 @@ def research_access(api, origin):
     async def routed(scope, receive, send):
         path = scope.get("path", "")
         if scope["type"] == "http" and (path in ("/api/experiments", "/api/research-projects", "/api/investigations") or any(
-            path == base or path.startswith(base + "/") for base in ("/api/analysis/apps", "/api/procedure-drafts", "/api/research-experiments")
+            path == base or path.startswith(base + "/") for base in ("/api/analysis/apps", "/api/procedure-drafts", "/api/research-experiments", "/api/library")
         )):
             await cors({**scope, "research_origin": origin}, receive, send)
         else:
